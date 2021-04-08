@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WIKIDATA_USER_AGENT: "Josh404Bot/1.0 (User:Josh404) requests/2.25.1 Python/3.9.4"
-      DRY_RUN: 1
 
     steps:
       - uses: actions/checkout@v2
@@ -23,11 +22,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: TMDb movie ID
+      - name: Run bot
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          QUICKSTATEMENTS_USERNAME: Josh404Bot
-          QUICKSTATEMENTS_TOKEN: xxx
           QUERY_BATCH_SIZE: 5
         run: |
-          python tmdb_movie_id.py
+          python tmdb_movie_id.py | tee output.csv
+
+      - name: Submit QuickStatements batch
+        env:
+          QUICKSTATEMENTS_USERNAME: Josh404Bot
+          QUICKSTATEMENTS_TOKEN: xxx
+        run: |
+          cat output.csv | python quickstatements.py --batchname TMDbIDs

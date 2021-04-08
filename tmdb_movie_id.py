@@ -5,8 +5,6 @@ import requests
 QUERY_BATCH_SIZE = os.environ.get("QUERY_BATCH_SIZE", "100")
 TMDB_API_KEY = os.environ["TMDB_API_KEY"]
 WIKIDATA_USER_AGENT = os.environ["WIKIDATA_USER_AGENT"]
-QUICKSTATEMENTS_USERNAME = os.environ["QUICKSTATEMENTS_USERNAME"]
-QUICKSTATEMENTS_TOKEN = os.environ["QUICKSTATEMENTS_TOKEN"]
 
 
 def missing_tmdb_id():
@@ -46,44 +44,13 @@ def lookup_tmdb_id(imdb_id):
     return results[0]["id"]
 
 
-def import_batch(statements):
-    data = {
-        "action": "import",
-        "submit": "1",
-        "username": QUICKSTATEMENTS_USERNAME,
-        "token": QUICKSTATEMENTS_TOKEN,
-        "batchname": "TMDbIDs",
-        "format": "csv",
-        "data": "qid,P4947\n",
-    }
-
-    for (entity, value) in statements:
-        data["data"] += '{},"""{}"""\n'.format(entity, value)
-
-    url = "https://quickstatements.toolforge.org/api.php"
-
-    if os.environ.get("DRY_RUN") == "1":
-        print("batchname", data["batchname"])
-        print(data["data"])
-        return True
-
-    r = requests.post(url, data=data)
-    r.raise_for_status()
-
-    resp = r.json()
-    assert resp["status"] == "OK"
-
-
 def main():
-    statements = []
-
+    print("qid,P4947")
     for entity in missing_tmdb_id():
         qid = entity["item"]["value"].replace("http://www.wikidata.org/entity/", "")
         tmdb_id = lookup_tmdb_id(entity["imdb"]["value"])
         if tmdb_id:
-            statements.append((qid, tmdb_id))
-
-    import_batch(statements)
+            print('{},"""{}"""\n'.format(qid, tmdb_id))
 
 
 if __name__ == "__main__":
