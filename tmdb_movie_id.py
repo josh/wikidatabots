@@ -61,6 +61,12 @@ def import_batch(statements):
         data["data"] += '{},"""{}"""\n'.format(entity, value)
 
     url = "https://quickstatements.toolforge.org/api.php"
+
+    if os.environ.get("DRY_RUN") == "1":
+        print("batchname", data["batchname"])
+        print(data["data"])
+        return True
+
     r = requests.post(url, data=data)
     r.raise_for_status()
 
