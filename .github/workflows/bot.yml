@@ -26,6 +26,8 @@ jobs:
       - name: TMDb movie ID
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          QUICKSTATEMENTS_USERNAME: Josh404Bot
+          QUICKSTATEMENTS_TOKEN: xxx
           QUERY_BATCH_SIZE: 5
         run: |
           python tmdb_movie_id.py
