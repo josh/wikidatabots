@@ -50,7 +50,7 @@ def main():
         qid = entity["item"]["value"].replace("http://www.wikidata.org/entity/", "")
         tmdb_id = lookup_tmdb_id(entity["imdb"]["value"])
         if tmdb_id:
-            print('{},"""{}"""\n'.format(qid, tmdb_id))
+            print('{},"""{}"""'.format(qid, tmdb_id))
 
 
 if __name__ == "__main__":
