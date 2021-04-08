@@ -1,9 +1,9 @@
-name: pytest
+name: Test
 
 on: [push, pull_request]
 
 jobs:
-  test:
+  pytest:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,6 +20,6 @@ jobs:
           python -m pip install pytest
           pip install -r requirements.txt
 
-      - name: Test
+      - name: Test with pytest
         run: |
           pytest
