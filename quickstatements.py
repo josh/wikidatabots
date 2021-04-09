@@ -1,3 +1,9 @@
+"""
+Small API wrapper for submitting QuickStatements batches.
+<https://quickstatements.toolforge.org/>
+"""
+
+
 import requests
 
 
@@ -6,6 +12,10 @@ class APIError(Exception):
 
 
 def import_batch(username, token, format, data, batchname=None):
+    """
+    Import and run QuickStatements batch in background. Returns a batch ID if successfully enqueued.
+    """
+
     data = {
         "action": "import",
         "submit": "1",

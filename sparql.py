@@ -1,3 +1,8 @@
+"""
+Small API wrapper for interacting with Wikidata's SPARQL query service.
+<https://query.wikidata.org/>
+"""
+
 import os
 
 import requests
@@ -12,6 +17,10 @@ if "WIKIDATA_USER_AGENT" in os.environ:
 
 
 def sparql(query):
+    """
+    Execute SPARQL query on Wikidata. Returns simplified results array.
+    """
+
     r = session.get(url, params={"query": query})
     r.raise_for_status()
 
