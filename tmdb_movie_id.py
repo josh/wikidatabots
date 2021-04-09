@@ -1,6 +1,7 @@
 import os
 
 import requests
+from tqdm import tqdm
 
 from sparql import sparql
 
@@ -19,9 +20,10 @@ def match_missing_tmdb_movie_ids(batch_size=QUERY_BATCH_SIZE):
     ORDER BY (?random)
     """
     query += " LIMIT " + batch_size
+    results = sparql(query)
 
     yield "qid,P4947"
-    for result in sparql(query):
+    for result in tqdm(results):
         tmdb_id = lookup_tmdb_movie_id(result["imdb"])
         if not tmdb_id:
             continue
