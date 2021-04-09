@@ -14,29 +14,33 @@ if "WIKIDATA_USER_AGENT" in os.environ:
 def sparql(query):
     r = session.get(url, params={"query": query})
     r.raise_for_status()
-    return list(parse_results(r.json()))
 
+    data = r.json()
+    vars = data["head"]["vars"]
+    bindings = data["results"]["bindings"]
 
-def parse_results(resp):
-    vars = resp["head"]["vars"]
-    bindings = resp["results"]["bindings"]
+    def results():
+        for binding in bindings:
+            result = {}
+            for var in vars:
+                if var in binding:
+                    result[var] = format_value(binding[var])
+                else:
+                    result[var] = None
+            yield result
 
-    for binding in bindings:
-        result = {}
-        for var in vars:
-            result[var] = parse_value(binding.get(var))
-        yield result
+    def format_value(obj):
+        if obj["type"] == "literal":
+            return obj["value"]
+        elif obj["type"] == "uri":
+            if obj["value"].startswith("http://www.wikidata.org/entity/"):
+                return obj["value"].replace("http://www.wikidata.org/entity/", "")
+            else:
+                return obj["value"]
+        else:
+            return obj
 
-
-def parse_value(obj):
-    if not obj or not obj.get("type"):
-        return obj
-    elif obj["type"] == "literal":
-        return obj["value"]
-    elif obj["type"] == "uri":
-        return obj["value"]
-    else:
-        return obj
+    return list(results())
 
 
 if __name__ == "__main__":

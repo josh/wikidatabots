@@ -5,10 +5,10 @@ import requests
 from sparql import sparql
 
 QUERY_BATCH_SIZE = os.environ.get("QUERY_BATCH_SIZE", "100")
-TMDB_API_KEY = os.environ["TMDB_API_KEY"]
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
 
-def main():
+def match_missing_tmdb_movie_ids(batch_size=QUERY_BATCH_SIZE):
     query = """
     SELECT ?item ?imdb (MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random) WHERE {
       VALUES ?classes { wd:Q11424 wd:Q1261214 } .
@@ -18,29 +18,30 @@ def main():
     }
     ORDER BY (?random)
     """
-    query += " LIMIT " + QUERY_BATCH_SIZE
+    query += " LIMIT " + batch_size
 
-    print("qid,P4947")
+    yield "qid,P4947"
     for result in sparql(query):
-        qid = result["item"].replace("http://www.wikidata.org/entity/", "")
-        tmdb_id = lookup_tmdb_id(result["imdb"])
-        if tmdb_id:
-            print('{},"""{}"""'.format(qid, tmdb_id))
+        tmdb_id = lookup_tmdb_movie_id(result["imdb"])
+        if not tmdb_id:
+            continue
+        yield '{},"""{}"""'.format(result["item"], tmdb_id)
 
 
-def lookup_tmdb_id(imdb_id):
+def lookup_tmdb_movie_id(imdb_id, api_key=TMDB_API_KEY):
     params = {
-        "api_key": TMDB_API_KEY,
+        "api_key": api_key,
         "external_source": "imdb_id",
     }
     r = requests.get("https://api.themoviedb.org/3/find/" + imdb_id, params=params)
     r.raise_for_status()
     data = r.json()
-    results = data.get("movie_results", [])
+    results = data.get("movie_results")
     if not results:
         return None
     return results[0]["id"]
 
 
 if __name__ == "__main__":
-    main()
+    for line in match_missing_tmdb_movie_ids():
+        print(line)
