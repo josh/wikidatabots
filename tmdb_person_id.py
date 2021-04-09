@@ -19,7 +19,7 @@ def main():
     }
     ORDER BY (?random)
     """
-    query += " LIMIT " + QUERY_BATCH_SIZE
+    query += "LIMIT " + QUERY_BATCH_SIZE
     results = sparql(query)
 
     print("qid,P4985")

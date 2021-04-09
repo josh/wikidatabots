@@ -16,12 +16,20 @@ if "WIKIDATA_USER_AGENT" in os.environ:
     session.headers.update({"User-Agent": os.environ["WIKIDATA_USER_AGENT"]})
 
 
+class TimeoutException(Exception):
+    pass
+
+
 def sparql(query):
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
 
     r = session.get(url, params={"query": query})
+
+    if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
+        raise TimeoutException()
+
     r.raise_for_status()
 
     data = r.json()
