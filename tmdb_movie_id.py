@@ -9,7 +9,7 @@ QUERY_BATCH_SIZE = os.environ.get("QUERY_BATCH_SIZE", "100")
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
 
-def match_missing_tmdb_movie_ids(batch_size=QUERY_BATCH_SIZE):
+def main():
     query = """
     SELECT ?item ?imdb (MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random) WHERE {
       VALUES ?classes { wd:Q11424 wd:Q1261214 } .
@@ -19,15 +19,15 @@ def match_missing_tmdb_movie_ids(batch_size=QUERY_BATCH_SIZE):
     }
     ORDER BY (?random)
     """
-    query += " LIMIT " + batch_size
+    query += " LIMIT " + QUERY_BATCH_SIZE
     results = sparql(query)
 
-    yield "qid,P4947"
+    print("qid,P4947")
     for result in tqdm(results):
         tmdb_id = lookup_tmdb_movie_id(result["imdb"])
         if not tmdb_id:
             continue
-        yield '{},"""{}"""'.format(result["item"], tmdb_id)
+        print('{},"""{}"""'.format(result["item"], tmdb_id))
 
 
 def lookup_tmdb_movie_id(imdb_id, api_key=TMDB_API_KEY):
@@ -45,5 +45,4 @@ def lookup_tmdb_movie_id(imdb_id, api_key=TMDB_API_KEY):
 
 
 if __name__ == "__main__":
-    for line in match_missing_tmdb_movie_ids():
-        print(line)
+    main()
