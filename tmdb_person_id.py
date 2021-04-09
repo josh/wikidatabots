@@ -13,7 +13,7 @@ def main():
     query = """
     SELECT ?item ?imdb (MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random) WHERE {
       VALUES ?classes { wd:Q5 wd:Q16334295 wd:Q95074 wd:Q14514600 wd:Q431289 wd:Q59755569 } .
-      ?item wdt:P31 ?classes .
+      ?item wdt:P31/wdt:P279* ?classes .
       ?item wdt:P345 ?imdb.
       FILTER NOT EXISTS { ?item p:P4985 []. }
     }
