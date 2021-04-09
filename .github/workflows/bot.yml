@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  WIKIDATA_USER_AGENT: "Josh404Bot/1.0 (User:Josh404) requests/2.25.1 Python/3.9.4"
+  WIKIDATA_USER_AGENT: "Josh404Bot/${{ github.sha }} (User:Josh404) requests/2.25.1 Python/3.9.4"
 
 jobs:
   tmdb_movie_id:
