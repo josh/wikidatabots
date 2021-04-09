@@ -13,7 +13,8 @@ class APIError(Exception):
 
 def import_batch(username, token, format, data, batchname=None):
     """
-    Import and run QuickStatements batch in background. Returns a batch ID if successfully enqueued.
+    Import and run QuickStatements batch in background.
+    Returns a batch ID if successfully enqueued.
     """
 
     data = {
