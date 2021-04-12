@@ -17,7 +17,10 @@ def import_batch(username, token, format, data, batchname=None):
     Returns a batch ID if successfully enqueued.
     """
 
-    data = {
+    if type(data) is not str:
+        data = "\n".join(data)
+
+    post_data = {
         "action": "import",
         "submit": "1",
         "username": username,
@@ -30,7 +33,7 @@ def import_batch(username, token, format, data, batchname=None):
         data["batchname"] = batchname
 
     url = "https://quickstatements.toolforge.org/api.php"
-    r = requests.post(url, data=data)
+    r = requests.post(url, data=post_data)
     r.raise_for_status()
 
     resp = r.json()
