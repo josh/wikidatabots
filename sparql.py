@@ -38,16 +38,12 @@ def sparql(query):
 
     def results():
         for binding in bindings:
-            result = {}
-            for var in vars:
-                if var in binding:
-                    result[var] = format_value(binding[var])
-                else:
-                    result[var] = None
-            yield result
+            yield {var: format_value(binding.get(var)) for var in vars}
 
     def format_value(obj):
-        if obj["type"] == "literal":
+        if obj is None:
+            return None
+        elif obj["type"] == "literal":
             return obj["value"]
         elif obj["type"] == "uri":
             if obj["value"].startswith("http://www.wikidata.org/entity/"):
