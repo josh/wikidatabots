@@ -51,6 +51,7 @@ jobs:
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
+          set -o pipefail
           python tmdb_movie_id.py missing --batch-size=5 | tee output.csv
 
 #     - name: Submit QuickStatements batch
