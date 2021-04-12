@@ -29,7 +29,7 @@ jobs:
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
-          python tmdb_movie_id.py audit --batch-size=5
+          python tmdb_movie_id.py audit --batch-size=100
 
   missing:
     runs-on: ubuntu-latest
