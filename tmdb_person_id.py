@@ -8,8 +8,19 @@ from sparql import sparql
 QUERY_BATCH_SIZE = os.environ.get("QUERY_BATCH_SIZE", "100")
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
+CLASSES_QUERY = """
+SELECT ?c WHERE {
+  wd:P4985 p:P2302 ?s.
+  ?s ps:P2302 wd:Q21503250.
+  ?s pq:P2308 ?c.
+}
+"""
+CLASSES = {"Q5", "Q16334295", "Q95074", "Q14514600", "Q431289", "Q59755569"}
+
 
 def main():
+    assert {r["c"] for r in sparql(CLASSES_QUERY)} == CLASSES
+
     query = """
     SELECT ?item ?imdb ?random WHERE {
       ?item wdt:P345 ?imdb.
