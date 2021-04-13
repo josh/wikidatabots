@@ -6,14 +6,21 @@ from tqdm import tqdm
 from sparql import sparql
 
 
-def audit(batch_size):
+PROPERTY_IMDB_ID = "P345"
+PROPERTY_REASON_FOR_DEPRECATION = "P2241"
+ENTITY_LINK_ROT = "Q1193907"
+ENTITY_REDIRECT = "Q45403344"
+
+
+def deprecation(batch_size):
     query = """
-    SELECT ?item ?imdb WHERE {
+    SELECT ?item ?statement ?imdb WHERE {
       SERVICE bd:sample {
         ?item wdt:P345 ?imdb.
         bd:serviceParam bd:sample.limit ?limit .
         bd:serviceParam bd:sample.sampleType "RANDOM".
       }
+      ?statement ps:P345 ?imdb.
     }
     """
     query = query.replace("?limit", str(batch_size))
@@ -22,9 +29,11 @@ def audit(batch_size):
     for result in tqdm(results):
         id = result["imdb"]
         id2 = canonical_id(id)
-        if id is not id2:
-            print("-", result["item"], "P345", id)
-            print("+", result["item"], "P345", id2)
+        if id2 is None:
+            print(result["statement"], PROPERTY_REASON_FOR_DEPRECATION, ENTITY_LINK_ROT)
+        elif id is not id2:
+            print(result["statement"], PROPERTY_REASON_FOR_DEPRECATION, ENTITY_REDIRECT)
+            print(result["item"], PROPERTY_IMDB_ID, id2)
 
 
 def canonical_id(id):
@@ -75,7 +84,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", action="store", default="100")
     args = parser.parse_args()
 
-    if args.cmd == "audit":
-        audit(batch_size=args.batch_size)
+    if args.cmd == "deprecation":
+        deprecation(batch_size=args.batch_size)
     else:
         parser.print_usage()

@@ -46,7 +46,11 @@ def sparql(query):
         elif obj["type"] == "literal":
             return obj["value"]
         elif obj["type"] == "uri":
-            if obj["value"].startswith("http://www.wikidata.org/entity/"):
+            if obj["value"].startswith("http://www.wikidata.org/entity/statement/"):
+                return obj["value"].replace(
+                    "http://www.wikidata.org/entity/statement/", ""
+                )
+            elif obj["value"].startswith("http://www.wikidata.org/entity/"):
                 return obj["value"].replace("http://www.wikidata.org/entity/", "")
             else:
                 return obj["value"]
