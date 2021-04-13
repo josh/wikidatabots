@@ -1,13 +1,9 @@
-import os
 import sys
 
-import requests
 from tqdm import tqdm
 
 from sparql import sparql
 from tmdb import find_by_imdb_id
-
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
 
 def missing(batch_size):
@@ -87,7 +83,6 @@ def audit(batch_size):
 
 if __name__ == "__main__":
     import argparse
-    import os
 
     parser = argparse.ArgumentParser(description="TMDB Movie ID (P4947) Bot")
     parser.add_argument("cmd", action="store")
