@@ -54,7 +54,15 @@ def audit(batch_size):
 
     for result in tqdm(results):
         tmdb_id = lookup_tmdb_movie_id(result["imdb"])
-        if result["tmdb"] != tmdb_id:
+
+        if tmdb_id is None:
+            print(
+                "No TMDb movie for {}, maybe add to {}".format(
+                    result["imdb"], result["tmdb"]
+                ),
+                file=sys.stderr,
+            )
+        elif result["tmdb"] != tmdb_id:
             print("-", result["item"], "P4947", result["tmdb"], file=sys.stderr)
             print("+", result["item"], "P4947", tmdb_id, file=sys.stderr)
             mismatches += 1
