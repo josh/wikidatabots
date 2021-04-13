@@ -5,6 +5,7 @@ import requests
 from tqdm import tqdm
 
 from sparql import sparql
+from tmdb import find_by_imdb_id
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
@@ -36,7 +37,7 @@ def missing(batch_size):
 
     print("qid,P4985")
     for result in tqdm(results):
-        tmdb_id = lookup_tmdb_person_id(result["imdb"])
+        tmdb_id = find_by_imdb_id(result["imdb"], type="person")
         if not tmdb_id:
             continue
         print('{},"""{}"""'.format(result["item"], tmdb_id))
@@ -57,7 +58,7 @@ def audit(batch_size):
     mismatches = 0
 
     for result in tqdm(results):
-        tmdb_id = lookup_tmdb_person_id(result["imdb"])
+        tmdb_id = find_by_imdb_id(result["imdb"], type="person")
         if result["tmdb"] != tmdb_id:
             print("-", result["item"], "P4985", result["tmdb"], file=sys.stderr)
             print("+", result["item"], "P4985", tmdb_id, file=sys.stderr)
