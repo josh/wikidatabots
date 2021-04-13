@@ -29,7 +29,7 @@ def missing(batch_size):
 
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
-    ORDER BY ?random
+    #ORDER BY ?random
     """
     query += "LIMIT " + batch_size
     results = sparql(query)
