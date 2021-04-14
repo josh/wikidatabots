@@ -5,7 +5,6 @@ from tqdm import tqdm
 
 from sparql import sparql
 
-
 PROPERTY_IMDB_ID = "P345"
 PROPERTY_REASON_FOR_DEPRECATION = "P2241"
 ENTITY_LINK_ROT = "Q1193907"

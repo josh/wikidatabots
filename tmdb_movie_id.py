@@ -64,20 +64,6 @@ def audit(batch_size):
             print("+", result["item"], "P4947", tmdb_id, file=sys.stderr)
             mismatches += 1
 
-    query = """
-    SELECT ?c WHERE {
-      wd:P4947 p:P2302 ?s.
-      ?s ps:P2302 wd:Q21503250.
-      ?s pq:P2308 ?c.
-    }
-    """
-    expected_classes = {"Q11424", "Q1261214"}
-
-    actual_classes = {r["c"] for r in sparql(query)}
-    if actual_classes != expected_classes:
-        print("instance of constraint changed", file=sys.stderr)
-        mismatches += 1
-
     exit(mismatches)
 
 
