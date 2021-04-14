@@ -53,12 +53,7 @@ def audit(batch_size):
         tmdb_id = find_by_imdb_id(result["imdb"], type="movie")
 
         if tmdb_id is None:
-            print(
-                "No TMDb movie for {}, maybe add to {}".format(
-                    result["imdb"], result["tmdb"]
-                ),
-                file=sys.stderr,
-            )
+            continue
         elif result["tmdb"] != tmdb_id:
             print("-", result["item"], "P4947", result["tmdb"], file=sys.stderr)
             print("+", result["item"], "P4947", tmdb_id, file=sys.stderr)
