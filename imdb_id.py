@@ -65,11 +65,11 @@ def formatted_url(id):
 
 
 def extract_id(url):
-    m = re.match("^/title/(tt\\d+)/$", url)
+    m = re.match(".*/title/(tt\\d+)/$", url)
     if m:
         return m.group(1)
 
-    m = re.match("^/name/(nm\\d+)/$", url)
+    m = re.match(".*/name/(nm\\d+)/$", url)
     if m:
         return m.group(1)
 
