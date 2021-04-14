@@ -6,7 +6,9 @@ def test_sparql():
         """
         SELECT ?item ?itemLabel WHERE {
           ?item wdt:P31 wd:Q146.
-          SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+          SERVICE wikibase:label {
+            bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+          }
         }
         LIMIT 10
         """
