@@ -9,29 +9,6 @@ env:
   WIKIDATA_USER_AGENT: "Josh404Bot/1.0 (User:Josh404) requests/2.25.1 Python/3.9.4"
 
 jobs:
-  audit:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run script
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-        run: |
-          python tmdb_movie_id.py audit --batch-size=100
-        continue-on-error: true
-
   missing:
     runs-on: ubuntu-latest
 

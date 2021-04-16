@@ -1,5 +1,3 @@
-import sys
-
 from tqdm import tqdm
 
 from sparql import sparql
@@ -35,33 +33,6 @@ def missing(batch_size):
         print('{},"""{}"""'.format(result["item"], tmdb_id))
 
 
-def audit(batch_size):
-    query = """
-    SELECT ?item ?imdb ?tmdb ?random WHERE {
-      ?item wdt:P345 ?imdb.
-      ?item wdt:P4947 ?tmdb.
-      BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
-    }
-    ORDER BY ?random
-    """
-    query += "LIMIT " + batch_size
-    results = sparql(query)
-
-    mismatches = 0
-
-    for result in tqdm(results):
-        tmdb_id = find_by_imdb_id(result["imdb"], type="movie")
-
-        if tmdb_id is None:
-            continue
-        elif result["tmdb"] != tmdb_id:
-            print("-", result["item"], "P4947", result["tmdb"], file=sys.stderr)
-            print("+", result["item"], "P4947", tmdb_id, file=sys.stderr)
-            mismatches += 1
-
-    exit(mismatches)
-
-
 if __name__ == "__main__":
     import argparse
 
@@ -72,7 +43,5 @@ if __name__ == "__main__":
 
     if args.cmd == "missing":
         missing(batch_size=args.batch_size)
-    elif args.cmd == "audit":
-        audit(batch_size=args.batch_size)
     else:
         parser.print_usage()
