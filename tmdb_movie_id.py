@@ -6,7 +6,7 @@ from tmdb import find_by_imdb_id
 
 def missing(batch_size):
     query = """
-    SELECT ?item ?imdb ?random WHERE {
+    SELECT DISTINCT ?item ?imdb ?random WHERE {
       ?item wdt:P345 ?imdb.
 
       VALUES ?classes {
