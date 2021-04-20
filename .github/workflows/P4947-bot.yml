@@ -2,7 +2,7 @@ name: TMDB Movie ID (P4947) Bot
 
 on:
   schedule:
-    - cron: "*/30 5,17 * * *"
+    - cron: "*/30 0,16 * * *"
   workflow_dispatch:
 
 env:
