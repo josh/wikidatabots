@@ -32,9 +32,9 @@ jobs:
           set -o pipefail
           python tmdb_movie_id.py missing --batch-size=100 | tee output.csv
 
-#     - name: Submit QuickStatements batch
-#       env:
-#         QUICKSTATEMENTS_USERNAME: Josh404Bot
-#         QUICKSTATEMENTS_TOKEN: xxx
-#       run: |
-#         python quickstatements.py --batchname TMDbIDs <output.csv
+      - name: Submit QuickStatements batch
+        env:
+          QUICKSTATEMENTS_USERNAME: Josh404Bot
+          QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
+        run: |
+          python quickstatements.py --batchname TMDbIDs <output.csv
