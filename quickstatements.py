@@ -30,7 +30,7 @@ def import_batch(username, token, format, data, batchname=None):
     }
 
     if batchname:
-        data["batchname"] = batchname
+        post_data["batchname"] = batchname
 
     url = "https://quickstatements.toolforge.org/api.php"
     r = requests.post(url, data=post_data)
