@@ -4,7 +4,7 @@ from sparql import sparql
 from tmdb import find_by_imdb_id
 
 
-def missing(batch_size):
+def missing():
     query = """
     SELECT DISTINCT ?item ?imdb ?random WHERE {
       ?item wdt:P345 ?imdb.
@@ -21,8 +21,8 @@ def missing(batch_size):
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
     #ORDER BY ?random
+    LIMIT 200
     """
-    query += "LIMIT " + batch_size
     results = sparql(query)
 
     print("qid,P4947")
@@ -38,10 +38,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="TMDB Movie ID (P4947) Bot")
     parser.add_argument("cmd", action="store")
-    parser.add_argument("--batch-size", action="store", default="100")
     args = parser.parse_args()
 
     if args.cmd == "missing":
-        missing(batch_size=args.batch_size)
+        missing()
     else:
         parser.print_usage()
