@@ -20,7 +20,7 @@ def missing():
 
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
-    #ORDER BY ?random
+    ORDER BY ?random
     LIMIT 500
     """
     results = sparql(query)
