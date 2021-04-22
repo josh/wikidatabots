@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
+import tmdb
 from sparql import sparql
-from tmdb import find_by_imdb_id
 
 
 def missing():
@@ -27,7 +27,7 @@ def missing():
 
     print("qid,P4947")
     for result in tqdm(results):
-        tmdb_id = find_by_imdb_id(result["imdb"], type="movie")
+        tmdb_id = tmdb.find_by_imdb_id(result["imdb"], type="movie")
         if not tmdb_id:
             continue
         print('{},"""{}"""'.format(result["item"], tmdb_id))
