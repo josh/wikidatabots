@@ -25,7 +25,7 @@ if __name__ == "__main__":
         edit(
             username=args.username or os.environ["WIKIDATA_USERNAME"],
             title=args.title,
-            text=sys.stdin.readlines(),
+            text=sys.stdin.read(),
             summary=args.summary,
         )
     else:
