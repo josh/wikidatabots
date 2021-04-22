@@ -116,6 +116,6 @@ if __name__ == "__main__":
     if args.cmd == "missing":
         missing()
     elif args.cmd == "report":
-        print(report())
+        report()
     else:
         parser.print_usage()
