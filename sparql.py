@@ -4,6 +4,7 @@ Small API wrapper for interacting with Wikidata's SPARQL query service.
 """
 
 import os
+import platform
 
 import requests
 
@@ -12,8 +13,18 @@ session = requests.Session()
 
 session.headers.update({"Accept": "application/sparql-results+json"})
 
-if "WIKIDATA_USER_AGENT" in os.environ:
-    session.headers.update({"User-Agent": os.environ["WIKIDATA_USER_AGENT"]})
+USER_AGENT = []
+
+if "WIKIDATA_USERNAME" in os.environ:
+    USER_AGENT.append(
+        "{username}/1.0 (User:{username})".format(
+            username=os.environ["WIKIDATA_USERNAME"]
+        )
+    )
+
+USER_AGENT.append("requests/" + requests.__version__)
+USER_AGENT.append("Python/" + platform.python_version())
+session.headers.update({"User-Agent": " ".join(USER_AGENT)})
 
 
 class TimeoutException(Exception):
