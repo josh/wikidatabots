@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 RUN python -m compileall .
 
-ENTRYPOINT [ "/usr/bin/tickerd", "--", "entrypoint.sh" ]
+ENTRYPOINT [ "/usr/bin/tickerd", "--", "/usr/src/app/entrypoint.sh" ]
 
 ENV TICKERD_HEALTHCHECK_FILE "/var/run/healthcheck"
 HEALTHCHECK --interval=1m --timeout=3s --start-period=3s --retries=1 \
