@@ -9,7 +9,7 @@ env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  missing:
+  run:
     runs-on: ubuntu-latest
 
     steps:
