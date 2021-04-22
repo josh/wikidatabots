@@ -57,11 +57,11 @@ if __name__ == "__main__":
 
     data = sys.stdin.readlines()
 
-    result = import_batch(
+    batch_id = import_batch(
         username=args.username or os.environ["QUICKSTATEMENTS_USERNAME"],
         token=args.token or os.environ["QUICKSTATEMENTS_TOKEN"],
         format=args.format,
         data=data,
         batchname=args.batchname,
     )
-    print(result)
+    print("https://quickstatements.toolforge.org/#/batch/{}".format(batch_id))
