@@ -38,7 +38,7 @@ def report():
     SELECT ?item ?imdb ?tmdb WHERE {
       SERVICE bd:sample {
         ?item wdt:P4947 ?tmdb.
-        bd:serviceParam bd:sample.limit 5 .
+        bd:serviceParam bd:sample.limit 500 .
         bd:serviceParam bd:sample.sampleType "RANDOM".
       }
       ?item wdt:P345 ?imdb.
