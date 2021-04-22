@@ -1,10 +1,9 @@
 import pywikibot
 
-site = pywikibot.Site("wikidata", "wikidata")
-
 
 def edit(title, text, username, summary=None):
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
+    site = pywikibot.Site("wikidata", "wikidata")
     page = pywikibot.Page(site, title)
     page.text = text
     page.save(summary)
