@@ -14,7 +14,7 @@ tmdb_movie_id_report)
 	set -x
 	python tmdb_movie_id.py report | tee report.txt
 	python pwb.py login
-	python page.py edit --title "User:Josh404Bot/Maintenance_reports/P4947" <report.txt
+	python page.py edit --title "User:$WIKIDATA_USERNAME/Maintenance_reports/P4947" <report.txt
 	;;
 
 *)

@@ -40,4 +40,4 @@ jobs:
 
       - name: Publish report page
         run: |
-          python page.py edit --title "User:Josh404Bot/Maintenance_reports/P4947" <report.txt
+          python page.py edit --title "User:$WIKIDATA_USERNAME/Maintenance_reports/P4947" <report.txt
