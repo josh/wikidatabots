@@ -55,15 +55,13 @@ if __name__ == "__main__":
     parser.add_argument("--batchname", action="store")
     args = parser.parse_args()
 
-    data = sys.stdin.readlines()
-
     batch_id = import_batch(
         username=args.username
         or os.environ.get("QUICKSTATEMENTS_USERNAME")
         or os.environ["WIKIDATA_USERNAME"],
         token=args.token or os.environ["QUICKSTATEMENTS_TOKEN"],
         format=args.format,
-        data=data,
+        data=sys.stdin.read(),
         batchname=args.batchname,
     )
     print("https://quickstatements.toolforge.org/#/batch/{}".format(batch_id))

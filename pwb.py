@@ -1,3 +1,7 @@
+"""
+Pywikibot login wrapper.
+"""
+
 import os
 import tempfile
 
@@ -5,6 +9,11 @@ import pywikibot
 
 
 def login(username, password):
+    """
+    Log into Wikidata.
+
+    Writes an authenticated pywikibot.lwp to the current working directory.
+    """
     password_file = tempfile.NamedTemporaryFile(mode="w", delete=False)
     password_file.write('("{}", "{}")'.format(username, password))
     password_file.close()
