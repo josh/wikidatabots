@@ -23,3 +23,6 @@ jobs:
       - name: Test with pytest
         run: |
           pytest
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
