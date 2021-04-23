@@ -3,6 +3,7 @@ Small API wrapper for interacting with Wikidata's SPARQL query service.
 <https://query.wikidata.org/>
 """
 
+import math
 import os
 import platform
 import sys
@@ -49,6 +50,13 @@ def sparql(query):
     data = r.json()
     vars = data["head"]["vars"]
     bindings = data["results"]["bindings"]
+
+    print(
+        "sparql: {} result in {} ms".format(
+            len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
+        ),
+        file=sys.stderr,
+    )
 
     def results():
         for binding in bindings:
