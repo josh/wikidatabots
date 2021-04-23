@@ -1,4 +1,4 @@
-name: Maintenance reports / P4947
+name: P4947 Maintenance reports
 
 on:
   workflow_dispatch:

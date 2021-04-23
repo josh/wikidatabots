@@ -1,4 +1,4 @@
-name: TMDB Movie ID (P4947) Bot
+name: P4947 Bot
 
 on:
   schedule:
