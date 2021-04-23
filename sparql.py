@@ -52,7 +52,7 @@ def sparql(query):
     bindings = data["results"]["bindings"]
 
     print(
-        "sparql: {} result in {} ms".format(
+        "sparql: {} results in {} ms".format(
             len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
         ),
         file=sys.stderr,
