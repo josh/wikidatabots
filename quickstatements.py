@@ -58,7 +58,9 @@ if __name__ == "__main__":
     data = sys.stdin.readlines()
 
     batch_id = import_batch(
-        username=args.username or os.environ.get("QUICKSTATEMENTS_USERNAME") or os.environ["WIKIDATA_USERNAME"],
+        username=args.username
+        or os.environ.get("QUICKSTATEMENTS_USERNAME")
+        or os.environ["WIKIDATA_USERNAME"],
         token=args.token or os.environ["QUICKSTATEMENTS_TOKEN"],
         format=args.format,
         data=data,
