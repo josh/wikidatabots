@@ -1,5 +1,6 @@
 FROM python:3.9.4-alpine
 
+RUN apk add --no-cache build-base
 RUN wget -O /usr/bin/tickerd https://github.com/josh/tickerd/releases/latest/download/tickerd-linux-amd64 && chmod +x /usr/bin/tickerd
 
 WORKDIR /usr/src/app
