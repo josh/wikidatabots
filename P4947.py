@@ -21,7 +21,7 @@ def main():
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
     ORDER BY ?random
-    LIMIT 500
+    LIMIT 1000
     """
     results = sparql(query)
 
