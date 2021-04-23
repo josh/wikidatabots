@@ -5,6 +5,14 @@ from sparql import sparql
 
 
 def main():
+    """
+    Find Wikidata items that are missing a TMDb movie ID (P4947) but have a
+    IMDb ID (P345). Attempt to look up the movie by IMDb ID via the TMDb API.
+    If there's a match, create a new statement.
+
+    Outputs QuickStatements CSV commands.
+    """
+
     query = """
     SELECT DISTINCT ?item ?imdb ?random WHERE {
       ?item wdt:P345 ?imdb.
