@@ -5,6 +5,7 @@ Small API wrapper for interacting with Wikidata's SPARQL query service.
 
 import os
 import platform
+import sys
 
 import requests
 
@@ -21,6 +22,8 @@ if "WIKIDATA_USERNAME" in os.environ:
             username=os.environ["WIKIDATA_USERNAME"]
         )
     )
+else:
+    print("WARN: WIKIDATA_USERNAME unset", file=sys.stderr)
 
 USER_AGENT.append("requests/" + requests.__version__)
 USER_AGENT.append("Python/" + platform.python_version())
