@@ -1,5 +1,5 @@
 backoff==1.10.0
 pytest==6.2.3
-pywikibot==6.0.1
+pywikibot==6.1.0
 requests==2.25.1
 tqdm==4.60.0
