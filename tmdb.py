@@ -11,7 +11,9 @@ class UnauthorizedException(Exception):
 
 def api_request(path, params={}, version=3, api_key=TMDB_API_KEY):
     url = "https://api.themoviedb.org/{}{}".format(str(version), path)
-    post_params = {"api_key": api_key}
+    post_params = {}
+    if api_key:
+        post_params["api_key"] = api_key
     post_params.update(params)
     r = requests.get(url, params=post_params)
     if r.headers["Content-Type"].startswith("application/json"):
