@@ -36,7 +36,7 @@ def sparql(query):
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
 
-    r = session.get(url, params={"query": query})
+    r = session.post(url, params={"query": query})
 
     if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
         raise TimeoutException()
