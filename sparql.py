@@ -42,7 +42,7 @@ def sparql(query):
     r = session.get(url, params={"query": query})
 
     if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
-        raise TimeoutException()
+        raise TimeoutException(query)
 
     r.raise_for_status()
 
