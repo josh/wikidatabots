@@ -32,13 +32,6 @@ jobs:
           set -o pipefail
           python tmdb_movie_id.py missing | tee output.csv
 
-      - name: Upload batch artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: batch
-          path: output.csv
-          retention-days: 7
-
       - name: Submit QuickStatements batch
         env:
           QUICKSTATEMENTS_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
