@@ -34,7 +34,6 @@ jobs:
 
       - name: Submit QuickStatements batch
         env:
-          QUICKSTATEMENTS_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
           QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
         run: |
           python quickstatements.py --batchname TMDbIDs <output.csv
