@@ -8,6 +8,7 @@ import os
 import platform
 import sys
 
+import backoff
 import requests
 
 url = "https://query.wikidata.org/sparql"
@@ -35,6 +36,7 @@ class TimeoutException(Exception):
     pass
 
 
+@backoff.on_exception(backoff.expo, TimeoutException, max_tries=3)
 def sparql(query):
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
