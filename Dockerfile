@@ -1,15 +1,24 @@
-FROM python:3.9.4-alpine
+FROM python:3.9.4-alpine AS builder
 
 RUN apk add --no-cache build-base
-RUN wget -O /usr/bin/tickerd https://github.com/josh/tickerd/releases/latest/download/tickerd-linux-amd64 && chmod +x /usr/bin/tickerd
 
 WORKDIR /usr/src/app
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --user -r requirements.txt
 
-COPY . .
+COPY *.sh *.py .
 RUN python -m compileall .
+
+
+FROM python:3.9.4-alpine
+
+WORKDIR /usr/src/app
+
+RUN wget -O /usr/bin/tickerd https://github.com/josh/tickerd/releases/latest/download/tickerd-linux-amd64 && chmod +x /usr/bin/tickerd
+
+COPY --from=builder /root/.local /root/.local
+COPY --from=builder /usr/src/app /usr/src/app
 
 ENTRYPOINT [ "/usr/bin/tickerd", "--", "/usr/src/app/entrypoint.sh" ]
 
