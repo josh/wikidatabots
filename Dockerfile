@@ -4,6 +4,7 @@ RUN apk add --no-cache build-base
 
 WORKDIR /usr/src/app
 
+RUN python -m pip install --upgrade pip
 COPY requirements.txt ./
 RUN pip install --user -r requirements.txt
 
