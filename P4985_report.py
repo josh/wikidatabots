@@ -9,7 +9,7 @@ def main():
     SELECT ?item ?imdb ?tmdb WHERE {
       SERVICE bd:sample {
         ?item wdt:P4985 ?tmdb.
-        bd:serviceParam bd:sample.limit 100 .
+        bd:serviceParam bd:sample.limit 1000 .
         bd:serviceParam bd:sample.sampleType "RANDOM".
       }
       ?item wdt:P345 ?imdb.
@@ -24,7 +24,7 @@ def main():
       ?item schema:dateModified ?date.
     }
     ORDER BY DESC (?date)
-    LIMIT 100
+    LIMIT 500
     """
     results2 = sparql(query)
 
