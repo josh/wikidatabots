@@ -53,7 +53,7 @@ def sparql(query, quiet=False):
     vars = data["head"]["vars"]
     bindings = data["results"]["bindings"]
 
-    if quiet == False:
+    if quiet is False:
         print(
             "sparql: {} results in {} ms".format(
                 len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
