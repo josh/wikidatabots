@@ -37,7 +37,7 @@ class TimeoutException(Exception):
 
 
 @backoff.on_exception(backoff.expo, TimeoutException, max_tries=3)
-def sparql(query):
+def sparql(query, quiet=False):
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
@@ -53,12 +53,13 @@ def sparql(query):
     vars = data["head"]["vars"]
     bindings = data["results"]["bindings"]
 
-    print(
-        "sparql: {} results in {} ms".format(
-            len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
-        ),
-        file=sys.stderr,
-    )
+    if quiet == False:
+        print(
+            "sparql: {} results in {} ms".format(
+                len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
+            ),
+            file=sys.stderr,
+        )
 
     def results():
         for binding in bindings:
