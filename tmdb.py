@@ -36,6 +36,26 @@ def movie(id, api_key=TMDB_API_KEY):
     return resp
 
 
+def tv(id, api_key=TMDB_API_KEY):
+    resp = api_request(
+        "/tv/{}".format(id),
+        api_key=api_key,
+    )
+    if resp.get("success") is False:
+        return None
+    return resp
+
+
+def tv_external_ids(id, api_key=TMDB_API_KEY):
+    resp = api_request(
+        "/tv/{}/external_ids".format(id),
+        api_key=api_key,
+    )
+    if resp.get("success") is False:
+        return None
+    return resp
+
+
 def person(id, api_key=TMDB_API_KEY):
     resp = api_request(
         "/person/{}".format(id),
