@@ -66,7 +66,7 @@ def main():
 
     print("== TMDb missing IMDB IDs ==")
     for (tmdb_id, qid, imdb_id) in tmdb_missing_imdb_ids:
-        imdb_url = "https://www.imdb.com/name/{}/".format(imdb_id)
+        imdb_url = "https://www.imdb.com/title/{}/".format(imdb_id)
         print(
             "* "
             + wiki_tmdb_link(tmdb_id, "/edit?active_nav_item=external_ids")
