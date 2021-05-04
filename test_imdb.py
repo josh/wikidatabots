@@ -1,0 +1,55 @@
+from imdb import canonical_id, extract_id, formatted_url
+
+
+def test_extract_id():
+    assert extract_id("https://www.imdb.com/title/tt0111161") == "tt0111161"
+    assert extract_id("https://www.imdb.com/title/tt0111161/") == "tt0111161"
+    assert extract_id("/title/tt0111161/") == "tt0111161"
+    assert (
+        extract_id("https://www.imdb.com/title/tt0111161/?ref_=fn_al_tt_3")
+        == "tt0111161"
+    )
+
+    assert extract_id("https://www.imdb.com/name/nm0000151") == "nm0000151"
+    assert extract_id("https://www.imdb.com/name/nm0000151/") == "nm0000151"
+    assert extract_id("/name/nm0000151/") == "nm0000151"
+    assert (
+        extract_id("https://www.imdb.com/name/nm0000151/?ref_=tt_ov_st") == "nm0000151"
+    )
+
+    assert (
+        extract_id("https://www.imdb.com/search/title/?companies=co0018704")
+        == "co0018704"
+    )
+
+    assert extract_id("https://www.imdb.com/event/ev0000292/1997") == "ev0000292/1997"
+    assert extract_id("https://www.imdb.com/event/ev0000292/1997/") == "ev0000292/1997"
+    assert extract_id("https://www.imdb.com/event/ev0000292/1997/1") == "ev0000292/1997"
+
+    assert not extract_id("https://elsewhere.com/title/tt0111161/")
+
+
+def test_formatted_url():
+    assert formatted_url("tt0111161") == "https://www.imdb.com/title/tt0111161/"
+    assert formatted_url("nm0000151") == "https://www.imdb.com/name/nm0000151/"
+    assert (
+        formatted_url("co0018704")
+        == "https://www.imdb.com/search/title/?companies=co0018704"
+    )
+    assert (
+        formatted_url("ev0000292/1997") == "https://www.imdb.com/event/ev0000292/1997/1"
+    )
+
+    assert not formatted_url("junk")
+    assert not formatted_url("/title/tt0111161/")
+
+
+def test_canonical_id():
+    assert canonical_id("tt0111161") == "tt0111161"
+    assert canonical_id("nm0000151") == "nm0000151"
+    assert canonical_id("co0018704") == "co0018704"
+    assert canonical_id("ev0000292/1997") == "ev0000292/1997"
+
+    assert canonical_id("tt11639970") == "tt2177268"
+
+    assert not canonical_id("tt100000000")
