@@ -1,7 +1,21 @@
+import requests
+
 from imdb import canonical_id, extract_id, formatted_url
 
 
 def test_extract_id():
+    assert extract_id("/title/tt0114369/") == "tt0114369"
+    assert extract_id("https://www.imdb.com/title/tt0114369/") == "tt0114369"
+    assert extract_id("/name/nm0000399/") == "nm0000399"
+    assert extract_id("https://www.imdb.com/name/nm0000399/") == "nm0000399"
+    assert not extract_id(
+        "https://www.imdb.com/title/tt11696836/characters/nm11012957/"
+    )
+    assert (
+        extract_id("https://www.imdb.com/search/title/?companies=co0071326")
+        == "co0071326"
+    )
+
     assert extract_id("https://www.imdb.com/title/tt0111161") == "tt0111161"
     assert extract_id("https://www.imdb.com/title/tt0111161/") == "tt0111161"
     assert extract_id("/title/tt0111161/") == "tt0111161"
@@ -30,6 +44,16 @@ def test_extract_id():
 
 
 def test_formatted_url():
+    assert formatted_url("tt0114369") == "https://www.imdb.com/title/tt0114369/"
+    assert formatted_url("nm0000399") == "https://www.imdb.com/name/nm0000399/"
+    assert not formatted_url("ch0000985")
+    assert (
+        formatted_url("co0071326")
+        == "https://www.imdb.com/search/title/?companies=co0071326"
+    )
+    assert not formatted_url("tt11696836/characters/nm11012957")
+    assert not formatted_url("0000399")
+
     assert formatted_url("tt0111161") == "https://www.imdb.com/title/tt0111161/"
     assert formatted_url("nm0000151") == "https://www.imdb.com/name/nm0000151/"
     assert (
@@ -42,6 +66,21 @@ def test_formatted_url():
 
     assert not formatted_url("junk")
     assert not formatted_url("/title/tt0111161/")
+
+
+def externalid_url(id):
+    url = (
+        "https://wikidata-externalid-url.toolforge.org/?"
+        + "p=345&"
+        + "url_prefix=https://www.imdb.com/&id={}".format(id)
+    )
+    r = requests.head(url)
+    return r.headers["Location"]
+
+
+def test_externalid_url():
+    assert externalid_url("tt0068646") == formatted_url("tt0068646")
+    assert externalid_url("nm1827914") == formatted_url("nm1827914")
 
 
 def test_canonical_id():
