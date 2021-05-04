@@ -52,7 +52,7 @@ def main():
             + ": "
             + wiki_link(imdb_id, imdb.formatted_url(imdb_id))
             + " → "
-            + wiki_link(imdb_id, imdb.formatted_url(imdb_canonical_id))
+            + wiki_link(imdb_canonical_id, imdb.formatted_url(imdb_canonical_id))
         )
     print("")
 
