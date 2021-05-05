@@ -2,6 +2,7 @@ from tqdm import tqdm
 
 import tmdb
 from sparql import sparql
+from utils import uniq
 
 
 def main():
@@ -32,7 +33,7 @@ def main():
     tmdb_imdb_diff = []
     tmdb_missing_imdb_ids = []
 
-    for result in tqdm(results + results2):
+    for result in tqdm(list(uniq(results + results2))):
         tmdb_show = tmdb.tv_external_ids(result["tmdb"])
         expected_tmdb_id = tmdb.find_by_imdb_id(result["imdb"], type="tv")
 
