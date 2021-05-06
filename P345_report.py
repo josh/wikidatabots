@@ -34,6 +34,10 @@ def main():
         else:
             imdb_link_unknown.append((result["item"], id))
 
+    imdb_link_rot.sort()
+    imdb_redirects.sort()
+    imdb_link_unknown.sort()
+
     print("== IMDb link rot ==")
     for (qid, imdb_id) in imdb_link_rot:
         print(

@@ -48,6 +48,10 @@ def main():
         if expected_tmdb_id and result["tmdb"] != expected_tmdb_id:
             tmdb_imdb_diff.append((result["item"], result["tmdb"], expected_tmdb_id))
 
+    tmdb_link_rot.sort()
+    tmdb_imdb_diff.sort()
+    tmdb_missing_imdb_ids.sort()
+
     print("== TMDb link rot ==")
     for (qid, tmdb_id) in tmdb_link_rot:
         print("* " + wiki_qid(qid) + ": " + wiki_tmdb_link(tmdb_id))
