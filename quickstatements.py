@@ -20,6 +20,11 @@ def import_batch(username, token, format, data, batchname=None):
     if type(data) is not str:
         data = "\n".join(data)
 
+    # Empty batch
+    lines = data.split("\n", 1)
+    if len(lines) < 2 or not lines[1]:
+        return None
+
     post_data = {
         "action": "import",
         "submit": "1",
@@ -64,4 +69,5 @@ if __name__ == "__main__":
         data=sys.stdin.read(),
         batchname=args.batchname,
     )
-    print("https://quickstatements.toolforge.org/#/batch/{}".format(batch_id))
+    if batch_id:
+        print("https://quickstatements.toolforge.org/#/batch/{}".format(batch_id))
