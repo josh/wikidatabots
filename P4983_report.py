@@ -35,7 +35,7 @@ def main():
 
     for result in tqdm(list(uniq(results + results2))):
         tmdb_show = tmdb.tv_external_ids(result["tmdb"])
-        expected_tmdb_id = tmdb.find_by_imdb_id(result["imdb"], type="tv")
+        tmdb_show2 = tmdb.find(id=result["imdb"], source="imdb_id", type="tv")
 
         if tmdb_show and tmdb_show.get("imdb_id") is None and result["imdb"]:
             tmdb_missing_imdb_ids.append(
@@ -45,8 +45,8 @@ def main():
         if tmdb_show is None:
             tmdb_link_rot.append((result["item"], result["tmdb"]))
 
-        if expected_tmdb_id and result["tmdb"] != expected_tmdb_id:
-            tmdb_imdb_diff.append((result["item"], result["tmdb"], expected_tmdb_id))
+        if tmdb_show2 and result["tmdb"] != str(tmdb_show2["id"]):
+            tmdb_imdb_diff.append((result["item"], result["tmdb"], tmdb_show2["id"]))
 
     tmdb_link_rot.sort()
     tmdb_imdb_diff.sort()

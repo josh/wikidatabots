@@ -39,10 +39,10 @@ def main():
 
     print("qid,P4985")
     for result in tqdm(results):
-        tmdb_id = tmdb.find_by_imdb_id(result["imdb"], type="person")
-        if not tmdb_id:
+        person = tmdb.find(id=result["imdb"], source="imdb_id", type="person")
+        if not person:
             continue
-        print('{},"""{}"""'.format(result["item"], tmdb_id))
+        print('{},"""{}"""'.format(result["item"], person["id"]))
 
 
 if __name__ == "__main__":

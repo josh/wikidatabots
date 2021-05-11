@@ -66,17 +66,35 @@ def person(id, api_key=TMDB_API_KEY):
     return resp
 
 
-def find(external_id, external_source, api_key=TMDB_API_KEY):
-    return api_request(
-        "/find/{}".format(external_id),
-        params={"external_source": external_source},
+find_sources = [
+    "imdb_id",
+    "freebase_mid",
+    "freebase_id",
+    "tvdb_id",
+    "tvrage_id",
+    "facebook_id",
+    "twitter_id",
+    "instagram_id",
+]
+
+find_types = ["movie", "person", "tv", "tv_episode", "tv_season"]
+
+
+def find(id, source, type, api_key=TMDB_API_KEY):
+    assert source in find_sources
+    assert type in find_types
+
+    resp = api_request(
+        "/find/{}".format(id),
+        params={"external_source": source},
         api_key=api_key,
     )
 
-
-def find_by_imdb_id(imdb_id, type, api_key=TMDB_API_KEY):
-    resp = find(external_id=imdb_id, external_source="imdb_id", api_key=api_key)
     results = resp.get("{}_results".format(type))
-    if not results:
+    count = len(results)
+    assert count == 0 or count == 1
+
+    if results:
+        return results[0]
+    else:
         return None
-    return str(results[0]["id"])
