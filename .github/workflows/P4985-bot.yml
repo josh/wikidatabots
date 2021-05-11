@@ -1,0 +1,39 @@
+name: P4985 Bot
+
+on:
+  schedule:
+    - cron: "15 1,17 * * *"
+  workflow_dispatch:
+
+env:
+  WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run script
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: |
+          set -o pipefail
+          python P4985.py | tee output.csv
+
+      - name: Submit QuickStatements batch
+        env:
+          QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
+        run: |
+          python quickstatements.py --batchname TMDbIDs <output.csv
