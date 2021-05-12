@@ -9,7 +9,7 @@ def main():
     SELECT ?statement ?value WHERE {
       SERVICE bd:sample {
         ?item p:P345 ?statement.
-        bd:serviceParam bd:sample.limit 5 ;
+        bd:serviceParam bd:sample.limit 500 ;
           bd:sample.sampleType "RANDOM".
       }
       ?statement wikibase:rank ?rank.
