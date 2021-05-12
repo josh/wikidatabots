@@ -1,8 +1,8 @@
 name: P4947 Bot
 
 on:
-  schedule:
-    - cron: "15 0,16 * * *"
+  # schedule:
+  #   - cron: "15 0,16 * * *"
   workflow_dispatch:
 
 env:
