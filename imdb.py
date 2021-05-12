@@ -15,7 +15,7 @@ def canonical_id(id):
     url = formatted_url(id)
     assert url, "bad id: {}".format(id)
 
-    if id.startswith("ch"):
+    if id.startswith("ch") or id.startswith("ev"):
         return id
 
     r = requests.head(url)
@@ -49,6 +49,10 @@ def formatted_url(id):
     if m:
         return "https://www.imdb.com/event/{}/{}/1".format(m.group(1), m.group(2))
 
+    m = re.match(r"^(ev\d+)$", id)
+    if m:
+        return "https://www.imdb.com/event/{}".format(m.group(1))
+
     m = re.match(r"^(co\d+)$", id)
     if m:
         return "https://www.imdb.com/search/title/?companies={}".format(m.group(1))
@@ -77,6 +81,10 @@ def extract_id(url):
     m = re.match(r"/event/(ev\d+)/(\d+)(/|/\d+)?$", r.path)
     if m:
         return "{}/{}".format(m.group(1), m.group(2))
+
+    m = re.match(r"/event/(ev\d+)/?$", r.path)
+    if m:
+        return "{}".format(m.group(1))
 
     m = re.match(r"/company/(co\d+)/?$", r.path)
     if m:

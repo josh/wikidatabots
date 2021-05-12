@@ -38,6 +38,8 @@ def test_extract_id():
     assert extract_id("https://www.imdb.com/event/ev0000292/1997") == "ev0000292/1997"
     assert extract_id("https://www.imdb.com/event/ev0000292/1997/") == "ev0000292/1997"
     assert extract_id("https://www.imdb.com/event/ev0000292/1997/1") == "ev0000292/1997"
+    assert extract_id("https://www.imdb.com/event/ev0000203") == "ev0000203"
+    assert extract_id("/event/ev0000203/2021/1") == "ev0000203/2021"
 
     assert not extract_id(
         "https://www.imdb.com/title/tt11696836/characters/nm11012957/"
@@ -65,6 +67,7 @@ def test_formatted_url():
     assert (
         formatted_url("ev0000292/1997") == "https://www.imdb.com/event/ev0000292/1997/1"
     )
+    assert formatted_url("ev0000203") == "https://www.imdb.com/event/ev0000203"
 
     assert formatted_url("ch0348376") == "https://www.imdb.com/character/ch0348376/"
 
@@ -96,6 +99,7 @@ def test_canonical_id():
     assert canonical_id("nm0000151") == "nm0000151"
     assert canonical_id("co0018704") == "co0018704"
     assert canonical_id("ev0000292/1997") == "ev0000292/1997"
+    assert canonical_id("ev0000203") == "ev0000203"
 
     assert canonical_id("ch0348376") == "ch0348376"
 
