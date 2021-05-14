@@ -1,8 +1,8 @@
 name: P4985 Bot
 
 on:
-  # schedule:
-  #   - cron: "15 1,17 * * *"
+  schedule:
+    - cron: "15 1,17 * * *"
   workflow_dispatch:
 
 env:
