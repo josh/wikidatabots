@@ -25,7 +25,8 @@ def main():
         wd:Q431289
         wd:Q59755569
       }
-      ?item (wdt:P31/(wdt:P279*)) ?classes.
+      # ?item (wdt:P31/(wdt:P279*)) ?classes.
+      ?item wdt:P31 ?classes.
 
       OPTIONAL { ?item wdt:P4985 ?tmdb. }
       FILTER(!(BOUND(?tmdb)))
