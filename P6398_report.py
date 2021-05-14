@@ -1,6 +1,3 @@
-import requests
-from tqdm import tqdm
-
 import itunes
 from sparql import sparql
 
