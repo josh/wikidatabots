@@ -1,15 +1,15 @@
-name: P345 Maintenance reports
+name: Weekly Reports
 
 on:
   schedule:
-    - cron: "15 1 * * *"
+    - cron: "0 0 * * 2,5"
   workflow_dispatch:
 
 env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  run:
+  P345:
     runs-on: ubuntu-latest
 
     steps:
@@ -39,3 +39,34 @@ jobs:
       - name: Publish report page
         run: |
           python page.py edit --title "User:$WIKIDATA_USERNAME/Maintenance_reports/P345" <report.txt
+
+  P6398:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run script
+        run: |
+          set -o pipefail
+          python P6398_report.py | tee report.txt
+
+      - name: Login
+        env:
+          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
+        run: |
+          python pwb.py login
+
+      - name: Publish report page
+        run: |
+          python page.py edit --title "User:$WIKIDATA_USERNAME/Maintenance_reports/P6398" <report.txt
