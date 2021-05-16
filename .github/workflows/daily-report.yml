@@ -96,7 +96,7 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
           set -o pipefail
-          python _report.py | tee report.txt
+          python P4985_report.py | tee report.txt
 
       - name: Login
         env:
