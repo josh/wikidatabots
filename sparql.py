@@ -71,7 +71,9 @@ def sparql(query, quiet=False):
         elif obj["type"] == "literal":
             return obj["value"]
         elif obj["type"] == "uri":
-            if obj["value"].startswith("http://www.wikidata.org/entity/"):
+            if obj["value"].startswith("http://www.wikidata.org/prop/"):
+                return obj["value"].replace("http://www.wikidata.org/prop/", "")
+            elif obj["value"].startswith("http://www.wikidata.org/entity/"):
                 label = obj["value"].replace("http://www.wikidata.org/entity/", "")
                 if label.startswith("statement/"):
                     return "$".join(label.replace("statement/", "").split("-", 1))
@@ -83,6 +85,82 @@ def sparql(query, quiet=False):
             return obj
 
     return list(results())
+
+
+def fetch_statements(qids, properties):
+    query = "SELECT ?statement ?item ?property ?value WHERE { "
+    query += values_query(qids)
+    query += """
+    OPTIONAL {
+      ?item ?property ?statement.
+      ?statement ?ps ?value.
+      ?statement wikibase:rank ?rank.
+      FILTER(?rank != wikibase:DeprecatedRank)
+    }
+    """
+    query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
+    query += "}"
+
+    items = {}
+
+    for result in sparql(query):
+        statement = result["statement"]
+        qid = result["item"]
+        prop = result["property"]
+        value = result["value"]
+
+        item = items[qid] = items.get(qid, {})
+        properties = item[prop] = item.get(prop, [])
+
+        properties.append((statement, value))
+
+    return items
+
+
+def sample_items(property, limit=50):
+    query = """
+    SELECT ?item WHERE {
+      SERVICE bd:sample {
+        ?item wdt:?property [].
+        bd:serviceParam bd:sample.limit ?limit ;
+          bd:sample.sampleType "RANDOM".
+      }
+    }
+    """
+
+    query = query.replace("?property", property)
+    query = query.replace("?limit", str(limit))
+
+    items = set()
+    for result in sparql(query):
+        assert result["item"]
+        items.add(result["item"])
+    return items
+
+
+def recent_items(property, limit=50):
+    query = """
+    SELECT ?item ?date WHERE {
+      ?item wdt:?property [];
+        schema:dateModified ?date.
+    }
+    ORDER BY DESC (?date)
+    LIMIT ?limit
+    """
+
+    query = query.replace("?property", property)
+    query = query.replace("?limit", str(limit))
+
+    items = set()
+    for result in sparql(query):
+        assert result["item"]
+        items.add(result["item"])
+    return items
+
+
+def values_query(qids, binding="item"):
+    values = " ".join("wd:{}".format(qid) for qid in qids)
+    return "VALUES ?" + binding + " { " + values + " }"
 
 
 if __name__ == "__main__":
