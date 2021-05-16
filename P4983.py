@@ -61,14 +61,14 @@ def main():
         tmdb_ids = set()
 
         for imdb_id in item["imdb"]:
-            person = tmdb.find(id=imdb_id, source="imdb_id", type="tv")
-            if person:
-                tmdb_ids.add(person["id"])
+            tv = tmdb.find(id=imdb_id, source="imdb_id", type="tv")
+            if tv:
+                tmdb_ids.add(tv["id"])
 
         for tvdb_id in item["tvdb"]:
-            person = tmdb.find(id=tvdb_id, source="tvdb_id", type="tv")
-            if person:
-                tmdb_ids.add(person["id"])
+            tv = tmdb.find(id=tvdb_id, source="tvdb_id", type="tv")
+            if tv:
+                tmdb_ids.add(tv["id"])
 
         for tmdb_id in tmdb_ids:
             print('{},"""{}"""'.format(qid, tmdb_id))
