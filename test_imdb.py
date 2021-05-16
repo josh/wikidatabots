@@ -65,6 +65,10 @@ def test_formatted_url():
     )
 
     assert (
+        formatted_url("ev0000764/1967/1")
+        == "https://www.imdb.com/event/ev0000764/1967/1"
+    )
+    assert (
         formatted_url("ev0000292/1997") == "https://www.imdb.com/event/ev0000292/1997/1"
     )
     assert formatted_url("ev0000203") == "https://www.imdb.com/event/ev0000203"

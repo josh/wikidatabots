@@ -45,6 +45,12 @@ def formatted_url(id):
     if m:
         return "https://www.imdb.com/character/{}/".format(m.group(1))
 
+    m = re.match(r"^(ev\d+)/(\d+)/(\d+)$", id)
+    if m:
+        return "https://www.imdb.com/event/{}/{}/{}".format(
+            m.group(1), m.group(2), m.group(3)
+        )
+
     m = re.match(r"^(ev\d+)/(\d+)$", id)
     if m:
         return "https://www.imdb.com/event/{}/{}/1".format(m.group(1), m.group(2))
