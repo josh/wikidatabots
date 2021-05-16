@@ -13,60 +13,47 @@ def main():
     Outputs QuickStatements CSV commands.
     """
 
-    items = {}
-
-    def accumulate_results(results):
-        for result in results:
-            qid = result["item"]
-            if qid not in items:
-                items[qid] = {"imdb": set(), "tvdb": set()}
-            item = items[qid]
-
-            if result["imdb"]:
-                item["imdb"].add(result["imdb"])
-
-            if result["tvdb"]:
-                item["tvdb"].add(result["tvdb"])
-
     query = """
     SELECT ?item ?imdb ?tvdb ?random WHERE {
-      ?item wdt:P345 ?imdb.
+      # Items with either IMDb or TVDB IDs
+      { ?item wdt:P4835 []. }
+      UNION
+      { ?item wdt:P345 []. }
+
+      # P4983's type constraint
+      VALUES ?classes {
+        wd:Q15416
+      }
+      ?item (wdt:P31/(wdt:P279*)) ?classes.
+
+      # Get IMDb and TVDB IDs
+      OPTIONAL { ?item wdt:P345 ?imdb. }
       OPTIONAL { ?item wdt:P4835 ?tvdb. }
 
-      VALUES ?classes {
-        wd:Q15416
-      }
-      ?item (wdt:P31/(wdt:P279*)) ?classes.
-
+      # Exclude items that already have a TMDB TV ID
       OPTIONAL { ?item wdt:P4985 ?tmdb. }
       FILTER(!(BOUND(?tmdb)))
 
+      # Generate random sorting key
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
     ORDER BY ?random
-    LIMIT 500
+    LIMIT 1000
     """
-    accumulate_results(sparql(query))
 
-    query = """
-    SELECT ?item ?imdb ?tvdb ?random WHERE {
-      ?item wdt:P4835 ?tvdb.
-      OPTIONAL { ?item wdt:P345 ?imdb. }
+    items = {}
 
-      VALUES ?classes {
-        wd:Q15416
-      }
-      ?item (wdt:P31/(wdt:P279*)) ?classes.
+    for result in sparql(query):
+        qid = result["item"]
+        if qid not in items:
+            items[qid] = {"imdb": set(), "tvdb": set()}
+        item = items[qid]
 
-      OPTIONAL { ?item wdt:P4985 ?tmdb. }
-      FILTER(!(BOUND(?tmdb)))
+        if result["imdb"]:
+            item["imdb"].add(result["imdb"])
 
-      BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
-    }
-    ORDER BY ?random
-    LIMIT 500
-    """
-    accumulate_results(sparql(query))
+        if result["tvdb"]:
+            item["tvdb"].add(result["tvdb"])
 
     print("qid,P4983")
     for qid in tqdm(items):
