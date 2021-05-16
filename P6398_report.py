@@ -1,4 +1,5 @@
 import itunes
+import wikitext
 from sparql import sparql
 
 
@@ -39,25 +40,13 @@ def main():
     for (statement, itunes_id) in itunes_link_rot:
         print(
             "* "
-            + wiki_statement(statement)
+            + wikitext.statement(statement)
             + ": "
-            + wiki_link(
+            + wikitext.link(
                 itunes_id, "https://itunes.apple.com/us/movie/id{}".format(itunes_id)
             )
         )
     print("")
-
-
-def wiki_link(title, url):
-    return "[{url} {title}]".format(url=url, title=title)
-
-
-def wiki_statement(statement):
-    statement = statement.replace("$", "-")
-    return wiki_link(
-        "wds:{}".format(statement),
-        "http://www.wikidata.org/entity/statement/{}".format(statement),
-    )
 
 
 if __name__ == "__main__":

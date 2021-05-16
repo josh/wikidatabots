@@ -1,6 +1,7 @@
 from tqdm import tqdm
 
 import imdb
+import wikitext
 from sparql import sparql
 
 
@@ -45,9 +46,9 @@ def main():
     for (statement, imdb_id) in imdb_link_rot:
         print(
             "* "
-            + wiki_statement(statement)
+            + wikitext.statement(statement)
             + ": "
-            + wiki_link(imdb_id, imdb.formatted_url(imdb_id))
+            + wikitext.link(imdb_id, imdb.formatted_url(imdb_id))
         )
     print("")
 
@@ -55,30 +56,18 @@ def main():
     for (statement, imdb_id, imdb_canonical_id) in imdb_redirects:
         print(
             "* "
-            + wiki_statement(statement)
+            + wikitext.statement(statement)
             + ": "
-            + wiki_link(imdb_id, imdb.formatted_url(imdb_id))
+            + wikitext.link(imdb_id, imdb.formatted_url(imdb_id))
             + " → "
-            + wiki_link(imdb_canonical_id, imdb.formatted_url(imdb_canonical_id))
+            + wikitext.link(imdb_canonical_id, imdb.formatted_url(imdb_canonical_id))
         )
     print("")
 
     print("== IMDb unknown IDs ==")
     for (statement, imdb_id) in imdb_link_unknown:
-        print("* " + wiki_statement(statement) + ": " + imdb_id)
+        print("* " + wikitext.statement(statement) + ": " + imdb_id)
     print("")
-
-
-def wiki_link(title, url):
-    return "[{url} {title}]".format(url=url, title=title)
-
-
-def wiki_statement(statement):
-    statement = statement.replace("$", "-")
-    return wiki_link(
-        "wds:{}".format(statement),
-        "http://www.wikidata.org/entity/statement/{}".format(statement),
-    )
 
 
 if __name__ == "__main__":

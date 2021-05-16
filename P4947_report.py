@@ -1,6 +1,7 @@
 from tqdm import tqdm
 
 import tmdb
+import wikitext
 from sparql import sparql
 from utils import uniq
 
@@ -54,14 +55,14 @@ def main():
 
     print("== TMDb link rot ==")
     for (qid, tmdb_id) in tmdb_link_rot:
-        print("* " + wiki_qid(qid) + ": " + wiki_tmdb_link(tmdb_id))
+        print("* " + wikitext.item(qid) + ": " + wiki_tmdb_link(tmdb_id))
     print("")
 
     print("== TMDb differences ==")
     for (qid, actual_tmdb_id, expected_tmdb_id) in tmdb_imdb_diff:
         print(
             "* "
-            + wiki_qid(qid)
+            + wikitext.item(qid)
             + ": "
             + wiki_tmdb_link(actual_tmdb_id)
             + " vs "
@@ -76,22 +77,14 @@ def main():
             "* "
             + wiki_tmdb_link(tmdb_id, "/edit?active_nav_item=external_ids")
             + ": "
-            + wiki_qid(qid)
+            + wikitext.item(qid)
             + " suggests "
-            + wiki_link(imdb_id, imdb_url)
+            + wikitext.link(imdb_id, imdb_url)
         )
 
 
-def wiki_link(title, url):
-    return "[{url} {title}]".format(url=url, title=title)
-
-
-def wiki_qid(qid):
-    return "{{Q|" + qid.replace("Q", "") + "}}"
-
-
 def wiki_tmdb_link(tmdb_id, suffix=""):
-    return wiki_link(
+    return wikitext.link(
         tmdb_id, "https://www.themoviedb.org/movie/{}{}".format(tmdb_id, suffix)
     )
 
