@@ -4,6 +4,7 @@ import sparql
 import tmdb
 import wikitext
 from page_extract import page_qids
+from utils import uniq
 
 
 def main():
@@ -58,12 +59,12 @@ def main():
     tmdb_imdb_diff.sort()
 
     print("== TMDb link rot ==")
-    for (statement, tmdb_id) in tmdb_link_rot:
+    for (statement, tmdb_id) in uniq(tmdb_link_rot):
         print("* " + wikitext.statement(statement) + ": " + wiki_tmdb_link(tmdb_id))
     print("")
 
     print("== TMDb differences ==")
-    for (qid, actual_tmdb_id, expected_tmdb_id) in tmdb_imdb_diff:
+    for (qid, actual_tmdb_id, expected_tmdb_id) in uniq(tmdb_imdb_diff):
         print(
             "* "
             + wikitext.item(qid)

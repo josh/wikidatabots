@@ -2,6 +2,7 @@ import itunes
 import sparql
 import wikitext
 from page_extract import page_qids
+from utils import uniq
 
 
 def main():
@@ -36,7 +37,7 @@ def main():
     itunes_link_rot.sort()
 
     print("== iTunes link rot ==")
-    for (statement, itunes_id) in itunes_link_rot:
+    for (statement, itunes_id) in uniq(itunes_link_rot):
         print(
             "* "
             + wikitext.statement(statement)

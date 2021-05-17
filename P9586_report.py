@@ -4,6 +4,7 @@ import appletv
 import sparql
 import wikitext
 from page_extract import page_qids
+from utils import uniq
 
 
 def main():
@@ -49,17 +50,17 @@ def main():
     itunes_diff.sort()
 
     print("== Link rot ==")
-    for (statement, id) in link_rot:
+    for (statement, id) in uniq(link_rot):
         print("* " + wikitext.statement(statement) + ": " + wiki_appletv_link(id))
     print("")
 
     print("== iTunes Store statements ==")
-    for (qid, value) in itunes_statements:
+    for (qid, value) in uniq(itunes_statements):
         print("* {{Statement|" + qid + '|P6398|"' + str(value) + '"}}')
     print("")
 
     print("== iTunes Store differences ==")
-    for (qid, actual_itunes_id, expected_itunes_id) in itunes_diff:
+    for (qid, actual_itunes_id, expected_itunes_id) in uniq(itunes_diff):
         print(
             "* "
             + wikitext.item(qid)

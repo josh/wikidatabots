@@ -3,6 +3,7 @@ from tqdm import tqdm
 import imdb
 import wikitext
 from sparql import sparql
+from utils import uniq
 
 
 def main():
@@ -43,7 +44,7 @@ def main():
     imdb_link_unknown.sort()
 
     print("== IMDb link rot ==")
-    for (statement, imdb_id) in imdb_link_rot:
+    for (statement, imdb_id) in uniq(imdb_link_rot):
         print(
             "* "
             + wikitext.statement(statement)
@@ -53,7 +54,7 @@ def main():
     print("")
 
     print("== IMDb redirects ==")
-    for (statement, imdb_id, imdb_canonical_id) in imdb_redirects:
+    for (statement, imdb_id, imdb_canonical_id) in uniq(imdb_redirects):
         print(
             "* "
             + wikitext.statement(statement)
@@ -65,7 +66,7 @@ def main():
     print("")
 
     print("== IMDb unknown IDs ==")
-    for (statement, imdb_id) in imdb_link_unknown:
+    for (statement, imdb_id) in uniq(imdb_link_unknown):
         print("* " + wikitext.statement(statement) + ": " + imdb_id)
     print("")
 
