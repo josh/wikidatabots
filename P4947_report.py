@@ -21,6 +21,9 @@ def main():
     for qid in tqdm(results):
         item = results[qid]
 
+        if "P4947" not in item:
+            continue
+
         tmdb_movie = None
         for (statement, value) in item["P4947"]:
             tmdb_movie = tmdb.movie(value)

@@ -1,61 +1,65 @@
 from tqdm import tqdm
 
+import sparql
 import tmdb
 import wikitext
-from sparql import sparql
-from utils import uniq
+from page_extract import page_qids
 
 
 def main():
-    query = """
-    SELECT ?item ?imdb ?tmdb WHERE {
-      SERVICE bd:sample {
-        ?item wdt:P4983 ?tmdb.
-        bd:serviceParam bd:sample.limit 500 .
-        bd:serviceParam bd:sample.sampleType "RANDOM".
-      }
-      ?item wdt:P345 ?imdb.
-    }
-    """
-    results = sparql(query)
+    qids = (
+        sparql.sample_items("P4983", type="random", limit=500)
+        | sparql.sample_items("P4983", type="created", limit=500)
+        | page_qids("User:Josh404Bot/Maintenance_reports/P4983")
+    )
 
-    query = """
-    SELECT ?item ?imdb ?tmdb ?date WHERE {
-      ?item wdt:P4983 ?tmdb.
-      ?item wdt:P345 ?imdb.
-      ?item schema:dateModified ?date.
-    }
-    ORDER BY DESC (?date)
-    LIMIT 500
-    """
-    results2 = sparql(query)
+    results = sparql.fetch_statements(qids, ["P4983", "P345", "P646"])
 
     tmdb_link_rot = []
     tmdb_imdb_diff = []
-    tmdb_missing_imdb_ids = []
 
-    for result in tqdm(list(uniq(results + results2))):
-        tmdb_show = tmdb.tv_external_ids(result["tmdb"])
-        tmdb_show2 = tmdb.find(id=result["imdb"], source="imdb_id", type="tv")
+    for qid in tqdm(results):
+        item = results[qid]
 
-        if tmdb_show and tmdb_show.get("imdb_id") is None and result["imdb"]:
-            tmdb_missing_imdb_ids.append(
-                (tmdb_show["id"], result["item"], result["imdb"])
+        if "P4983" not in item:
+            continue
+
+        tmdb_show = None
+        for (statement, value) in item["P4983"]:
+            tmdb_show = tmdb.tv(value)
+            if not tmdb_show:
+                tmdb_link_rot.append((statement, value))
+
+        tmdb_show_via_imdb = None
+        for (statement, value) in item.get("P345", []):
+            tmdb_show_via_imdb = tmdb.find(id=value, source="imdb_id", type="tv")
+
+        tmdb_show_via_freebase = None
+        for (statement, value) in item.get("P646", []):
+            tmdb_show_via_freebase = tmdb.find(
+                id=value, source="freebase_mid", type="tv"
             )
 
-        if tmdb_show is None:
-            tmdb_link_rot.append((result["item"], result["tmdb"]))
+        if (
+            tmdb_show
+            and tmdb_show_via_imdb
+            and tmdb_show["id"] != tmdb_show_via_imdb["id"]
+        ):
+            tmdb_imdb_diff.append((qid, tmdb_show["id"], tmdb_show_via_imdb["id"]))
 
-        if tmdb_show2 and result["tmdb"] != str(tmdb_show2["id"]):
-            tmdb_imdb_diff.append((result["item"], result["tmdb"], tmdb_show2["id"]))
+        if (
+            tmdb_show
+            and tmdb_show_via_freebase
+            and tmdb_show["id"] != tmdb_show_via_freebase["id"]
+        ):
+            tmdb_imdb_diff.append((qid, tmdb_show["id"], tmdb_show_via_freebase["id"]))
 
     tmdb_link_rot.sort()
     tmdb_imdb_diff.sort()
-    tmdb_missing_imdb_ids.sort()
 
     print("== TMDb link rot ==")
-    for (qid, tmdb_id) in tmdb_link_rot:
-        print("* " + wikitext.item(qid) + ": " + wiki_tmdb_link(tmdb_id))
+    for (statement, tmdb_id) in tmdb_link_rot:
+        print("* " + wikitext.statement(statement) + ": " + wiki_tmdb_link(tmdb_id))
     print("")
 
     print("== TMDb differences ==")
@@ -69,18 +73,6 @@ def main():
             + wiki_tmdb_link(expected_tmdb_id)
         )
     print("")
-
-    print("== TMDb missing IMDB IDs ==")
-    for (tmdb_id, qid, imdb_id) in tmdb_missing_imdb_ids:
-        imdb_url = "https://www.imdb.com/title/{}/".format(imdb_id)
-        print(
-            "* "
-            + wiki_tmdb_link(tmdb_id, "/edit?active_nav_item=external_ids")
-            + ": "
-            + wikitext.item(qid)
-            + " suggests "
-            + wikitext.link(imdb_id, imdb_url)
-        )
 
 
 def wiki_tmdb_link(tmdb_id, suffix=""):
