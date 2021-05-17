@@ -14,7 +14,6 @@ def main():
 
     tmdb_link_rot = []
     tmdb_imdb_diff = []
-    tmdb_missing_imdb_ids = []
 
     for qid in tqdm(results):
         item = results[qid]
@@ -28,8 +27,6 @@ def main():
         tmdb_movie_via_imdb = None
         for (statement, value) in item.get("P345", []):
             tmdb_movie_via_imdb = tmdb.find(id=value, source="imdb_id", type="movie")
-            if tmdb_movie and not tmdb_movie_via_imdb:
-                tmdb_missing_imdb_ids.append((tmdb_movie["id"], statement, value))
 
         tmdb_movie_via_freebase = None
         for (statement, value) in item.get("P646", []):
@@ -55,7 +52,6 @@ def main():
 
     tmdb_link_rot.sort()
     tmdb_imdb_diff.sort()
-    tmdb_missing_imdb_ids.sort()
 
     print("== TMDb link rot ==")
     for (statement, tmdb_id) in tmdb_link_rot:
@@ -73,18 +69,6 @@ def main():
             + wiki_tmdb_link(expected_tmdb_id)
         )
     print("")
-
-    print("== TMDb missing IMDB IDs ==")
-    for (tmdb_id, statement, imdb_id) in tmdb_missing_imdb_ids:
-        imdb_url = "https://www.imdb.com/title/{}/".format(imdb_id)
-        print(
-            "* "
-            + wiki_tmdb_link(tmdb_id, "/edit?active_nav_item=external_ids")
-            + ": "
-            + wikitext.statement(statement)
-            + " suggests "
-            + wikitext.link(imdb_id, imdb_url)
-        )
 
 
 def wiki_tmdb_link(tmdb_id, suffix=""):
