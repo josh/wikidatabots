@@ -3,11 +3,14 @@ from tqdm import tqdm
 import appletv
 import sparql
 import wikitext
+from page_extract import page_qids
 
 
 def main():
-    qids = sparql.sample_items("P9586", type="random", limit=100) | sparql.sample_items(
-        "P9586", type="created", limit=100
+    qids = (
+        sparql.sample_items("P9586", type="random", limit=100)
+        | sparql.sample_items("P9586", type="created", limit=100)
+        | page_qids("User:Josh404Bot/Maintenance_reports/P9586")
     )
 
     results = sparql.fetch_statements(qids, ["P6398", "P9586"])
