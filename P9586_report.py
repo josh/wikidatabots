@@ -52,7 +52,7 @@ def main():
 
     print("== iTunes Store statements ==")
     for (qid, value) in itunes_statements:
-        print("{{Statement|" + qid + '|P6398|"' + str(value) + '"}}')
+        print("* {{Statement|" + qid + '|P6398|"' + str(value) + '"}}')
     print("")
 
     print("== iTunes Store differences ==")
