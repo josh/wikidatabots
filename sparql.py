@@ -117,36 +117,49 @@ def fetch_statements(qids, properties):
     return items
 
 
-def sample_items(property, limit=50):
-    query = """
-    SELECT ?item WHERE {
-      SERVICE bd:sample {
-        ?item wdt:?property [].
-        bd:serviceParam bd:sample.limit ?limit ;
-          bd:sample.sampleType "RANDOM".
-      }
-    }
-    """
-
-    query = query.replace("?property", property)
-    query = query.replace("?limit", str(limit))
-
-    items = set()
-    for result in sparql(query):
-        assert result["item"]
-        items.add(result["item"])
-    return items
-
-
-def recent_items(property, limit=50):
-    query = """
-    SELECT ?item ?date WHERE {
-      ?item wdt:?property [];
-        schema:dateModified ?date.
-    }
-    ORDER BY DESC (?date)
-    LIMIT ?limit
-    """
+def sample_items(property, limit=50, type="random"):
+    if type == "random":
+        query = """
+        SELECT ?item WHERE {
+          SERVICE bd:sample {
+            ?item wdt:?property [].
+            bd:serviceParam bd:sample.limit ?limit ;
+              bd:sample.sampleType "RANDOM".
+          }
+        }
+        """
+    elif type == "created":
+        query = """
+        SELECT ?item {
+          SERVICE wikibase:mwapi {
+            bd:serviceParam wikibase:endpoint "www.wikidata.org";
+                            wikibase:api "Generator" ;
+                            wikibase:limit "once" ;
+                            mwapi:generator "search";
+                            mwapi:gsrsearch "haswbstatement:?property" ;
+                            mwapi:gsrsort "create_timestamp_desc" ;
+                            mwapi:gsrlimit "?limit".
+            ?item wikibase:apiOutputItem mwapi:title.
+          }
+        }
+        """
+    elif type == "updated":
+        query = """
+        SELECT ?item {
+          SERVICE wikibase:mwapi {
+            bd:serviceParam wikibase:endpoint "www.wikidata.org";
+                            wikibase:api "Generator" ;
+                            wikibase:limit "once" ;
+                            mwapi:generator "search";
+                            mwapi:gsrsearch "haswbstatement:?property" ;
+                            mwapi:gsrsort "last_edit_desc" ;
+                            mwapi:gsrlimit "?limit".
+            ?item wikibase:apiOutputItem mwapi:title.
+          }
+        }
+        """
+    else:
+        assert False, "unknown type"
 
     query = query.replace("?property", property)
     query = query.replace("?limit", str(limit))

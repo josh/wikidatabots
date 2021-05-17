@@ -6,8 +6,8 @@ import wikitext
 
 
 def main():
-    qids = sparql.sample_items("P9586", limit=100) | sparql.recent_items(
-        "P9586", limit=100
+    qids = sparql.sample_items("P9586", type="random", limit=100) | sparql.sample_items(
+        "P9586", type="created", limit=100
     )
 
     results = sparql.fetch_statements(qids, ["P6398", "P9586"])

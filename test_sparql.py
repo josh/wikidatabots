@@ -1,4 +1,4 @@
-from sparql import sparql
+from sparql import fetch_statements, sample_items, sparql
 
 
 def test_sparql():
@@ -28,3 +28,24 @@ def test_sparql_property():
     )
     assert len(results) == 1
     assert results[0]["statement"] == "Q1$789eef0c-4108-cdda-1a63-505cdd324564"
+
+
+def test_sample_items():
+    results = sample_items("P345", limit=5, type="random")
+    assert len(results) == 5
+
+    results = sample_items("P345", limit=5, type="created")
+    assert len(results) == 5
+
+    results = sample_items("P345", limit=5, type="updated")
+    assert len(results) == 5
+
+
+def test_fetch_statements():
+    items = fetch_statements(["Q172241"], ["P345", "P4947"])
+    assert len(items) == 1
+
+    item = items["Q172241"]
+    assert item
+    assert item["P345"]
+    assert item["P4947"]
