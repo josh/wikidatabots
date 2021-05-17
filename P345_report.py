@@ -1,43 +1,42 @@
 from tqdm import tqdm
 
 import imdb
+import sparql
 import wikitext
-from sparql import sparql
+from page_extract import page_qids
 from utils import uniq
 
 
 def main():
-    query = """
-    SELECT ?statement ?value WHERE {
-      SERVICE bd:sample {
-        ?item p:P345 ?statement.
-        bd:serviceParam bd:sample.limit 500 ;
-          bd:sample.sampleType "RANDOM".
-      }
-      ?statement wikibase:rank ?rank.
-      FILTER(?rank != wikibase:DeprecatedRank)
-      ?statement ps:P345 ?value.
-    }
-    """
-    results = sparql(query)
+    qids = (
+        sparql.sample_items("P345", type="random", limit=250)
+        | sparql.sample_items("P345", type="created", limit=250)
+        | page_qids("User:Josh404Bot/Maintenance_reports/P4947")
+    )
+
+    results = sparql.fetch_statements(qids, ["P345"])
 
     imdb_link_rot = []
     imdb_redirects = []
     imdb_link_unknown = []
 
-    for result in tqdm(results):
-        id = result["value"]
+    for qid in tqdm(results):
+        item = results[qid]
 
-        if imdb.is_valid_id(id):
-            new_id = imdb.canonical_id(id)
+        if "P345" not in item:
+            continue
 
-            if new_id is None:
-                imdb_link_rot.append((result["statement"], id))
-            elif id is not new_id:
-                imdb_redirects.append((result["statement"], id, new_id))
+        for (statement, id) in item["P345"]:
+            if imdb.is_valid_id(id):
+                new_id = imdb.canonical_id(id)
 
-        else:
-            imdb_link_unknown.append((result["statement"], id))
+                if new_id is None:
+                    imdb_link_rot.append((statement, id))
+                elif id is not new_id:
+                    imdb_redirects.append((statement, id, new_id))
+
+            else:
+                imdb_link_unknown.append((statement, id))
 
     imdb_link_rot.sort()
     imdb_redirects.sort()
