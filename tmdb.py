@@ -40,18 +40,6 @@ def object(id, type, api_key=TMDB_API_KEY):
     return resp
 
 
-def movie(id, api_key=TMDB_API_KEY):
-    return object(id, "movie", api_key)
-
-
-def tv(id, api_key=TMDB_API_KEY):
-    return object(id, "tv", api_key)
-
-
-def person(id, api_key=TMDB_API_KEY):
-    return object(id, "person", api_key)
-
-
 find_sources = set(
     [
         "imdb_id",

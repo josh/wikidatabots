@@ -24,7 +24,7 @@ def main():
 
         tmdb_person = None
         for (statement, value) in item["P4985"]:
-            tmdb_person = tmdb.person(value)
+            tmdb_person = tmdb.object(value, type="person")
             if not tmdb_person:
                 tmdb_link_rot.append((statement, value))
 

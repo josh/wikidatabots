@@ -1,14 +1,6 @@
 import tmdb
 
 
-def test_movie():
-    movie = tmdb.movie("278")
-    assert movie
-    assert movie["title"] == "The Shawshank Redemption"
-
-    assert not tmdb.movie("1000000000")
-
-
 def test_find():
     result = tmdb.find(id="tt0111161", source="imdb_id", type="movie")
     assert result

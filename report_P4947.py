@@ -24,7 +24,7 @@ def main():
 
         tmdb_movie = None
         for (statement, value) in item["P4947"]:
-            tmdb_movie = tmdb.movie(value)
+            tmdb_movie = tmdb.object(value, type="movie")
             if not tmdb_movie:
                 tmdb_link_rot.append((statement, value))
 
