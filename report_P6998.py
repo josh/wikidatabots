@@ -4,6 +4,8 @@ import wikitext
 from report_utils import sample_qids
 from utils import uniq
 
+P6398_URL_FORMATTER = "https://itunes.apple.com/us/movie-collection/id{}"
+
 
 def main():
     qids = sample_qids("P6998", count=1000)
@@ -37,10 +39,7 @@ def main():
             "* "
             + wikitext.statement(statement)
             + ": "
-            + wikitext.link(
-                itunes_id,
-                "https://itunes.apple.com/us/movie-collection/id{}".format(itunes_id),
-            )
+            + wikitext.external_id(itunes_id, P6398_URL_FORMATTER)
         )
     print("")
 

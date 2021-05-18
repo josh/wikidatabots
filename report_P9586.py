@@ -6,6 +6,9 @@ import wikitext
 from report_utils import sample_qids
 from utils import uniq
 
+P6398_URL_FORMATTER = "https://itunes.apple.com/us/movie/id{}"
+P9586_URL_FORMATTER = "https://tv.apple.com/us/movie/{}"
+
 
 def main():
     qids = sample_qids("P9586", count=200)
@@ -46,7 +49,12 @@ def main():
 
     print("== Link rot ==")
     for (statement, id) in uniq(link_rot):
-        print("* " + wikitext.statement(statement) + ": " + wiki_appletv_link(id))
+        print(
+            "* "
+            + wikitext.statement(statement)
+            + ": "
+            + wikitext.external_id(id, P9586_URL_FORMATTER)
+        )
     print("")
 
     print("== iTunes Store statements ==")
@@ -60,23 +68,11 @@ def main():
             "* "
             + wikitext.item(qid)
             + ": "
-            + wiki_itunes_link(actual_itunes_id)
+            + wikitext.external_id(actual_itunes_id, P6398_URL_FORMATTER)
             + " vs "
-            + wiki_itunes_link(expected_itunes_id)
+            + wikitext.external_id(expected_itunes_id, P6398_URL_FORMATTER)
         )
     print("")
-
-
-def wiki_appletv_link(appletv_id):
-    return wikitext.link(
-        appletv_id, "https://tv.apple.com/us/movie/{}".format(appletv_id)
-    )
-
-
-def wiki_itunes_link(itunes_id):
-    return wikitext.link(
-        itunes_id, "http://itunes.apple.com/us/movie/id{}".format(itunes_id)
-    )
 
 
 if __name__ == "__main__":

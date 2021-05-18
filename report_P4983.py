@@ -6,6 +6,8 @@ import wikitext
 from report_utils import sample_qids
 from utils import uniq
 
+P4983_URL_FORMATTER = "https://www.themoviedb.org/tv/{}"
+
 
 def main():
     qids = sample_qids("P4983", count=1000)
@@ -55,7 +57,12 @@ def main():
 
     print("== TMDb link rot ==")
     for (statement, tmdb_id) in uniq(tmdb_link_rot):
-        print("* " + wikitext.statement(statement) + ": " + wiki_tmdb_link(tmdb_id))
+        print(
+            "* "
+            + wikitext.statement(statement)
+            + ": "
+            + wikitext.external_id(tmdb_id, P4983_URL_FORMATTER)
+        )
     print("")
 
     print("== TMDb differences ==")
@@ -64,17 +71,11 @@ def main():
             "* "
             + wikitext.item(qid)
             + ": "
-            + wiki_tmdb_link(actual_tmdb_id)
+            + wikitext.external_id(actual_tmdb_id, P4983_URL_FORMATTER)
             + " vs "
-            + wiki_tmdb_link(expected_tmdb_id)
+            + wikitext.external_id(expected_tmdb_id, P4983_URL_FORMATTER)
         )
     print("")
-
-
-def wiki_tmdb_link(tmdb_id, suffix=""):
-    return wikitext.link(
-        tmdb_id, "https://www.themoviedb.org/tv/{}{}".format(tmdb_id, suffix)
-    )
 
 
 if __name__ == "__main__":
