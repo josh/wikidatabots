@@ -26,58 +26,46 @@ def api_request(path, params={}, version=3, api_key=TMDB_API_KEY):
         return {}
 
 
-def movie(id, api_key=TMDB_API_KEY):
+object_types = set(["movie", "tv", "person"])
+
+
+def object(id, type, api_key=TMDB_API_KEY):
+    assert type in object_types
     resp = api_request(
-        "/movie/{}".format(id),
+        "/{}/{}".format(type, id),
         api_key=api_key,
     )
     if resp.get("success") is False:
         return None
     return resp
+
+
+def movie(id, api_key=TMDB_API_KEY):
+    return object(id, "movie", api_key)
 
 
 def tv(id, api_key=TMDB_API_KEY):
-    resp = api_request(
-        "/tv/{}".format(id),
-        api_key=api_key,
-    )
-    if resp.get("success") is False:
-        return None
-    return resp
-
-
-def tv_external_ids(id, api_key=TMDB_API_KEY):
-    resp = api_request(
-        "/tv/{}/external_ids".format(id),
-        api_key=api_key,
-    )
-    if resp.get("success") is False:
-        return None
-    return resp
+    return object(id, "tv", api_key)
 
 
 def person(id, api_key=TMDB_API_KEY):
-    resp = api_request(
-        "/person/{}".format(id),
-        api_key=api_key,
-    )
-    if resp.get("success") is False:
-        return None
-    return resp
+    return object(id, "person", api_key)
 
 
-find_sources = [
-    "imdb_id",
-    "freebase_mid",
-    "freebase_id",
-    "tvdb_id",
-    "tvrage_id",
-    "facebook_id",
-    "twitter_id",
-    "instagram_id",
-]
+find_sources = set(
+    [
+        "imdb_id",
+        "freebase_mid",
+        "freebase_id",
+        "tvdb_id",
+        "tvrage_id",
+        "facebook_id",
+        "twitter_id",
+        "instagram_id",
+    ]
+)
 
-find_types = ["movie", "person", "tv", "tv_episode", "tv_season"]
+find_types = set(["movie", "person", "tv", "tv_episode", "tv_season"])
 
 
 def find(id, source, type, api_key=TMDB_API_KEY):
@@ -98,3 +86,18 @@ def find(id, source, type, api_key=TMDB_API_KEY):
         return results[0]
     else:
         return None
+
+
+external_ids_types = set(["movie", "tv", "person"])
+
+
+def external_ids(id, type, api_key=TMDB_API_KEY):
+    assert type in external_ids_types
+
+    resp = api_request(
+        "/{}/{}/external_ids".format(type, id),
+        api_key=api_key,
+    )
+    if resp.get("success") is False:
+        return None
+    return resp
