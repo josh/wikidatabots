@@ -32,27 +32,12 @@ def main():
         for (statement, value) in item.get("P345", []):
             tmdb_movie_via_imdb = tmdb.find(id=value, source="imdb_id", type="movie")
 
-        tmdb_movie_via_freebase = None
-        for (statement, value) in item.get("P646", []):
-            tmdb_movie_via_freebase = tmdb.find(
-                id=value, source="freebase_mid", type="movie"
-            )
-
         if (
             tmdb_movie
             and tmdb_movie_via_imdb
             and tmdb_movie["id"] != tmdb_movie_via_imdb["id"]
         ):
             tmdb_imdb_diff.append((qid, tmdb_movie["id"], tmdb_movie_via_imdb["id"]))
-
-        if (
-            tmdb_movie
-            and tmdb_movie_via_freebase
-            and tmdb_movie["id"] != tmdb_movie_via_freebase["id"]
-        ):
-            tmdb_imdb_diff.append(
-                (qid, tmdb_movie["id"], tmdb_movie_via_freebase["id"])
-            )
 
     tmdb_link_rot.sort()
     tmdb_imdb_diff.sort()
