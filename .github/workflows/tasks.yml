@@ -1,4 +1,4 @@
-name: P4947 Bot
+name: Tasks
 
 on:
   schedule:
@@ -9,8 +9,14 @@ env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  run:
+  tmdb:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        property: ["P4947", "P4985"]
 
     steps:
       - uses: actions/checkout@v2
@@ -30,7 +36,7 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
           set -o pipefail
-          python P4947.py | tee output.csv
+          python ${{ matrix.property }}.py | tee output.csv
 
       - name: Submit QuickStatements batch
         env:
