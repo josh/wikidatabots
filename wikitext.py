@@ -8,13 +8,13 @@ def item(qid):
 
 def statement(statement):
     statement = statement.replace("$", "-")
-    qid = statement.split("-", 2)[0]
+    qid, guid = statement.split("-", 2)
 
     return (
         item(qid)
         + " "
         + link(
-            "wds:{}".format(statement),
+            guid,
             "http://www.wikidata.org/entity/statement/{}".format(statement),
         )
     )
