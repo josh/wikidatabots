@@ -36,7 +36,7 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
           set -o pipefail
-          python ${{ matrix.property }}_report.py | tee report.txt
+          python report_${{ matrix.property }}.py | tee report.txt
 
       - name: Login
         env:
