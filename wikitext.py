@@ -8,7 +8,7 @@ def item(qid):
 
 def statement(statement):
     statement = statement.replace("$", "-")
-    qid, guid = statement.split("-", 2)
+    qid, guid = statement.split("-", 1)
 
     return (
         item(qid)
