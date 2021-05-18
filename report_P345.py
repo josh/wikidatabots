@@ -3,17 +3,12 @@ from tqdm import tqdm
 import imdb
 import sparql
 import wikitext
-from page_extract import page_qids
+from report_utils import sample_qids
 from utils import uniq
 
 
 def main():
-    qids = (
-        sparql.sample_items("P345", type="random", limit=250)
-        | sparql.sample_items("P345", type="created", limit=250)
-        | page_qids("User:Josh404Bot/Maintenance_reports/P4947")
-    )
-
+    qids = sample_qids("P345", count=500)
     results = sparql.fetch_statements(qids, ["P345"])
 
     imdb_link_rot = []

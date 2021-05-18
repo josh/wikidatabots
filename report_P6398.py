@@ -1,17 +1,12 @@
 import itunes
 import sparql
 import wikitext
-from page_extract import page_qids
+from report_utils import sample_qids
 from utils import uniq
 
 
 def main():
-    qids = (
-        sparql.sample_items("P6398", type="random", limit=1000)
-        | sparql.sample_items("P6398", type="created", limit=1000)
-        | page_qids("User:Josh404Bot/Maintenance_reports/P6398")
-    )
-
+    qids = sample_qids("P6398", count=1000)
     results = sparql.fetch_statements(qids, ["P6398"])
 
     itunes_ids = set()

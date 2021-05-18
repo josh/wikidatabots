@@ -3,17 +3,12 @@ from tqdm import tqdm
 import sparql
 import tmdb
 import wikitext
-from page_extract import page_qids
+from report_utils import sample_qids
 from utils import uniq
 
 
 def main():
-    qids = (
-        sparql.sample_items("P4947", type="random", limit=500)
-        | sparql.sample_items("P4947", type="created", limit=500)
-        | page_qids("User:Josh404Bot/Maintenance_reports/P4947")
-    )
-
+    qids = sample_qids("P4947", count=1000)
     results = sparql.fetch_statements(qids, ["P4947", "P345", "P646"])
 
     tmdb_link_rot = []
