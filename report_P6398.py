@@ -8,7 +8,7 @@ P6398_URL_FORMATTER = "https://itunes.apple.com/us/movie/id{}"
 
 
 def main():
-    qids = sample_qids("P6398", count=1000)
+    qids = sample_qids("P6398", count=5000)
     results = sparql.fetch_statements(qids, ["P6398"])
 
     itunes_ids = set()
