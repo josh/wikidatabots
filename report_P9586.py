@@ -22,7 +22,7 @@ def main():
         item = results[qid]
 
         appletv_movie = None
-        for (statement, value) in item["P9586"]:
+        for (statement, value) in item.get("P9586", []):
             appletv_movie = appletv.movie(value)
             if not appletv_movie:
                 link_rot.append((statement, value))
