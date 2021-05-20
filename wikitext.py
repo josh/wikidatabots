@@ -22,3 +22,9 @@ def statement(statement):
 
 def external_id(id, formatter):
     return link(id, formatter.format(id))
+
+
+def external_ids(ids, formatter):
+    ids = list(ids)
+    ids.sort()
+    return ", ".join([external_id(id, formatter) for id in ids])

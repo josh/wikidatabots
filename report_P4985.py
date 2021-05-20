@@ -22,37 +22,28 @@ def main():
         if "P4985" not in item:
             continue
 
-        tmdb_person = None
+        actual_ids = set()
+        expected_ids = set()
+
         for (statement, value) in item["P4985"]:
             tmdb_person = tmdb.object(value, type="person")
-            if not tmdb_person:
+            if tmdb_person:
+                actual_ids.add(tmdb_person["id"])
+            else:
                 tmdb_link_rot.append((statement, value))
 
-        tmdb_person_via_imdb = None
         for (statement, value) in item.get("P345", []):
-            tmdb_person_via_imdb = tmdb.find(id=value, source="imdb_id", type="person")
+            tmdb_person = tmdb.find(id=value, source="imdb_id", type="person")
+            if tmdb_person:
+                expected_ids.add(tmdb_person["id"])
 
-        tmdb_person_via_freebase = None
         for (statement, value) in item.get("P646", []):
-            tmdb_person_via_freebase = tmdb.find(
-                id=value, source="freebase_mid", type="person"
-            )
+            tmdb_person = tmdb.find(id=value, source="freebase_mid", type="person")
+            if tmdb_person:
+                expected_ids.add(tmdb_person["id"])
 
-        if (
-            tmdb_person
-            and tmdb_person_via_imdb
-            and tmdb_person["id"] != tmdb_person_via_imdb["id"]
-        ):
-            tmdb_imdb_diff.append((qid, tmdb_person["id"], tmdb_person_via_imdb["id"]))
-
-        if (
-            tmdb_person
-            and tmdb_person_via_freebase
-            and tmdb_person["id"] != tmdb_person_via_freebase["id"]
-        ):
-            tmdb_imdb_diff.append(
-                (qid, tmdb_person["id"], tmdb_person_via_freebase["id"])
-            )
+        if actual_ids and expected_ids and actual_ids != expected_ids:
+            tmdb_imdb_diff.append((qid, actual_ids | expected_ids))
 
     tmdb_link_rot.sort()
     tmdb_imdb_diff.sort()
@@ -68,14 +59,12 @@ def main():
     print("")
 
     print("== TMDb differences ==")
-    for (qid, actual_tmdb_id, expected_tmdb_id) in uniq(tmdb_imdb_diff):
+    for (qid, ids) in uniq(tmdb_imdb_diff):
         print(
             "* "
             + wikitext.item(qid)
             + ": "
-            + wikitext.external_id(actual_tmdb_id, P4985_URL_FORMATTER)
-            + " vs "
-            + wikitext.external_id(expected_tmdb_id, P4985_URL_FORMATTER)
+            + wikitext.external_ids(ids, P4985_URL_FORMATTER)
         )
     print("")
 

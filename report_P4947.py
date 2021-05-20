@@ -11,7 +11,7 @@ P4947_URL_FORMATTER = "https://www.themoviedb.org/movie/{}"
 
 def main():
     qids = sample_qids("P4947", count=1000)
-    results = sparql.fetch_statements(qids, ["P4947", "P345", "P646"])
+    results = sparql.fetch_statements(qids, ["P4947", "P345"])
 
     tmdb_link_rot = []
     tmdb_imdb_diff = []
@@ -22,22 +22,23 @@ def main():
         if "P4947" not in item:
             continue
 
-        tmdb_movie = None
+        actual_ids = set()
+        expected_ids = set()
+
         for (statement, value) in item["P4947"]:
             tmdb_movie = tmdb.object(value, type="movie")
-            if not tmdb_movie:
+            if tmdb_movie:
+                actual_ids.add(tmdb_movie["id"])
+            else:
                 tmdb_link_rot.append((statement, value))
 
-        tmdb_movie_via_imdb = None
         for (statement, value) in item.get("P345", []):
-            tmdb_movie_via_imdb = tmdb.find(id=value, source="imdb_id", type="movie")
+            tmdb_movie = tmdb.find(id=value, source="imdb_id", type="movie")
+            if tmdb_movie:
+                expected_ids.add(tmdb_movie["id"])
 
-        if (
-            tmdb_movie
-            and tmdb_movie_via_imdb
-            and tmdb_movie["id"] != tmdb_movie_via_imdb["id"]
-        ):
-            tmdb_imdb_diff.append((qid, tmdb_movie["id"], tmdb_movie_via_imdb["id"]))
+        if actual_ids and expected_ids and actual_ids != expected_ids:
+            tmdb_imdb_diff.append((qid, actual_ids | expected_ids))
 
     tmdb_link_rot.sort()
     tmdb_imdb_diff.sort()
@@ -53,14 +54,12 @@ def main():
     print("")
 
     print("== TMDb differences ==")
-    for (qid, actual_tmdb_id, expected_tmdb_id) in uniq(tmdb_imdb_diff):
+    for (qid, ids) in uniq(tmdb_imdb_diff):
         print(
             "* "
             + wikitext.item(qid)
             + ": "
-            + wikitext.external_id(actual_tmdb_id, P4947_URL_FORMATTER)
-            + " vs "
-            + wikitext.external_id(expected_tmdb_id, P4947_URL_FORMATTER)
+            + wikitext.external_ids(ids, P4947_URL_FORMATTER)
         )
     print("")
 
