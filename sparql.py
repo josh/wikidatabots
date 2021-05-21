@@ -36,7 +36,7 @@ class TimeoutException(Exception):
     pass
 
 
-@backoff.on_exception(backoff.expo, TimeoutException, max_tries=3)
+@backoff.on_exception(backoff.expo, TimeoutException, max_tries=5)
 def sparql(query, quiet=False):
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
