@@ -34,7 +34,7 @@ def data_reader(data):
 def process_statement(repo, guid, pq, value):
     (item, claim) = find_claim(repo, guid)
 
-    if property == "rank":
+    if pq == "rank":
         if claim.rank != value:
             claim.setRank(value)
             item.editEntity({"claims": [claim.toJSON()]})
