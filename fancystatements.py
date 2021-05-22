@@ -42,7 +42,7 @@ def process_statement(repo, guid, pq, value):
 
     target = parse_value(repo, value)
 
-    qualifiers = claim.qualifiers[pq]
+    qualifiers = claim.qualifiers.get(pq)
     if qualifiers:
         if target != qualifiers[0].target:
             qualifiers[0].setTarget(target)
