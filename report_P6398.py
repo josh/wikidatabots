@@ -25,16 +25,16 @@ def main():
             itunes_ids.add(id)
             itunes_id_statement[id] = statement
 
-    itunes_link_rot = []
+    itunes_not_found = []
 
     for (id, obj) in itunes.batch_lookup(itunes_ids):
         if not obj:
-            itunes_link_rot.append((itunes_id_statement[id], id))
+            itunes_not_found.append((itunes_id_statement[id], id))
 
-    itunes_link_rot.sort()
+    itunes_not_found.sort()
 
-    print("== iTunes link rot ==")
-    for (statement, itunes_id) in uniq(itunes_link_rot):
+    print("== iTunes not found ==")
+    for (statement, itunes_id) in uniq(itunes_not_found):
         print(
             "* "
             + wikitext.statement(statement)

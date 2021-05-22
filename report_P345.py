@@ -11,7 +11,7 @@ def main():
     qids = sample_qids("P345", count=500)
     results = sparql.fetch_statements(qids, ["P345"])
 
-    imdb_link_rot = []
+    imdb_not_found = []
     imdb_redirects = []
     imdb_link_unknown = []
 
@@ -26,19 +26,19 @@ def main():
                 new_id = imdb.canonical_id(id)
 
                 if new_id is None:
-                    imdb_link_rot.append((statement, id))
+                    imdb_not_found.append((statement, id))
                 elif id is not new_id:
                     imdb_redirects.append((statement, id, new_id))
 
             else:
                 imdb_link_unknown.append((statement, id))
 
-    imdb_link_rot.sort()
+    imdb_not_found.sort()
     imdb_redirects.sort()
     imdb_link_unknown.sort()
 
-    print("== IMDb link rot ==")
-    for (statement, imdb_id) in uniq(imdb_link_rot):
+    print("== IMDb not found ==")
+    for (statement, imdb_id) in uniq(imdb_not_found):
         print(
             "* "
             + wikitext.statement(statement)

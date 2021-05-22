@@ -13,7 +13,7 @@ def main():
     qids = sample_qids("P4983", count=1000)
     results = sparql.fetch_statements(qids, ["P4983", "P345", "P646", "P4835"])
 
-    tmdb_link_rot = []
+    tmdb_not_found = []
     tmdb_imdb_diff = []
 
     for qid in tqdm(results):
@@ -30,7 +30,7 @@ def main():
             if tmdb_show:
                 actual_ids.add(tmdb_show["id"])
             else:
-                tmdb_link_rot.append((statement, value))
+                tmdb_not_found.append((statement, value))
 
         for (statement, value) in item.get("P345", []):
             tmdb_show = tmdb.find(id=value, source="imdb_id", type="tv")
@@ -50,11 +50,11 @@ def main():
         if actual_ids and expected_ids and actual_ids != expected_ids:
             tmdb_imdb_diff.append((qid, actual_ids | expected_ids))
 
-    tmdb_link_rot.sort()
+    tmdb_not_found.sort()
     tmdb_imdb_diff.sort()
 
-    print("== TMDb link rot ==")
-    for (statement, tmdb_id) in uniq(tmdb_link_rot):
+    print("== TMDb not found ==")
+    for (statement, tmdb_id) in uniq(tmdb_not_found):
         print(
             "* "
             + wikitext.statement(statement)

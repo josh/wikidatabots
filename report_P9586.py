@@ -14,7 +14,7 @@ def main():
     qids = sample_qids("P9586", count=200)
     results = sparql.fetch_statements(qids, ["P6398", "P9586"])
 
-    link_rot = []
+    not_found = []
     itunes_statements = []
     itunes_diff = []
 
@@ -25,7 +25,7 @@ def main():
         for (statement, value) in item.get("P9586", []):
             appletv_movie = appletv.movie(value)
             if not appletv_movie:
-                link_rot.append((statement, value))
+                not_found.append((statement, value))
 
         itunes_ids = set()
         for (statement, value) in item.get("P6398", []):
@@ -43,12 +43,12 @@ def main():
         ):
             itunes_diff.append((qid, list(itunes_ids)[0], appletv_movie["itunes_id"]))
 
-    link_rot.sort()
+    not_found.sort()
     itunes_statements.sort()
     itunes_diff.sort()
 
-    print("== Link rot ==")
-    for (statement, id) in uniq(link_rot):
+    print("== Not found ==")
+    for (statement, id) in uniq(not_found):
         print(
             "* "
             + wikitext.statement(statement)
