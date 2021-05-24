@@ -13,13 +13,20 @@ else:
     print("WARN: WIKIDATA_USERNAME unset", file=sys.stderr)
 
 
-def sample_qids(property, count=1000, username=WIKIDATA_USERNAME):
+def sample_qids(
+    property, count=1000, constraint_violations=True, username=WIKIDATA_USERNAME
+):
     limit = math.floor(count / 3)
 
     qids = set()
     qids |= sparql.sample_items(property, type="random", limit=limit)
     qids |= sparql.sample_items(property, type="created", limit=limit)
     qids |= sparql.sample_items(property, type="updated", limit=limit)
+
+    if constraint_violations:
+        qids |= page_qids(
+            "Wikidata:Database reports/Constraint violations/{}".format(property)
+        )
 
     if username:
         qids |= page_qids("User:{}/Maintenance_reports/{}".format(username, property))
@@ -46,15 +53,29 @@ def page_text(page_title):
     pages = data["query"]["pages"]
 
     for pageid in pages:
-        return pages[pageid]["extract"]
+        page = pages[pageid]
+        if page.get("extract"):
+            return page["extract"]
+    return None
 
 
 def page_qids(page_title):
     qids = set()
 
     text = page_text(page_title)
-    if text:
-        for m in re.findall(r"(Q[0-9]+)", text):
-            qids.add(m)
+    if not text:
+        print(
+            "page: {} not found".format(page_title),
+            file=sys.stderr,
+        )
+        return qids
+
+    for m in re.findall(r"(Q[0-9]+)", text):
+        qids.add(m)
+
+    print(
+        "page: {} {} results".format(page_title, len(qids)),
+        file=sys.stderr,
+    )
 
     return qids

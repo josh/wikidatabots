@@ -8,7 +8,7 @@ from utils import uniq
 
 
 def main():
-    qids = sample_qids("P345", count=500)
+    qids = sample_qids("P345", constraint_violations=False, count=500)
     results = sparql.fetch_statements(qids, ["P345"])
 
     imdb_not_found = []
