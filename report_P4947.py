@@ -37,7 +37,7 @@ def main():
             if tmdb_movie:
                 expected_ids.add(tmdb_movie["id"])
 
-        if actual_ids and expected_ids and actual_ids != expected_ids:
+        if actual_ids and expected_ids and not expected_ids.issubset(actual_ids):
             tmdb_imdb_diff.append((qid, actual_ids | expected_ids))
 
     tmdb_not_found.sort()
