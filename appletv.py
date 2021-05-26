@@ -4,15 +4,24 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
+import itunes
+
 
 def movie(id):
     soup = fetch("https://tv.apple.com/us/movie/{}".format(id))
     if not soup:
         return None
 
+    itunes_id = None
+    possible_itunes_id = extract_itunes_id(soup)
+    if possible_itunes_id:
+        for (id, result) in itunes.batch_lookup([possible_itunes_id]):
+            if result:
+                itunes_id = id
+
     return {
         "id": id,
-        "itunes_id": extract_itunes_id(soup),
+        "itunes_id": itunes_id,
     }
 
 
