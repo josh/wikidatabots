@@ -37,10 +37,10 @@ def main():
             if tmdb_person:
                 expected_ids.add(tmdb_person["id"])
 
-        for (statement, value) in item.get("P646", []):
-            tmdb_person = tmdb.find(id=value, source="freebase_mid", type="person")
-            if tmdb_person:
-                expected_ids.add(tmdb_person["id"])
+        # for (statement, value) in item.get("P646", []):
+        #     tmdb_person = tmdb.find(id=value, source="freebase_mid", type="person")
+        #     if tmdb_person:
+        #         expected_ids.add(tmdb_person["id"])
 
         if actual_ids and expected_ids and not expected_ids.issubset(actual_ids):
             tmdb_imdb_diff.append((qid, actual_ids | expected_ids))
