@@ -1,7 +1,7 @@
 import itunes
 import sparql
 import wikitext
-from report_utils import sample_qids
+from report_utils import duplicate_values, sample_qids
 from utils import uniq
 
 P6398_URL_FORMATTER = "https://itunes.apple.com/us/movie/id{}"
@@ -40,6 +40,16 @@ def main():
             + wikitext.statement(statement)
             + ": "
             + wikitext.external_id(itunes_id, P6398_URL_FORMATTER)
+        )
+    print("")
+
+    print("== Unique value violations ==")
+    for (id, statement, rank) in duplicate_values("P6398"):
+        print(
+            "* "
+            + wikitext.statement(statement)
+            + ": "
+            + wikitext.external_id(id, P6398_URL_FORMATTER)
         )
     print("")
 

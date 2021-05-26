@@ -73,6 +73,12 @@ def sparql(query, quiet=False):
         elif obj["type"] == "uri":
             if obj["value"].startswith("http://www.wikidata.org/prop/"):
                 return obj["value"].replace("http://www.wikidata.org/prop/", "")
+            elif obj["value"] == "http://wikiba.se/ontology#DeprecatedRank":
+                return "deprecated"
+            elif obj["value"] == "http://wikiba.se/ontology#NormalRank":
+                return "normal"
+            elif obj["value"] == "http://wikiba.se/ontology#PreferredRank":
+                return "preferred"
             elif obj["value"].startswith("http://www.wikidata.org/entity/"):
                 label = obj["value"].replace("http://www.wikidata.org/entity/", "")
                 if label.startswith("statement/"):

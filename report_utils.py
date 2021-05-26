@@ -79,3 +79,23 @@ def page_qids(page_title):
     )
 
     return qids
+
+
+def duplicate_values(property):
+    query = """
+    SELECT ?value ?statement ?rank WHERE {
+      {
+        SELECT ?value (COUNT(?item) AS ?count) WHERE { ?item ps:?property ?value. }
+        GROUP BY ?value
+        HAVING (?count > 1 )
+      }
+      ?statement ps:?property ?value.
+      ?statement wikibase:rank ?rank.
+    }
+    ORDER BY ?value ?statement
+    """
+    query = query.replace("?property", property)
+    results = sparql.sparql(query)
+
+    for result in results:
+        yield (result["value"], result["statement"], result["rank"])
