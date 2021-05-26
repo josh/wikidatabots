@@ -1,3 +1,6 @@
+import urllib
+
+
 def link(title, url):
     return "[{url} {title}]".format(url=url, title=title)
 
@@ -28,3 +31,26 @@ def external_ids(ids, formatter):
     ids = list(ids)
     ids.sort()
     return ", ".join([external_id(id, formatter) for id in ids])
+
+
+def quickstatements_url(commands):
+    hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})
+    return "https://quickstatements.toolforge.org/#{}".format(hash)
+
+
+def statements_section(heading, statements):
+    statements = list(statements)
+    lines = ["== " + heading + " =="]
+
+    for (entity, property, value) in statements:
+        lines.append(
+            "* {{Statement|" + entity + "|" + property + "|" + str(value) + "}}"
+        )
+
+    if statements:
+        lines.append("")
+        lines.append(link("Add via QuickStatements", quickstatements_url(statements)))
+
+    lines.append("")
+    lines.append("")
+    return "\n".join(lines)

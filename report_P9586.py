@@ -35,7 +35,9 @@ def main():
             continue
 
         if len(itunes_ids) == 0 and appletv_movie["itunes_id"]:
-            itunes_statements.append((qid, appletv_movie["itunes_id"]))
+            itunes_statements.append(
+                (qid, "P6398", '"{}"'.format(appletv_movie["itunes_id"]))
+            )
         elif (
             len(itunes_ids) > 0
             and appletv_movie["itunes_id"]
@@ -57,10 +59,9 @@ def main():
         )
     print("")
 
-    print("== iTunes Store statements ==")
-    for (qid, value) in uniq(itunes_statements):
-        print("* {{Statement|" + qid + '|P6398|"' + str(value) + '"}}')
-    print("")
+    print(
+        wikitext.statements_section("iTunes Store suggestions", uniq(itunes_statements))
+    )
 
     print("== iTunes Store differences ==")
     for (qid, actual_itunes_id, expected_itunes_id) in uniq(itunes_diff):
