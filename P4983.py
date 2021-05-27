@@ -31,7 +31,7 @@ def main():
       OPTIONAL { ?item wdt:P4835 ?tvdb. }
 
       # Exclude items that already have a TMDB TV ID
-      OPTIONAL { ?item wdt:P4985 ?tmdb. }
+      OPTIONAL { ?item wdt:P4983 ?tmdb. }
       FILTER(!(BOUND(?tmdb)))
 
       # Generate random sorting key
