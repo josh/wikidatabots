@@ -52,5 +52,4 @@ def statements_section(heading, statements):
         lines.append(link("Add via QuickStatements", quickstatements_url(statements)))
 
     lines.append("")
-    lines.append("")
     return "\n".join(lines)
