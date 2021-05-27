@@ -26,7 +26,10 @@ def data_reader(data):
         f.write(data)
     else:
         for line in data:
-            f.write("{}\n".format(line))
+            if line.endswith("\n"):
+                f.write(line)
+            else:
+                f.write("{}\n".format(line))
     f.seek(0)
     return csv.reader(f)
 
@@ -88,5 +91,5 @@ if __name__ == "__main__":
         username=args.username
         or os.environ.get("QUICKSTATEMENTS_USERNAME")
         or os.environ["WIKIDATA_USERNAME"],
-        data=sys.stdin.read(),
+        data=sys.stdin.readlines(),
     )
