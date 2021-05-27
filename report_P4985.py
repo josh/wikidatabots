@@ -10,7 +10,7 @@ P4985_URL_FORMATTER = "https://www.themoviedb.org/person/{}"
 
 
 def main():
-    qids = sample_qids("P4985", count=2500)
+    qids = sample_qids("P4985", count=1000)
     results = sparql.fetch_statements(qids, ["P4985", "P345", "P646"])
 
     tmdb_not_found = []
