@@ -110,3 +110,4 @@ def test_canonical_id():
     assert canonical_id("tt11639970") == "tt2177268"
 
     assert not canonical_id("tt100000000")
+    assert not canonical_id("tt1555101")
