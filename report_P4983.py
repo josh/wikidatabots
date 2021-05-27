@@ -37,10 +37,10 @@ def main():
             if tmdb_show:
                 expected_ids.add(tmdb_show["id"])
 
-        for (statement, value) in item.get("P646", []):
-            tmdb_show = tmdb.find(id=value, source="freebase_mid", type="tv")
-            if tmdb_show:
-                expected_ids.add(tmdb_show["id"])
+        # for (statement, value) in item.get("P646", []):
+        #     tmdb_show = tmdb.find(id=value, source="freebase_mid", type="tv")
+        #     if tmdb_show:
+        #         expected_ids.add(tmdb_show["id"])
 
         for (statement, value) in item.get("P4835", []):
             tmdb_show = tmdb.find(id=value, source="tvdb_id", type="tv")
