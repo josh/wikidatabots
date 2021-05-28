@@ -18,6 +18,7 @@ jobs:
       matrix:
         property:
           - "P4947_imdb_reference"
+          - "P4983_imdb_reference"
           - "P4985_imdb_reference"
           - "P4985_freebase_reference"
           - "P4947"
