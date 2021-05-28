@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        property: ["P4947_references", "P4947", "P4985"]
+        property: ["P4947_imdb_reference", "P4947", "P4985"]
 
     steps:
       - uses: actions/checkout@v2
