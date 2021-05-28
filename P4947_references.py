@@ -26,7 +26,7 @@ def main():
       }
       FILTER(!BOUND(?reference))
     }
-    LIMIT 100
+    LIMIT 2500
     """
     results = sparql(query)
 
