@@ -1,4 +1,4 @@
-from sparql import fetch_statements, sample_items, sparql
+from sparql import fetch_statements, sample_items, sparql, get_claims
 
 
 def test_sparql():
@@ -49,3 +49,22 @@ def test_fetch_statements():
     assert item
     assert item["P345"]
     assert item["P4947"]
+
+
+def test_get_claims():
+    statements = get_claims(["Q172241"], ["P345", "P4947"])
+    assert len(statements) == 2
+    assert statements["Q172241$6B571F20-7732-47E1-86B2-1DFA6D0A15F5"]
+    assert statements["q172241$D5D28036-0EB8-42D4-A757-6EE65377FBEC"]
+
+    statements = statements.filter_item("Q172241")
+    assert len(statements) == 2
+    assert statements["Q172241$6B571F20-7732-47E1-86B2-1DFA6D0A15F5"]
+    assert statements["q172241$D5D28036-0EB8-42D4-A757-6EE65377FBEC"]
+
+    for (property, pstatements) in statements.by_property():
+        assert len(pstatements) == 1
+
+    statements = statements.filter_property("P345")
+    assert len(statements) == 1
+    assert statements["q172241$D5D28036-0EB8-42D4-A757-6EE65377FBEC"]
