@@ -17,6 +17,7 @@ def main():
     query = """
     SELECT DISTINCT ?item ?statement ?tvdb ?tmdb WHERE {
       ?item wdt:P4835 ?tvdb.
+      ?item wdt:P4983 ?tmdb.
       ?item p:P4983 ?statement.
       ?statement ps:P4983 ?tmdb.
       OPTIONAL {

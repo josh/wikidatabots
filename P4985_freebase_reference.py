@@ -17,6 +17,7 @@ def main():
     query = """
     SELECT DISTINCT ?item ?statement ?freebase ?tmdb WHERE {
       ?item wdt:P646 ?freebase.
+      ?item wdt:P4985 ?tmdb.
       ?item p:P4985 ?statement.
       ?statement ps:P4985 ?tmdb.
       OPTIONAL {
