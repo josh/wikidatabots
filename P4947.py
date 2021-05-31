@@ -1,7 +1,6 @@
 from tqdm import tqdm
 
 import tmdb
-from quickstatements import today
 from sparql import sparql
 
 
@@ -34,20 +33,12 @@ def main():
     """
     results = sparql(query)
 
-    print("qid,P4947,S248,s345,s813")
+    print("qid,P4947")
     for result in tqdm(results):
         movie = tmdb.find(id=result["imdb"], source="imdb_id", type="movie")
         if not movie:
             continue
-        print(
-            '{},"""{}""",{},"""{}""",{}'.format(
-                result["item"],
-                movie["id"],
-                "Q20828898",
-                result["imdb"],
-                today(),
-            )
-        )
+        print('{},"""{}"""'.format(result["item"], movie["id"]))
 
 
 if __name__ == "__main__":
