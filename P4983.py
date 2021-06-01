@@ -20,9 +20,8 @@ def main():
       UNION
       { ?item wdt:P345 []. }
 
-      # Subset of P4983's type constraint
       VALUES ?classes {
-        wd:Q5398426
+        wd:Q15416
       }
       ?item (wdt:P31/(wdt:P279*)) ?classes.
 
