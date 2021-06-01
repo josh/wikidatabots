@@ -1,3 +1,6 @@
+import random
+
+
 def uniq(*lists):
     seen = []
     for lst in lists:
@@ -5,3 +8,9 @@ def uniq(*lists):
             if el not in seen:
                 yield el
                 seen.append(el)
+
+
+def shuffled(seq):
+    l = list(seq)
+    random.shuffle(l)
+    return l

@@ -1,5 +1,6 @@
 import json
 import re
+import zlib
 
 import requests
 from bs4 import BeautifulSoup
@@ -88,3 +89,36 @@ def extract_itunes_id(soup):
                     return int(m.group(1))
 
     return None
+
+
+def fetch_sitemap_index_urls():
+    r = requests.get("https://tv.apple.com/sitemaps_tv_index_1.xml")
+    r.raise_for_status()
+
+    soup = BeautifulSoup(r.content, "lxml")
+
+    urls = set()
+    for loc in soup.find_all("loc"):
+        urls.add(loc.text)
+    return urls
+
+
+def fetch_sitemap_index(url):
+    r = requests.get(url)
+    r.raise_for_status()
+
+    xml = zlib.decompress(r.content, 16 + zlib.MAX_WBITS)
+    soup = BeautifulSoup(xml, "lxml")
+
+    urls = set()
+    for loc in soup.find_all("loc"):
+        urls.add(loc.text)
+    for link in soup.find_all("xhtml:link"):
+        urls.add(link["href"])
+    return urls
+
+
+def fetch_sitemap_urls():
+    for index_url in fetch_sitemap_index_urls():
+        for url in fetch_sitemap_index(index_url):
+            yield url

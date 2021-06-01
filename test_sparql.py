@@ -1,4 +1,4 @@
-from sparql import fetch_statements, sample_items, sparql, get_claims
+from sparql import fetch_statements, get_claims, sample_items, sparql
 
 
 def test_sparql():
