@@ -1,6 +1,6 @@
 FROM python:3.9.4-alpine AS builder
 
-RUN apk add --no-cache build-base
+RUN apk add --no-cache build-base libxslt-dev
 
 WORKDIR /usr/src/app
 
