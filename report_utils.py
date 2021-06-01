@@ -81,6 +81,18 @@ def page_qids(page_title):
     return qids
 
 
+def page_statements(page_title):
+    text = page_text(page_title)
+    if not text:
+        print(
+            "page: {} not found".format(page_title),
+            file=sys.stderr,
+        )
+        return []
+
+    return re.findall(r".* \((Q\d+)\) .* \((P\d+)\) \"([^\"]+)\"", text)
+
+
 def duplicate_values(property):
     query = """
     SELECT ?value ?statement ?rank WHERE {
