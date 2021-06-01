@@ -11,6 +11,6 @@ def uniq(*lists):
 
 
 def shuffled(seq):
-    l = list(seq)
-    random.shuffle(l)
-    return l
+    lst = list(seq)
+    random.shuffle(lst)
+    return lst

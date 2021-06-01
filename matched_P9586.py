@@ -2,9 +2,7 @@ import html
 import itertools
 import json
 import re
-import zlib
 
-import backoff
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
