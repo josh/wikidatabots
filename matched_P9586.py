@@ -61,7 +61,8 @@ def wikidata_search(title, year, directors):
 
       ?item rdfs:label ?titleLabel.
       ?item skos:altLabel ?titleAltLabel.
-      FILTER(((STR(?titleLabel)) = "<<TITLE>>") || ((STR(?titleAltLabel)) = "<<TITLE>>"))
+      FILTER(((STR(?titleLabel)) = "<<TITLE>>") ||
+             ((STR(?titleAltLabel)) = "<<TITLE>>"))
     """.replace(
         "<<TITLE>>", title.replace('"', '\\"')
     )
