@@ -59,8 +59,9 @@ def wikidata_search(title, year, directors):
         ?item wikibase:apiOutputItem mwapi:item.
       }
 
-      ?item skos:altLabel ?titleLabel.
-      FILTER((STR(?titleLabel)) = "<<TITLE>>")
+      ?item rdfs:label ?titleLabel.
+      ?item skos:altLabel ?titleAltLabel.
+      FILTER(((STR(?titleLabel)) = "<<TITLE>>") || ((STR(?titleAltLabel)) = "<<TITLE>>"))
     """.replace(
         "<<TITLE>>", title.replace('"', '\\"')
     )
