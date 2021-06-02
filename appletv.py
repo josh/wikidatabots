@@ -16,9 +16,9 @@ def movie(id):
     itunes_id = None
     possible_itunes_id = extract_itunes_id(soup)
     if possible_itunes_id:
-        for (id, result) in itunes.batch_lookup([possible_itunes_id]):
+        for (id2, result) in itunes.batch_lookup([possible_itunes_id]):
             if result:
-                itunes_id = id
+                itunes_id = id2
 
     return {
         "id": id,
