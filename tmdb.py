@@ -68,7 +68,11 @@ def find(id, source, type, api_key=TMDB_API_KEY):
 
     results = resp.get("{}_results".format(type))
     count = len(results)
-    assert count == 0 or count == 1
+    assert (
+        count == 0 or count == 1
+    ), "find(id={}, source={}, type={}) returned multiple matches".format(
+        id, source, type
+    )
 
     if results:
         return results[0]
