@@ -37,7 +37,12 @@ def fetch_movie(url):
         return None
 
     title = html.unescape(ld["name"])
-    year = int(ld["datePublished"][0:4])
+
+    try:
+        year = int(ld.get("datePublished", "")[0:4])
+    except ValueError:
+        return None
+
     directors = set()
     for director in ld.get("director", []):
         directors.add(html.unescape(director["name"]))
