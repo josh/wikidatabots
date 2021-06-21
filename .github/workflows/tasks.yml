@@ -46,3 +46,43 @@ jobs:
           QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
         run: |
           python quickstatements.py --batchname TMDbIDs <output.csv
+
+  tmdb_not_found:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        property:
+          - "P4947"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run script
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+        run: |
+          set -o pipefail
+          python not_found_${{ matrix.property }}.py | tee output.csv
+
+      - name: Login
+        env:
+          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
+        run: |
+          python pwb.py login
+
+      - name: Process batch
+        run: |
+          echo python deprecatestatements.py.py <output.csv
