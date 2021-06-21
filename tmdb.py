@@ -29,10 +29,16 @@ def api_request(path, params={}, version=3, api_key=TMDB_API_KEY):
 object_types = set(["movie", "tv", "person"])
 
 
-def object(id, type, api_key=TMDB_API_KEY):
+def object(id, type, append=[], api_key=TMDB_API_KEY):
     assert type in object_types
+
+    params = {}
+    if append:
+        params["append_to_response"] = ",".join(append)
+
     resp = api_request(
         "/{}/{}".format(type, id),
+        params=params,
         api_key=api_key,
     )
     if resp.get("success") is False:
