@@ -87,4 +87,4 @@ jobs:
 
       - name: Process batch
         run: |
-          python deprecatestatements.py.py <output.csv
+          python deprecatestatements.py <output.csv
