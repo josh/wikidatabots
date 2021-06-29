@@ -13,7 +13,6 @@ def main():
 
     imdb_not_found = []
     imdb_redirects = []
-    imdb_link_unknown = []
 
     for qid in tqdm(results):
         item = results[qid]
@@ -30,12 +29,8 @@ def main():
                 elif id is not new_id:
                     imdb_redirects.append((statement, id, new_id))
 
-            else:
-                imdb_link_unknown.append((statement, id))
-
     imdb_not_found.sort()
     imdb_redirects.sort()
-    imdb_link_unknown.sort()
 
     print("== IMDb not found ==")
     for (statement, imdb_id) in uniq(imdb_not_found):
@@ -57,11 +52,6 @@ def main():
             + " → "
             + wikitext.link(imdb_canonical_id, imdb.formatted_url(imdb_canonical_id))
         )
-    print("")
-
-    print("== IMDb unknown IDs ==")
-    for (statement, imdb_id) in uniq(imdb_link_unknown):
-        print("* " + wikitext.statement(statement) + ": " + imdb_id)
     print("")
 
 
