@@ -8,7 +8,7 @@ MATCHER = re.compile("^umc.cmc.[a-z0-9]{22,25}$")
 
 
 def main():
-    qids = sample_qids("P9586", count=100)
+    qids = sample_qids("P9586", count=250)
     results = sparql.fetch_statements(qids, ["P9586"])
 
     for qid in results:
