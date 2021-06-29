@@ -5,6 +5,7 @@ MUST be logged in first. See pwb.py
 """
 
 import csv
+import urllib
 
 import page
 import wikitext
@@ -35,15 +36,18 @@ def edit_statements_page(title, csv_file, username, summary=None):
     if statements:
         lines.append("")
         lines.append(
-            wikitext.link(
-                "Add via QuickStatements", wikitext.quickstatements_url(statements)
-            )
+            wikitext.link("Add via QuickStatements", quickstatements_url(statements))
         )
 
     lines.append("")
     text = "\n".join(lines)
 
     return page.edit(title, text, username, summary)
+
+
+def quickstatements_url(commands):
+    hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})
+    return "https://quickstatements.toolforge.org/#{}".format(hash)
 
 
 if __name__ == "__main__":

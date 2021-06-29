@@ -1,6 +1,3 @@
-import urllib
-
-
 def link(title, url):
     return "[{url} {title}]".format(url=url, title=title)
 
@@ -25,8 +22,3 @@ def statement(statement):
 
 def external_id(id, formatter):
     return link(id, formatter.format(id))
-
-
-def quickstatements_url(commands):
-    hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})
-    return "https://quickstatements.toolforge.org/#{}".format(hash)
