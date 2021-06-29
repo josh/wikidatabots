@@ -32,7 +32,7 @@ def main():
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
     ORDER BY (?random)
-    LIMIT 100
+    LIMIT 500
     """
     for result in sparql.sparql(query):
         qids.add(result["item"])
