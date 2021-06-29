@@ -24,9 +24,24 @@ def edit_statements_page(title, csv_file, username, summary=None):
     for (qid, value) in rows:
         statements.append((qid, property, value))
     statements.sort()
-    statements = uniq(statements)
+    statements = list(uniq(statements))
 
-    text = wikitext.statements_section("Preliminarily matched", statements)
+    lines = []
+    for (entity, property, value) in statements:
+        lines.append(
+            "* {{Statement|" + entity + "|" + property + "|" + str(value) + "}}"
+        )
+
+    if statements:
+        lines.append("")
+        lines.append(
+            wikitext.link(
+                "Add via QuickStatements", wikitext.quickstatements_url(statements)
+            )
+        )
+
+    lines.append("")
+    text = "\n".join(lines)
 
     return page.edit(title, text, username, summary)
 
