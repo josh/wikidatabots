@@ -5,6 +5,7 @@ MUST be logged in first. See pwb.py
 """
 
 import re
+import sys
 
 import requests
 
@@ -86,7 +87,6 @@ def page_statements(page_title):
 if __name__ == "__main__":
     import argparse
     import os
-    import sys
 
     parser = argparse.ArgumentParser(description="Create and edit Wikidata pages.")
     parser.add_argument("--username", action="store")
