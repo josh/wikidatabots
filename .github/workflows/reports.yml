@@ -1,4 +1,4 @@
-name: Daily Reports
+name: Reports
 
 on:
   schedule:
@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        property: ["P9586"]
+        property: ["P345", "P9586"]
 
     steps:
       - uses: actions/checkout@v2
