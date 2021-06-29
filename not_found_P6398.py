@@ -7,7 +7,7 @@ def main():
     (id, obj) = next(itunes.batch_lookup([567661493]))
     assert id and obj
 
-    qids = sample_qids("P6398", count=5000)
+    qids = sample_qids("P6398", count=10000)
     results = sparql.fetch_statements(qids, ["P6398"])
 
     itunes_ids = {}
