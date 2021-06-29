@@ -1,5 +1,7 @@
 import requests
 
+from utils import batches
+
 
 def batch_lookup(ids):
     """
@@ -22,16 +24,3 @@ def batch_lookup(ids):
 
         for id in ids_batch:
             yield (id, results.get(id))
-
-
-def batches(iterable, size):
-    batch = []
-
-    for element in iterable:
-        batch.append(element)
-        if len(batch) == size:
-            yield batch
-            batch = []
-
-    if batch:
-        yield batch
