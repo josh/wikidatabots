@@ -4,6 +4,8 @@ from report_utils import sample_qids
 
 
 def main():
+    assert tmdb.object(140607, type="movie")
+
     qids = sample_qids("P4947", count=2500)
     results = sparql.fetch_statements(qids, ["P4947"])
 

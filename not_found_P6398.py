@@ -4,6 +4,9 @@ from report_utils import sample_qids
 
 
 def main():
+    (id, obj) = next(itunes.batch_lookup([567661493]))
+    assert id and obj
+
     qids = sample_qids("P6398", count=5000)
     results = sparql.fetch_statements(qids, ["P6398"])
 
