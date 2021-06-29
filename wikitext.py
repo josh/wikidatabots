@@ -27,12 +27,6 @@ def external_id(id, formatter):
     return link(id, formatter.format(id))
 
 
-def external_ids(ids, formatter):
-    ids = list(ids)
-    ids.sort()
-    return ", ".join([external_id(id, formatter) for id in ids])
-
-
 def quickstatements_url(commands):
     hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})
     return "https://quickstatements.toolforge.org/#{}".format(hash)

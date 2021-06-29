@@ -86,18 +86,3 @@ def find(id, source, type, api_key=TMDB_API_KEY):
         return results[0]
     else:
         return None
-
-
-external_ids_types = set(["movie", "tv", "person"])
-
-
-def external_ids(id, type, api_key=TMDB_API_KEY):
-    assert type in external_ids_types
-
-    resp = api_request(
-        "/{}/{}/external_ids".format(type, id),
-        api_key=api_key,
-    )
-    if resp.get("success") is False:
-        return None
-    return resp
