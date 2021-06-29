@@ -8,10 +8,9 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 import appletv
-import wikitext
 from report_utils import page_statements
 from sparql import sparql
-from utils import shuffled, uniq
+from utils import shuffled
 
 
 def parseurl(url):
@@ -126,7 +125,6 @@ def matched_appletv_ids():
 def main():
     limit = 500
     skip_ids = matched_appletv_ids()
-    statements = []
     page_title = "User:Josh404Bot/Preliminarily matched/P9586"
 
     def candiate_urls():
@@ -149,15 +147,14 @@ def main():
 
                 yield (url, id)
 
+    print("qid,P9586")
     for (url, id) in tqdm(itertools.islice(candiate_urls(), limit), total=limit):
         info = fetch_movie(url)
         if not info:
             continue
         result = wikidata_search(*info)
         if result and not result["appletv"]:
-            statements.append((result["item"], "P9586", '"{}"'.format(id)))
-
-    print(wikitext.statements_section("Preliminarily matched", uniq(statements)))
+            print('{},"""{}"""'.format(result["item"], '"{}"'.format(id)))
 
 
 if __name__ == "__main__":

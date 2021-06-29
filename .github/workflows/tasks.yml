@@ -135,6 +135,7 @@ jobs:
       fail-fast: false
       matrix:
         property:
+          - "P6398"
           - "P9586"
 
     steps:
