@@ -97,6 +97,7 @@ jobs:
       matrix:
         property:
           - "P6398"
+          - "P9586"
 
     steps:
       - uses: actions/checkout@v2
