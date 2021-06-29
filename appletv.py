@@ -56,6 +56,19 @@ def fetch(url):
     return soup
 
 
+def not_found(url):
+    r = requests.get(url, headers=request_headers)
+    r.raise_for_status()
+
+    html = r.text
+    soup = BeautifulSoup(html, "html.parser")
+
+    if soup.find("h1", text="This content is no longer available."):
+        return True
+
+    return False
+
+
 def extract_shoebox(soup):
     script = soup.find("script", {"type": "fastboot/shoebox", "id": "shoebox-uts-api"})
     if not script:

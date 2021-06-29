@@ -18,7 +18,8 @@ def main():
             if not MATCHER.match(value):
                 continue
 
-            if not appletv.movie(value):
+            url = "https://tv.apple.com/us/movie/{}".format(value)
+            if appletv.not_found(url):
                 print("{},Q21441764".format(statement))
 
 
