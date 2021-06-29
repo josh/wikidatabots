@@ -29,9 +29,7 @@ def fetch_movie(url):
 
     soup = BeautifulSoup(r.text, "html.parser")
 
-    ld = None
-    for script in soup.find_all("script", {"type": "application/ld+json"}):
-        ld = json.loads(script.string)
+    ld = find_ld(soup)
     if not ld:
         return None
 
@@ -49,6 +47,14 @@ def fetch_movie(url):
         return None
 
     return (title, year, directors)
+
+
+def find_ld(soup):
+    for script in soup.find_all("script", {"type": "application/ld+json"}):
+        ld = json.loads(script.string)
+        if ld["@type"] == "Movie":
+            return ld
+    return None
 
 
 def wikidata_search(title, year, directors):
