@@ -160,7 +160,7 @@ def main():
             continue
         result = wikidata_search(*info)
         if result and not result["appletv"]:
-            print('{},"""{}"""'.format(result["item"], '"{}"'.format(id)))
+            print('{},"""{}"""'.format(result["item"], id))
 
 
 if __name__ == "__main__":
