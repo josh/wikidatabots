@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 import appletv
-from report_utils import page_statements
+from page import page_statements
 from sparql import sparql
 from utils import shuffled
 

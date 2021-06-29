@@ -2,7 +2,7 @@ from tqdm import tqdm
 
 import appletv
 import sparql
-from report_utils import page_qids
+from page import page_qids
 
 
 def main():
