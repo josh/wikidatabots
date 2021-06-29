@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        property: ["P6398", "P9586"]
+        property: ["P9586"]
 
     steps:
       - uses: actions/checkout@v2
