@@ -133,9 +133,3 @@ def fetch_sitemap_index(url):
     for link in soup.find_all("xhtml:link"):
         urls.add(link["href"])
     return urls
-
-
-def fetch_sitemap_urls():
-    for index_url in fetch_sitemap_index_urls():
-        for url in fetch_sitemap_index(index_url):
-            yield url
