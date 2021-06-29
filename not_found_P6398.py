@@ -1,6 +1,7 @@
 import itunes
 import sparql
-from report_utils import sample_qids
+from page import page_qids
+from sparql import sample_qids
 
 
 def main():
@@ -8,6 +9,8 @@ def main():
     assert id and obj
 
     qids = sample_qids("P6398", count=10000)
+    qids |= page_qids("Wikidata:Database reports/Constraint violations/P6398")
+
     results = sparql.fetch_statements(qids, ["P6398"])
 
     itunes_ids = {}

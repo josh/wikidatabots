@@ -177,6 +177,17 @@ def sample_items(property, limit=50, type="random"):
     return items
 
 
+def sample_qids(property, count=1000):
+    limit = math.floor(count / 3)
+
+    qids = set()
+    qids |= sample_items(property, type="random", limit=limit)
+    qids |= sample_items(property, type="created", limit=limit)
+    qids |= sample_items(property, type="updated", limit=limit)
+
+    return qids
+
+
 def values_query(qids, binding="item"):
     values = " ".join("wd:{}".format(qid) for qid in qids)
     return "VALUES ?" + binding + " { " + values + " }"

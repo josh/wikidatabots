@@ -2,7 +2,8 @@ import re
 
 import appletv
 import sparql
-from report_utils import sample_qids
+from page import page_qids
+from sparql import sample_qids
 
 MATCHER = re.compile("^umc.cmc.[a-z0-9]{22,25}$")
 
@@ -13,6 +14,9 @@ def main():
     )
 
     qids = sample_qids("P9586", count=250)
+    qids |= page_qids("Wikidata:Database reports/Constraint violations/P9586")
+    qids |= page_qids("User:Josh404Bot/Maintenance_reports/P9586")
+
     results = sparql.fetch_statements(qids, ["P9586"])
 
     for qid in results:

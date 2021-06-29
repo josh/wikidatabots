@@ -3,7 +3,8 @@ from tqdm import tqdm
 import appletv
 import sparql
 import wikitext
-from report_utils import sample_qids
+from page import page_qids
+from sparql import sample_qids
 from utils import uniq
 
 P6398_URL_FORMATTER = "https://itunes.apple.com/us/movie/id{}"
@@ -12,6 +13,7 @@ P9586_URL_FORMATTER = "https://tv.apple.com/us/movie/{}"
 
 def main():
     qids = sample_qids("P9586", count=200)
+    qids |= page_qids("Wikidata:Database reports/Constraint violations/P9586")
     results = sparql.fetch_statements(qids, ["P6398", "P9586"])
 
     not_found = []

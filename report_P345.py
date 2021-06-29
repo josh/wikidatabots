@@ -3,12 +3,14 @@ from tqdm import tqdm
 import imdb
 import sparql
 import wikitext
-from report_utils import sample_qids
+from page import page_qids
+from sparql import sample_qids
 from utils import uniq
 
 
 def main():
-    qids = sample_qids("P345", constraint_violations=False, count=500)
+    qids = sample_qids("P345", count=500)
+    qids |= page_qids("User:Josh404Bot/Maintenance_reports/P345")
     results = sparql.fetch_statements(qids, ["P345"])
 
     imdb_not_found = []
