@@ -4,7 +4,7 @@ from report_utils import sample_qids
 
 
 def main():
-    qids = sample_qids("P4985", count=500)
+    qids = sample_qids("P4985", count=2500)
     results = sparql.fetch_statements(qids, ["P4985"])
 
     for qid in results:
