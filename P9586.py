@@ -129,7 +129,7 @@ def matched_appletv_ids():
 
 
 def main():
-    limit = 500
+    limit = 250
     skip_ids = matched_appletv_ids()
     page_title = "User:Josh404Bot/Preliminarily matched/P9586"
 
