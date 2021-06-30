@@ -3,6 +3,7 @@ Small API wrapper for interacting with Wikidata's SPARQL query service.
 <https://query.wikidata.org/>
 """
 
+import json
 import logging
 import math
 import os
@@ -37,6 +38,7 @@ class TimeoutException(Exception):
 
 
 @backoff.on_exception(backoff.expo, TimeoutException, max_tries=6)
+@backoff.on_exception(backoff.expo, json.decoder.JSONDecodeError, max_tries=3)
 def sparql(query):
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
