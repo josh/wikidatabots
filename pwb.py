@@ -31,7 +31,7 @@ if __name__ == "__main__":
     import argparse
     import logging
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARN)
 
     parser = argparse.ArgumentParser(description="Pywikibot wrapper script")
     parser.add_argument("--username", action="store")

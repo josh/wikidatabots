@@ -80,7 +80,7 @@ if __name__ == "__main__":
     import argparse
     import os
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARN)
 
     parser = argparse.ArgumentParser(description="Create and edit Wikidata pages.")
     parser.add_argument("--username", action="store")

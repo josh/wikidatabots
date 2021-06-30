@@ -59,7 +59,7 @@ if __name__ == "__main__":
     import os
     import sys
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARN)
 
     parser = argparse.ArgumentParser(description="Process Wikidata batch changes.")
     parser.add_argument("--username", action="store")

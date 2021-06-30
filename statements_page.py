@@ -56,7 +56,7 @@ if __name__ == "__main__":
     import os
     import sys
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARN)
 
     parser = argparse.ArgumentParser(
         description="Create and edit wiki page of statements."
