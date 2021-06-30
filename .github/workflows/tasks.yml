@@ -15,7 +15,6 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         property:
           - "P4947"
@@ -53,7 +52,6 @@ jobs:
 
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         property:
           - "P4947"
