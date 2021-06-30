@@ -8,7 +8,7 @@ def main():
     (id, obj) = next(itunes.batch_lookup([567661493]))
     assert id and obj
 
-    qids = sample_qids("P6398", count=10000)
+    qids = sample_qids("P6398", count=25000)
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P6398")
 
     results = sparql.fetch_statements(qids, ["P6398"])
