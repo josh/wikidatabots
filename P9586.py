@@ -114,7 +114,7 @@ def wikidata_search(title, year, directors):
 
     query += "\n} LIMIT 2"
 
-    results = sparql(query, quiet=True)
+    results = sparql(query)
     if len(results) == 1:
         return results[0]
     return None
@@ -164,4 +164,7 @@ def main():
 
 
 if __name__ == "__main__":
+    import logging
+
+    logging.basicConfig(level=logging.INFO)
     main()

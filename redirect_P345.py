@@ -1,4 +1,4 @@
-import sys
+import logging
 
 import pywikibot
 from tqdm import tqdm
@@ -25,7 +25,7 @@ def main():
         item = pywikibot.ItemPage(repo, qid)
 
         if item.isRedirectPage():
-            print("{} is a redirect".format(item), file=sys.stderr)
+            logging.debug("{} is a redirect".format(item))
             continue
 
         for claim in item.claims.get("P345", []):
@@ -35,12 +35,12 @@ def main():
                 continue
 
             if not imdb.is_valid_id(id):
-                print("{} is invalid format".format(id), file=sys.stderr)
+                logging.debug("{} is invalid format".format(id))
                 continue
 
             new_id = imdb.canonical_id(id)
             if not new_id:
-                print("{} not found".format(id), file=sys.stderr)
+                logging.debug("{} not found".format(id))
                 continue
 
             if id is not new_id:
@@ -66,4 +66,5 @@ def claim_exists(page, property, value):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

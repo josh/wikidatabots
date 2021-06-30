@@ -3,10 +3,10 @@ Small API wrapper for interacting with Wikidata's SPARQL query service.
 <https://query.wikidata.org/>
 """
 
+import logging
 import math
 import os
 import platform
-import sys
 
 import backoff
 import requests
@@ -25,7 +25,7 @@ if "WIKIDATA_USERNAME" in os.environ:
         )
     )
 else:
-    print("WARN: WIKIDATA_USERNAME unset", file=sys.stderr)
+    logging.warn("WARN: WIKIDATA_USERNAME unset")
 
 USER_AGENT.append("requests/" + requests.__version__)
 USER_AGENT.append("Python/" + platform.python_version())
@@ -37,7 +37,7 @@ class TimeoutException(Exception):
 
 
 @backoff.on_exception(backoff.expo, TimeoutException, max_tries=6)
-def sparql(query, quiet=False):
+def sparql(query):
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
@@ -53,13 +53,11 @@ def sparql(query, quiet=False):
     vars = data["head"]["vars"]
     bindings = data["results"]["bindings"]
 
-    if quiet is False:
-        print(
-            "sparql: {} results in {} ms".format(
-                len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
-            ),
-            file=sys.stderr,
+    logging.info(
+        "sparql: {} results in {} ms".format(
+            len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
         )
+    )
 
     def results():
         for binding in bindings:
@@ -196,6 +194,8 @@ def values_query(qids, binding="item"):
 if __name__ == "__main__":
     import json
     import sys
+
+    logging.basicConfig(level=logging.INFO)
 
     query = sys.stdin.readlines()
     result = sparql(query)

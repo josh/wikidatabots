@@ -4,6 +4,7 @@ Wikidata page modifications wrapper using pywikibot.
 MUST be logged in first. See pwb.py
 """
 
+import logging
 import re
 import sys
 
@@ -55,19 +56,13 @@ def page_qids(page_title):
 
     text = page_text(page_title)
     if not text:
-        print(
-            "page: {} not found".format(page_title),
-            file=sys.stderr,
-        )
+        logging.warn("page: {} not found".format(page_title))
         return qids
 
     for m in re.findall(r"(Q[0-9]+)", text):
         qids.add(m)
 
-    print(
-        "page: {} {} results".format(page_title, len(qids)),
-        file=sys.stderr,
-    )
+    logging.debug("page: {} {} results".format(page_title, len(qids)))
 
     return qids
 
@@ -75,10 +70,7 @@ def page_qids(page_title):
 def page_statements(page_title):
     text = page_text(page_title)
     if not text:
-        print(
-            "page: {} not found".format(page_title),
-            file=sys.stderr,
-        )
+        logging.warn("page: {} not found".format(page_title))
         return []
 
     return re.findall(r".* \((Q\d+)\) .* \((P\d+)\) \"([^\"]+)\"", text)
@@ -87,6 +79,8 @@ def page_statements(page_title):
 if __name__ == "__main__":
     import argparse
     import os
+
+    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Create and edit Wikidata pages.")
     parser.add_argument("--username", action="store")
