@@ -18,7 +18,3 @@ def statement(statement):
             "http://www.wikidata.org/entity/statement/{}".format(statement),
         )
     )
-
-
-def external_id(id, formatter):
-    return link(id, formatter.format(id))
