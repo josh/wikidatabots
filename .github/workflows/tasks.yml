@@ -8,6 +8,7 @@ on:
 
 env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
+  TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
 jobs:
   tmdb:
@@ -35,8 +36,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run script
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
           set -o pipefail
           python ${{ matrix.property }}.py | tee output.csv
@@ -72,8 +71,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run script
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
           set -o pipefail
           python not_found_${{ matrix.property }}.py | tee output.csv
@@ -187,8 +184,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run script
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: |
           set -o pipefail
           python report_${{ matrix.property }}.py | tee report.txt
