@@ -66,5 +66,5 @@ def claim_exists(page, property, value):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.WARN)
     main()
