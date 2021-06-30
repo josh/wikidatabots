@@ -15,7 +15,6 @@ def main():
 
     qids = sample_qids("P9586", count=250)
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P9586")
-    qids |= page_qids("User:Josh404Bot/Maintenance_reports/P9586")
 
     results = sparql.fetch_statements(qids, ["P9586"])
 
