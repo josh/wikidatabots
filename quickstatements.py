@@ -4,8 +4,6 @@ Small API wrapper for submitting QuickStatements batches.
 """
 
 
-from datetime import date
-
 import requests
 
 
@@ -48,10 +46,6 @@ def import_batch(username, token, format, data, batchname=None):
         return resp["batch_id"]
     else:
         raise APIError(resp["status"])
-
-
-def today():
-    return date.today().strftime("+%Y-%m-%dT00:00:00Z/11")
 
 
 if __name__ == "__main__":
