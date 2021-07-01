@@ -12,8 +12,6 @@ import platform
 import backoff
 import requests
 
-from utils import batches
-
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
 
