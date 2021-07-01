@@ -3,7 +3,7 @@ import re
 import appletv
 import sparql
 from page import page_qids
-from sparql import sample_qids
+from sparql import sample_items
 
 MATCHER = re.compile("^umc.cmc.[a-z0-9]{22,25}$")
 
@@ -13,7 +13,7 @@ def main():
         "https://tv.apple.com/us/movie/umc.cmc.o5z5ztufuu3uv8lx7m0jcega"
     )
 
-    qids = sample_qids("P9586", count=250)
+    qids = sample_items("P9586", limit=250)
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P9586")
 
     results = sparql.fetch_statements(qids, ["P9586"])

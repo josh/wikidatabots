@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 import imdb
 from page import page_qids
-from sparql import sample_qids
+from sparql import sample_items
 
 REASON_FOR_DEPRECATION = "P2241"
 REDIRECT = "Q45403344"
@@ -16,7 +16,7 @@ def main():
     site = pywikibot.Site("wikidata", "wikidata")
     repo = site.data_repository()
 
-    qids = sample_qids("P345", count=10)
+    qids = sample_items("P345", limit=10)
     qids |= page_qids("User:Josh404Bot/Maintenance_reports/P345")
 
     redirect_page = pywikibot.ItemPage(repo, REDIRECT)

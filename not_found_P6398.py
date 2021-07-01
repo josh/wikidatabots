@@ -1,14 +1,14 @@
 import itunes
 import sparql
 from page import page_qids
-from sparql import sample_qids
+from sparql import sample_items
 
 
 def main():
     (id, obj) = next(itunes.batch_lookup([567661493]))
     assert id and obj
 
-    qids = sample_qids("P6398", count=10000)
+    qids = sample_items("P6398", limit=10000)
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P6398")
 
     results = sparql.fetch_statements(qids, ["P6398"])

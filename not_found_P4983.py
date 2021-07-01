@@ -1,13 +1,13 @@
 import sparql
 import tmdb
 from page import page_qids
-from sparql import sample_qids
+from sparql import sample_items
 
 
 def main():
     assert tmdb.object(1399, type="tv")
 
-    qids = sample_qids("P4983", count=2500)
+    qids = sample_items("P4983", limit=2500)
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P4983")
 
     results = sparql.fetch_statements(qids, ["P4983"])

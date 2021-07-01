@@ -123,8 +123,15 @@ def fetch_statements(qids, properties):
     return items
 
 
-def sample_items(property, limit=50, type="random"):
-    if type == "random":
+def sample_items(property, limit, type=None):
+    if type is None:
+        items = set()
+        items |= sample_items(property, type="created", limit=math.floor(limit / 3))
+        items |= sample_items(property, type="updated", limit=math.floor(limit / 3))
+        items |= sample_items(property, type="random", limit=limit - len(items))
+        return items
+
+    elif type == "random":
         query = """
         SELECT ?item WHERE {
           SERVICE bd:sample {
@@ -175,17 +182,6 @@ def sample_items(property, limit=50, type="random"):
         assert result["item"]
         items.add(result["item"])
     return items
-
-
-def sample_qids(property, count=1000):
-    limit = math.floor(count / 3)
-
-    qids = set()
-    qids |= sample_items(property, type="random", limit=limit)
-    qids |= sample_items(property, type="created", limit=limit)
-    qids |= sample_items(property, type="updated", limit=limit)
-
-    return qids
 
 
 def values_query(qids, binding="item"):

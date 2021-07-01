@@ -4,12 +4,12 @@ import imdb
 import sparql
 import wikitext
 from page import page_qids
-from sparql import sample_qids
+from sparql import sample_items
 from utils import uniq
 
 
 def main():
-    qids = sample_qids("P345", count=500)
+    qids = sample_items("P345", limit=500)
     qids |= page_qids("User:Josh404Bot/Maintenance_reports/P345")
     results = sparql.fetch_statements(qids, ["P345"])
 
