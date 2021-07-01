@@ -7,7 +7,7 @@ from sparql import sample_items
 def main():
     assert tmdb.object(140607, type="movie")
 
-    qids = sample_items("P4947", limit=2500)
+    qids = sample_items("P4947", limit=1000)
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P4947")
 
     results = sparql.fetch_statements(qids, ["P4947"])
