@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 import tmdb
-from sparql import fetch_statements, sample_items, type_constraints
+from sparql import sparql
 
 
 def main():
@@ -13,27 +13,32 @@ def main():
     Outputs QuickStatements CSV commands.
     """
 
-    allowed_classes = type_constraints("P4947")
+    query = """
+    SELECT DISTINCT ?item ?imdb ?random WHERE {
+      ?item wdt:P345 ?imdb.
 
-    qids = sample_items("P345", limit=2500)
+      VALUES ?classes {
+        wd:Q11424
+        wd:Q1261214
+      }
+      ?item (wdt:P31/(wdt:P279*)) ?classes.
 
-    results = fetch_statements(qids, ["P31", "P345", "P4947"])
+      OPTIONAL { ?item wdt:P4947 ?tmdb. }
+      FILTER(!(BOUND(?tmdb)))
+
+      BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
+    }
+    ORDER BY ?random
+    LIMIT 2500
+    """
+    results = sparql(query)
 
     print("qid,P4947")
-    for qid in tqdm(results):
-        item = results[qid]
-
-        if not item.get("P31") or item.get("P4947"):
+    for result in tqdm(results):
+        movie = tmdb.find(id=result["imdb"], source="imdb_id", type="movie")
+        if not movie:
             continue
-
-        instance_of = set([v for (_, v) in item["P31"]])
-        if instance_of.isdisjoint(allowed_classes):
-            continue
-
-        for (statement, value) in item.get("P345", []):
-            movie = tmdb.find(id=value, source="imdb_id", type="movie")
-            if movie:
-                print('{},"""{}"""'.format(qid, movie["id"]))
+        print('{},"""{}"""'.format(result["item"], movie["id"]))
 
 
 if __name__ == "__main__":
