@@ -55,11 +55,8 @@ def find_claim(repo, guid):
 
 if __name__ == "__main__":
     import argparse
-    import logging
     import os
     import sys
-
-    logging.basicConfig(level=logging.WARN)
 
     parser = argparse.ArgumentParser(description="Process Wikidata batch changes.")
     parser.add_argument("--username", action="store")

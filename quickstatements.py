@@ -50,11 +50,8 @@ def import_batch(username, token, format, data, batchname=None):
 
 if __name__ == "__main__":
     import argparse
-    import logging
     import os
     import sys
-
-    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Submit batch to QuickStatements.")
     parser.add_argument("--username", action="store")
