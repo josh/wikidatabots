@@ -37,7 +37,7 @@ class TimeoutException(Exception):
     pass
 
 
-@backoff.on_exception(backoff.expo, TimeoutException, max_tries=6)
+@backoff.on_exception(backoff.expo, TimeoutException, max_tries=10)
 @backoff.on_exception(backoff.expo, json.decoder.JSONDecodeError, max_tries=3)
 def sparql(query):
     """
