@@ -1,4 +1,4 @@
-from sparql import fetch_statements, sample_items, sparql
+from sparql import fetch_statements, sample_items, sparql, type_constraints
 
 
 def test_sparql():
@@ -28,6 +28,14 @@ def test_sparql_property():
     )
     assert len(results) == 1
     assert results[0]["statement"] == "Q1$789eef0c-4108-cdda-1a63-505cdd324564"
+
+
+def test_type_constraints():
+    classes = type_constraints("P4947")
+    assert "Q11424" in classes
+    assert "Q2431196" not in classes
+    assert "Q202866" in classes
+    assert "Q1261214" in classes
 
 
 def test_sample_items():

@@ -123,6 +123,20 @@ def fetch_statements(qids, properties):
     return items
 
 
+def type_constraints(property):
+    query = """
+    SELECT DISTINCT ?subclass WHERE {
+    """
+    query += "  wd:" + property + " p:P2302 ?constraint."
+    query += """
+      ?constraint ps:P2302 wd:Q21503250.
+      ?constraint pq:P2308 ?class.
+      ?subclass wdt:P279* ?class.
+    }
+    """
+    return set([r["subclass"] for r in sparql(query)])
+
+
 def sample_items(property, limit, type=None):
     if type is None:
         items = set()

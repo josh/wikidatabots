@@ -1,8 +1,8 @@
 from tqdm import tqdm
 
 import appletv
-import sparql
 from page import page_qids
+from sparql import fetch_statements, sample_items, type_constraints
 
 
 def main():
@@ -13,37 +13,21 @@ def main():
     Outputs QuickStatements CSV commands.
     """
 
-    page_title = "User:Josh404Bot/Preliminarily matched/P6398"
-    qids = page_qids(page_title)
+    qids = page_qids("User:Josh404Bot/Preliminarily matched/P6398")
+    qids |= sample_items("P9586", limit=500)
 
-    query = """
-    SELECT ?item ?random WHERE {
-      ?item wdt:P9586 ?appletv.
-
-      VALUES ?classes {
-        wd:Q11424
-        wd:Q1261214
-      }
-      ?item (wdt:P31/(wdt:P279*)) ?classes.
-
-      OPTIONAL { ?item wdt:P6398 ?itunes. }
-      FILTER(!(BOUND(?itunes)))
-
-      BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
-    }
-    ORDER BY (?random)
-    LIMIT 500
-    """
-    for result in sparql.sparql(query):
-        qids.add(result["item"])
-
-    results = sparql.fetch_statements(qids, ["P6398", "P9586"])
+    allowed_classes = type_constraints("P6398")
+    results = fetch_statements(qids, ["P31", "P6398", "P9586"])
 
     print("qid,P6398")
     for qid in tqdm(results):
         item = results[qid]
 
         if item.get("P6398"):
+            continue
+
+        instance_of = set([v for (_, v) in item["P31"]])
+        if not instance_of or allowed_classes.isdisjoint(instance_of):
             continue
 
         for (statement, value) in item.get("P9586", []):
