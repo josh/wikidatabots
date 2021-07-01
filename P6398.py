@@ -23,11 +23,11 @@ def main():
     for qid in tqdm(results):
         item = results[qid]
 
-        if item.get("P6398"):
+        if not item.get("P31") or item.get("P6398"):
             continue
 
         instance_of = set([v for (_, v) in item["P31"]])
-        if not instance_of or allowed_classes.isdisjoint(instance_of):
+        if instance_of.isdisjoint(allowed_classes):
             continue
 
         for (statement, value) in item.get("P9586", []):
