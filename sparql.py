@@ -12,6 +12,8 @@ import platform
 import backoff
 import requests
 
+from utils import batches
+
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
 
@@ -196,6 +198,127 @@ def sample_items(property, limit, type=None):
         assert result["item"]
         items.add(result["item"])
     return items
+
+
+def batched_sampled_items(property):
+    qids = items_sampled_for_property(property)
+    return batches(qids, size=10000)
+
+
+def items_sampled_for_property(property):
+    a = items_recently_created_for_property(property)
+    b = items_recently_updated_for_property(property)
+    c = items_randomly_sampled_for_property(property, batch_size=50000)
+
+    seen = set()
+
+    while True:
+        try:
+            qid = next(a)
+            if qid not in seen:
+                seen.add(qid)
+                yield qid
+        except StopIteration:
+            pass
+
+        try:
+            qid = next(b)
+            if qid not in seen:
+                seen.add(qid)
+                yield qid
+        except StopIteration:
+            pass
+
+        try:
+            qid = next(c)
+            if qid not in seen:
+                seen.add(qid)
+                yield qid
+        except StopIteration:
+            break
+
+
+def items_randomly_sampled_for_property(property, batch_size):
+    query = """
+    SELECT ?item {
+      SELECT ?item WHERE {
+        SERVICE bd:sample {
+          ?item wdt:?property [].
+          bd:serviceParam bd:sample.limit ?limit ;
+            bd:sample.sampleType "RANDOM".
+        }
+      }
+    }
+    LIMIT ?limit
+    """
+    query = query.replace("?property", property)
+    query = query.replace("?limit", str(batch_size))
+
+    seen = set()
+
+    while True:
+        results = sparql(query)
+        if not results:
+            break
+
+        for result in results:
+            qid = result["item"]
+            if qid in seen:
+                continue
+            seen.add(qid)
+            yield qid
+
+
+def items_recently_created_for_property(property):
+    query = """
+    SELECT ?item {
+      SERVICE wikibase:mwapi {
+        bd:serviceParam wikibase:endpoint "www.wikidata.org";
+                        wikibase:api "Generator" ;
+                        wikibase:limit "10000" ;
+                        mwapi:generator "search";
+                        mwapi:gsrsearch "haswbstatement:?property" ;
+                        mwapi:gsrsort "create_timestamp_desc" ;
+                        mwapi:gsrlimit "max".
+        ?item wikibase:apiOutputItem mwapi:title.
+      }
+    }
+    """
+    query = query.replace("?property", property)
+
+    seen = set()
+    for result in sparql(query):
+        qid = result["item"]
+        if qid in seen:
+            continue
+        seen.add(qid)
+        yield qid
+
+
+def items_recently_updated_for_property(property):
+    query = """
+    SELECT ?item {
+      SERVICE wikibase:mwapi {
+        bd:serviceParam wikibase:endpoint "www.wikidata.org";
+                        wikibase:api "Generator" ;
+                        wikibase:limit "10000" ;
+                        mwapi:generator "search";
+                        mwapi:gsrsearch "haswbstatement:?property" ;
+                        mwapi:gsrsort "last_edit_desc" ;
+                        mwapi:gsrlimit "max".
+        ?item wikibase:apiOutputItem mwapi:title.
+      }
+    }
+    """
+    query = query.replace("?property", property)
+
+    seen = set()
+    for result in sparql(query):
+        qid = result["item"]
+        if qid in seen:
+            continue
+        seen.add(qid)
+        yield qid
 
 
 def values_query(qids, binding="item"):
