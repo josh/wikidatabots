@@ -56,6 +56,18 @@ def fetch(url):
     return soup
 
 
+regions = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn"]
+
+
+def all_not_found(id):
+    for region in regions:
+        url = "https://tv.apple.com/{}/movie/{}".format(region, id)
+        print(url)
+        if not not_found(url=url):
+            return False
+    return True
+
+
 def not_found(url):
     r = requests.get(url, headers=request_headers)
     r.raise_for_status()
@@ -63,10 +75,10 @@ def not_found(url):
     html = r.text
     soup = BeautifulSoup(html, "html.parser")
 
-    if soup.find("h1", text="This content is no longer available."):
+    if soup.find("div", {"class": "not-found"}):
         return True
-
-    return False
+    else:
+        return False
 
 
 def extract_shoebox(soup):
