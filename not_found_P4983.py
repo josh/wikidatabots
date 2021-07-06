@@ -1,28 +1,30 @@
-import sparql
+from tqdm import tqdm
+
 import tmdb
-from page import page_qids
-from sparql import sample_items
+from sparql import sparql
 
 
 def main():
     assert tmdb.object(1399, type="tv")
 
-    qids = sample_items("P4983", limit=1000)
-    qids |= page_qids("Wikidata:Database reports/Constraint violations/P4983")
+    query = """
+    SELECT ?statement ?value WHERE {
+      ?statement ps:P4983 ?value.
+      ?statement wikibase:rank ?rank.
+      FILTER(?rank != wikibase:DeprecatedRank)
+    }
+    """
 
-    results = sparql.fetch_statements(qids, ["P4983"])
+    for result in tqdm(sparql(query)):
+        statement = result["statement"]
 
-    for qid in results:
-        item = results[qid]
+        try:
+            id = int(result["value"])
+        except ValueError:
+            continue
 
-        for (statement, value) in item.get("P4983", []):
-            try:
-                id = int(value)
-            except ValueError:
-                continue
-
-            if not tmdb.object(id, type="tv"):
-                print("{},Q21441764".format(statement))
+        if not tmdb.object(id, type="tv"):
+            print("{},Q21441764".format(statement))
 
 
 if __name__ == "__main__":
