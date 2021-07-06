@@ -2,7 +2,8 @@ name: Tasks
 
 on:
   schedule:
-    - cron: "15 0,16 * * *"
+    # - cron: "15 0,16 * * *"
+    - cron: "15 * * * *"
   workflow_dispatch:
 
 env:
