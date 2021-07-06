@@ -62,7 +62,6 @@ regions = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn
 def all_not_found(id):
     for region in regions:
         url = "https://tv.apple.com/{}/movie/{}".format(region, id)
-        print(url)
         if not not_found(url=url):
             return False
     return True
