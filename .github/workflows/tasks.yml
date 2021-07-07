@@ -147,7 +147,7 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python report_${{ matrix.property }}.py | tee report.txt
+          touch report.txt
 
       - name: Login
         env:
