@@ -4,7 +4,6 @@ import pywikibot
 from tqdm import tqdm
 
 import imdb
-from page import page_qids
 from sparql import sample_items
 
 REASON_FOR_DEPRECATION = "P2241"
