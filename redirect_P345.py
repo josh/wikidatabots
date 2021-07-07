@@ -17,7 +17,6 @@ def main():
     repo = site.data_repository()
 
     qids = sample_items("P345", limit=10)
-    qids |= page_qids("User:Josh404Bot/Maintenance_reports/P345")
 
     redirect_page = pywikibot.ItemPage(repo, REDIRECT)
 
