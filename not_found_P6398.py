@@ -26,7 +26,7 @@ def main():
                 continue
 
     for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
-        if not obj:
+        if not obj and itunes.all_not_found(id):
             print("{},Q21441764".format(itunes_ids[id]))
 
 
