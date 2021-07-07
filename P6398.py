@@ -14,7 +14,7 @@ def main():
     """
 
     qids = page_qids("User:Josh404Bot/Preliminarily matched/P6398")
-    qids |= sample_items("P9586", limit=500)
+    qids |= sample_items("P9586", limit=1000)
 
     allowed_classes = type_constraints("P6398")
     results = fetch_statements(qids, ["P31", "P6398", "P9586"])
