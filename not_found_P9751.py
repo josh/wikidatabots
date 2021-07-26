@@ -9,23 +9,21 @@ MATCHER = re.compile("^umc.cmc.[a-z0-9]{22,25}$")
 
 
 def main():
-    assert not appletv.all_not_found(
-        type="movie", id="umc.cmc.o5z5ztufuu3uv8lx7m0jcega"
-    )
+    assert not appletv.all_not_found(type="show", id="umc.cmc.vtoh0mn0xn7t3c643xqonfzy")
 
-    qids = sample_items("P9586", limit=250)
-    qids |= page_qids("Wikidata:Database reports/Constraint violations/P9586")
+    qids = sample_items("P9751", limit=250)
+    qids |= page_qids("Wikidata:Database reports/Constraint violations/P9751")
 
-    results = sparql.fetch_statements(qids, ["P9586"])
+    results = sparql.fetch_statements(qids, ["P9751"])
 
     for qid in results:
         item = results[qid]
 
-        for (statement, value) in item.get("P9586", []):
+        for (statement, value) in item.get("P9751", []):
             if not MATCHER.match(value):
                 continue
 
-            if appletv.all_not_found(type="movie", id=value):
+            if appletv.all_not_found(type="show", id=value):
                 print("{},Q21441764".format(statement))
 
 

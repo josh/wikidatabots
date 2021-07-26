@@ -59,9 +59,10 @@ def fetch(url):
 regions = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn"]
 
 
-def all_not_found(id):
+def all_not_found(type, id):
+    assert type in {"movie", "episode", "show"}
     for region in regions:
-        url = "https://tv.apple.com/{}/movie/{}".format(region, id)
+        url = "https://tv.apple.com/{}/{}/{}".format(region, type, id)
         if not not_found(url=url):
             return False
     return True
