@@ -1,7 +1,9 @@
+import logging
+
 from tqdm import tqdm
 
 import appletv
-from page import page_qids
+from page import blocked_qids, page_qids
 from sparql import fetch_statements, sample_items, type_constraints
 
 
@@ -23,6 +25,10 @@ def main():
     for qid in tqdm(results):
         item = results[qid]
 
+        if qid in blocked_qids():
+            logging.debug("{} is blocked".format(qid))
+            continue
+
         if not item.get("P31") or item.get("P6398"):
             continue
 
@@ -37,7 +43,5 @@ def main():
 
 
 if __name__ == "__main__":
-    import logging
-
     logging.basicConfig(level=logging.INFO)
     main()

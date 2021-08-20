@@ -1,6 +1,9 @@
+import logging
+
 from tqdm import tqdm
 
 import tmdb
+from page import blocked_qids
 from sparql import sparql
 
 
@@ -35,6 +38,10 @@ def main():
 
     print("qid,P4947")
     for result in tqdm(results):
+        if result["item"] in blocked_qids():
+            logging.debug("{} is blocked".format(result["item"]))
+            continue
+
         movie = tmdb.find(id=result["imdb"], source="imdb_id", type="movie")
         if not movie:
             continue
@@ -42,7 +49,5 @@ def main():
 
 
 if __name__ == "__main__":
-    import logging
-
     logging.basicConfig(level=logging.INFO)
     main()

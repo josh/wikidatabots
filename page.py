@@ -51,7 +51,7 @@ def page_text(page_title):
     return None
 
 
-def page_qids(page_title):
+def page_qids(page_title, blocked=False):
     qids = set()
 
     text = page_text(page_title)
@@ -62,9 +62,22 @@ def page_qids(page_title):
     for m in re.findall(r"(Q[0-9]+)", text):
         qids.add(m)
 
+    if not blocked:
+        qids = qids - blocked_qids()
+
     logging.debug("page: {} {} results".format(page_title, len(qids)))
 
     return qids
+
+
+_blocked_qids = None
+
+
+def blocked_qids():
+    global _blocked_qids
+    if not _blocked_qids:
+        _blocked_qids = page_qids("User:Josh404Bot/Blocklist", blocked=True)
+    return _blocked_qids
 
 
 def page_statements(page_title):
