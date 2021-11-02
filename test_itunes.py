@@ -6,7 +6,7 @@ def test_batch_lookup_one():
     (id, result) = list(results)[0]
     assert id == 285494571
     assert result
-    assert result["trackName"] == "The Godfather: The Coppola Restoration"
+    assert result["trackName"] == "The Godfather"
 
 
 def test_batch_lookup_miss():
