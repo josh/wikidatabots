@@ -48,6 +48,12 @@ jobs:
   itunes:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        property:
+          - "P6398"
+
     steps:
       - uses: actions/checkout@v2
 
@@ -64,7 +70,7 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python P6398.py | tee output.csv
+          python ${{ matrix.property }}.py | tee output.csv
 
       - name: Submit QuickStatements batch
         env:
