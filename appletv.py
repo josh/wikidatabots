@@ -1,3 +1,4 @@
+import csv
 import json
 import re
 import zlib
@@ -145,3 +146,18 @@ def fetch_sitemap_index(url):
     for link in soup.find_all("xhtml:link"):
         urls.add(link["href"])
     return urls
+
+
+def fetch_new_sitemap_urls():
+    r = requests.get("https://github.com/josh/mixnmatch-catalogs/commit/main.diff")
+    r.encoding = "utf-8"
+    r.raise_for_status()
+
+    def new_rows():
+        for line in r.iter_lines(decode_unicode=True):
+            if line and line.startswith("+umc.cmc"):
+                yield line[1:]
+
+    for (id, name, desc, url, type) in csv.reader(new_rows()):
+        if name:
+            yield url
