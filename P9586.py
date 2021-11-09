@@ -142,7 +142,7 @@ def main():
             url = "https://tv.apple.com/us/movie/{}".format(id)
             yield (url, id)
 
-        for url in shuffled(appletv.fetch_new_sitemap_urls()):
+        for url in shuffled(appletv.fetch_new_sitemap_urls())[0:250]:
             (type, id) = parseurl(url)
             if type != "movie":
                 continue
@@ -150,15 +150,13 @@ def main():
                 continue
             yield (url, id)
 
-        for index_url in shuffled(appletv.fetch_sitemap_index_urls()):
+        for index_url in shuffled(appletv.fetch_sitemap_index_urls())[0:250]:
             for url in shuffled(appletv.fetch_sitemap_index(index_url)):
                 (type, id) = parseurl(url)
                 if type != "movie":
                     continue
-
                 if not id or id in skip_ids:
                     continue
-
                 yield (url, id)
 
     print("qid,P9586")
