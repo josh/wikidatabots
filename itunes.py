@@ -1,6 +1,26 @@
+import backoff
 import requests
 
 from utils import batches
+
+
+@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
+def lookup(ids, country=None, session=requests.Session()):
+    params = {}
+
+    if type(ids) == list:
+        params["id"] = ",".join(map(str, ids))
+    else:
+        params["id"] = str(ids)
+
+    if country:
+        params["country"] = country
+
+    url = "https://itunes.apple.com/lookup"
+    r = session.get(url, params=params)
+    r.raise_for_status()
+    data = r.json()
+    return data["results"]
 
 
 def batch_lookup(ids, country="us"):
@@ -11,14 +31,9 @@ def batch_lookup(ids, country="us"):
     session = requests.Session()
 
     for ids_batch in batches(ids, size=150):
-        ids_str = ",".join(map(str, ids_batch))
-        params = {"country": country, "id": ids_str}
-        r = session.get("https://itunes.apple.com/lookup", params=params)
-        r.raise_for_status()
-        json = r.json()
         results = {}
 
-        for result in json["results"]:
+        for result in lookup(ids_batch, country=country, session=session):
             type = result["wrapperType"]
             id = result.get(type + "Id") or result["trackId"]
             results[id] = result
