@@ -78,6 +78,39 @@ jobs:
         run: |
           python quickstatements.py --batchname iTunesIDs <output.csv
 
+  appletv:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        property:
+          - "P9586"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run script
+        run: |
+          set -o pipefail
+          python ${{ matrix.property }}.py | tee output.csv
+
+      - name: Submit QuickStatements batch
+        env:
+          QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
+        run: |
+          python quickstatements.py --batchname AppleTVIDs <output.csv
+
   not_found:
     runs-on: ubuntu-latest
 
@@ -116,39 +149,39 @@ jobs:
         run: |
           python deprecatestatements.py <output.csv
 
-  matches:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        property:
-          - "P9586"
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.9
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run script
-        run: |
-          set -o pipefail
-          python ${{ matrix.property }}.py | tee output.csv
-
-      - name: Login
-        env:
-          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
-        run: |
-          python pwb.py login
-
-      - name: Publish matched page
-        run: |
-          python statements_page.py --title "User:$WIKIDATA_USERNAME/Preliminarily matched/${{ matrix.property }}" <output.csv
+#  matches:
+#    runs-on: ubuntu-latest
+#
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        property:
+#          - "PXXX"
+#
+#    steps:
+#      - uses: actions/checkout@v2
+#
+#      - name: Set up Python 3.9
+#        uses: actions/setup-python@v2
+#        with:
+#          python-version: 3.9
+#
+#      - name: Install dependencies
+#        run: |
+#          python -m pip install --upgrade pip
+#          pip install -r requirements.txt
+#
+#      - name: Run script
+#        run: |
+#          set -o pipefail
+#          python ${{ matrix.property }}.py | tee output.csv
+#
+#      - name: Login
+#        env:
+#          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
+#        run: |
+#          python pwb.py login
+#
+#      - name: Publish matched page
+#        run: |
+#          python statements_page.py --title "User:$WIKIDATA_USERNAME/Preliminarily matched/${{ matrix.property }}" <output.csv
