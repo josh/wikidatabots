@@ -10,6 +10,7 @@ class UnauthorizedException(Exception):
     pass
 
 
+@backoff.on_exception(backoff.expo, requests.exceptions.ConnectionError, max_tries=3)
 def api_request(path, params={}, version=3, api_key=TMDB_API_KEY):
     url = "https://api.themoviedb.org/{}{}".format(str(version), path)
     post_params = {}
@@ -30,7 +31,6 @@ def api_request(path, params={}, version=3, api_key=TMDB_API_KEY):
 object_types = set(["movie", "tv", "person"])
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.ConnectionError, max_tries=3)
 def object(id, type, append=[], api_key=TMDB_API_KEY):
     assert type in object_types
 
