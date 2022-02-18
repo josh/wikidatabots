@@ -5,4 +5,4 @@ pytest==7.0.1
 pywikibot==6.6.1
 requests==2.27.1
 tqdm==4.62.3
-wikitextparser==0.47.5
+wikitextparser==0.48.0
