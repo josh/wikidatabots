@@ -21,7 +21,7 @@ def canonical_id(id):
     r = requests.head(url)
     if r.status_code == 200:
         return id
-    elif r.status_code == 301:
+    elif r.status_code == 301 or r.status_code == 308:
         new_url = r.headers["Location"]
         new_id = extract_id(new_url)
         assert new_id, "redirect bad id: {}".format(new_url)
