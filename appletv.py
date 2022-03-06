@@ -108,15 +108,22 @@ def extract_itunes_id(soup):
                 if way["channelId"] != "tvs.sbd.9001":
                     continue
 
-                if not way.get("punchoutUrls"):
-                    continue
+                if way.get("punchoutUrls"):
+                    m = re.match(
+                        r"itmss://itunes.apple.com/us/[^/]+/[^/]+/id(\d+)",
+                        way["punchoutUrls"]["open"],
+                    )
+                    if m:
+                        return int(m.group(1))
 
-                m = re.match(
-                    r"itmss://itunes.apple.com/us/[^/]+/[^/]+/id(\d+)",
-                    way["punchoutUrls"]["open"],
-                )
-                if m:
-                    return int(m.group(1))
+                if way.get("versions"):
+                    for version in way["versions"]:
+                        m = re.match(
+                            r"tvs.sbd.9001:(\d+)",
+                            version["playableId"],
+                        )
+                        if m:
+                            return int(m.group(1))
 
     return None
 
