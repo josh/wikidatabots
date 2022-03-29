@@ -19,7 +19,7 @@ jobs:
         property:
           - "P4947"
           - "P4983"
-          - "P4985"
+          # - "P4985"
 
     steps:
       - uses: actions/checkout@v2
