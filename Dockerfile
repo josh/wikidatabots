@@ -1,4 +1,4 @@
-FROM python:3.10.2-alpine
+FROM python:3.10.4-alpine
 
 RUN apk add --no-cache build-base libxml2 libxslt-dev
 
