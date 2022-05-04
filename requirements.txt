@@ -1,7 +1,7 @@
 backoff==2.0.1
 beautifulsoup4==4.10.0
 lxml==4.8.0
-pytest==7.1.1
+pytest==7.1.2
 pywikibot==7.1.0
 requests==2.27.1
 tqdm==4.64.0
