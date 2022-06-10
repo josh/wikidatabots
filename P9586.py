@@ -3,6 +3,7 @@ import itertools
 import json
 import re
 
+import backoff
 import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
@@ -23,6 +24,7 @@ def parseurl(url):
     return ("unknown", None)
 
 
+@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
 def fetch_movie(url):
     r = requests.get(url, headers=appletv.request_headers)
     r.raise_for_status()
