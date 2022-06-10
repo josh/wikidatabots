@@ -1,4 +1,4 @@
-backoff==2.0.1
+backoff==2.1.2
 beautifulsoup4==4.11.1
 lxml==4.9.0
 pytest==7.1.2
