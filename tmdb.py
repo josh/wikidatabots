@@ -11,9 +11,6 @@ class UnauthorizedException(Exception):
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.ConnectionError, max_tries=3)
-@backoff.on_exception(
-    backoff.expo, requests.exceptions.ContentDecodingError, max_tries=3
-)
 def api_request(path, params={}, version=3, api_key=TMDB_API_KEY):
     url = "https://api.themoviedb.org/{}{}".format(str(version), path)
     post_params = {}
