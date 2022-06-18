@@ -13,11 +13,17 @@ class UnauthorizedException(Exception):
 @backoff.on_exception(backoff.expo, requests.exceptions.ConnectionError, max_tries=3)
 def api_request(path, params={}, version=3, api_key=TMDB_API_KEY):
     url = "https://api.themoviedb.org/{}{}".format(str(version), path)
+    headers = {"Accept-Encoding": "identity"}
     post_params = {}
     if api_key:
         post_params["api_key"] = api_key
     post_params.update(params)
-    r = requests.get(url, params=post_params)
+
+    # try:
+    r = requests.get(url, headers=headers, params=post_params)
+    # except requests.exceptions.ContentDecodingError:
+    #     return {}
+
     if r.headers["Content-Type"].startswith("application/json"):
         data = r.json()
         if r.status_code == 401:
