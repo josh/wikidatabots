@@ -20,16 +20,8 @@ def main():
     SELECT DISTINCT ?item ?imdb ?random WHERE {
       ?item wdt:P345 ?imdb.
 
-      VALUES ?classes {
-        wd:Q5
-        wd:Q16334295
-        wd:Q95074
-        wd:Q14514600
-        wd:Q431289
-        wd:Q59755569
-      }
-      # ?item (wdt:P31/(wdt:P279*)) ?classes.
-      ?item wdt:P31 ?classes.
+      # ?item (wdt:P31/(wdt:P279*)) wd:Q5.
+      ?item wdt:P31 wd:Q5.
 
       OPTIONAL { ?item wdt:P4985 ?tmdb. }
       FILTER(!(BOUND(?tmdb)))
