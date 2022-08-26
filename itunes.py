@@ -4,7 +4,7 @@ import requests
 from utils import batches
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
+@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=5)
 def lookup(ids, country=None, session=requests.Session()):
     params = {}
 
