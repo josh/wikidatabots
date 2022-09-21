@@ -132,7 +132,7 @@ def fetch_sitemap_index_urls():
     r = requests.get("https://tv.apple.com/sitemaps_tv_index_1.xml")
     r.raise_for_status()
 
-    soup = BeautifulSoup(r.content, "lxml")
+    soup = BeautifulSoup(r.content, "xml")
 
     urls = set()
     for loc in soup.find_all("loc"):
@@ -145,7 +145,7 @@ def fetch_sitemap_index(url):
     r.raise_for_status()
 
     xml = zlib.decompress(r.content, 16 + zlib.MAX_WBITS)
-    soup = BeautifulSoup(xml, "lxml")
+    soup = BeautifulSoup(xml, "xml")
 
     urls = set()
     for loc in soup.find_all("loc"):
