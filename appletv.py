@@ -87,13 +87,7 @@ def extract_shoebox(soup):
     if not script:
         return []
 
-    boxes = []
-    data = json.loads(script.string)
-    for key in data:
-        subdata = json.loads(data[key])
-        if "d" in subdata and "data" in subdata["d"]:
-            boxes.append(subdata["d"]["data"])
-    return boxes
+    return json.loads(script.string).values()
 
 
 def extract_itunes_id(soup):
@@ -101,6 +95,11 @@ def extract_itunes_id(soup):
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:
                 if playable.get("isItunes", False) is True:
+                    return int(playable["externalId"])
+
+        if "playables" in data:
+            for playable in data["playables"].values():
+                if playable["channelId"] == "tvs.sbd.9001":
                     return int(playable["externalId"])
 
         if "howToWatch" in data:
