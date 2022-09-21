@@ -47,7 +47,7 @@ def fetch(url):
     html = r.text
     soup = BeautifulSoup(html, "html.parser")
 
-    if soup.find("h1", text="This content is no longer available."):
+    if soup.find("h1", string="This content is no longer available."):
         return None
 
     link = soup.find("link", attrs={"rel": "canonical"})
