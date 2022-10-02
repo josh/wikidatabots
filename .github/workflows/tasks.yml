@@ -22,7 +22,7 @@ jobs:
           - "P4985"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
@@ -56,7 +56,7 @@ jobs:
           - "P6398"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
@@ -90,7 +90,7 @@ jobs:
           - "P9586"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
@@ -125,7 +125,7 @@ jobs:
           - "P9586"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
