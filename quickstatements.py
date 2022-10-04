@@ -5,6 +5,7 @@ Small API wrapper for submitting QuickStatements batches.
 
 
 from typing import Iterable, Optional
+
 import requests
 
 
