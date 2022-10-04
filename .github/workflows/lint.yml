@@ -45,4 +45,4 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          flake8 . --count --show-source --statistics --max-line-length=88
+          flake8 . --count --show-source --statistics
