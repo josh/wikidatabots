@@ -24,7 +24,7 @@ def main():
                 continue
 
             if appletv.all_not_found(type="show", id=value):
-                print("{},Q21441764".format(statement))
+                print(f"{statement},Q21441764")
 
 
 if __name__ == "__main__":

@@ -98,7 +98,7 @@ FindResult = dict[str, Any]
 
 
 def find(
-    id: str,
+    id: str | int,
     source: FindSource,
     type: FindType,
     api_key: Optional[str] = TMDB_API_KEY,
@@ -107,7 +107,7 @@ def find(
     assert type in find_types
 
     resp = api_request(
-        "/find/{}".format(id),
+        f"/find/{id}",
         params={"external_source": source},
         api_key=api_key,
     )

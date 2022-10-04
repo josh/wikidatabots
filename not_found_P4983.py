@@ -17,17 +17,15 @@ def main():
 
     for result in tqdm(sparql(query)):
         statement = result["statement"]
-
-        if not result["value"]:
-            continue
+        value: str = result["value"]
 
         try:
-            id = int(result["value"])
+            id = int(value)
         except ValueError:
             continue
 
         if not tmdb.object(id, type="tv"):
-            print("{},Q21441764".format(statement))
+            print(f"{statement},Q21441764")
 
 
 if __name__ == "__main__":

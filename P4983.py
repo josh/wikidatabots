@@ -1,10 +1,16 @@
 import logging
+from typing import TypedDict
 
 from tqdm import tqdm
 
 import tmdb
 from page import blocked_qids
 from sparql import sparql
+
+
+class Item(TypedDict):
+    imdb: set[str]
+    tvdb: set[int]
 
 
 def main():
@@ -43,13 +49,13 @@ def main():
     LIMIT 5000
     """
 
-    items = {}
+    items: dict[str, Item] = {}
 
     for result in sparql(query):
-        qid = result["item"]
+        qid: str = result["item"]
 
         if qid in blocked_qids():
-            logging.debug("{} is blocked".format(qid))
+            logging.debug(f"{qid} is blocked")
             continue
 
         if qid not in items:
@@ -65,7 +71,7 @@ def main():
     print("qid,P4983")
     for qid in tqdm(items):
         item = items[qid]
-        tmdb_ids = set()
+        tmdb_ids: set[int] = set()
 
         for imdb_id in item["imdb"]:
             tv = tmdb.find(id=imdb_id, source="imdb_id", type="tv")
