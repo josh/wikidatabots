@@ -1,3 +1,4 @@
+from calendar import c
 from tqdm import tqdm
 
 import tmdb
@@ -18,8 +19,11 @@ def main():
     for result in tqdm(sparql(query)):
         statement = result["statement"]
 
+        if not result["value"]:
+            continue
+
         try:
-            id = int(result["value"])  # type: ignore
+            id = int(result["value"])
         except ValueError:
             continue
 

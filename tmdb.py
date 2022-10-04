@@ -81,7 +81,7 @@ def find(id, source, type, api_key=TMDB_API_KEY):
     )
 
     results = resp.get("{}_results".format(type))
-    if len(results) == 1:  # type: ignore
-        return results[0]  # type: ignore
+    if results and len(results) == 1:
+        return results[0]
     else:
         return None
