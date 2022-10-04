@@ -7,9 +7,9 @@ MUST be logged in first. See pwb.py
 import csv
 from typing import Any, TextIO
 
-import pywikibot  # type: ignore
-import pywikibot.config  # type: ignore
-from pywikibot import DataSite, ItemPage  # type: ignore
+import pywikibot
+import pywikibot.config
+from pywikibot import DataSite, ItemPage
 
 REASON_FOR_DEPRECATION = "P2241"
 
@@ -36,17 +36,17 @@ def process_statement(repo: DataSite, statement: str, reason: str):
     if not claim.qualifiers.get(REASON_FOR_DEPRECATION):
         qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATION)
         qualifier.isQualifier = True
-        qualifier.setTarget(reason_item)  # type: ignore
+        qualifier.setTarget(reason_item)
         claim.qualifiers[REASON_FOR_DEPRECATION] = [qualifier]
 
-    item.editEntity({"claims": [claim.toJSON()]})  # type: ignore
+    item.editEntity({"claims": [claim.toJSON()]})
 
 
 def find_claim(repo: DataSite, guid: str):
     assert "$" in guid
     qid = guid.split("$", 1)[0]
     item = pywikibot.ItemPage(repo, qid)
-    properties: Any = item.get()["claims"]  # type: ignore
+    properties: Any = item.get()["claims"]
 
     for property in properties:
         for claim in properties[property]:

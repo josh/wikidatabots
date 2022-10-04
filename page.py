@@ -17,14 +17,14 @@ def edit(title: str, text: str, username: str, summary: Optional[str] = None):
     Edit an existing wiki page.
     """
 
-    import pywikibot  # type: ignore
-    import pywikibot.config  # type: ignore
+    import pywikibot
+    import pywikibot.config
 
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     site = pywikibot.Site("wikidata", "wikidata")
     page = pywikibot.Page(site, title)
     page.text = text
-    page.save(summary)  # type: ignore
+    page.save(summary)
     return page
 
 

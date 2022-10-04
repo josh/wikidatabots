@@ -5,8 +5,8 @@ Pywikibot login wrapper.
 import os
 import tempfile
 
-import pywikibot  # type: ignore
-import pywikibot.config  # type: ignore
+import pywikibot
+import pywikibot.config
 
 
 def login(username: str, password: str):

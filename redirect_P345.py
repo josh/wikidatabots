@@ -1,7 +1,7 @@
 import logging
 
-import pywikibot  # type: ignore
-import pywikibot.config  # type: ignore
+import pywikibot
+import pywikibot.config
 from tqdm import tqdm
 
 import imdb
@@ -27,11 +27,11 @@ def main():
             logging.debug(f"{item} is a redirect")
             continue
 
-        for claim in item.claims.get("P345", []):  # type: ignore
-            id = claim.target  # type: ignore
-            assert type(id) is str  # type: ignore
+        for claim in item.claims.get("P345", []):
+            id = claim.target
+            assert type(id) is str
 
-            if claim.rank == "deprecated":  # type: ignore
+            if claim.rank == "deprecated":
                 continue
 
             if not imdb.is_valid_id(id):
@@ -44,30 +44,30 @@ def main():
                 continue
 
             if id is not new_id:
-                claim.setRank("deprecated")  # type: ignore
+                claim.setRank("deprecated")
                 qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATION)
                 qualifier.isQualifier = True
-                qualifier.setTarget(redirect_page)  # type: ignore
-                claim.qualifiers[REASON_FOR_DEPRECATION] = [qualifier]  # type: ignore
+                qualifier.setTarget(redirect_page)
+                claim.qualifiers[REASON_FOR_DEPRECATION] = [qualifier]
 
                 if claim_exists(item, "P345", new_id):
-                    item.editEntity({"claims": [claim.toJSON()]})  # type: ignore
+                    item.editEntity({"claims": [claim.toJSON()]})
                 else:
                     new_claim = pywikibot.Claim(repo, "P345")
-                    new_claim.setTarget(new_id)  # type: ignore
-                    item.editEntity(  # type: ignore
+                    new_claim.setTarget(new_id)
+                    item.editEntity(
                         {
                             "claims": [
-                                new_claim.toJSON(),  # type: ignore
-                                claim.toJSON(),  # type: ignore
+                                new_claim.toJSON(),
+                                claim.toJSON(),
                             ],
                         }
                     )
 
 
 def claim_exists(page: pywikibot.ItemPage, property: str, value: str) -> bool:
-    for claim in page.claims[property]:  # type: ignore
-        if claim.target == value:  # type: ignore
+    for claim in page.claims[property]:
+        if claim.target == value:
             return True
     return False
 
