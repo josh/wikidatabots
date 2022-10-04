@@ -5,6 +5,7 @@ MUST be logged in first. See pwb.py
 """
 
 import csv
+from typing import Optional, TextIO
 import urllib.parse
 
 import page
@@ -12,7 +13,12 @@ import wikitext
 from utils import uniq
 
 
-def edit_statements_page(title, csv_file, username, summary=None):
+def edit_statements_page(
+    title: str,
+    csv_file: TextIO,
+    username: str,
+    summary: Optional[str] = None,
+):
     """
     Edit a wiki page of suggested statements.
     """
@@ -21,13 +27,13 @@ def edit_statements_page(title, csv_file, username, summary=None):
     (header, property) = next(rows)
     assert header == "qid"
 
-    statements = []
+    statements: list[tuple[str, str, str]] = []
     for (qid, value) in rows:
         statements.append((qid, property, value))
     statements.sort()
     statements = list(uniq(statements))
 
-    lines = []
+    lines: list[str] = []
     for (entity, property, value) in statements:
         lines.append(
             "* {{Statement|" + entity + "|" + property + "|" + str(value) + "}}"
@@ -45,7 +51,7 @@ def edit_statements_page(title, csv_file, username, summary=None):
     return page.edit(title, text, username, summary)
 
 
-def quickstatements_url(commands):
+def quickstatements_url(commands: list[tuple[str, str, str]]) -> str:
     hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})
     return "https://quickstatements.toolforge.org/#{}".format(hash)
 
