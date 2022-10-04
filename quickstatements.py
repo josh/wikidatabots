@@ -4,6 +4,7 @@ Small API wrapper for submitting QuickStatements batches.
 """
 
 
+from typing import Iterable, Optional
 import requests
 
 
@@ -11,7 +12,13 @@ class APIError(Exception):
     pass
 
 
-def import_batch(username, token, format, data, batchname=None):
+def import_batch(
+    username: str,
+    token: str,
+    format: str,
+    data: str | Iterable[str],
+    batchname: Optional[str] = None,
+) -> Optional[int]:
     """
     Import and run QuickStatements batch in background.
     Returns a batch ID if successfully enqueued.
@@ -70,4 +77,4 @@ if __name__ == "__main__":
         batchname=args.batchname,
     )
     if batch_id:
-        print("https://quickstatements.toolforge.org/#/batch/{}".format(batch_id))
+        print(f"https://quickstatements.toolforge.org/#/batch/{batch_id}")
