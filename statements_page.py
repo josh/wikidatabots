@@ -5,8 +5,8 @@ MUST be logged in first. See pwb.py
 """
 
 import csv
-from typing import Optional, TextIO
 import urllib.parse
+from typing import Optional, TextIO
 
 import page
 import wikitext
