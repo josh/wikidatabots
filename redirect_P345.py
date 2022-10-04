@@ -1,6 +1,7 @@
 import logging
 
 import pywikibot
+import pywikibot.config
 from tqdm import tqdm
 
 import imdb

@@ -5,7 +5,7 @@ MUST be logged in first. See pwb.py
 """
 
 import csv
-import urllib
+import urllib.parse
 
 import page
 import wikitext

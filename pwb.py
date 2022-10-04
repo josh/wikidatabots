@@ -6,6 +6,7 @@ import os
 import tempfile
 
 import pywikibot
+import pywikibot.config
 
 
 def login(username, password):

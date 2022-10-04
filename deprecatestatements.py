@@ -7,6 +7,7 @@ MUST be logged in first. See pwb.py
 import csv
 
 import pywikibot
+import pywikibot.config
 
 REASON_FOR_DEPRECATION = "P2241"
 
