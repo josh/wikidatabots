@@ -17,8 +17,9 @@ def edit(title, text, username, summary=None):
     """
 
     import pywikibot
+    import pywikibot.config
 
-    pywikibot.config.usernames["wikidata"]["wikidata"] = username  # type: ignore
+    pywikibot.config.usernames["wikidata"]["wikidata"] = username
     site = pywikibot.Site("wikidata", "wikidata")
     page = pywikibot.Page(site, title)
     page.text = text

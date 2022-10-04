@@ -1,6 +1,7 @@
 import logging
 
 import pywikibot
+import pywikibot.config
 from tqdm import tqdm
 
 import imdb
@@ -11,7 +12,7 @@ REDIRECT = "Q45403344"
 
 
 def main():
-    pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"  # type: ignore
+    pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
     site = pywikibot.Site("wikidata", "wikidata")
     repo = site.data_repository()
 

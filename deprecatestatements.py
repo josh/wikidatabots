@@ -7,12 +7,13 @@ MUST be logged in first. See pwb.py
 import csv
 
 import pywikibot
+import pywikibot.config
 
 REASON_FOR_DEPRECATION = "P2241"
 
 
 def process_batch(username, csv_file):
-    pywikibot.config.usernames["wikidata"]["wikidata"] = username  # type: ignore
+    pywikibot.config.usernames["wikidata"]["wikidata"] = username
     site = pywikibot.Site("wikidata", "wikidata")
     repo = site.data_repository()
 

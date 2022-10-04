@@ -6,6 +6,7 @@ import os
 import tempfile
 
 import pywikibot
+import pywikibot.config
 
 
 def login(username, password):
@@ -18,8 +19,8 @@ def login(username, password):
     password_file.write('("{}", "{}")'.format(username, password))
     password_file.close()
 
-    pywikibot.config.usernames["wikidata"]["wikidata"] = username  # type: ignore
-    pywikibot.config.password_file = password_file.name  # type: ignore
+    pywikibot.config.usernames["wikidata"]["wikidata"] = username
+    pywikibot.config.password_file = password_file.name
 
     site = pywikibot.Site("wikidata", "wikidata")
     site.login()
