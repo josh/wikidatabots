@@ -1,4 +1,3 @@
-from calendar import c
 from tqdm import tqdm
 
 import tmdb
