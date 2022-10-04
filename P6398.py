@@ -26,7 +26,7 @@ def main():
         item = results[qid]
 
         if qid in blocked_qids():
-            logging.debug("{} is blocked".format(qid))
+            logging.debug(f"{qid} is blocked")
             continue
 
         if not item.get("P31") or item.get("P6398"):
@@ -36,10 +36,10 @@ def main():
         if instance_of.isdisjoint(allowed_classes):
             continue
 
-        for (statement, value) in item.get("P9586", []):
+        for (_statement, value) in item.get("P9586", []):
             movie = appletv.movie(value)
             if movie and movie["itunes_id"]:
-                print('{},"""{}"""'.format(qid, movie["itunes_id"]))
+                print(f'{qid},"""{movie["itunes_id"]}"""')
 
 
 if __name__ == "__main__":

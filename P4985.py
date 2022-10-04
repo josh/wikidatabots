@@ -35,8 +35,10 @@ def main():
 
     print("qid,P4985")
     for result in tqdm(results):
-        if result["item"] in blocked_qids():
-            logging.debug("{} is blocked".format(result["item"]))
+        qid: str = result["item"]
+
+        if qid in blocked_qids():
+            logging.debug(f"{qid} is blocked")
             continue
 
         assert result["imdb"]
@@ -44,7 +46,7 @@ def main():
         person = tmdb.find(id=result["imdb"], source="imdb_id", type="person")
         if not person:
             continue
-        print('{},"""{}"""'.format(result["item"], person["id"]))
+        print(f'{result["item"]},"""{person["id"]}"""')
 
 
 if __name__ == "__main__":
