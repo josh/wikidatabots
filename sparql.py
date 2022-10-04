@@ -8,6 +8,7 @@ import logging
 import math
 import os
 import platform
+from typing import Any, Iterable, Literal, Optional, TypedDict
 
 import backoff
 import requests
@@ -17,7 +18,7 @@ session = requests.Session()
 
 session.headers.update({"Accept": "application/sparql-results+json"})
 
-USER_AGENT = []
+USER_AGENT: list[str] = []
 
 if "WIKIDATA_USERNAME" in os.environ:
     USER_AGENT.append(
@@ -37,9 +38,53 @@ class TimeoutException(Exception):
     pass
 
 
+class SPARQLHead(TypedDict):
+    vars: list[str]
+
+
+class SPARQLIRIResult(TypedDict):
+    type: Literal["uri"]
+    value: str
+
+
+SPARQLLiteralValue = Any
+
+
+class SPARQLLiteralResult(TypedDict):
+    type: Literal["literal"]
+    value: SPARQLLiteralValue
+
+
+class SPARQLLiteralWithDatatypeResult(TypedDict):
+    type: Literal["literal"]
+    value: SPARQLLiteralValue
+    datatype: str
+
+
+class SPARQLBlankNodeResult(TypedDict):
+    type: Literal["bnode"]
+
+
+SPARQLResult = (
+    SPARQLIRIResult
+    | SPARQLLiteralResult
+    | SPARQLLiteralWithDatatypeResult
+    | SPARQLBlankNodeResult
+)
+
+
+class SPARQLResults(TypedDict):
+    bindings: list[dict[str, SPARQLResult]]
+
+
+class SPARQLDocument(TypedDict):
+    head: SPARQLHead
+    results: SPARQLResults
+
+
 @backoff.on_exception(backoff.expo, TimeoutException, max_tries=14)
 @backoff.on_exception(backoff.expo, json.decoder.JSONDecodeError, max_tries=3)
-def sparql(query):
+def sparql(query: str) -> list[dict[str, Any]]:
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
@@ -51,7 +96,7 @@ def sparql(query):
 
     r.raise_for_status()
 
-    data = r.json()
+    data: SPARQLDocument = r.json()
     vars = data["head"]["vars"]
     bindings = data["results"]["bindings"]
 
@@ -65,7 +110,7 @@ def sparql(query):
         for binding in bindings:
             yield {var: format_value(binding.get(var)) for var in vars}
 
-    def format_value(obj):
+    def format_value(obj: Optional[SPARQLResult]):
         if obj is None:
             return None
         elif obj["type"] == "literal":
@@ -87,13 +132,18 @@ def sparql(query):
                     return label
             else:
                 return obj["value"]
+        elif obj["type"] == "bnode":
+            return None
         else:
-            return obj
+            return None
 
     return list(results())
 
 
-def fetch_statements(qids, properties):
+def fetch_statements(
+    qids: Iterable[str],
+    properties: Iterable[str],
+) -> dict[str, dict[str, list[tuple[str, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
     query += """
@@ -107,23 +157,23 @@ def fetch_statements(qids, properties):
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    items = {}
+    items: dict[str, dict[str, list[tuple[str, str]]]] = {}
 
     for result in sparql(query):
-        statement = result["statement"]
-        qid = result["item"]
-        prop = result["property"]
-        value = result["value"]
+        statement: str = result["statement"]
+        qid: str = result["item"]
+        prop: str = result["property"]
+        value: str = result["value"]
 
         item = items[qid] = items.get(qid, {})
-        properties = item[prop] = item.get(prop, [])
+        properties2 = item[prop] = item.get(prop, [])
 
-        properties.append((statement, value))
+        properties2.append((statement, value))
 
     return items
 
 
-def type_constraints(property):
+def type_constraints(property: str) -> set[str]:
     query = """
     SELECT DISTINCT ?subclass WHERE {
     """
@@ -134,10 +184,21 @@ def type_constraints(property):
       ?subclass wdt:P279* ?class.
     }
     """
-    return set([r["subclass"] for r in sparql(query)])
+    types: set[str] = set()
+    for result in sparql(query):
+        subclass: str = result["subclass"]
+        types.add(subclass)
+    return types
 
 
-def sample_items(property, limit, type=None):
+SampleType = Literal["created", "updated", "random"]
+
+
+def sample_items(
+    property: str,
+    limit: int,
+    type: Optional[SampleType] = None,
+) -> set[str]:
     if type is None:
         items = set()
         items |= sample_items(property, type="created", limit=math.floor(limit / 3))
@@ -191,14 +252,13 @@ def sample_items(property, limit, type=None):
     query = query.replace("?property", property)
     query = query.replace("?limit", str(limit))
 
-    items = set()
+    items: set[str] = set()
     for result in sparql(query):
-        assert result["item"]
         items.add(result["item"])
     return items
 
 
-def values_query(qids, binding="item"):
+def values_query(qids: Iterable[str], binding: str = "item") -> str:
     values = " ".join("wd:{}".format(qid) for qid in qids)
     return "VALUES ?" + binding + " { " + values + " }"
 
@@ -209,6 +269,6 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    query = sys.stdin.readlines()
+    query = sys.stdin.read()
     result = sparql(query)
     json.dump(result, sys.stdout, indent=2)
