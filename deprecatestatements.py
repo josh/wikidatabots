@@ -12,7 +12,7 @@ REASON_FOR_DEPRECATION = "P2241"
 
 
 def process_batch(username, csv_file):
-    pywikibot.config.usernames["wikidata"]["wikidata"] = username
+    pywikibot.config.usernames["wikidata"]["wikidata"] = username  # type: ignore
     site = pywikibot.Site("wikidata", "wikidata")
     repo = site.data_repository()
 

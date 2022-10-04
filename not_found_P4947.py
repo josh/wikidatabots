@@ -19,7 +19,7 @@ def main():
         statement = result["statement"]
 
         try:
-            id = int(result["value"])
+            id = int(result["value"])  # type: ignore
         except ValueError:
             continue
 

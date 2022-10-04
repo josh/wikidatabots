@@ -46,7 +46,7 @@ def edit_statements_page(title, csv_file, username, summary=None):
 
 
 def quickstatements_url(commands):
-    hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})
+    hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})  # type: ignore
     return "https://quickstatements.toolforge.org/#{}".format(hash)
 
 

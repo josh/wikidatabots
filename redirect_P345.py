@@ -11,7 +11,7 @@ REDIRECT = "Q45403344"
 
 
 def main():
-    pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
+    pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"  # type: ignore
     site = pywikibot.Site("wikidata", "wikidata")
     repo = site.data_repository()
 

@@ -14,7 +14,7 @@ def test_sparql():
         """
     )
     assert len(results) == 10
-    assert results[0]["item"].startswith("Q")
+    assert results[0]["item"].startswith("Q")  # type: ignore
     assert results[0]["itemLabel"]
 
 
