@@ -1,17 +1,18 @@
 import re
+from typing import Optional
 from urllib.parse import urlparse
 
 import requests
 
 
-def is_valid_id(id):
+def is_valid_id(id: str) -> bool:
     if formatted_url(id):
         return True
     else:
         return False
 
 
-def canonical_id(id):
+def canonical_id(id: str) -> Optional[str]:
     url = formatted_url(id)
     assert url, "bad id: {}".format(id)
 
@@ -32,7 +33,7 @@ def canonical_id(id):
         assert "unhandled imdb status code: {}".format(r.status_code)
 
 
-def formatted_url(id):
+def formatted_url(id: str) -> Optional[str]:
     m = re.match(r"^(tt\d+)$", id)
     if m:
         return "https://www.imdb.com/title/{}/".format(m.group(1))
@@ -66,7 +67,7 @@ def formatted_url(id):
     return None
 
 
-def extract_id(url):
+def extract_id(url: str) -> Optional[str]:
     r = urlparse(url)
 
     if r.netloc != "www.imdb.com" and r.netloc != "":
