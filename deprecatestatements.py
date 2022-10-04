@@ -5,46 +5,48 @@ MUST be logged in first. See pwb.py
 """
 
 import csv
+from typing import Any, TextIO
 
 import pywikibot
 import pywikibot.config
+from pywikibot import DataSite, ItemPage
 
 REASON_FOR_DEPRECATION = "P2241"
 
 
-def process_batch(username, csv_file):
+def process_batch(username: str, csv_file: TextIO):
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     site = pywikibot.Site("wikidata", "wikidata")
-    repo = site.data_repository()
+    repo: DataSite = site.data_repository()
 
     for (statement, reason) in csv.reader(csv_file):
         process_statement(repo, statement, reason)
 
 
-def process_statement(repo, statement, reason):
+def process_statement(repo: DataSite, statement: str, reason: str):
     (item, claim) = find_claim(repo, statement)
     assert item
     assert claim
 
-    reason = pywikibot.ItemPage(repo, reason)
-    assert reason
+    reason_item: ItemPage = pywikibot.ItemPage(repo, reason)
+    assert reason_item
 
     claim.setRank("deprecated")
 
     if not claim.qualifiers.get(REASON_FOR_DEPRECATION):
         qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATION)
         qualifier.isQualifier = True
-        qualifier.setTarget(reason)
+        qualifier.setTarget(reason_item)
         claim.qualifiers[REASON_FOR_DEPRECATION] = [qualifier]
 
     item.editEntity({"claims": [claim.toJSON()]})
 
 
-def find_claim(repo, guid):
+def find_claim(repo: DataSite, guid: str):
     assert "$" in guid
     qid = guid.split("$", 1)[0]
     item = pywikibot.ItemPage(repo, qid)
-    properties = item.get()["claims"]
+    properties: Any = item.get()["claims"]
 
     for property in properties:
         for claim in properties[property]:
