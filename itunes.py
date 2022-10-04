@@ -1,14 +1,27 @@
+from typing import Iterable, Iterator, Optional, TypedDict
 import backoff
 import requests
 
 from utils import batches
 
+ID = int
+
+
+class LookupResult(TypedDict):
+    wrapperType: str
+    trackId: int
+    trackName: str
+
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=5)
-def lookup(ids, country=None, session=requests.Session()):
-    params = {}
+def lookup(
+    ids: list[ID] | ID,
+    country: Optional[str] = None,
+    session: requests.Session = requests.Session(),
+) -> list[LookupResult]:
+    params: dict[str, str] = {}
 
-    if type(ids) == list:
+    if type(ids) is list:
         params["id"] = ",".join(map(str, ids))
     else:
         params["id"] = str(ids)
@@ -23,7 +36,10 @@ def lookup(ids, country=None, session=requests.Session()):
     return data["results"]
 
 
-def batch_lookup(ids, country="us"):
+def batch_lookup(
+    ids: Iterable[ID],
+    country: str = "us",
+) -> Iterator[tuple[ID, Optional[LookupResult]]]:
     """
     Look up many iTunes tracks by IDs.
     """
@@ -31,11 +47,11 @@ def batch_lookup(ids, country="us"):
     session = requests.Session()
 
     for ids_batch in batches(ids, size=150):
-        results = {}
+        results: dict[int, LookupResult] = {}
 
         for result in lookup(ids_batch, country=country, session=session):
             type = result["wrapperType"]
-            id = result.get(type + "Id") or result["trackId"]
+            id: int = result.get(type + "Id") or result["trackId"]
             results[id] = result
 
         for id in ids_batch:
@@ -45,7 +61,7 @@ def batch_lookup(ids, country="us"):
 countries = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn"]
 
 
-def all_not_found(id):
+def all_not_found(id: int) -> bool:
     for country in countries:
         (id2, found) = next(batch_lookup([id], country=country))
         assert id == id2

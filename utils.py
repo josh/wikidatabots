@@ -1,10 +1,10 @@
 import random
-from typing import Iterable, Sequence, TypeVar
+from typing import Iterable, Iterator, Sequence, TypeVar
 
 T = TypeVar("T")
 
 
-def batches(iterable: Iterable[T], size: int) -> Iterable[list[T]]:
+def batches(iterable: Iterable[T], size: int) -> Iterator[list[T]]:
     batch: list[T] = []
 
     for element in iterable:
@@ -23,7 +23,7 @@ def shuffled(seq: Iterable[T]) -> Sequence[T]:
     return lst
 
 
-def uniq(*lists: Iterable[T]) -> Iterable[T]:
+def uniq(*lists: Iterable[T]) -> Iterator[T]:
     seen: list[T] = []
     for lst in lists:
         for el in lst:

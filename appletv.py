@@ -12,7 +12,7 @@ import itunes
 
 class MovieDict(TypedDict):
     id: str
-    itunes_id: Optional[int]
+    itunes_id: Optional[itunes.ID]
 
 
 def movie(id: str) -> Optional[MovieDict]:
@@ -20,8 +20,8 @@ def movie(id: str) -> Optional[MovieDict]:
     if not soup:
         return None
 
-    itunes_id: Optional[int] = None
-    possible_itunes_id: Optional[int] = extract_itunes_id(soup)
+    itunes_id: Optional[itunes.ID] = None
+    possible_itunes_id: Optional[itunes.ID] = extract_itunes_id(soup)
     if possible_itunes_id:
         for (id2, result) in itunes.batch_lookup([possible_itunes_id]):
             if result:
@@ -98,7 +98,7 @@ def extract_shoebox(soup: BeautifulSoup) -> list[Any]:
     return json.loads(script.text).values()
 
 
-def extract_itunes_id(soup: BeautifulSoup) -> Optional[int]:
+def extract_itunes_id(soup: BeautifulSoup) -> Optional[itunes.ID]:
     for data in extract_shoebox(soup):
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:

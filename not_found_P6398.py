@@ -13,7 +13,7 @@ def main():
 
     results = sparql.fetch_statements(qids, ["P6398"])
 
-    itunes_ids = {}
+    itunes_ids: dict[int, str] = {}
 
     for qid in results:
         item = results[qid]
