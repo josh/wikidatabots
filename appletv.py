@@ -2,6 +2,7 @@ import csv
 import json
 import re
 import zlib
+from typing import Any, Iterable, Literal, Optional, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
@@ -9,13 +10,18 @@ from bs4 import BeautifulSoup
 import itunes
 
 
-def movie(id):
+class MovieDict(TypedDict):
+    id: str
+    itunes_id: Optional[int]
+
+
+def movie(id: str) -> Optional[MovieDict]:
     soup = fetch("https://tv.apple.com/us/movie/{}".format(id))
     if not soup:
         return None
 
-    itunes_id = None
-    possible_itunes_id = extract_itunes_id(soup)
+    itunes_id: Optional[int] = None
+    possible_itunes_id: Optional[int] = extract_itunes_id(soup)
     if possible_itunes_id:
         for (id2, result) in itunes.batch_lookup([possible_itunes_id]):
             if result:
@@ -40,7 +46,7 @@ request_headers = {
 }
 
 
-def fetch(url):
+def fetch(url: str) -> Optional[BeautifulSoup]:
     r = requests.get(url, headers=request_headers)
     r.raise_for_status()
 
@@ -59,8 +65,10 @@ def fetch(url):
 
 regions = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn"]
 
+Type = Literal["movie", "episode", "show"]
 
-def all_not_found(type, id):
+
+def all_not_found(type: Type, id: str) -> bool:
     assert type in {"movie", "episode", "show"}
     for region in regions:
         url = "https://tv.apple.com/{}/{}/{}".format(region, type, id)
@@ -69,7 +77,7 @@ def all_not_found(type, id):
     return True
 
 
-def not_found(url):
+def not_found(url: str) -> bool:
     r = requests.get(url, headers=request_headers)
     r.raise_for_status()
 
@@ -82,15 +90,15 @@ def not_found(url):
         return False
 
 
-def extract_shoebox(soup):
+def extract_shoebox(soup: BeautifulSoup) -> list[Any]:
     script = soup.find("script", {"type": "fastboot/shoebox", "id": "shoebox-uts-api"})
     if not script:
         return []
 
-    return json.loads(script.string).values()
+    return json.loads(script.text).values()
 
 
-def extract_itunes_id(soup):
+def extract_itunes_id(soup: BeautifulSoup) -> Optional[int]:
     for data in extract_shoebox(soup):
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:
@@ -127,26 +135,26 @@ def extract_itunes_id(soup):
     return None
 
 
-def fetch_sitemap_index_urls():
+def fetch_sitemap_index_urls() -> set[str]:
     r = requests.get("https://tv.apple.com/sitemaps_tv_index_1.xml")
     r.raise_for_status()
 
     soup = BeautifulSoup(r.content, "xml")
 
-    urls = set()
+    urls: set[str] = set()
     for loc in soup.find_all("loc"):
         urls.add(loc.text)
     return urls
 
 
-def fetch_sitemap_index(url):
+def fetch_sitemap_index(url: str) -> set[str]:
     r = requests.get(url)
     r.raise_for_status()
 
     xml = zlib.decompress(r.content, 16 + zlib.MAX_WBITS)
     soup = BeautifulSoup(xml, "xml")
 
-    urls = set()
+    urls: set[str] = set()
     for loc in soup.find_all("loc"):
         urls.add(loc.text)
     for link in soup.find_all("xhtml:link"):
@@ -154,16 +162,16 @@ def fetch_sitemap_index(url):
     return urls
 
 
-def fetch_new_sitemap_urls():
+def fetch_new_sitemap_urls() -> Iterable[str]:
     r = requests.get("https://github.com/josh/mixnmatch-catalogs/commit/main.diff")
     r.encoding = "utf-8"
     r.raise_for_status()
 
-    def new_rows():
+    def new_rows() -> Iterable[str]:
         for line in r.iter_lines(decode_unicode=True):
             if line and line.startswith("+umc.cmc"):
                 yield line[1:]
 
-    for (id, name, desc, url, type) in csv.reader(new_rows()):
+    for (_id, name, _desc, url, _type) in csv.reader(new_rows()):
         if name:
             yield url
