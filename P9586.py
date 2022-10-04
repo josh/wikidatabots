@@ -2,6 +2,7 @@ import html
 import itertools
 import json
 import re
+from typing import Any, Iterable, Literal, Optional, TypedDict
 
 import backoff
 import requests
@@ -14,18 +15,21 @@ from sparql import sparql
 from utils import shuffled
 
 
-def parseurl(url):
+def parseurl(
+    url: str,
+) -> tuple[Literal["movie"], str] | tuple[Literal["unknown"], None]:
     m = re.match(
         r"https://tv.apple.com/us/(movie)/([^/]+/)?(umc.cmc.[0-9a-z]+)",
         url,
     )
     if m:
-        return (m.group(1), m.group(3))
+        assert m.group(1) == "movie"
+        return ("movie", m.group(3))
     return ("unknown", None)
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
-def fetch_movie(url):
+def fetch_movie(url: str) -> Optional[tuple[str, int, set[str]]]:
     r = requests.get(url, headers=appletv.request_headers)
     r.raise_for_status()
 
@@ -35,14 +39,14 @@ def fetch_movie(url):
     if not ld:
         return None
 
-    title = html.unescape(ld["name"])
+    title: str = html.unescape(ld["name"])
 
     try:
         year = int(ld.get("datePublished", "")[0:4])
     except ValueError:
         return None
 
-    directors = set()
+    directors: set[str] = set()
     for director in ld.get("director", []):
         directors.add(html.unescape(director["name"]))
     if not directors:
@@ -51,7 +55,7 @@ def fetch_movie(url):
     return (title, year, directors)
 
 
-def find_ld(soup):
+def find_ld(soup: BeautifulSoup) -> Optional[dict[str, Any]]:
     for script in soup.find_all("script", {"type": "application/ld+json"}):
         ld = json.loads(script.string)
         if ld["@type"] == "Movie":
@@ -59,7 +63,16 @@ def find_ld(soup):
     return None
 
 
-def wikidata_search(title, year, directors):
+class WikidataSearchResult(TypedDict):
+    item: str
+    appletv: Optional[str]
+
+
+def wikidata_search(
+    title: str,
+    year: int,
+    directors: Iterable[str],
+) -> Optional[WikidataSearchResult]:
     query = "SELECT DISTINCT ?item ?appletv WHERE {\n"
 
     query += """
@@ -118,13 +131,16 @@ def wikidata_search(title, year, directors):
 
     results = sparql(query)
     if len(results) == 1:
-        return results[0]
+        result = results[0]
+        qid: str = result["item"]
+        appletv: Optional[str] = result["appletv"]
+        return WikidataSearchResult(item=qid, appletv=appletv)
     return None
 
 
-def matched_appletv_ids():
+def matched_appletv_ids() -> set[str]:
     query = "SELECT DISTINCT ?appletv WHERE { ?statement ps:P9586 ?appletv. }"
-    ids = set()
+    ids: set[str] = set()
     for result in sparql(query):
         ids.add(result["appletv"])
     return ids
@@ -136,7 +152,7 @@ def main():
     page_title = "User:Josh404Bot/Preliminarily matched/P9586"
 
     def candiate_urls():
-        for (item, property, id) in page_statements(page_title):
+        for (_item, property, id) in page_statements(page_title):
             if property != "P9586":
                 continue
             if not id or id in skip_ids:
@@ -168,7 +184,7 @@ def main():
             continue
         result = wikidata_search(*info)
         if result and not result["appletv"]:
-            print('{},"""{}"""'.format(result["item"], id))
+            print(f'{result["item"]},"""{id}"""')
 
 
 if __name__ == "__main__":
