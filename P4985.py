@@ -39,6 +39,8 @@ def main():
             logging.debug("{} is blocked".format(result["item"]))
             continue
 
+        assert result["imdb"]
+
         person = tmdb.find(id=result["imdb"], source="imdb_id", type="person")
         if not person:
             continue
