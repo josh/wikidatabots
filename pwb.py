@@ -9,7 +9,7 @@ import pywikibot
 import pywikibot.config
 
 
-def login(username, password):
+def login(username: str, password: str):
     """
     Log into Wikidata.
 
