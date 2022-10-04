@@ -4,15 +4,17 @@ from urllib.parse import urlparse
 
 import requests
 
+ID = str
 
-def is_valid_id(id: str) -> bool:
+
+def is_valid_id(id: ID) -> bool:
     if formatted_url(id):
         return True
     else:
         return False
 
 
-def canonical_id(id: str) -> Optional[str]:
+def canonical_id(id: ID) -> Optional[ID]:
     url = formatted_url(id)
     assert url, "bad id: {}".format(id)
 
@@ -33,7 +35,7 @@ def canonical_id(id: str) -> Optional[str]:
         assert "unhandled imdb status code: {}".format(r.status_code)
 
 
-def formatted_url(id: str) -> Optional[str]:
+def formatted_url(id: ID) -> Optional[str]:
     m = re.match(r"^(tt\d+)$", id)
     if m:
         return "https://www.imdb.com/title/{}/".format(m.group(1))
@@ -67,7 +69,7 @@ def formatted_url(id: str) -> Optional[str]:
     return None
 
 
-def extract_id(url: str) -> Optional[str]:
+def extract_id(url: str) -> Optional[ID]:
     r = urlparse(url)
 
     if r.netloc != "www.imdb.com" and r.netloc != "":

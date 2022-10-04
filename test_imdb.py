@@ -1,6 +1,6 @@
 import requests
 
-from imdb import canonical_id, extract_id, formatted_url
+from imdb import ID, canonical_id, extract_id, formatted_url
 
 
 def test_extract_id():
@@ -81,7 +81,7 @@ def test_formatted_url():
     assert not formatted_url("/title/tt0111161/")
 
 
-def externalid_url(id):
+def externalid_url(id: ID) -> str:
     url = (
         "https://wikidata-externalid-url.toolforge.org/?"
         + "p=345&"
