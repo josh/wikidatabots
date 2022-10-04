@@ -1,8 +1,11 @@
 import random
+from typing import Iterable, Sequence, TypeVar
+
+T = TypeVar("T")
 
 
-def batches(iterable, size):
-    batch = []
+def batches(iterable: Iterable[T], size: int) -> Iterable[list[T]]:
+    batch: list[T] = []
 
     for element in iterable:
         batch.append(element)
@@ -14,14 +17,14 @@ def batches(iterable, size):
         yield batch
 
 
-def shuffled(seq):
+def shuffled(seq: Iterable[T]) -> Sequence[T]:
     lst = list(seq)
     random.shuffle(lst)
     return lst
 
 
-def uniq(*lists):
-    seen = []
+def uniq(*lists: Iterable[T]) -> Iterable[T]:
+    seen: list[T] = []
     for lst in lists:
         for el in lst:
             if el not in seen:
