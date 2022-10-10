@@ -2,6 +2,7 @@ from tqdm import tqdm
 
 import tmdb
 from sparql import sparql
+from utils import tryint
 
 
 def main():
@@ -17,14 +18,9 @@ def main():
 
     for result in tqdm(sparql(query)):
         statement = result["statement"]
-        value: str = result["value"]
+        id = tryint(result["value"])
 
-        try:
-            id = int(value)
-        except ValueError:
-            continue
-
-        if not tmdb.object(id, type="person"):
+        if id and not tmdb.object(id, type="person"):
             print(f"{statement},Q21441764")
 
 

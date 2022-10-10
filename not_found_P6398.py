@@ -2,6 +2,7 @@ import itunes
 import sparql
 from page import page_qids
 from sparql import sample_items
+from utils import tryint
 
 
 def main():
@@ -19,11 +20,9 @@ def main():
         item = results[qid]
 
         for (statement, value) in item.get("P6398", []):
-            try:
-                id = int(value)
+            id = tryint(value)
+            if id:
                 itunes_ids[id] = statement
-            except ValueError:
-                continue
 
     for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
         if not obj and itunes.all_not_found(id):
