@@ -1,3 +1,4 @@
+from properties import IMDB_ID_PID, TMDB_MOVIE_ID_PID
 from sparql import fetch_statements, sample_items, sparql, type_constraints
 
 
@@ -32,7 +33,7 @@ def test_sparql_property():
 
 
 def test_type_constraints():
-    classes = type_constraints("P4947")
+    classes = type_constraints(TMDB_MOVIE_ID_PID)
     assert "Q11424" in classes
     assert "Q2431196" not in classes
     assert "Q202866" in classes
@@ -40,21 +41,21 @@ def test_type_constraints():
 
 
 def test_sample_items():
-    results = sample_items("P345", limit=5, type="random")
+    results = sample_items(IMDB_ID_PID, limit=5, type="random")
     assert len(results) == 5
 
-    results = sample_items("P345", limit=5, type="created")
+    results = sample_items(IMDB_ID_PID, limit=5, type="created")
     assert len(results) == 5
 
-    results = sample_items("P345", limit=5, type="updated")
+    results = sample_items(IMDB_ID_PID, limit=5, type="updated")
     assert len(results) == 5
 
 
 def test_fetch_statements():
-    items = fetch_statements(["Q172241"], ["P345", "P4947"])
+    items = fetch_statements(["Q172241"], [IMDB_ID_PID, TMDB_MOVIE_ID_PID])
     assert len(items) == 1
 
     item = items["Q172241"]
     assert item
-    assert item["P345"]
-    assert item["P4947"]
+    assert item[IMDB_ID_PID]
+    assert item[TMDB_MOVIE_ID_PID]

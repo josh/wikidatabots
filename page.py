@@ -11,6 +11,8 @@ from typing import Optional
 
 import requests
 
+from wikidata import SITE
+
 
 def edit(title: str, text: str, username: str, summary: Optional[str] = None):
     """
@@ -21,8 +23,7 @@ def edit(title: str, text: str, username: str, summary: Optional[str] = None):
     import pywikibot.config
 
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
-    site = pywikibot.Site("wikidata", "wikidata")
-    page = pywikibot.Page(site, title)
+    page = pywikibot.Page(SITE, title)
     page.text = text
     page.save(summary)
     return page

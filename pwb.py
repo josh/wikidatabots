@@ -8,6 +8,8 @@ import tempfile
 import pywikibot
 import pywikibot.config
 
+from wikidata import SITE
+
 
 def login(username: str, password: str):
     """
@@ -22,8 +24,7 @@ def login(username: str, password: str):
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = password_file.name
 
-    site = pywikibot.Site("wikidata", "wikidata")
-    site.login()
+    SITE.login()
 
     os.unlink(password_file.name)
 

@@ -5,20 +5,19 @@ import pywikibot.config
 from tqdm import tqdm
 
 import imdb
+from items import REDIRECT_QID
+from properties import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID
 from sparql import sample_items
-
-REASON_FOR_DEPRECATION = "P2241"
-REDIRECT = "Q45403344"
+from wikidata import SITE
 
 
 def main():
     pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
-    site = pywikibot.Site("wikidata", "wikidata")
-    repo = site.data_repository()
+    repo = SITE.data_repository()
 
-    qids = sample_items("P345", limit=10)
+    qids = sample_items(IMDB_ID_PID, limit=10)
 
-    redirect_page = pywikibot.ItemPage(repo, REDIRECT)
+    redirect_page = pywikibot.ItemPage(repo, REDIRECT_QID)
 
     for qid in tqdm(qids):
         item = pywikibot.ItemPage(repo, qid)
@@ -27,7 +26,7 @@ def main():
             logging.debug(f"{item} is a redirect")
             continue
 
-        for claim in item.claims.get("P345", []):
+        for claim in item.claims.get(IMDB_ID_PID, []):
             id = claim.target
             assert type(id) is str
 
@@ -45,15 +44,15 @@ def main():
 
             if id is not new_id:
                 claim.setRank("deprecated")
-                qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATION)
+                qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATED_RANK_PID)
                 qualifier.isQualifier = True
                 qualifier.setTarget(redirect_page)
-                claim.qualifiers[REASON_FOR_DEPRECATION] = [qualifier]
+                claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
-                if claim_exists(item, "P345", new_id):
+                if claim_exists(item, IMDB_ID_PID, new_id):
                     item.editEntity({"claims": [claim.toJSON()]})
                 else:
-                    new_claim = pywikibot.Claim(repo, "P345")
+                    new_claim = pywikibot.Claim(repo, IMDB_ID_PID)
                     new_claim.setTarget(new_id)
                     item.editEntity(
                         {
