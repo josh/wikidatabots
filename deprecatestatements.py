@@ -11,7 +11,7 @@ import pywikibot
 import pywikibot.config
 from pywikibot import DataSite, ItemPage
 
-REASON_FOR_DEPRECATION = "P2241"
+from properties import REASON_FOR_DEPRECATED_RANK_PID
 
 
 def process_batch(username: str, csv_file: TextIO):
@@ -33,11 +33,11 @@ def process_statement(repo: DataSite, statement: str, reason: str):
 
     claim.setRank("deprecated")
 
-    if not claim.qualifiers.get(REASON_FOR_DEPRECATION):
-        qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATION)
+    if not claim.qualifiers.get(REASON_FOR_DEPRECATED_RANK_PID):
+        qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATED_RANK_PID)
         qualifier.isQualifier = True
         qualifier.setTarget(reason_item)
-        claim.qualifiers[REASON_FOR_DEPRECATION] = [qualifier]
+        claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
     item.editEntity({"claims": [claim.toJSON()]})
 

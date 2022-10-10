@@ -6,9 +6,8 @@ from tqdm import tqdm
 
 import imdb
 from items import REDIRECT_QID
+from properties import REASON_FOR_DEPRECATED_RANK_PID
 from sparql import sample_items
-
-REASON_FOR_DEPRECATION = "P2241"
 
 
 def main():
@@ -45,10 +44,10 @@ def main():
 
             if id is not new_id:
                 claim.setRank("deprecated")
-                qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATION)
+                qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATED_RANK_PID)
                 qualifier.isQualifier = True
                 qualifier.setTarget(redirect_page)
-                claim.qualifiers[REASON_FOR_DEPRECATION] = [qualifier]
+                claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
                 if claim_exists(item, "P345", new_id):
                     item.editEntity({"claims": [claim.toJSON()]})
