@@ -121,7 +121,7 @@ jobs:
       fail-fast: false
       matrix:
         property:
-          - "P444"
+          - "P444_Q21039459"
 
     steps:
       - uses: actions/checkout@v3
