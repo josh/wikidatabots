@@ -5,10 +5,10 @@ import pywikibot.config
 from tqdm import tqdm
 
 import imdb
+from items import REDIRECT_QID
 from sparql import sample_items
 
 REASON_FOR_DEPRECATION = "P2241"
-REDIRECT = "Q45403344"
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
 
     qids = sample_items("P345", limit=10)
 
-    redirect_page = pywikibot.ItemPage(repo, REDIRECT)
+    redirect_page = pywikibot.ItemPage(repo, REDIRECT_QID)
 
     for qid in tqdm(qids):
         item = pywikibot.ItemPage(repo, qid)
