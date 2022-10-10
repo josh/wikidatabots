@@ -8,12 +8,12 @@ import imdb
 from items import REDIRECT_QID
 from properties import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID
 from sparql import sample_items
+from wikidata import SITE
 
 
 def main():
     pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
-    site = pywikibot.Site("wikidata", "wikidata")
-    repo = site.data_repository()
+    repo = SITE.data_repository()
 
     qids = sample_items(IMDB_ID_PID, limit=10)
 

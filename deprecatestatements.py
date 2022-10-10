@@ -12,12 +12,12 @@ import pywikibot.config
 from pywikibot import DataSite, ItemPage
 
 from properties import REASON_FOR_DEPRECATED_RANK_PID
+from wikidata import SITE
 
 
 def process_batch(username: str, csv_file: TextIO):
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
-    site = pywikibot.Site("wikidata", "wikidata")
-    repo: DataSite = site.data_repository()
+    repo: DataSite = SITE.data_repository()
 
     for (statement, reason) in csv.reader(csv_file):
         process_statement(repo, statement, reason)
