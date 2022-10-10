@@ -2,7 +2,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
-from typing import Any, Optional, TypeVar
+from typing import Optional, TypeVar
 
 import pywikibot
 import pywikibot.config
@@ -12,6 +12,7 @@ from tqdm import tqdm
 from opencritic import fetch_game
 from page import blocked_qids
 from sparql import sparql
+from utils import tryint
 
 SITE = Site("wikidata", "wikidata")
 REVIEW_SCORE_PID = "P444"
@@ -159,13 +160,6 @@ def get_dict_value(dict: OrderedDict[str, list[T]], key: str) -> Optional[T]:
     for value in dict.get(key, []):
         return value
     return None
-
-
-def tryint(value: Any) -> Optional[int]:
-    try:
-        return int(value)
-    except ValueError:
-        return None
 
 
 if __name__ == "__main__":
