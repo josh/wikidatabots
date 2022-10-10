@@ -1,5 +1,6 @@
 import os
 from typing import Optional, TypedDict
+
 import requests
 
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
