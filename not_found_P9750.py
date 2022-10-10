@@ -2,6 +2,7 @@ import re
 
 import appletv
 import sparql
+from items import WITHDRAWN_IDENTIFIER_VALUE_QID
 from page import page_qids
 from sparql import sample_items
 
@@ -26,7 +27,7 @@ def main():
                 continue
 
             if appletv.all_not_found(type="episode", id=value):
-                print(f"{statement},Q21441764")
+                print(f"{statement},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
 
 
 if __name__ == "__main__":

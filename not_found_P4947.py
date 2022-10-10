@@ -1,6 +1,7 @@
 from tqdm import tqdm
 
 import tmdb
+from items import WITHDRAWN_IDENTIFIER_VALUE_QID
 from sparql import sparql
 from utils import tryint
 
@@ -21,7 +22,7 @@ def main():
         id = tryint(result["value"])
 
         if id and not tmdb.object(id, type="movie"):
-            print(f"{statement},Q21441764")
+            print(f"{statement},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
 
 
 if __name__ == "__main__":

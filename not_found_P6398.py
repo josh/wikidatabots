@@ -1,5 +1,6 @@
 import itunes
 import sparql
+from items import WITHDRAWN_IDENTIFIER_VALUE_QID
 from page import page_qids
 from sparql import sample_items
 from utils import tryint
@@ -26,7 +27,7 @@ def main():
 
     for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
         if not obj and itunes.all_not_found(id):
-            print(f"{itunes_ids[id]},Q21441764")
+            print(f"{itunes_ids[id]},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
 
 
 if __name__ == "__main__":
