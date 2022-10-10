@@ -4,6 +4,7 @@ from tqdm import tqdm
 
 import appletv
 from page import blocked_qids, page_qids
+from properties import ITUNES_MOVIE_ID_PID
 from sparql import fetch_statements, sample_items, type_constraints
 
 
@@ -18,8 +19,8 @@ def main():
     qids = page_qids("User:Josh404Bot/Preliminarily matched/P6398")
     qids |= sample_items("P9586", limit=1000)
 
-    allowed_classes = type_constraints("P6398")
-    results = fetch_statements(qids, ["P31", "P6398", "P9586"])
+    allowed_classes = type_constraints(ITUNES_MOVIE_ID_PID)
+    results = fetch_statements(qids, ["P31", ITUNES_MOVIE_ID_PID, "P9586"])
 
     print("qid,P6398")
     for qid in tqdm(results):
@@ -29,7 +30,7 @@ def main():
             logging.debug(f"{qid} is blocked")
             continue
 
-        if not item.get("P31") or item.get("P6398"):
+        if not item.get("P31") or item.get(ITUNES_MOVIE_ID_PID):
             continue
 
         instance_of = set([v for (_, v) in item["P31"]])
