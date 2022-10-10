@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 import appletv
 from page import page_statements
+from properties import APPLE_TV_MOVIE_ID_PID
 from sparql import sparql
 from utils import shuffled, tryint
 
@@ -152,7 +153,7 @@ def main():
 
     def candiate_urls():
         for (_item, property, id) in page_statements(page_title):
-            if property != "P9586":
+            if property != APPLE_TV_MOVIE_ID_PID:
                 continue
             if not id or id in skip_ids:
                 continue
