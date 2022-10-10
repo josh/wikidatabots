@@ -2,14 +2,14 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
-from typing import Any, Optional, TypedDict, TypeVar
+from typing import Any, Optional, TypeVar
 
 import pywikibot
 import pywikibot.config
-import requests
 from pywikibot import Claim, ItemPage, PropertyPage, Site, WbQuantity, WbTime
 from tqdm import tqdm
 
+from opencritic import fetch_game
 from page import blocked_qids
 from sparql import sparql
 
@@ -28,10 +28,6 @@ OPENCRITIC_QID = "Q21039459"
 OPENCRITIC_ITEM = ItemPage(SITE, "Q21039459")
 CRITIC_REVIEW_ITEM = ItemPage(SITE, "Q80698083")
 
-RAPIDAPI_HEADERS = {
-    "X-RapidAPI-Key": os.environ["RAPIDAPI_KEY"],
-    "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
-}
 
 REVIEW_SCORE_CLAIM = REVIEW_SCORE_PROPERTY.newClaim()
 REVIEW_SCORE_BY_CLAIM = REVIEW_SCORE_BY_PROPERTY.newClaim(is_qualifier=True)
@@ -154,17 +150,6 @@ def compare_claims(a: Claim, b: Claim | None) -> bool:
     if not b:
         return False
     return a.same_as(b, ignore_rank=True, ignore_quals=False, ignore_refs=True)
-
-
-class OpenCriticGame(TypedDict):
-    numReviews: int
-    topCriticScore: float
-
-
-def fetch_game(game_id: int) -> OpenCriticGame:
-    url = f"https://opencritic-api.p.rapidapi.com/game/{game_id}"
-    response = requests.get(url, headers=RAPIDAPI_HEADERS, timeout=5)
-    return response.json()
 
 
 T = TypeVar("T")
