@@ -1,6 +1,9 @@
+import pytest
+
 import tmdb
 
 
+@pytest.mark.skipif(tmdb.TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_find():
     result = tmdb.find(id="tt0111161", source="imdb_id", type="movie")
     assert result
