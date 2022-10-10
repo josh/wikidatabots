@@ -12,7 +12,7 @@ from tqdm import tqdm
 import appletv
 from page import page_statements
 from sparql import sparql
-from utils import shuffled
+from utils import shuffled, tryint
 
 
 def parseurl(
@@ -41,9 +41,8 @@ def fetch_movie(url: str) -> Optional[tuple[str, int, set[str]]]:
 
     title: str = html.unescape(ld["name"])
 
-    try:
-        year = int(ld.get("datePublished", "")[0:4])
-    except ValueError:
+    year = tryint(ld.get("datePublished", "")[0:4])
+    if not year:
         return None
 
     directors: set[str] = set()

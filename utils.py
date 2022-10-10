@@ -1,5 +1,5 @@
 import random
-from typing import Iterable, Iterator, Sequence, TypeVar
+from typing import Any, Iterable, Iterator, Optional, Sequence, TypeVar
 
 T = TypeVar("T")
 
@@ -30,3 +30,10 @@ def uniq(*lists: Iterable[T]) -> Iterator[T]:
             if el not in seen:
                 yield el
                 seen.append(el)
+
+
+def tryint(value: Any) -> Optional[int]:
+    try:
+        return int(value)
+    except ValueError:
+        return None
