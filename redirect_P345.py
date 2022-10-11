@@ -5,7 +5,7 @@ import pywikibot.config
 from tqdm import tqdm
 
 import imdb
-from items import REDIRECT_QID
+from items import REDIRECT_ITEM
 from properties import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID
 from sparql import sample_items
 from wikidata import SITE
@@ -16,8 +16,6 @@ def main():
     repo = SITE.data_repository()
 
     qids = sample_items(IMDB_ID_PID, limit=10)
-
-    redirect_page = pywikibot.ItemPage(repo, REDIRECT_QID)
 
     for qid in tqdm(qids):
         item = pywikibot.ItemPage(repo, qid)
@@ -46,7 +44,7 @@ def main():
                 claim.setRank("deprecated")
                 qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATED_RANK_PID)
                 qualifier.isQualifier = True
-                qualifier.setTarget(redirect_page)
+                qualifier.setTarget(REDIRECT_ITEM)
                 claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
                 if claim_exists(item, IMDB_ID_PID, new_id):
