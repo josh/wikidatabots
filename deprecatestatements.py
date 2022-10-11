@@ -9,7 +9,7 @@ from typing import Any, TextIO
 
 import pywikibot
 import pywikibot.config
-from pywikibot import DataSite, ItemPage
+from pywikibot import ItemPage
 
 from properties import (
     REASON_FOR_DEPRECATED_RANK_PID,
@@ -20,18 +20,17 @@ from wikidata import SITE
 
 def process_batch(username: str, csv_file: TextIO):
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
-    repo: DataSite = SITE.data_repository()
 
     for (statement, reason) in csv.reader(csv_file):
-        process_statement(repo, statement, reason)
+        process_statement(statement, reason)
 
 
-def process_statement(repo: DataSite, statement: str, reason: str):
-    (item, claim) = find_claim(repo, statement)
+def process_statement(statement: str, reason: str):
+    (item, claim) = find_claim(statement)
     assert item
     assert claim
 
-    reason_item: ItemPage = pywikibot.ItemPage(repo, reason)
+    reason_item: ItemPage = pywikibot.ItemPage(SITE, reason)
     assert reason_item
 
     claim.setRank("deprecated")
@@ -45,10 +44,10 @@ def process_statement(repo: DataSite, statement: str, reason: str):
     item.editEntity({"claims": [claim.toJSON()]})
 
 
-def find_claim(repo: DataSite, guid: str):
+def find_claim(guid: str):
     assert "$" in guid
     qid = guid.split("$", 1)[0]
-    item = pywikibot.ItemPage(repo, qid)
+    item = pywikibot.ItemPage(SITE, qid)
     properties: Any = item.get()["claims"]
 
     for property in properties:

@@ -6,21 +6,23 @@ from tqdm import tqdm
 
 import imdb
 from items import REDIRECT_ITEM
-from properties import (IMDB_ID_PID, IMDB_ID_PROPERTY,
-                        REASON_FOR_DEPRECATED_RANK_PID,
-                        REASON_FOR_DEPRECATED_RANK_PROPERTY)
+from properties import (
+    IMDB_ID_PID,
+    IMDB_ID_PROPERTY,
+    REASON_FOR_DEPRECATED_RANK_PID,
+    REASON_FOR_DEPRECATED_RANK_PROPERTY,
+)
 from sparql import sample_items
 from wikidata import SITE
 
 
 def main():
     pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
-    repo = SITE.data_repository()
 
     qids = sample_items(IMDB_ID_PID, limit=10)
 
     for qid in tqdm(qids):
-        item = pywikibot.ItemPage(repo, qid)
+        item = pywikibot.ItemPage(SITE, qid)
 
         if item.isRedirectPage():
             logging.debug(f"{item} is a redirect")
