@@ -6,30 +6,27 @@ from typing import Optional, TypeVar
 
 import pywikibot
 import pywikibot.config
-from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
+from pywikibot import Claim, ItemPage, WbQuantity, WbTime
 from tqdm import tqdm
 
-from items import CRITIC_REVIEW_QID, OPENCRITIC_QID
+from items import CRITIC_REVIEW_ITEM, OPENCRITIC_ITEM, OPENCRITIC_QID
 from opencritic import fetch_game
 from page import blocked_qids
 from properties import (
     NUMBER_OF_REVIEWS_RATINGS_PID,
+    NUMBER_OF_REVIEWS_RATINGS_PROPERTY,
     OPENCRITIC_ID_PID,
+    OPENCRITIC_ID_PROPERTY,
     RETRIEVED_PID,
+    RETRIEVED_PROPERTY,
     REVIEW_SCORE_BY_PID,
+    REVIEW_SCORE_BY_PROPERTY,
     REVIEW_SCORE_PID,
+    REVIEW_SCORE_PROPERTY,
 )
 from sparql import sparql
 from utils import tryint
 from wikidata import SITE
-
-REVIEW_SCORE_PROPERTY = PropertyPage(SITE, REVIEW_SCORE_PID)
-REVIEW_SCORE_BY_PROPERTY = PropertyPage(SITE, REVIEW_SCORE_BY_PID)
-RETRIEVED_PROPERTY = PropertyPage(SITE, RETRIEVED_PID)
-OPENCRITIC_ID_PROPERTY = PropertyPage(SITE, OPENCRITIC_ID_PID)
-NUMBER_OF_REVIEWS_RATINGS_PROPERTY = PropertyPage(SITE, NUMBER_OF_REVIEWS_RATINGS_PID)
-OPENCRITIC_ITEM = ItemPage(SITE, OPENCRITIC_ID_PID)
-CRITIC_REVIEW_ITEM = ItemPage(SITE, CRITIC_REVIEW_QID)
 
 REVIEW_SCORE_CLAIM = REVIEW_SCORE_PROPERTY.newClaim()
 REVIEW_SCORE_BY_CLAIM = REVIEW_SCORE_BY_PROPERTY.newClaim(is_qualifier=True)
