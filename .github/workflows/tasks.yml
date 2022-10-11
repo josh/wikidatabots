@@ -146,6 +146,8 @@ jobs:
       - name: Run script
         run: |
           python ${{ matrix.property }}.py
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
 
   not_found:
     runs-on: ubuntu-latest
