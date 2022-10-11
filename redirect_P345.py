@@ -5,22 +5,24 @@ import pywikibot.config
 from tqdm import tqdm
 
 import imdb
-from items import REDIRECT_QID
-from properties import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID
+from items import REDIRECT_ITEM
+from properties import (
+    IMDB_ID_PID,
+    IMDB_ID_PROPERTY,
+    REASON_FOR_DEPRECATED_RANK_PID,
+    REASON_FOR_DEPRECATED_RANK_PROPERTY,
+)
 from sparql import sample_items
 from wikidata import SITE
 
 
 def main():
     pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
-    repo = SITE.data_repository()
 
     qids = sample_items(IMDB_ID_PID, limit=10)
 
-    redirect_page = pywikibot.ItemPage(repo, REDIRECT_QID)
-
     for qid in tqdm(qids):
-        item = pywikibot.ItemPage(repo, qid)
+        item = pywikibot.ItemPage(SITE, qid)
 
         if item.isRedirectPage():
             logging.debug(f"{item} is a redirect")
@@ -44,15 +46,15 @@ def main():
 
             if id is not new_id:
                 claim.setRank("deprecated")
-                qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATED_RANK_PID)
+                qualifier = REASON_FOR_DEPRECATED_RANK_PROPERTY.newClaim()
                 qualifier.isQualifier = True
-                qualifier.setTarget(redirect_page)
+                qualifier.setTarget(REDIRECT_ITEM)
                 claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
                 if claim_exists(item, IMDB_ID_PID, new_id):
                     item.editEntity({"claims": [claim.toJSON()]})
                 else:
-                    new_claim = pywikibot.Claim(repo, IMDB_ID_PID)
+                    new_claim = IMDB_ID_PROPERTY.newClaim()
                     new_claim.setTarget(new_id)
                     item.editEntity(
                         {
