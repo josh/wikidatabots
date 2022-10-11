@@ -16,10 +16,11 @@ def login(username: str, password: str):
 
     Writes an authenticated pywikibot.lwp to the current working directory.
     """
-    assert pywikibot.config.password_file
-
-    with open(pywikibot.config.password_file, "w") as file:
+    filename = pywikibot.config.password_file
+    assert filename
+    with open(filename, "w") as file:
         file.write('("{}", "{}")'.format(username, password))
+    os.chmod(filename, 0o600)
 
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
 
