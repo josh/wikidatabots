@@ -11,7 +11,10 @@ import pywikibot
 import pywikibot.config
 from pywikibot import DataSite, ItemPage
 
-from properties import REASON_FOR_DEPRECATED_RANK_PID
+from properties import (
+    REASON_FOR_DEPRECATED_RANK_PID,
+    REASON_FOR_DEPRECATED_RANK_PROPERTY,
+)
 from wikidata import SITE
 
 
@@ -34,7 +37,7 @@ def process_statement(repo: DataSite, statement: str, reason: str):
     claim.setRank("deprecated")
 
     if not claim.qualifiers.get(REASON_FOR_DEPRECATED_RANK_PID):
-        qualifier = pywikibot.Claim(repo, REASON_FOR_DEPRECATED_RANK_PID)
+        qualifier = REASON_FOR_DEPRECATED_RANK_PROPERTY.newClaim()
         qualifier.isQualifier = True
         qualifier.setTarget(reason_item)
         claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
