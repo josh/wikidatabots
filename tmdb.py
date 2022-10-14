@@ -97,7 +97,6 @@ find_types: set[FindType] = set(["movie", "person", "tv", "tv_episode", "tv_seas
 FindResult = dict[str, Any]
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
 def find(
     id: str | int,
     source: FindSource,
