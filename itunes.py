@@ -7,6 +7,8 @@ from utils import batches
 
 ID = int
 
+session: requests.Session = requests.Session()
+
 
 class LookupResult(TypedDict):
     wrapperType: str
@@ -15,11 +17,7 @@ class LookupResult(TypedDict):
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=5)
-def lookup(
-    ids: list[ID] | ID,
-    country: Optional[str] = None,
-    session: requests.Session = requests.Session(),
-) -> list[LookupResult]:
+def lookup(ids: list[ID] | ID, country: Optional[str] = None) -> list[LookupResult]:
     params: dict[str, str] = {}
 
     if type(ids) is list:
@@ -45,12 +43,10 @@ def batch_lookup(
     Look up many iTunes tracks by IDs.
     """
 
-    session = requests.Session()
-
     for ids_batch in batches(ids, size=150):
         results: dict[int, LookupResult] = {}
 
-        for result in lookup(ids_batch, country=country, session=session):
+        for result in lookup(ids_batch, country=country):
             type = result["wrapperType"]
             id: int = result.get(type + "Id") or result["trackId"]
             results[id] = result
