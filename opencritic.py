@@ -7,9 +7,22 @@ RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 
 
 class OpenCriticGame(TypedDict):
+    id: int
     name: str
+    url: str
+    percentRecommended: float
     numReviews: int
+    numTopCriticReviews: int
+    medianScore: int
     topCriticScore: float
+    percentile: int
+    firstReleaseDate: str
+    createdAt: str
+    updatedAt: str
+    firstReviewDate: str
+    latestReviewDate: str
+    tenthReviewDate: str
+    criticalReviewDate: str
 
 
 def fetch_game(game_id: int, api_key: Optional[str] = RAPIDAPI_KEY) -> OpenCriticGame:
