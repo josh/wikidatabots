@@ -9,7 +9,7 @@ def test_movie():
 
 
 def test_fetch_sitemap_index_urls():
-    urls = appletv.fetch_sitemap_index_urls()
+    urls = list(appletv.fetch_sitemap_index_urls())
     assert len(urls) > 10
     for url in urls:
         assert url.endswith(".xml.gz")
