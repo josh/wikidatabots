@@ -13,11 +13,9 @@ from items import CRITIC_REVIEW_ITEM, OPENCRITIC_ITEM, OPENCRITIC_QID
 from opencritic import fetch_game
 from page import blocked_qids
 from properties import (
-    NUMBER_OF_REVIEWS_RATINGS_PID,
     NUMBER_OF_REVIEWS_RATINGS_PROPERTY,
     OPENCRITIC_ID_PID,
     OPENCRITIC_ID_PROPERTY,
-    POINT_IN_TIME_PID,
     POINT_IN_TIME_PROPERTY,
     RETRIEVED_PID,
     RETRIEVED_PROPERTY,
@@ -28,7 +26,7 @@ from properties import (
 )
 from sparql import sparql
 from utils import tryint
-from wikidata import SITE
+from wikidata import SITE, find_or_initialize_qualifier
 
 REVIEW_SCORE_CLAIM = REVIEW_SCORE_PROPERTY.newClaim()
 REVIEW_SCORE_BY_CLAIM = REVIEW_SCORE_BY_PROPERTY.newClaim(is_qualifier=True)
@@ -92,29 +90,19 @@ def update_review_score_claim(item: ItemPage):
     # Update review score value top OpenCritic top-critic score
     claim.setTarget("{}/100".format(round(data["topCriticScore"])))
 
-    # Find or initialize point in time qualifier
-    point_in_time_qualifier = get_dict_value(claim.qualifiers, POINT_IN_TIME_PID)
-    if not point_in_time_qualifier:
-        point_in_time_qualifier = POINT_IN_TIME_PROPERTY.newClaim(is_qualifier=True)
-        claim.qualifiers[POINT_IN_TIME_PID] = [point_in_time_qualifier]
-
     # Update point in time qualifier
+    point_in_time_qualifier = find_or_initialize_qualifier(
+        claim, POINT_IN_TIME_PROPERTY
+    )
     point_in_time_wbtime = WbTime.fromTimestr(
         data["latestReviewDate"].replace(".000Z", "Z"), precision=11
     )
     point_in_time_qualifier.setTarget(point_in_time_wbtime)
 
-    # Find or initialize number of reviews/ratings qualifier
-    number_of_reviews_qualifier = get_dict_value(
-        claim.qualifiers, NUMBER_OF_REVIEWS_RATINGS_PID
-    )
-    if not number_of_reviews_qualifier:
-        number_of_reviews_qualifier = NUMBER_OF_REVIEWS_RATINGS_PROPERTY.newClaim(
-            is_qualifier=True
-        )
-        claim.qualifiers[NUMBER_OF_REVIEWS_RATINGS_PID] = [number_of_reviews_qualifier]
-
     # Update number of critic reviewers qualifier
+    number_of_reviews_qualifier = find_or_initialize_qualifier(
+        claim, NUMBER_OF_REVIEWS_RATINGS_PROPERTY
+    )
     number_of_reviews_quantity = WbQuantity(
         amount=data["numReviews"], unit=CRITIC_REVIEW_ITEM, site=item.repo
     )
