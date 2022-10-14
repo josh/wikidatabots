@@ -23,6 +23,7 @@ from properties import (
     REVIEW_SCORE_BY_PROPERTY,
     REVIEW_SCORE_PID,
     REVIEW_SCORE_PROPERTY,
+    STATED_IN_PID,
 )
 from sparql import sparql
 from utils import tryint
@@ -126,6 +127,7 @@ def update_review_score_claim(item: ItemPage):
         retrieved_reference.setTarget(TODAY_WBTIME)
     else:
         references = [
+            (STATED_IN_PID, [OPENCRITIC_ITEM]),
             (OPENCRITIC_ID_PID, [opencritic_id_reference]),
             (RETRIEVED_PID, [RETRIEVED_TODAY_REFERENCE.copy()]),
         ]
