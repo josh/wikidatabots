@@ -54,7 +54,7 @@ def main():
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
     ORDER BY (?random)
-    LIMIT 5
+    LIMIT 10
     """
     results = sparql(query)
 
