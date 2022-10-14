@@ -6,6 +6,8 @@ import requests
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
+session = requests.Session()
+
 
 class UnauthorizedException(Exception):
     pass
@@ -25,10 +27,7 @@ def api_request(
         post_params["api_key"] = api_key
     post_params.update(params)
 
-    # try:
-    r = requests.get(url, headers=headers, params=post_params)
-    # except requests.exceptions.ContentDecodingError:
-    #     return {}
+    r = session.get(url, headers=headers, params=post_params)
 
     if r.headers["Content-Type"].startswith("application/json"):
         data = r.json()
@@ -97,6 +96,12 @@ find_types: set[FindType] = set(["movie", "person", "tv", "tv_episode", "tv_seas
 FindResult = dict[str, Any]
 
 
+@backoff.on_exception(
+    backoff.constant,
+    requests.exceptions.HTTPError,
+    interval=30,
+    max_tries=3,
+)
 def find(
     id: str | int,
     source: FindSource,

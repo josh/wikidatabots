@@ -15,6 +15,8 @@ from properties import APPLE_TV_MOVIE_ID_PID
 from sparql import sparql
 from utils import shuffled, tryint
 
+session = requests.Session()
+
 
 def parseurl(
     url: str,
@@ -31,7 +33,7 @@ def parseurl(
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
 def fetch_movie(url: str) -> Optional[tuple[str, int, set[str]]]:
-    r = requests.get(url, headers=appletv.request_headers)
+    r = session.get(url, headers=appletv.request_headers)
     r.raise_for_status()
 
     soup = BeautifulSoup(r.text, "html.parser")

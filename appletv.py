@@ -2,12 +2,14 @@ import csv
 import json
 import re
 import zlib
-from typing import Any, Iterable, Literal, Optional, TypedDict
+from typing import Any, Iterable, Iterator, Literal, Optional, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
 
 import itunes
+
+session = requests.Session()
 
 
 class MovieDict(TypedDict):
@@ -47,7 +49,7 @@ request_headers = {
 
 
 def fetch(url: str) -> Optional[BeautifulSoup]:
-    r = requests.get(url, headers=request_headers)
+    r = session.get(url, headers=request_headers)
     r.raise_for_status()
 
     html = r.text
@@ -78,7 +80,7 @@ def all_not_found(type: Type, id: str) -> bool:
 
 
 def not_found(url: str) -> bool:
-    r = requests.get(url, headers=request_headers)
+    r = session.get(url, headers=request_headers)
     r.raise_for_status()
 
     html = r.text
@@ -135,8 +137,20 @@ def extract_itunes_id(soup: BeautifulSoup) -> Optional[itunes.ID]:
     return None
 
 
-def fetch_sitemap_index_urls() -> set[str]:
-    r = requests.get("https://tv.apple.com/sitemaps_tv_index_1.xml")
+def fetch_sitemap_index_urls() -> Iterator[str]:
+    # yield from fetch_sitemap_index_url(
+    #     "http://tv.apple.com/sitemaps_tv_index_episode_1.xml"
+    # )
+    yield from fetch_sitemap_index_url(
+        "http://tv.apple.com/sitemaps_tv_index_movie_1.xml"
+    )
+    yield from fetch_sitemap_index_url(
+        "http://tv.apple.com/sitemaps_tv_index_show_1.xml"
+    )
+
+
+def fetch_sitemap_index_url(url) -> set[str]:
+    r = session.get(url)
     r.raise_for_status()
 
     soup = BeautifulSoup(r.content, "xml")
@@ -148,7 +162,7 @@ def fetch_sitemap_index_urls() -> set[str]:
 
 
 def fetch_sitemap_index(url: str) -> set[str]:
-    r = requests.get(url)
+    r = session.get(url)
     r.raise_for_status()
 
     xml = zlib.decompress(r.content, 16 + zlib.MAX_WBITS)
