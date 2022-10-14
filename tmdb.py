@@ -6,6 +6,8 @@ import requests
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
+session = requests.Session()
+
 
 class UnauthorizedException(Exception):
     pass
@@ -26,7 +28,7 @@ def api_request(
     post_params.update(params)
 
     # try:
-    r = requests.get(url, headers=headers, params=post_params)
+    r = session.get(url, headers=headers, params=post_params)
     # except requests.exceptions.ContentDecodingError:
     #     return {}
 
