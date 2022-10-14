@@ -27,10 +27,7 @@ def api_request(
         post_params["api_key"] = api_key
     post_params.update(params)
 
-    # try:
     r = session.get(url, headers=headers, params=post_params)
-    # except requests.exceptions.ContentDecodingError:
-    #     return {}
 
     if r.headers["Content-Type"].startswith("application/json"):
         data = r.json()
