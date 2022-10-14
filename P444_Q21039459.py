@@ -17,6 +17,8 @@ from properties import (
     NUMBER_OF_REVIEWS_RATINGS_PROPERTY,
     OPENCRITIC_ID_PID,
     OPENCRITIC_ID_PROPERTY,
+    POINT_IN_TIME_PID,
+    POINT_IN_TIME_PROPERTY,
     RETRIEVED_PID,
     RETRIEVED_PROPERTY,
     REVIEW_SCORE_BY_PID,
@@ -89,6 +91,18 @@ def update_review_score_claim(item: ItemPage):
 
     # Update review score value top OpenCritic top-critic score
     claim.setTarget("{}/100".format(round(data["topCriticScore"])))
+
+    # Find or initialize point in time qualifier
+    point_in_time_qualifier = get_dict_value(claim.qualifiers, POINT_IN_TIME_PID)
+    if not point_in_time_qualifier:
+        point_in_time_qualifier = POINT_IN_TIME_PROPERTY.newClaim(is_qualifier=True)
+        claim.qualifiers[POINT_IN_TIME_PID] = [point_in_time_qualifier]
+
+    # Update point in time qualifier
+    point_in_time_wbtime = WbTime.fromTimestr(
+        data["latestReviewDate"].replace(".000Z", "Z"), precision=11
+    )
+    point_in_time_qualifier.setTarget(point_in_time_wbtime)
 
     # Find or initialize number of reviews/ratings qualifier
     number_of_reviews_qualifier = get_dict_value(
