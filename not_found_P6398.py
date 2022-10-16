@@ -15,7 +15,7 @@ def main():
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P6398")
 
     check_deprecated(qids)
-    check_normal(qids)
+    # check_normal(qids)
 
 
 def check_deprecated(qids: set[str]):
