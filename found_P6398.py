@@ -1,9 +1,7 @@
 import itunes
 import sparql
-from items import WITHDRAWN_IDENTIFIER_VALUE_QID
-from page import page_qids
+from items import NORMAL_RANK_QID
 from properties import ITUNES_MOVIE_ID_PID
-from sparql import sample_items
 from utils import tryint
 
 
@@ -11,15 +9,24 @@ def main():
     (id, obj) = next(itunes.batch_lookup([567661493]))
     assert id and obj
 
-    qids = sample_items(ITUNES_MOVIE_ID_PID, limit=10000)
-    qids |= page_qids("Wikidata:Database reports/Constraint violations/P6398")
+    qids: set[str] = set()
+    query = """
+    SELECT ?item WHERE {
+      ?item p:P6398 ?statement.
+      ?statement ps:P6398 ?value;
+        wikibase:rank ?rank.
+      FILTER(?rank = wikibase:DeprecatedRank)
+    }
+    """
+    for result in sparql.sparql(query):
+        qids.add(result["item"])
 
-    statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID])
+    statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID], deprecated=True)
     itunes_ids = extract_itunes_ids(statements)
 
     for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
-        if not obj and itunes.all_not_found(id):
-            print(f"{itunes_ids[id]},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
+        if obj:
+            print(f"{itunes_ids[id]},{NORMAL_RANK_QID}")
 
 
 def extract_itunes_ids(
