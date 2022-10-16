@@ -12,10 +12,11 @@ def main():
     qids: set[str] = set()
     query = """
     SELECT ?item WHERE {
-      ?item p:P6398 ?statement.
-      ?statement ps:P6398 ?value;
-        wikibase:rank ?rank.
-      FILTER(?rank = wikibase:DeprecatedRank)
+    ?item p:P6398 ?statement.
+    ?statement ps:P6398 ?value;
+        wikibase:rank ?rank;
+        pq:P2241 wd:Q21441764.
+    FILTER(?rank = wikibase:DeprecatedRank)
     }
     """
     for result in sparql.sparql(query):
