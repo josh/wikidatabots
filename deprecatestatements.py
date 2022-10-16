@@ -11,6 +11,7 @@ import pywikibot
 import pywikibot.config
 from pywikibot import ItemPage
 
+from items import NORMAL_RANK_QID
 from properties import (
     REASON_FOR_DEPRECATED_RANK_PID,
     REASON_FOR_DEPRECATED_RANK_PROPERTY,
@@ -29,16 +30,17 @@ def process_statement(statement: str, reason: str):
     (item, claim) = find_claim_by_guid(statement)
     assert item and claim
 
-    reason_item: ItemPage = pywikibot.ItemPage(SITE, reason)
-    assert reason_item
+    if reason == NORMAL_RANK_QID:
+        claim.setRank("normal")
+        claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = []
+    else:
+        claim.setRank("deprecated")
 
-    claim.setRank("deprecated")
-
-    if not claim.qualifiers.get(REASON_FOR_DEPRECATED_RANK_PID):
-        qualifier = REASON_FOR_DEPRECATED_RANK_PROPERTY.newClaim()
-        qualifier.isQualifier = True
-        qualifier.setTarget(reason_item)
-        claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
+        if not claim.qualifiers.get(REASON_FOR_DEPRECATED_RANK_PID):
+            qualifier = REASON_FOR_DEPRECATED_RANK_PROPERTY.newClaim()
+            qualifier.isQualifier = True
+            qualifier.setTarget(ItemPage(SITE, reason))
+            claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
     item.editEntity({"claims": [claim.toJSON()]})
 
