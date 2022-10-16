@@ -5,7 +5,7 @@ MUST be logged in first. See pwb.py
 """
 
 import csv
-from typing import Any, TextIO
+from typing import TextIO
 
 import pywikibot
 import pywikibot.config
@@ -15,7 +15,7 @@ from properties import (
     REASON_FOR_DEPRECATED_RANK_PID,
     REASON_FOR_DEPRECATED_RANK_PROPERTY,
 )
-from wikidata import SITE
+from wikidata import SITE, find_claim_by_guid
 
 
 def process_batch(username: str, csv_file: TextIO):
@@ -26,9 +26,8 @@ def process_batch(username: str, csv_file: TextIO):
 
 
 def process_statement(statement: str, reason: str):
-    (item, claim) = find_claim(statement)
-    assert item
-    assert claim
+    (item, claim) = find_claim_by_guid(statement)
+    assert item and claim
 
     reason_item: ItemPage = pywikibot.ItemPage(SITE, reason)
     assert reason_item
@@ -42,20 +41,6 @@ def process_statement(statement: str, reason: str):
         claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
     item.editEntity({"claims": [claim.toJSON()]})
-
-
-def find_claim(guid: str):
-    assert "$" in guid
-    qid = guid.split("$", 1)[0]
-    item = pywikibot.ItemPage(SITE, qid)
-    properties: Any = item.get()["claims"]
-
-    for property in properties:
-        for claim in properties[property]:
-            if guid == claim.snak:
-                return (item, claim)
-
-    return (None, None)
 
 
 if __name__ == "__main__":
