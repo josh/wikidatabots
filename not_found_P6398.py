@@ -1,6 +1,6 @@
 import itunes
 import sparql
-from items import WITHDRAWN_IDENTIFIER_VALUE_QID
+from items import NORMAL_RANK_QID, WITHDRAWN_IDENTIFIER_VALUE_QID
 from page import page_qids
 from properties import ITUNES_MOVIE_ID_PID
 from sparql import sample_items
@@ -14,21 +14,38 @@ def main():
     qids = sample_items(ITUNES_MOVIE_ID_PID, limit=10000)
     qids |= page_qids("Wikidata:Database reports/Constraint violations/P6398")
 
-    results = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID])
+    check_deprecated(qids)
+    check_normal(qids)
 
-    itunes_ids: dict[int, str] = {}
 
-    for qid in results:
-        item = results[qid]
-
-        for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
-            id = tryint(value)
-            if id:
-                itunes_ids[id] = statement
+def check_deprecated(qids: set[str]):
+    statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID])
+    itunes_ids = extract_itunes_ids(statements)
 
     for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
         if not obj and itunes.all_not_found(id):
             print(f"{itunes_ids[id]},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
+
+
+def check_normal(qids: set[str]):
+    statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID], deprecated=True)
+    itunes_ids = extract_itunes_ids(statements)
+
+    for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
+        if obj:
+            print(f"{itunes_ids[id]},{NORMAL_RANK_QID}")
+
+
+def extract_itunes_ids(
+    statements: dict[str, dict[str, list[tuple[str, str]]]]
+) -> dict[int, str]:
+    itunes_ids: dict[int, str] = {}
+    for item in statements.values():
+        for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
+            id = tryint(value)
+            if id:
+                itunes_ids[id] = statement
+    return itunes_ids
 
 
 if __name__ == "__main__":
