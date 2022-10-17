@@ -31,6 +31,7 @@ from properties import (
     REVIEW_SCORE_PID,
     REVIEW_SCORE_PROPERTY,
     STATED_IN_PID,
+    STATED_IN_PROPERTY,
 )
 from sparql import sparql
 from utils import tryint
@@ -41,9 +42,12 @@ REVIEW_SCORE_CLAIM = REVIEW_SCORE_PROPERTY.newClaim()
 REVIEW_SCORE_BY_CLAIM = REVIEW_SCORE_BY_PROPERTY.newClaim(is_qualifier=True)
 REVIEW_SCORE_BY_CLAIM.setTarget(OPENCRITIC_ITEM)
 DETERMINATION_METHOD_CLAIM = DETERMINATION_METHOD_PROPERTY.newClaim(is_qualifier=True)
-REVIEW_SCORE_BY_CLAIM.setTarget(OPENCRITIC_TOP_CRITIC_AVERAGE_ITEM)
+DETERMINATION_METHOD_CLAIM.setTarget(OPENCRITIC_TOP_CRITIC_AVERAGE_ITEM)
 REVIEW_SCORE_CLAIM.qualifiers[REVIEW_SCORE_BY_PID] = [REVIEW_SCORE_BY_CLAIM]
 REVIEW_SCORE_CLAIM.qualifiers[DETERMINATION_METHOD_PID] = [DETERMINATION_METHOD_CLAIM]
+
+STATED_IN_REFERENCE = STATED_IN_PROPERTY.newClaim(is_reference=True)
+STATED_IN_REFERENCE.setTarget(OPENCRITIC_ITEM)
 
 TODAY_DATE = date.today()
 TODAY_WBTIME = WbTime(
@@ -141,7 +145,7 @@ def update_review_score_claim(item: ItemPage):
         retrieved_reference.setTarget(TODAY_WBTIME)
     else:
         references = [
-            (STATED_IN_PID, [OPENCRITIC_ITEM]),
+            (STATED_IN_PID, [STATED_IN_REFERENCE.copy()]),
             (OPENCRITIC_ID_PID, [opencritic_id_reference]),
             (RETRIEVED_PID, [RETRIEVED_TODAY_REFERENCE.copy()]),
         ]
