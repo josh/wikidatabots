@@ -2,7 +2,6 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
-from operator import is_
 from typing import Optional, TypeVar
 
 import pywikibot
