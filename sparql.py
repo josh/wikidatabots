@@ -143,6 +143,7 @@ def sparql(query: str) -> list[dict[str, Any]]:
 def fetch_statements(
     qids: Iterable[str],
     properties: Iterable[str],
+    deprecated: bool = False,
 ) -> dict[str, dict[str, list[tuple[str, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
@@ -151,9 +152,12 @@ def fetch_statements(
       ?item ?property ?statement.
       ?statement ?ps ?value.
       ?statement wikibase:rank ?rank.
-      FILTER(?rank != wikibase:DeprecatedRank)
-    }
     """
+    if deprecated:
+        query += "  FILTER(?rank = wikibase:DeprecatedRank)"
+    else:
+        query += "  FILTER(?rank != wikibase:DeprecatedRank)"
+    query += "}"
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
