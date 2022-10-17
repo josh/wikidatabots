@@ -2,6 +2,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
+from operator import is_
 from typing import Optional, TypeVar
 
 import pywikibot
@@ -9,10 +10,17 @@ import pywikibot.config
 from pywikibot import Claim, ItemPage, WbQuantity, WbTime
 from tqdm import tqdm
 
-from items import CRITIC_REVIEW_ITEM, OPENCRITIC_ITEM, OPENCRITIC_QID
+from items import (
+    CRITIC_REVIEW_ITEM,
+    OPENCRITIC_ITEM,
+    OPENCRITIC_QID,
+    OPENCRITIC_TOP_CRITIC_AVERAGE_ITEM,
+)
 from opencritic import fetch_game
 from page import blocked_qids
 from properties import (
+    DETERMINATION_METHOD_PID,
+    DETERMINATION_METHOD_PROPERTY,
     NUMBER_OF_REVIEWS_RATINGS_PROPERTY,
     OPENCRITIC_ID_PID,
     OPENCRITIC_ID_PROPERTY,
@@ -30,9 +38,13 @@ from utils import tryint
 from wikidata import SITE, find_or_initialize_qualifier
 
 REVIEW_SCORE_CLAIM = REVIEW_SCORE_PROPERTY.newClaim()
+
 REVIEW_SCORE_BY_CLAIM = REVIEW_SCORE_BY_PROPERTY.newClaim(is_qualifier=True)
 REVIEW_SCORE_BY_CLAIM.setTarget(OPENCRITIC_ITEM)
+DETERMINATION_METHOD_CLAIM = DETERMINATION_METHOD_PROPERTY.newClaim(is_qualifier=True)
+REVIEW_SCORE_BY_CLAIM.setTarget(OPENCRITIC_TOP_CRITIC_AVERAGE_ITEM)
 REVIEW_SCORE_CLAIM.qualifiers[REVIEW_SCORE_BY_PID] = [REVIEW_SCORE_BY_CLAIM]
+REVIEW_SCORE_CLAIM.qualifiers[DETERMINATION_METHOD_PID] = [DETERMINATION_METHOD_CLAIM]
 
 TODAY_DATE = date.today()
 TODAY_WBTIME = WbTime(
@@ -90,6 +102,9 @@ def update_review_score_claim(item: ItemPage):
 
     # Update review score value top OpenCritic top-critic score
     claim.setTarget("{}/100".format(round(data["topCriticScore"])))
+
+    # Set determination method to "top critic average"
+    claim.qualifiers[DETERMINATION_METHOD_PID] = [DETERMINATION_METHOD_CLAIM.copy()]
 
     # Update point in time qualifier
     point_in_time_qualifier = find_or_initialize_qualifier(
