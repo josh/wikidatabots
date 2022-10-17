@@ -114,7 +114,7 @@ def update_review_score_claim(item: ItemPage):
         claim, POINT_IN_TIME_PROPERTY
     )
     point_in_time_wbtime = WbTime.fromTimestr(
-        data["latestReviewDate"].replace(".000Z", "Z"), precision=11
+        data["latestReviewDate"][0:10] + "T00:00:00Z", precision=11
     )
     point_in_time_qualifier.setTarget(point_in_time_wbtime)
 
