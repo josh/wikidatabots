@@ -100,8 +100,8 @@ def update_review_score_claim(item: ItemPage):
     # Find existing review score claim, if one exists
     for c in item.claims.get(REVIEW_SCORE_PID, []):
         if c.has_qualifier(REVIEW_SCORE_BY_PID, OPENCRITIC_QID):
-            claim = c.copy()
-            orig_claim = c
+            claim = c
+            orig_claim = c.copy()
 
     # Update review score value top OpenCritic top-critic score
     claim.setTarget("{}/100".format(round(data["topCriticScore"])))
