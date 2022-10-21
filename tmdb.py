@@ -29,7 +29,7 @@ def api_request(
 
     r = session.get(url, headers=headers, params=post_params)
 
-    if r.headers["Content-Type"].startswith("application/json"):
+    if r.headers.get("Content-Type", "").startswith("application/json"):
         data = r.json()
         if r.status_code == 401:
             raise UnauthorizedException(data["status_message"])
