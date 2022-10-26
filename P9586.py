@@ -7,13 +7,13 @@ from typing import Any, Iterable, Literal, Optional, TypedDict
 import backoff
 import requests
 from bs4 import BeautifulSoup
+from pywikibot import ItemPage
 from tqdm import tqdm
 
 import appletv
-from page import page_statements
-from properties import APPLE_TV_MOVIE_ID_PID
 from sparql import sparql
 from utils import shuffled, tryint
+from wikidata import SITE
 
 session = requests.Session()
 
@@ -66,7 +66,7 @@ def find_ld(soup: BeautifulSoup) -> Optional[dict[str, Any]]:
 
 
 class WikidataSearchResult(TypedDict):
-    item: str
+    item: ItemPage
     appletv: Optional[appletv.ID]
 
 
@@ -134,9 +134,9 @@ def wikidata_search(
     results = sparql(query)
     if len(results) == 1:
         result = results[0]
-        qid = result["item"]
+        item = ItemPage(SITE, result["item"])
         appletv_id = appletv.tryid(result["appletv"])
-        return WikidataSearchResult(item=qid, appletv=appletv_id)
+        return WikidataSearchResult(item=item, appletv=appletv_id)
     return None
 
 
@@ -179,7 +179,7 @@ def main():
             continue
         result = wikidata_search(*info)
         if result and not result["appletv"]:
-            print(f'{result["item"]},"""{id}"""')
+            print(f'{result["item"].id},"""{id}"""')
 
 
 if __name__ == "__main__":
