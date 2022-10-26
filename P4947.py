@@ -47,7 +47,7 @@ def main():
                 logging.debug(f"{item.id} is blocked")
                 continue
 
-            assert result["imdb"]
+            assert type(result["imdb"]) is str
 
             movie = tmdb.find(id=result["imdb"], source="imdb_id", type="movie")
             if not movie:

@@ -3,12 +3,13 @@ Small API wrapper for interacting with Wikidata's SPARQL query service.
 <https://query.wikidata.org/>
 """
 
+import builtins
 import json
 import logging
 import math
 import os
 import platform
-from typing import Any, Iterable, Literal, Optional, TypedDict
+from typing import Iterable, Literal, Optional, TypedDict
 
 import backoff
 import requests
@@ -47,7 +48,7 @@ class SPARQLIRIResult(TypedDict):
     value: str
 
 
-SPARQLLiteralValue = Any
+SPARQLLiteralValue = object
 
 
 class SPARQLLiteralResult(TypedDict):
@@ -84,7 +85,7 @@ class SPARQLDocument(TypedDict):
 
 @backoff.on_exception(backoff.expo, TimeoutException, max_tries=14)
 @backoff.on_exception(backoff.expo, json.decoder.JSONDecodeError, max_tries=3)
-def sparql(query: str) -> list[dict[str, Any]]:
+def sparql(query: str) -> list[dict[str, object]]:
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
@@ -164,10 +165,15 @@ def fetch_statements(
     items: dict[str, dict[str, list[tuple[str, str]]]] = {}
 
     for result in sparql(query):
-        statement: str = result["statement"]
-        qid: str = result["item"]
-        prop: str = result["property"]
-        value: str = result["value"]
+        statement = result["statement"]
+        qid = result["item"]
+        prop = result["property"]
+        value = result["value"]
+
+        assert type(statement) is str
+        assert type(qid) is str
+        assert type(prop) is str
+        assert type(value) is str
 
         item = items[qid] = items.get(qid, {})
         properties2 = item[prop] = item.get(prop, [])
@@ -190,7 +196,8 @@ def type_constraints(property: str) -> set[str]:
     """
     types: set[str] = set()
     for result in sparql(query):
-        subclass: str = result["subclass"]
+        subclass = result["subclass"]
+        assert type(subclass) is str
         types.add(subclass)
     return types
 
@@ -258,7 +265,9 @@ def sample_items(
 
     items: set[str] = set()
     for result in sparql(query):
-        items.add(result["item"])
+        qid = result["item"]
+        assert builtins.type(qid) is str
+        items.add(qid)
     return items
 
 

@@ -18,7 +18,9 @@ def main():
     """
 
     for result in tqdm(sparql(query)):
-        statement: str = result["statement"]
+        statement = result["statement"]
+        assert type(statement) is str
+
         id = tryint(result["value"])
 
         if id and not tmdb.object(id, type="movie"):

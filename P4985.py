@@ -35,13 +35,14 @@ def main():
 
     print("qid,P4985")
     for result in tqdm(results):
-        qid: str = result["item"]
+        qid = result["item"]
+        assert type(qid) is str
 
         if qid in blocked_qids():
             logging.debug(f"{qid} is blocked")
             continue
 
-        assert result["imdb"]
+        assert result["imdb"] and type(result["imdb"]) is str
 
         person = tmdb.find(id=result["imdb"], source="imdb_id", type="person")
         if not person:
