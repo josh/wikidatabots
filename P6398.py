@@ -40,7 +40,8 @@ def main():
             continue
 
         for (_statement, value) in item.get(APPLE_TV_MOVIE_ID_PID, []):
-            movie = appletv.movie(value)
+            id = appletv.id(value)
+            movie = appletv.movie(id)
             if movie and movie["itunes_id"]:
                 print(f'{qid},"""{movie["itunes_id"]}"""')
 
