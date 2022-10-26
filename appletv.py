@@ -2,7 +2,7 @@ import csv
 import json
 import re
 import zlib
-from typing import Any, Iterable, Iterator, Literal, Optional, TypedDict
+from typing import Any, Iterable, Iterator, Literal, NewType, Optional, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,14 +11,28 @@ import itunes
 
 session = requests.Session()
 
+ID = NewType("ID", str)
+IDPattern = re.compile("^umc.cmc.[a-z0-9]{22,25}$")
+
+
+def id(id: str) -> ID:
+    assert re.fullmatch(IDPattern, id), f"'{id}' is an invalid Apple TV ID"
+    return ID(id)
+
+
+def tryid(id: Any) -> Optional[ID]:
+    if type(id) is str and re.fullmatch(IDPattern, id):
+        return ID(id)
+    return None
+
 
 class MovieDict(TypedDict):
-    id: str
+    id: ID
     itunes_id: Optional[itunes.ID]
 
 
-def movie(id: str) -> Optional[MovieDict]:
-    soup = fetch("https://tv.apple.com/us/movie/{}".format(id))
+def movie(id: ID) -> Optional[MovieDict]:
+    soup = fetch(f"https://tv.apple.com/us/movie/{id}")
     if not soup:
         return None
 
@@ -70,10 +84,10 @@ regions = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn
 Type = Literal["movie", "episode", "show"]
 
 
-def all_not_found(type: Type, id: str) -> bool:
+def all_not_found(type: Type, id: ID) -> bool:
     assert type in {"movie", "episode", "show"}
     for region in regions:
-        url = "https://tv.apple.com/{}/{}/{}".format(region, type, id)
+        url = f"https://tv.apple.com/{region}/{type}/{id}"
         if not not_found(url=url):
             return False
     return True
@@ -149,7 +163,7 @@ def fetch_sitemap_index_urls() -> Iterator[str]:
     )
 
 
-def fetch_sitemap_index_url(url) -> set[str]:
+def fetch_sitemap_index_url(url: str) -> set[str]:
     r = session.get(url)
     r.raise_for_status()
 

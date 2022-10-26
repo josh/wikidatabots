@@ -20,7 +20,9 @@ def main():
     }
     """
     for result in sparql.sparql(query):
-        qids.add(result["item"])
+        qid = result["item"]
+        assert type(qid) is str
+        qids.add(qid)
 
     statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID], deprecated=True)
     itunes_ids = extract_itunes_ids(statements)

@@ -2,7 +2,7 @@ import appletv
 
 
 def test_movie():
-    info = appletv.movie("umc.cmc.459n4f98t82t8ommdoa7ebnny")
+    info = appletv.movie(appletv.id("umc.cmc.459n4f98t82t8ommdoa7ebnny"))
     assert info
     assert info["id"] == "umc.cmc.459n4f98t82t8ommdoa7ebnny"
     assert info["itunes_id"] == 282875479

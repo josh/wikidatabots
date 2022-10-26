@@ -3,7 +3,7 @@ import logging
 from tqdm import tqdm
 
 import appletv
-from page import blocked_qids, page_qids
+from page import blocked_qids
 from properties import APPLE_TV_MOVIE_ID_PID, INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID
 from sparql import fetch_statements, sample_items, type_constraints
 
@@ -16,8 +16,7 @@ def main():
     Outputs QuickStatements CSV commands.
     """
 
-    qids = page_qids("User:Josh404Bot/Preliminarily matched/P6398")
-    qids |= sample_items(APPLE_TV_MOVIE_ID_PID, limit=1000)
+    qids = sample_items(APPLE_TV_MOVIE_ID_PID, limit=1000)
 
     allowed_classes = type_constraints(ITUNES_MOVIE_ID_PID)
     results = fetch_statements(
@@ -40,7 +39,8 @@ def main():
             continue
 
         for (_statement, value) in item.get(APPLE_TV_MOVIE_ID_PID, []):
-            movie = appletv.movie(value)
+            id = appletv.id(value)
+            movie = appletv.movie(id)
             if movie and movie["itunes_id"]:
                 print(f'{qid},"""{movie["itunes_id"]}"""')
 

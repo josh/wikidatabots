@@ -7,6 +7,7 @@ Small API wrapper for submitting QuickStatements batches.
 from typing import Iterable, Optional
 
 import requests
+from pywikibot import ItemPage, PropertyPage
 
 
 class APIError(Exception):
@@ -54,6 +55,15 @@ def import_batch(
         return resp["batch_id"]
     else:
         raise APIError(resp["status"])
+
+
+def print_item_external_id_statements(
+    property: PropertyPage,
+    statements: Iterable[tuple[ItemPage, str]],
+):
+    print(f"qid,{property.id}")
+    for item, external_id in statements:
+        print(f'{item.id},"""{external_id}"""')
 
 
 if __name__ == "__main__":

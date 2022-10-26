@@ -10,7 +10,7 @@ from sparql import sparql
 
 class Item(TypedDict):
     imdb: set[str]
-    tvdb: set[int]
+    tvdb: set[str]
 
 
 def main():
@@ -52,7 +52,8 @@ def main():
     items: dict[str, Item] = {}
 
     for result in sparql(query):
-        qid: str = result["item"]
+        qid = result["item"]
+        assert type(qid) is str
 
         if qid in blocked_qids():
             logging.debug(f"{qid} is blocked")
@@ -63,9 +64,11 @@ def main():
         item = items[qid]
 
         if result["imdb"]:
+            assert type(result["imdb"]) is str
             item["imdb"].add(result["imdb"])
 
         if result["tvdb"]:
+            assert type(result["tvdb"]) is str
             item["tvdb"].add(result["tvdb"])
 
     print("qid,P4983")

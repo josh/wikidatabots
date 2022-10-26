@@ -1,17 +1,21 @@
 import re
-from typing import Optional
+from typing import NewType, Optional
 from urllib.parse import urlparse
 
 import requests
 
-ID = str
+ID = NewType("ID", str)
 
 
-def is_valid_id(id: ID) -> bool:
+def imdb_id(id: str) -> ID:
+    assert formatted_url(id), f"'{id}' is not a valid IMDb ID"
+    return ID(id)
+
+
+def parse_imdb_id(id: str) -> Optional[ID]:
     if formatted_url(id):
-        return True
-    else:
-        return False
+        return ID(id)
+    return None
 
 
 def canonical_id(id: ID) -> Optional[ID]:
@@ -35,36 +39,34 @@ def canonical_id(id: ID) -> Optional[ID]:
         assert "unhandled imdb status code: {}".format(r.status_code)
 
 
-def formatted_url(id: ID) -> Optional[str]:
-    m = re.match(r"^(tt\d+)$", id)
+def formatted_url(id: str) -> Optional[str]:
+    m = re.fullmatch(r"(tt\d+)", id)
     if m:
-        return "https://www.imdb.com/title/{}/".format(m.group(1))
+        return f"https://www.imdb.com/title/{m.group(1)}/"
 
-    m = re.match(r"^(nm\d+)$", id)
+    m = re.fullmatch(r"(nm\d+)", id)
     if m:
-        return "https://www.imdb.com/name/{}/".format(m.group(1))
+        return f"https://www.imdb.com/name/{m.group(1)}/"
 
-    m = re.match(r"^(ch\d+)$", id)
+    m = re.fullmatch(r"(ch\d+)", id)
     if m:
-        return "https://www.imdb.com/character/{}/".format(m.group(1))
+        return f"https://www.imdb.com/character/{m.group(1)}/"
 
-    m = re.match(r"^(ev\d+)/(\d+)/(\d+)$", id)
+    m = re.fullmatch(r"(ev\d+)/(\d+)/(\d+)", id)
     if m:
-        return "https://www.imdb.com/event/{}/{}/{}".format(
-            m.group(1), m.group(2), m.group(3)
-        )
+        return f"https://www.imdb.com/event/{m.group(1)}/{m.group(2)}/{m.group(3)}"
 
-    m = re.match(r"^(ev\d+)/(\d+)$", id)
+    m = re.fullmatch(r"(ev\d+)/(\d+)", id)
     if m:
-        return "https://www.imdb.com/event/{}/{}/1".format(m.group(1), m.group(2))
+        return f"https://www.imdb.com/event/{m.group(1)}/{m.group(2)}/1"
 
-    m = re.match(r"^(ev\d+)$", id)
+    m = re.fullmatch(r"(ev\d+)", id)
     if m:
-        return "https://www.imdb.com/event/{}".format(m.group(1))
+        return f"https://www.imdb.com/event/{m.group(1)}"
 
-    m = re.match(r"^(co\d+)$", id)
+    m = re.fullmatch(r"(co\d+)", id)
     if m:
-        return "https://www.imdb.com/search/title/?companies={}".format(m.group(1))
+        return f"https://www.imdb.com/search/title/?companies={m.group(1)}"
 
     return None
 
@@ -77,31 +79,31 @@ def extract_id(url: str) -> Optional[ID]:
 
     m = re.match(r"/title/(tt\d+)/?$", r.path)
     if m:
-        return m.group(1)
+        return ID(m.group(1))
 
     m = re.match(r"/name/(nm\d+)/?$", r.path)
     if m:
-        return m.group(1)
+        return ID(m.group(1))
 
     m = re.match(r"/character/(ch\d+)/?$", r.path)
     if m:
-        return m.group(1)
+        return ID(m.group(1))
 
     m = re.match(r"/event/(ev\d+)/(\d+)(/|/\d+)?$", r.path)
     if m:
-        return "{}/{}".format(m.group(1), m.group(2))
+        return ID(f"{m.group(1)}/{m.group(2)}")
 
     m = re.match(r"/event/(ev\d+)/?$", r.path)
     if m:
-        return "{}".format(m.group(1))
+        return ID(m.group(1))
 
     m = re.match(r"/company/(co\d+)/?$", r.path)
     if m:
-        return m.group(1)
+        return ID(m.group(1))
 
     if r.path == "/search/title/":
         m = re.match(r"companies=(co\d+)", r.query)
         if m:
-            return m.group(1)
+            return ID(m.group(1))
 
     return None

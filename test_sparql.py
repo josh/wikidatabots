@@ -16,6 +16,7 @@ def test_sparql():
     )
     assert len(results) == 10
     assert results[0]["item"]
+    assert type(results[0]["item"]) is str
     assert results[0]["item"].startswith("Q")
     assert results[0]["itemLabel"]
 
