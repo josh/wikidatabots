@@ -20,14 +20,14 @@ session = requests.Session()
 
 def parseurl(
     url: str,
-) -> tuple[Literal["movie"], str] | tuple[Literal["unknown"], None]:
+) -> tuple[Literal["movie"], appletv.ID] | tuple[Literal["unknown"], None]:
     m = re.match(
         r"https://tv.apple.com/us/(movie)/([^/]+/)?(umc.cmc.[0-9a-z]+)",
         url,
     )
     if m:
         assert m.group(1) == "movie"
-        return ("movie", m.group(3))
+        return ("movie", appletv.ID(m.group(3)))
     return ("unknown", None)
 
 
@@ -67,7 +67,7 @@ def find_ld(soup: BeautifulSoup) -> Optional[dict[str, Any]]:
 
 class WikidataSearchResult(TypedDict):
     item: str
-    appletv: Optional[str]
+    appletv: Optional[appletv.ID]
 
 
 def wikidata_search(
@@ -134,17 +134,19 @@ def wikidata_search(
     results = sparql(query)
     if len(results) == 1:
         result = results[0]
-        qid: str = result["item"]
-        appletv: Optional[str] = result["appletv"]
-        return WikidataSearchResult(item=qid, appletv=appletv)
+        qid = result["item"]
+        appletv_id = appletv.tryid(result["appletv"])
+        return WikidataSearchResult(item=qid, appletv=appletv_id)
     return None
 
 
-def matched_appletv_ids() -> set[str]:
+def matched_appletv_ids() -> set[appletv.ID]:
     query = "SELECT DISTINCT ?appletv WHERE { ?statement ps:P9586 ?appletv. }"
-    ids: set[str] = set()
+    ids: set[appletv.ID] = set()
     for result in sparql(query):
-        ids.add(result["appletv"])
+        id = appletv.tryid(result["appletv"])
+        if id:
+            ids.add(id)
     return ids
 
 
@@ -157,9 +159,10 @@ def main():
         for (_item, property, id) in page_statements(page_title):
             if property != APPLE_TV_MOVIE_ID_PID:
                 continue
+            id = appletv.id(id)
             if not id or id in skip_ids:
                 continue
-            url = "https://tv.apple.com/us/movie/{}".format(id)
+            url = f"https://tv.apple.com/us/movie/{id}"
             yield (url, id)
 
         for url in shuffled(appletv.fetch_new_sitemap_urls())[0:250]:
