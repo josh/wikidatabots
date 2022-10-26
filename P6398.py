@@ -16,8 +16,7 @@ def main():
     Outputs QuickStatements CSV commands.
     """
 
-    qids = page_qids("User:Josh404Bot/Preliminarily matched/P6398")
-    qids |= sample_items(APPLE_TV_MOVIE_ID_PID, limit=1000)
+    qids = sample_items(APPLE_TV_MOVIE_ID_PID, limit=1000)
 
     allowed_classes = type_constraints(ITUNES_MOVIE_ID_PID)
     results = fetch_statements(

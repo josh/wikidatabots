@@ -153,18 +153,8 @@ def matched_appletv_ids() -> set[appletv.ID]:
 def main():
     limit = 500
     skip_ids = matched_appletv_ids()
-    page_title = "User:Josh404Bot/Preliminarily matched/P9586"
 
     def candiate_urls():
-        for (_item, property, id) in page_statements(page_title):
-            if property != APPLE_TV_MOVIE_ID_PID:
-                continue
-            id = appletv.id(id)
-            if not id or id in skip_ids:
-                continue
-            url = f"https://tv.apple.com/us/movie/{id}"
-            yield (url, id)
-
         for url in shuffled(appletv.fetch_new_sitemap_urls())[0:250]:
             (type, id) = parseurl(url)
             if type != "movie":
