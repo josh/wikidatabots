@@ -20,8 +20,8 @@ def id(id: str) -> ID:
     return ID(id)
 
 
-def tryid(id: str) -> Optional[ID]:
-    if re.fullmatch(IDPattern, id):
+def tryid(id: Any) -> Optional[ID]:
+    if type(id) is str and re.fullmatch(IDPattern, id):
         return ID(id)
     return None
 
