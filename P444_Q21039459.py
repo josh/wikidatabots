@@ -75,7 +75,8 @@ def main():
     results = sparql(query)
 
     for result in tqdm(results):
-        qid: str = result["item"]
+        qid = result["item"]
+        assert type(qid) is str
 
         if qid in blocked_qids():
             logging.warn(f"{qid} is blocked")
