@@ -163,7 +163,7 @@ def fetch_sitemap_index_urls() -> Iterator[str]:
     )
 
 
-def fetch_sitemap_index_url(url) -> set[str]:
+def fetch_sitemap_index_url(url: str) -> set[str]:
     r = session.get(url)
     r.raise_for_status()
 
