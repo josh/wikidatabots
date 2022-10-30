@@ -33,4 +33,5 @@ def fetch_game(game_id: int, api_key: Optional[str] = RAPIDAPI_KEY) -> OpenCriti
         "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
     }
     response = requests.get(url, headers=headers, timeout=5)
+    response.raise_for_status()
     return response.json()
