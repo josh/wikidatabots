@@ -89,7 +89,7 @@ def main():
 def update_review_score_claim(item: ItemPage):
     opencritic_id = find_opencritic_id(item)
     if not opencritic_id:
-        logging.warn(f"Skipping {item.id}, has no OpenCritic ID")
+        logging.warning(f"Skipping {item.id}, has no OpenCritic ID")
         return
 
     # Fetch latest data from OpenCritic API
@@ -105,7 +105,7 @@ def update_review_score_claim(item: ItemPage):
             orig_claim = c.copy()
 
     if data["topCriticScore"] <= 0:
-        logging.warn(f"Skipping {item.id}, has no score")
+        logging.warning(f"Skipping {item.id}, has no score")
         return
 
     # Update review score value top OpenCritic top-critic score
