@@ -199,7 +199,7 @@ def find_opencritic_id(item: ItemPage) -> Optional[int]:
 
 
 def has_claim(claim: Claim, claims: OrderedDict[str, list[Claim]]) -> bool:
-    return any(c for c in claims[claim.id] if c.same_as(claim))
+    return any(c for c in claims.get(claim.id, []) if c.same_as(claim))
 
 
 def compare_claims(a: Claim, b: Claim | None) -> bool:
