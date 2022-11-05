@@ -7,7 +7,6 @@ from typing import Iterable, Optional, TypeVar
 import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, WbQuantity, WbTime
-from tqdm import tqdm
 
 from items import (
     CRITIC_REVIEW_ITEM,
