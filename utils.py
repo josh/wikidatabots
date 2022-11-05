@@ -23,6 +23,15 @@ def shuffled(seq: Iterable[T]) -> Sequence[T]:
     return lst
 
 
+def position_weighted_shuffled(seq: Iterable[T]) -> list[T]:
+    def weight(el: tuple[int, T]) -> float:
+        return random.uniform(0, el[0])
+
+    lst = list(enumerate(seq))
+    lst.sort(key=weight)
+    return list([el for _, el in lst])
+
+
 def uniq(*lists: Iterable[T]) -> Iterator[T]:
     seen: list[T] = []
     for lst in lists:

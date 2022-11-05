@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 from collections import OrderedDict
@@ -7,6 +8,7 @@ from typing import Iterable, Optional, TypeVar
 import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, WbQuantity, WbTime
+from tqdm import tqdm
 
 from items import (
     CRITIC_REVIEW_ITEM,
@@ -33,7 +35,7 @@ from properties import (
     STATED_IN_PROPERTY,
 )
 from sparql import sparql
-from utils import tryint
+from utils import position_weighted_shuffled, tryint
 from wikidata import SITE, find_or_initialize_qualifier
 
 REVIEW_SCORE_CLAIM = REVIEW_SCORE_PROPERTY.newClaim()
@@ -62,35 +64,14 @@ pywikibot.config.usernames["wikidata"]["wikidata"] = os.environ["WIKIDATA_USERNA
 
 
 def main():
-    for item in missing_review_scores():
+    limit = 50
+    items = tqdm(itertools.islice(game_items(), limit), total=limit)
+
+    for item in items:
         update_review_score_claim(item)
 
 
-def missing_review_scores() -> Iterable[ItemPage]:
-    query = """
-    SELECT ?item WHERE {
-      ?item wdt:P2864 ?opencritic.
-      OPTIONAL {
-        ?item p:P444 ?statement.
-        ?statement pq:P447 wd:Q21039459.
-      }
-      FILTER(!(BOUND(?statement)))
-    }
-    """
-    results = sparql(query)
-
-    for result in results:
-        qid = result["item"]
-        assert type(qid) is str
-
-        if qid in blocked_qids():
-            logging.warn(f"{qid} is blocked")
-            continue
-
-        yield ItemPage(SITE, qid)
-
-
-def most_recent_items() -> Iterable[ItemPage]:
+def game_items() -> Iterable[ItemPage]:
     query = """
     SELECT ?item WHERE {
       ?item wdt:P2864 ?opencritic.
@@ -104,6 +85,7 @@ def most_recent_items() -> Iterable[ItemPage]:
     ORDER BY DESC (?timestamp)
     """
     results = sparql(query)
+    results = position_weighted_shuffled(results)
 
     for result in results:
         qid = result["item"]
