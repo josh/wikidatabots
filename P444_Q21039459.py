@@ -2,7 +2,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
-from typing import Optional, TypeVar
+from typing import Iterable, Optional, TypeVar
 
 import pywikibot
 import pywikibot.config
@@ -63,18 +63,24 @@ pywikibot.config.usernames["wikidata"]["wikidata"] = os.environ["WIKIDATA_USERNA
 
 
 def main():
-    query = """
-    SELECT DISTINCT ?item ?opencritic ?random WHERE {
-      ?item wdt:P2864 ?opencritic.
+    for item in missing_review_scores():
+        update_review_score_claim(item)
 
-      BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
+
+def missing_review_scores() -> Iterable[ItemPage]:
+    query = """
+    SELECT ?item WHERE {
+      ?item wdt:P2864 ?opencritic.
+      OPTIONAL {
+        ?item p:P444 ?statement.
+        ?statement pq:P447 wd:Q21039459.
+      }
+      FILTER(!(BOUND(?statement)))
     }
-    ORDER BY (?random)
-    LIMIT 10
     """
     results = sparql(query)
 
-    for result in tqdm(results):
+    for result in results:
         qid = result["item"]
         assert type(qid) is str
 
@@ -82,8 +88,33 @@ def main():
             logging.warn(f"{qid} is blocked")
             continue
 
-        item = ItemPage(SITE, qid)
-        update_review_score_claim(item)
+        yield ItemPage(SITE, qid)
+
+
+def most_recent_items() -> Iterable[ItemPage]:
+    query = """
+    SELECT ?item WHERE {
+      ?item wdt:P2864 ?opencritic.
+      OPTIONAL {
+        ?item p:P444 ?statement.
+        ?statement pq:P447 wd:Q21039459.
+        ?statement pq:P585 ?pointInTime.
+      }
+      BIND(IF(BOUND(?pointInTime), ?pointInTime, NOW()) AS ?timestamp)
+    }
+    ORDER BY DESC (?timestamp)
+    """
+    results = sparql(query)
+
+    for result in results:
+        qid = result["item"]
+        assert type(qid) is str
+
+        if qid in blocked_qids():
+            logging.warn(f"{qid} is blocked")
+            continue
+
+        yield ItemPage(SITE, qid)
 
 
 def update_review_score_claim(item: ItemPage):
