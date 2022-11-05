@@ -164,7 +164,7 @@ def update_review_score_claim(item: ItemPage):
 
     # Skip editting if claims are the same
     if compare_claims(claim, orig_claim):
-        logging.info(f"Skipping {item.id}, review score is up to date")
+        logging.debug(f"Skipping {item.id}, review score is up to date")
         return
 
     opencritic_id_reference = OPENCRITIC_ID_PROPERTY.newClaim(is_reference=True)
