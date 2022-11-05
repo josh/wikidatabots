@@ -25,5 +25,6 @@ jobs:
         run: |
           pytest
         env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}

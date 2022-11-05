@@ -114,6 +114,41 @@ jobs:
         run: |
           python quickstatements.py --batchname AppleTVIDs <output.csv
 
+  pywikibot:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        property:
+          - "P444_Q21039459"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Login
+        env:
+          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
+        run: |
+          python pwb.py login
+
+      - name: Run script
+        run: |
+          python ${{ matrix.property }}.py
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+
   not_found:
     runs-on: ubuntu-latest
 
