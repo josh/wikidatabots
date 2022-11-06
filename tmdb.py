@@ -78,14 +78,14 @@ FindSource = Literal[
     "instagram_id",
 ]
 find_sources: set[FindSource] = {
-        "imdb_id",
-        "freebase_mid",
-        "freebase_id",
-        "tvdb_id",
-        "tvrage_id",
-        "facebook_id",
-        "twitter_id",
-        "instagram_id",
+    "imdb_id",
+    "freebase_mid",
+    "freebase_id",
+    "tvdb_id",
+    "tvrage_id",
+    "facebook_id",
+    "twitter_id",
+    "instagram_id",
 }
 
 FindType = Literal["movie", "person", "tv", "tv_episode", "tv_season"]
