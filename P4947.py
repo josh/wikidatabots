@@ -39,7 +39,9 @@ def main():
 
     print(f"qid,{TMDB_MOVIE_ID_PID}")
     for result in tqdm(results):
-        qid: str = result["item"]
+        qid = result["item"]
+        assert type(qid) is str
+
         if qid in blocked_qids():
             logging.debug(f"{qid} is blocked")
             continue
