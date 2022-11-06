@@ -2,7 +2,7 @@ import csv
 import json
 import re
 import zlib
-from collections.abc import Iterable, Iterator
+from collections.abc import Generator
 from typing import Any, Literal, NewType, TypedDict
 
 import requests
@@ -13,7 +13,7 @@ import itunes
 session = requests.Session()
 
 ID = NewType("ID", str)
-IDPattern = re.compile("^umc.cmc.[a-z0-9]{22,25}$")
+IDPattern = re.compile("umc.cmc.[a-z0-9]{22,25}")
 
 
 def id(id: str) -> ID:
@@ -52,8 +52,8 @@ def movie(id: ID) -> MovieDict | None:
 
 user_agent = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    + "AppleWebKit/605.1.15 (KHTML, like Gecko) "
-    + "Version/14.1.1 Safari/605.1.15"
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+    "Version/14.1.1 Safari/605.1.15"
 )
 
 request_headers = {
@@ -86,7 +86,6 @@ Type = Literal["movie", "episode", "show"]
 
 
 def all_not_found(type: Type, id: ID) -> bool:
-    assert type in {"movie", "episode", "show"}
     for region in regions:
         url = f"https://tv.apple.com/{region}/{type}/{id}"
         if not not_found(url=url):
@@ -152,7 +151,7 @@ def extract_itunes_id(soup: BeautifulSoup) -> itunes.ID | None:
     return None
 
 
-def fetch_sitemap_index_urls() -> Iterator[str]:
+def fetch_sitemap_index_urls() -> Generator[str, None, None]:
     # yield from fetch_sitemap_index_url(
     #     "http://tv.apple.com/sitemaps_tv_index_episode_1.xml"
     # )
@@ -191,12 +190,12 @@ def fetch_sitemap_index(url: str) -> set[str]:
     return urls
 
 
-def fetch_new_sitemap_urls() -> Iterable[str]:
+def fetch_new_sitemap_urls() -> Generator[str, None, None]:
     r = requests.get("https://github.com/josh/mixnmatch-catalogs/commit/main.diff")
     r.encoding = "utf-8"
     r.raise_for_status()
 
-    def new_rows() -> Iterable[str]:
+    def new_rows() -> Generator[str, None, None]:
         for line in r.iter_lines(decode_unicode=True):
             if line and line.startswith("+umc.cmc"):
                 yield line[1:]
