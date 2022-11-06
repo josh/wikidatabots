@@ -31,8 +31,8 @@ if "WIKIDATA_USERNAME" in os.environ:
 else:
     logging.warn("WARN: WIKIDATA_USERNAME unset")
 
-USER_AGENT.append("requests/" + requests.__version__)
-USER_AGENT.append("Python/" + platform.python_version())
+USER_AGENT.append(f"requests/{requests.__version__}")
+USER_AGENT.append(f"Python/{platform.python_version()}")
 session.headers.update({"User-Agent": " ".join(USER_AGENT)})
 
 
