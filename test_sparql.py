@@ -1,8 +1,8 @@
 # pyright: strict
 
+import wikidata
 from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
 from sparql import fetch_statements, sample_items, sparql, type_constraints
-from wikidata import qid
 
 
 def test_sparql():
@@ -56,10 +56,11 @@ def test_sample_items():
 
 
 def test_fetch_statements():
-    items = fetch_statements([qid("Q172241")], [IMDB_ID_PID, TMDB_MOVIE_ID_PID])
+    qid = wikidata.qid("Q172241")
+    items = fetch_statements([qid], [IMDB_ID_PID, TMDB_MOVIE_ID_PID])
     assert len(items) == 1
 
-    item = items["Q172241"]
+    item = items[qid]
     assert item
     assert item[IMDB_ID_PID]
     assert item[TMDB_MOVIE_ID_PID]

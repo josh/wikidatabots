@@ -2,6 +2,7 @@
 
 import itunes
 import sparql
+import wikidata
 from constants import ITUNES_MOVIE_ID_PID, WITHDRAWN_IDENTIFIER_VALUE_QID
 from page import page_qids
 from sparql import sample_items
@@ -24,7 +25,7 @@ def main():
 
 
 def extract_itunes_ids(
-    statements: dict[str, dict[str, list[tuple[str, str]]]]
+    statements: dict[wikidata.QID, dict[wikidata.PID, list[tuple[str, str]]]]
 ) -> dict[int, str]:
     itunes_ids: dict[int, str] = {}
     for item in statements.values():

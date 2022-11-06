@@ -16,7 +16,7 @@ from typing import Any, Literal, TypedDict
 import backoff
 import requests
 
-from wikidata import QID
+from wikidata import PID, QID
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -147,9 +147,9 @@ def sparql(query: str) -> list[Any]:
 
 def fetch_statements(
     qids: Iterable[QID],
-    properties: Iterable[str],
+    properties: Iterable[PID],
     deprecated: bool = False,
-) -> dict[str, dict[str, list[tuple[str, str]]]]:
+) -> dict[QID, dict[PID, list[tuple[str, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
     query += """
@@ -166,10 +166,10 @@ def fetch_statements(
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    Result = TypedDict("Result", statement=str, item=str, property=str, value=str)
+    Result = TypedDict("Result", statement=str, item=QID, property=PID, value=str)
     results: list[Result] = sparql(query)
 
-    items: dict[str, dict[str, list[tuple[str, str]]]] = {}
+    items: dict[QID, dict[PID, list[tuple[str, str]]]] = {}
     for result in results:
         statement = result["statement"]
         qid = result["item"]
@@ -184,7 +184,7 @@ def fetch_statements(
     return items
 
 
-def type_constraints(property: str) -> set[str]:
+def type_constraints(property: PID) -> set[QID]:
     query = """
     SELECT DISTINCT ?subclass WHERE {
     """
@@ -195,20 +195,17 @@ def type_constraints(property: str) -> set[str]:
       ?subclass wdt:P279* ?class.
     }
     """
-    Result = TypedDict("Result", subclass=str)
+    Result = TypedDict("Result", subclass=QID)
     results: list[Result] = sparql(query)
 
-    types: set[str] = set()
-    for result in results:
-        types.add(result["subclass"])
-    return types
+    return set([result["subclass"] for result in results])
 
 
 SampleType = Literal["created", "updated", "random"]
 
 
 def sample_items(
-    property: str,
+    property: PID,
     limit: int,
     type: SampleType | None = None,
 ) -> set[QID]:
@@ -265,16 +262,13 @@ def sample_items(
     query = query.replace("?property", property)
     query = query.replace("?limit", str(limit))
 
-    Result = TypedDict("Result", item=str)
+    Result = TypedDict("Result", item=QID)
     results: list[Result] = sparql(query)
 
-    items: set[QID] = set()
-    for result in results:
-        items.add(qid(result["item"]))
-    return items
+    return set([result["item"] for result in results])
 
 
-def values_query(qids: Iterable[str], binding: str = "item") -> str:
+def values_query(qids: Iterable[QID], binding: str = "item") -> str:
     values = " ".join(f"wd:{qid}" for qid in qids)
     return "VALUES ?" + binding + " { " + values + " }"
 

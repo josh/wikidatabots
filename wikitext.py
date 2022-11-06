@@ -1,11 +1,13 @@
 # pyright: strict
 
+import wikidata
+
 
 def link(title: str, url: str) -> str:
     return f"[{url} {title}]"
 
 
-def item(qid: str) -> str:
+def item(qid: wikidata.QID) -> str:
     return "{{Q|" + qid.replace("Q", "") + "}}"
 
 

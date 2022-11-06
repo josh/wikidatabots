@@ -11,7 +11,7 @@ import re
 
 import requests
 
-from wikidata import QID, qid
+import wikidata
 
 
 def page_text(page_title: str) -> str | None:
@@ -39,8 +39,8 @@ def page_text(page_title: str) -> str | None:
     return None
 
 
-def page_qids(page_title: str, blocked: bool = False) -> set[QID]:
-    qids: set[QID] = set()
+def page_qids(page_title: str, blocked: bool = False) -> set[wikidata.QID]:
+    qids: set[wikidata.QID] = set()
 
     text = page_text(page_title)
     if not text:
@@ -48,7 +48,7 @@ def page_qids(page_title: str, blocked: bool = False) -> set[QID]:
         return qids
 
     for m in re.findall(r"(Q[0-9]+)", text):
-        qids.add(qid(m))
+        qids.add(wikidata.qid(m))
 
     if not blocked:
         qids = qids - blocked_qids()
@@ -61,7 +61,7 @@ def page_qids(page_title: str, blocked: bool = False) -> set[QID]:
 _blocked_qids = None
 
 
-def blocked_qids() -> set[QID]:
+def blocked_qids() -> set[wikidata.QID]:
     global _blocked_qids
     if not _blocked_qids:
         _blocked_qids = page_qids("User:Josh404Bot/Blocklist", blocked=True)

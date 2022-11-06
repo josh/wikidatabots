@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 import appletv
+import wikidata
 from sparql import sparql
 from utils import shuffled, tryint
 
@@ -67,7 +68,7 @@ def find_ld(soup: BeautifulSoup) -> dict[str, Any] | None:
 
 
 class WikidataSearchResult(TypedDict):
-    qid: str
+    qid: wikidata.QID
     appletv: appletv.ID | None
 
 
@@ -132,7 +133,7 @@ def wikidata_search(
 
     query += "\n} LIMIT 2"
 
-    Result = TypedDict("Result", item=str, appletv=str)
+    Result = TypedDict("Result", item=wikidata.QID, appletv=str)
     results: list[Result] = sparql(query)
 
     if len(results) == 1:
