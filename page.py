@@ -11,8 +11,6 @@ import sys
 import pywikibot
 import requests
 
-SITE = pywikibot.Site("wikidata", "wikidata")
-
 
 def edit(title: str, text: str, username: str, summary: str | None = None):
     """
@@ -24,7 +22,8 @@ def edit(title: str, text: str, username: str, summary: str | None = None):
 
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = "user-password.py"
-    page = pywikibot.Page(SITE, title)
+    site = pywikibot.Site("wikidata", "wikidata")
+    page = pywikibot.Page(site, title)
     page.text = text
     page.save(summary)
     return page
