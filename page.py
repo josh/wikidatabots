@@ -8,9 +8,10 @@ import logging
 import re
 import sys
 
+import pywikibot
 import requests
 
-from wikidata import SITE
+SITE = pywikibot.Site("wikidata", "wikidata")
 
 
 def edit(title: str, text: str, username: str, summary: str | None = None):

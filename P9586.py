@@ -8,13 +8,11 @@ from typing import Any, Literal, TypedDict
 import backoff
 import requests
 from bs4 import BeautifulSoup
-from pywikibot import ItemPage
 from tqdm import tqdm
 
 import appletv
 from sparql import sparql
 from utils import shuffled, tryint
-from wikidata import SITE
 
 session = requests.Session()
 
@@ -67,7 +65,7 @@ def find_ld(soup: BeautifulSoup) -> dict[str, Any] | None:
 
 
 class WikidataSearchResult(TypedDict):
-    item: ItemPage
+    qid: str
     appletv: appletv.ID | None
 
 
@@ -135,9 +133,9 @@ def wikidata_search(
     results = sparql(query)
     if len(results) == 1:
         result = results[0]
-        item = ItemPage(SITE, result["item"])
+        qid = str(result["item"])
         appletv_id = appletv.tryid(result["appletv"])
-        return WikidataSearchResult(item=item, appletv=appletv_id)
+        return WikidataSearchResult(qid=qid, appletv=appletv_id)
     return None
 
 
@@ -180,7 +178,7 @@ def main():
             continue
         result = wikidata_search(*info)
         if result and not result["appletv"]:
-            print(f'{result["item"].id},"""{id}"""')
+            print(f'{result["qid"]},"""{id}"""')
 
 
 if __name__ == "__main__":

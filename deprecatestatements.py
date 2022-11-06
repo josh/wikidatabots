@@ -9,10 +9,10 @@ from typing import TextIO
 
 import pywikibot
 import pywikibot.config
-from pywikibot import ItemPage
 
 from constants import NORMAL_RANK_QID, REASON_FOR_DEPRECATED_RANK_PID
-from wikidata import SITE, find_claim_by_guid
+
+SITE = pywikibot.Site("wikidata", "wikidata")
 
 REASON_FOR_DEPRECATED_RANK_PROPERTY = pywikibot.PropertyPage(
     SITE, REASON_FOR_DEPRECATED_RANK_PID
@@ -39,10 +39,26 @@ def process_statement(statement: str, reason: str):
         if not claim.qualifiers.get(REASON_FOR_DEPRECATED_RANK_PID):
             qualifier = REASON_FOR_DEPRECATED_RANK_PROPERTY.newClaim()
             qualifier.isQualifier = True
-            qualifier.setTarget(ItemPage(SITE, reason))
+            qualifier.setTarget(pywikibot.ItemPage(SITE, reason))
             claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
 
     item.editEntity({"claims": [claim.toJSON()]})
+
+
+def find_claim_by_guid(
+    guid: str,
+) -> tuple[pywikibot.ItemPage, pywikibot.Claim] | tuple[None, None]:
+    assert "$" in guid
+    qid = guid.split("$", 1)[0]
+    assert qid.startswith("Q")
+    item = pywikibot.ItemPage(SITE, qid)
+
+    for property in item.claims:
+        for claim in item.claims[property]:
+            if guid == claim.snak:
+                return (item, claim)
+
+    return (None, None)
 
 
 if __name__ == "__main__":

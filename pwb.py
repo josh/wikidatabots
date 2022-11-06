@@ -7,7 +7,9 @@ import os
 import pywikibot
 import pywikibot.config
 
-from wikidata import SITE
+SITE = pywikibot.Site("wikidata", "wikidata")
+
+pywikibot.config.password_file = "user-password.py"
 
 
 def login(username: str, password: str):

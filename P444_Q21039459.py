@@ -28,7 +28,8 @@ from opencritic import fetch_game
 from page import blocked_qids
 from sparql import sparql
 from utils import position_weighted_shuffled, tryint
-from wikidata import SITE, find_or_initialize_qualifier
+
+SITE = pywikibot.Site("wikidata", "wikidata")
 
 CRITIC_REVIEW_ITEM = ItemPage(SITE, CRITIC_REVIEW_QID)
 OPENCRITIC_ITEM = ItemPage(SITE, OPENCRITIC_QID)
@@ -183,6 +184,14 @@ def find_opencritic_id(item: ItemPage) -> int | None:
     if not claim:
         return None
     return tryint(claim.target)
+
+
+def find_or_initialize_qualifier(claim: Claim, property: PropertyPage) -> Claim:
+    for qualifier in claim.qualifiers.get(property.id, []):
+        return qualifier
+    qualifier = property.newClaim(is_qualifier=True)
+    claim.qualifiers[property.id] = [qualifier]
+    return qualifier
 
 
 def has_claim(claim: Claim, claims: OrderedDict[str, list[Claim]]) -> bool:
