@@ -79,7 +79,7 @@ def batch_lookup(
 
         for result in lookup(ids_batch, country=country):
             type = result["wrapperType"]
-            id: int = result.get(type + "Id") or result["trackId"]
+            id: int = result.get(f"{type}Id") or result["trackId"]
             results[id] = result
 
         for id in ids_batch:
