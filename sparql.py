@@ -16,7 +16,7 @@ from typing import Any, Literal, TypedDict
 import backoff
 import requests
 
-from constants import QID
+from wikidata import QID
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -270,7 +270,7 @@ def sample_items(
 
     items: set[QID] = set()
     for result in results:
-        items.add(QID(result["item"]))
+        items.add(qid(result["item"]))
     return items
 
 

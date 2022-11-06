@@ -11,7 +11,7 @@ import re
 
 import requests
 
-from constants import QID
+from wikidata import QID, qid
 
 
 def page_text(page_title: str) -> str | None:
@@ -48,7 +48,7 @@ def page_qids(page_title: str, blocked: bool = False) -> set[QID]:
         return qids
 
     for m in re.findall(r"(Q[0-9]+)", text):
-        qids.add(QID(m))
+        qids.add(qid(m))
 
     if not blocked:
         qids = qids - blocked_qids()

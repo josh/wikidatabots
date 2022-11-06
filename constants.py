@@ -1,10 +1,6 @@
 # pyright: strict
 
-from typing import NewType
-
-# TODO: Move to a separate file
-QID = NewType("QID", str)
-PID = NewType("PID", str)
+from wikidata import PID, QID
 
 # Wikidata Property IDs
 APPLE_TV_EPISODE_ID_PID = PID("P9750")
