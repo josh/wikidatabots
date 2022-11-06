@@ -20,7 +20,7 @@ def parse_imdb_id(id: str) -> Optional[ID]:
 
 def canonical_id(id: ID) -> Optional[ID]:
     url = formatted_url(id)
-    assert url, "bad id: {}".format(id)
+    assert url, f"bad id: {id}"
 
     if id.startswith("ch") or id.startswith("ev"):
         return id
@@ -31,12 +31,12 @@ def canonical_id(id: ID) -> Optional[ID]:
     elif r.status_code == 301 or r.status_code == 308:
         new_url = r.headers["Location"]
         new_id = extract_id(new_url)
-        assert new_id, "redirect bad id: {}".format(new_url)
+        assert new_id, f"redirect bad id: {new_url}"
         return new_id
     elif r.status_code == 404:
         return None
     else:
-        assert "unhandled imdb status code: {}".format(r.status_code)
+        assert f"unhandled imdb status code: {r.status_code}"
 
 
 def formatted_url(id: str) -> Optional[str]:

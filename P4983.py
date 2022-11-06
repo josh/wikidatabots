@@ -87,7 +87,7 @@ def main():
                 tmdb_ids.add(tv["id"])
 
         for tmdb_id in tmdb_ids:
-            print('{},"""{}"""'.format(qid, tmdb_id))
+            print(f'{qid},"""{tmdb_id}"""')
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ def api_request(
     version: int = 3,
     api_key: Optional[str] = TMDB_API_KEY,
 ) -> dict[str, Any]:
-    url = "https://api.themoviedb.org/{}{}".format(str(version), path)
+    url = f"https://api.themoviedb.org/{str(version)}{path}"
     headers = {"Accept-Encoding": "identity"}
     post_params: dict[str, str] = {}
     if api_key:
@@ -58,7 +58,7 @@ def object(
         params["append_to_response"] = ",".join(append)
 
     resp = api_request(
-        "/{}/{}".format(type, id),
+        f"/{type}/{id}",
         params=params,
         api_key=api_key,
     )
@@ -115,7 +115,7 @@ def find(
         api_key=api_key,
     )
 
-    results = resp.get("{}_results".format(type))
+    results = resp.get(f"{type}_results")
     if results and len(results) == 1:
         return results[0]
     else:

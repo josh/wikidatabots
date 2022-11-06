@@ -53,7 +53,7 @@ def edit_statements_page(
 
 def quickstatements_url(commands: list[tuple[str, str, str]]) -> str:
     hash = urllib.parse.urlencode({"v1": "||".join(["|".join(c) for c in commands])})
-    return "https://quickstatements.toolforge.org/#{}".format(hash)
+    return f"https://quickstatements.toolforge.org/#{hash}"
 
 
 if __name__ == "__main__":

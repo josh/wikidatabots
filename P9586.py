@@ -100,7 +100,7 @@ def wikidata_search(
     """
     query += (
         "FILTER("
-        + " || ".join(["((xsd:integer(YEAR(?date))) = {} )".format(y) for y in years])
+        + " || ".join([f"((xsd:integer(YEAR(?date))) = {y} )" for y in years])
         + ")"
     )
 

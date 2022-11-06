@@ -19,7 +19,7 @@ def login(username: str, password: str):
     filename = pywikibot.config.password_file
     assert filename
     with open(filename, "w") as file:
-        file.write('("{}", "{}")'.format(username, password))
+        file.write(f'("{username}", "{password}")')
     os.chmod(filename, 0o600)
 
     pywikibot.config.usernames["wikidata"]["wikidata"] = username

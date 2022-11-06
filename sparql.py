@@ -272,7 +272,7 @@ def sample_items(
 
 
 def values_query(qids: Iterable[str], binding: str = "item") -> str:
-    values = " ".join("wd:{}".format(qid) for qid in qids)
+    values = " ".join(f"wd:{qid}" for qid in qids)
     return "VALUES ?" + binding + " { " + values + " }"
 
 
