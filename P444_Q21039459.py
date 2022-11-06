@@ -4,7 +4,7 @@ import os
 from collections import OrderedDict
 from collections.abc import Iterable
 from datetime import date
-from typing import TypeVar
+from typing import TypedDict, TypeVar
 
 import pywikibot
 import pywikibot.config
@@ -91,12 +91,12 @@ def game_items() -> Iterable[ItemPage]:
     }
     ORDER BY DESC (?timestamp)
     """
-    results = sparql(query)
+    Result = TypedDict("Result", item=str)
+    results: list[Result] = sparql(query)
     results = position_weighted_shuffled(results)
 
     for result in results:
         qid = result["item"]
-        assert type(qid) is str
 
         if qid in blocked_qids():
             logging.warn(f"{qid} is blocked")

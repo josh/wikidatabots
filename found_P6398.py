@@ -1,5 +1,7 @@
 # pyright: strict
 
+from typing import TypedDict
+
 import itunes
 import sparql
 from constants import ITUNES_MOVIE_ID_PID, NORMAL_RANK_QID
@@ -10,7 +12,6 @@ def main():
     (id, obj) = next(itunes.batch_lookup([567661493]))
     assert id and obj
 
-    qids: set[str] = set()
     query = """
     SELECT ?item WHERE {
     ?item p:P6398 ?statement.
@@ -20,10 +21,12 @@ def main():
     FILTER(?rank = wikibase:DeprecatedRank)
     }
     """
-    for result in sparql.sparql(query):
-        qid = result["item"]
-        assert type(qid) is str
-        qids.add(qid)
+    Result = TypedDict("Result", item=str)
+    results: list[Result] = sparql.sparql(query)
+
+    qids: set[str] = set()
+    for result in results:
+        qids.add(result["item"])
 
     statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID], deprecated=True)
     itunes_ids = extract_itunes_ids(statements)

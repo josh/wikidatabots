@@ -1,6 +1,7 @@
 # pyright: strict
 
 import logging
+from typing import TypedDict
 
 from tqdm import tqdm
 
@@ -33,18 +34,16 @@ def main():
     ORDER BY ?random
     LIMIT 5000
     """
-    results = sparql(query)
+    Result = TypedDict("Result", item=str, imdb=str)
+    results: list[Result] = sparql(query)
 
     print("qid,P4985")
     for result in tqdm(results):
         qid = result["item"]
-        assert type(qid) is str
 
         if qid in blocked_qids():
             logging.debug(f"{qid} is blocked")
             continue
-
-        assert result["imdb"] and type(result["imdb"]) is str
 
         person = tmdb.find(id=result["imdb"], source="imdb_id", type="person")
         if not person:

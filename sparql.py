@@ -5,14 +5,13 @@ Small API wrapper for interacting with Wikidata's SPARQL query service.
 <https://query.wikidata.org/>
 """
 
-import builtins
 import json
 import logging
 import math
 import os
 import platform
 from collections.abc import Iterable
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 import backoff
 import requests
@@ -88,7 +87,7 @@ class SPARQLDocument(TypedDict):
 
 @backoff.on_exception(backoff.expo, TimeoutException, max_tries=14)
 @backoff.on_exception(backoff.expo, json.decoder.JSONDecodeError, max_tries=3)
-def sparql(query: str) -> list[dict[str, object]]:
+def sparql(query: str) -> list[Any]:
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
@@ -165,18 +164,15 @@ def fetch_statements(
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    items: dict[str, dict[str, list[tuple[str, str]]]] = {}
+    Result = TypedDict("Result", statement=str, item=str, property=str, value=str)
+    results: list[Result] = sparql(query)
 
-    for result in sparql(query):
+    items: dict[str, dict[str, list[tuple[str, str]]]] = {}
+    for result in results:
         statement = result["statement"]
         qid = result["item"]
         prop = result["property"]
         value = result["value"]
-
-        assert type(statement) is str
-        assert type(qid) is str
-        assert type(prop) is str
-        assert type(value) is str
 
         item = items[qid] = items.get(qid, {})
         properties2 = item[prop] = item.get(prop, [])
@@ -197,11 +193,12 @@ def type_constraints(property: str) -> set[str]:
       ?subclass wdt:P279* ?class.
     }
     """
+    Result = TypedDict("Result", subclass=str)
+    results: list[Result] = sparql(query)
+
     types: set[str] = set()
-    for result in sparql(query):
-        subclass = result["subclass"]
-        assert type(subclass) is str
-        types.add(subclass)
+    for result in results:
+        types.add(result["subclass"])
     return types
 
 
@@ -266,11 +263,12 @@ def sample_items(
     query = query.replace("?property", property)
     query = query.replace("?limit", str(limit))
 
+    Result = TypedDict("Result", item=str)
+    results: list[Result] = sparql(query)
+
     items: set[str] = set()
-    for result in sparql(query):
-        qid = result["item"]
-        assert builtins.type(qid) is str
-        items.add(qid)
+    for result in results:
+        items.add(result["item"])
     return items
 
 

@@ -1,5 +1,7 @@
 # pyright: strict
 
+from typing import TypedDict
+
 from tqdm import tqdm
 
 import tmdb
@@ -18,11 +20,11 @@ def main():
       FILTER(?rank != wikibase:DeprecatedRank)
     }
     """
+    Result = TypedDict("Result", statement=str, value=str)
+    results: list[Result] = sparql(query)
 
-    for result in tqdm(sparql(query)):
+    for result in tqdm(results):
         statement = result["statement"]
-        assert type(statement) is str
-
         id = tryint(result["value"])
 
         if id and not tmdb.object(id, type="movie"):

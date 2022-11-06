@@ -1,5 +1,7 @@
 # pyright: strict
 
+from typing import TypedDict
+
 from tqdm import tqdm
 
 import tmdb
@@ -18,8 +20,10 @@ def main():
       FILTER(?rank != wikibase:DeprecatedRank)
     }
     """
+    Result = TypedDict("Result", statement=str, value=str)
+    results: list[Result] = sparql(query)
 
-    for result in tqdm(sparql(query)):
+    for result in tqdm(results):
         statement = result["statement"]
         id = tryint(result["value"])
 
