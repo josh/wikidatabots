@@ -2,7 +2,7 @@ import csv
 import json
 import re
 import zlib
-from collections.abc import Generator
+from collections.abc import Iterator
 from typing import Any, Literal, NewType, TypedDict
 
 import requests
@@ -151,7 +151,7 @@ def extract_itunes_id(soup: BeautifulSoup) -> itunes.ID | None:
     return None
 
 
-def fetch_sitemap_index_urls() -> Generator[str, None, None]:
+def fetch_sitemap_index_urls() -> Iterator[str]:
     # yield from fetch_sitemap_index_url(
     #     "http://tv.apple.com/sitemaps_tv_index_episode_1.xml"
     # )
@@ -190,12 +190,12 @@ def fetch_sitemap_index(url: str) -> set[str]:
     return urls
 
 
-def fetch_new_sitemap_urls() -> Generator[str, None, None]:
+def fetch_new_sitemap_urls() -> Iterator[str]:
     r = requests.get("https://github.com/josh/mixnmatch-catalogs/commit/main.diff")
     r.encoding = "utf-8"
     r.raise_for_status()
 
-    def new_rows() -> Generator[str, None, None]:
+    def new_rows() -> Iterator[str]:
         for line in r.iter_lines(decode_unicode=True):
             if line and line.startswith("+umc.cmc"):
                 yield line[1:]
