@@ -68,6 +68,9 @@ def lookup(ids: list[ID] | ID, country: Country | None = None) -> list[LookupRes
     return data["results"]
 
 
+MAX_BATCH_LOOKUP_SIZE = 150
+
+
 def batch_lookup(
     ids: Iterable[ID],
     country: Country = "us",
@@ -76,7 +79,7 @@ def batch_lookup(
     Look up many iTunes tracks by IDs.
     """
 
-    for ids_batch in batches(ids, size=150):
+    for ids_batch in batches(ids, size=MAX_BATCH_LOOKUP_SIZE):
         results: dict[int, LookupResult] = {}
 
         for result in lookup(ids_batch, country=country):
