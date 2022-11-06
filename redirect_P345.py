@@ -18,6 +18,7 @@ IMDB_ID_PROPERTY = pywikibot.PropertyPage(SITE, IMDB_ID_PID)
 
 def main():
     pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
+    pywikibot.config.password_file = "user-password.py"
 
     qids = sample_items(IMDB_ID_PID, limit=10)
 

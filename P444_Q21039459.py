@@ -67,6 +67,7 @@ RETRIEVED_TODAY_REFERENCE = RETRIEVED_PROPERTY.newClaim(is_reference=True)
 RETRIEVED_TODAY_REFERENCE.setTarget(TODAY_WBTIME)
 
 pywikibot.config.usernames["wikidata"]["wikidata"] = os.environ["WIKIDATA_USERNAME"]
+pywikibot.config.password_file = "user-password.py"
 
 
 def main():

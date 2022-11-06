@@ -21,6 +21,7 @@ REASON_FOR_DEPRECATED_RANK_PROPERTY = pywikibot.PropertyPage(
 
 def process_batch(username: str, csv_file: TextIO):
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
+    pywikibot.config.password_file = "user-password.py"
 
     for (statement, reason) in csv.reader(csv_file):
         process_statement(statement, reason)

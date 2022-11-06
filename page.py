@@ -23,6 +23,7 @@ def edit(title: str, text: str, username: str, summary: str | None = None):
     import pywikibot.config
 
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
+    pywikibot.config.password_file = "user-password.py"
     page = pywikibot.Page(SITE, title)
     page.text = text
     page.save(summary)
