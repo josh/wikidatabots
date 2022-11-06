@@ -1,5 +1,5 @@
 import re
-from typing import NewType
+from typing import Any, NewType
 from urllib.parse import urlparse
 
 import requests
@@ -7,13 +7,13 @@ import requests
 ID = NewType("ID", str)
 
 
-def imdb_id(id: str) -> ID:
+def id(id: str) -> ID:
     assert formatted_url(id), f"'{id}' is not a valid IMDb ID"
     return ID(id)
 
 
-def parse_imdb_id(id: str) -> ID | None:
-    if formatted_url(id):
+def tryid(id: Any) -> ID | None:
+    if type(id) is str and formatted_url(id):
         return ID(id)
     return None
 

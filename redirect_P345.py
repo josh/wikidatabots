@@ -35,7 +35,7 @@ def main():
             if claim.rank == "deprecated":
                 continue
 
-            id = imdb.parse_imdb_id(id)
+            id = imdb.tryid(id)
             if not id:
                 logging.debug(f"{id} is invalid format")
                 continue
