@@ -8,9 +8,19 @@ from typing import TypeVar
 
 import pywikibot
 import pywikibot.config
-from pywikibot import Claim, ItemPage, WbQuantity, WbTime
+from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
 
+from constants import (
+    DETERMINATION_METHOD_PID,
+    NUMBER_OF_REVIEWS_RATINGS_PID,
+    OPENCRITIC_ID_PID,
+    POINT_IN_TIME_PID,
+    RETRIEVED_PID,
+    REVIEW_SCORE_BY_PID,
+    REVIEW_SCORE_PID,
+    STATED_IN_PID,
+)
 from items import (
     CRITIC_REVIEW_ITEM,
     OPENCRITIC_ITEM,
@@ -19,25 +29,18 @@ from items import (
 )
 from opencritic import fetch_game
 from page import blocked_qids
-from properties import (
-    DETERMINATION_METHOD_PID,
-    DETERMINATION_METHOD_PROPERTY,
-    NUMBER_OF_REVIEWS_RATINGS_PROPERTY,
-    OPENCRITIC_ID_PID,
-    OPENCRITIC_ID_PROPERTY,
-    POINT_IN_TIME_PROPERTY,
-    RETRIEVED_PID,
-    RETRIEVED_PROPERTY,
-    REVIEW_SCORE_BY_PID,
-    REVIEW_SCORE_BY_PROPERTY,
-    REVIEW_SCORE_PID,
-    REVIEW_SCORE_PROPERTY,
-    STATED_IN_PID,
-    STATED_IN_PROPERTY,
-)
 from sparql import sparql
 from utils import position_weighted_shuffled, tryint
 from wikidata import SITE, find_or_initialize_qualifier
+
+DETERMINATION_METHOD_PROPERTY = PropertyPage(SITE, DETERMINATION_METHOD_PID)
+NUMBER_OF_REVIEWS_RATINGS_PROPERTY = PropertyPage(SITE, NUMBER_OF_REVIEWS_RATINGS_PID)
+OPENCRITIC_ID_PROPERTY = PropertyPage(SITE, OPENCRITIC_ID_PID)
+POINT_IN_TIME_PROPERTY = PropertyPage(SITE, POINT_IN_TIME_PID)
+RETRIEVED_PROPERTY = PropertyPage(SITE, RETRIEVED_PID)
+REVIEW_SCORE_BY_PROPERTY = PropertyPage(SITE, REVIEW_SCORE_BY_PID)
+REVIEW_SCORE_PROPERTY = PropertyPage(SITE, REVIEW_SCORE_PID)
+STATED_IN_PROPERTY = PropertyPage(SITE, STATED_IN_PID)
 
 REVIEW_SCORE_CLAIM = REVIEW_SCORE_PROPERTY.newClaim()
 

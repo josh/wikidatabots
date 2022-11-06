@@ -11,12 +11,13 @@ import pywikibot
 import pywikibot.config
 from pywikibot import ItemPage
 
+from constants import REASON_FOR_DEPRECATED_RANK_PID
 from items import NORMAL_RANK_QID
-from properties import (
-    REASON_FOR_DEPRECATED_RANK_PID,
-    REASON_FOR_DEPRECATED_RANK_PROPERTY,
-)
 from wikidata import SITE, find_claim_by_guid
+
+REASON_FOR_DEPRECATED_RANK_PROPERTY = pywikibot.PropertyPage(
+    SITE, REASON_FOR_DEPRECATED_RANK_PID
+)
 
 
 def process_batch(username: str, csv_file: TextIO):

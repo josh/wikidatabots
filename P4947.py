@@ -1,14 +1,11 @@
 import logging
 
-from pywikibot import ItemPage
 from tqdm import tqdm
 
 import tmdb
+from constants import TMDB_MOVIE_ID_PID
 from page import blocked_qids
-from properties import TMDB_MOVIE_ID_PROPERTY
-from quickstatements import print_item_external_id_statements
 from sparql import sparql
-from wikidata import SITE
 
 
 def main():
@@ -40,21 +37,19 @@ def main():
     """
     results = sparql(query)
 
-    def statements():
-        for result in tqdm(results):
-            item: ItemPage = ItemPage(SITE, result["item"])
-            if item.id in blocked_qids():
-                logging.debug(f"{item.id} is blocked")
-                continue
+    print(f"qid,{TMDB_MOVIE_ID_PID}")
+    for result in tqdm(results):
+        qid: str = result["item"]
+        if qid in blocked_qids():
+            logging.debug(f"{qid} is blocked")
+            continue
 
-            assert type(result["imdb"]) is str
+        assert type(result["imdb"]) is str
 
-            movie = tmdb.find(id=result["imdb"], source="imdb_id", type="movie")
-            if not movie:
-                continue
-            yield item, movie["id"]
-
-    print_item_external_id_statements(TMDB_MOVIE_ID_PROPERTY, statements())
+        movie = tmdb.find(id=result["imdb"], source="imdb_id", type="movie")
+        if not movie:
+            continue
+        print(f'{qid},"""{movie["id"]}"""')
 
 
 if __name__ == "__main__":

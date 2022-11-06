@@ -3,8 +3,8 @@ import logging
 from tqdm import tqdm
 
 import appletv
+from constants import APPLE_TV_MOVIE_ID_PID, INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID
 from page import blocked_qids
-from properties import APPLE_TV_MOVIE_ID_PID, INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID
 from sparql import fetch_statements, sample_items, type_constraints
 
 

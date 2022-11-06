@@ -1,8 +1,8 @@
 import itunes
 import sparql
+from constants import ITUNES_MOVIE_ID_PID
 from items import WITHDRAWN_IDENTIFIER_VALUE_QID
 from page import page_qids
-from properties import ITUNES_MOVIE_ID_PID
 from sparql import sample_items
 from utils import tryint
 

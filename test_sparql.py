@@ -1,4 +1,4 @@
-from properties import IMDB_ID_PID, TMDB_MOVIE_ID_PID
+from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
 from sparql import fetch_statements, sample_items, sparql, type_constraints
 
 
