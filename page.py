@@ -7,14 +7,13 @@ MUST be logged in first. See pwb.py
 import logging
 import re
 import sys
-from typing import Optional
 
 import requests
 
 from wikidata import SITE
 
 
-def edit(title: str, text: str, username: str, summary: Optional[str] = None):
+def edit(title: str, text: str, username: str, summary: str | None = None):
     """
     Edit an existing wiki page.
     """
@@ -29,7 +28,7 @@ def edit(title: str, text: str, username: str, summary: Optional[str] = None):
     return page
 
 
-def page_text(page_title: str) -> Optional[str]:
+def page_text(page_title: str) -> str | None:
     params = {
         "action": "query",
         "format": "json",

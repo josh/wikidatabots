@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Iterator
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 import backoff
 import requests
@@ -18,7 +18,7 @@ class LookupResult(TypedDict):
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=5)
-def lookup(ids: list[ID] | ID, country: Optional[str] = None) -> list[LookupResult]:
+def lookup(ids: list[ID] | ID, country: str | None = None) -> list[LookupResult]:
     params: dict[str, str] = {}
 
     if type(ids) is list:
@@ -39,7 +39,7 @@ def lookup(ids: list[ID] | ID, country: Optional[str] = None) -> list[LookupResu
 def batch_lookup(
     ids: Iterable[ID],
     country: str = "us",
-) -> Iterator[tuple[ID, Optional[LookupResult]]]:
+) -> Iterator[tuple[ID, LookupResult | None]]:
     """
     Look up many iTunes tracks by IDs.
     """

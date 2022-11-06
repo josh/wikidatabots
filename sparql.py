@@ -10,7 +10,7 @@ import math
 import os
 import platform
 from collections.abc import Iterable
-from typing import Literal, Optional, TypedDict
+from typing import Literal, TypedDict
 
 import backoff
 import requests
@@ -112,7 +112,7 @@ def sparql(query: str) -> list[dict[str, object]]:
         for binding in bindings:
             yield {var: format_value(binding.get(var)) for var in vars}
 
-    def format_value(obj: Optional[SPARQLResult]):
+    def format_value(obj: SPARQLResult | None):
         if obj is None:
             return None
         elif obj["type"] == "literal":
@@ -209,7 +209,7 @@ SampleType = Literal["created", "updated", "random"]
 def sample_items(
     property: str,
     limit: int,
-    type: Optional[SampleType] = None,
+    type: SampleType | None = None,
 ) -> set[str]:
     if type is None:
         items = set()

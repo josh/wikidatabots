@@ -4,7 +4,7 @@ import os
 from collections import OrderedDict
 from collections.abc import Iterable
 from datetime import date
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import pywikibot
 import pywikibot.config
@@ -109,7 +109,7 @@ def update_review_score_claim(item: ItemPage):
     data = fetch_game(opencritic_id)
 
     claim: Claim = REVIEW_SCORE_CLAIM.copy()
-    orig_claim: Optional[Claim] = None
+    orig_claim: Claim | None = None
 
     # Find existing review score claim, if one exists
     for c in item.claims.get(REVIEW_SCORE_PID, []):
@@ -174,7 +174,7 @@ def update_review_score_claim(item: ItemPage):
     item.editEntity({"claims": [claim.toJSON()]})
 
 
-def find_opencritic_id(item: ItemPage) -> Optional[int]:
+def find_opencritic_id(item: ItemPage) -> int | None:
     claim = get_dict_value(item.claims, OPENCRITIC_ID_PID)
     if not claim:
         return None
@@ -194,7 +194,7 @@ def compare_claims(a: Claim, b: Claim | None) -> bool:
 T = TypeVar("T")
 
 
-def get_dict_value(dict: OrderedDict[str, list[T]], key: str) -> Optional[T]:
+def get_dict_value(dict: OrderedDict[str, list[T]], key: str) -> T | None:
     for value in dict.get(key, []):
         return value
     return None

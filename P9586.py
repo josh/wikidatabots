@@ -3,7 +3,7 @@ import itertools
 import json
 import re
 from collections.abc import Iterable
-from typing import Any, Literal, Optional, TypedDict
+from typing import Any, Literal, TypedDict
 
 import backoff
 import requests
@@ -33,7 +33,7 @@ def parseurl(
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
-def fetch_movie(url: str) -> Optional[tuple[str, int, set[str]]]:
+def fetch_movie(url: str) -> tuple[str, int, set[str]] | None:
     r = session.get(url, headers=appletv.request_headers)
     r.raise_for_status()
 
@@ -58,7 +58,7 @@ def fetch_movie(url: str) -> Optional[tuple[str, int, set[str]]]:
     return (title, year, directors)
 
 
-def find_ld(soup: BeautifulSoup) -> Optional[dict[str, Any]]:
+def find_ld(soup: BeautifulSoup) -> dict[str, Any] | None:
     for script in soup.find_all("script", {"type": "application/ld+json"}):
         ld = json.loads(script.string)
         if ld["@type"] == "Movie":
@@ -68,14 +68,14 @@ def find_ld(soup: BeautifulSoup) -> Optional[dict[str, Any]]:
 
 class WikidataSearchResult(TypedDict):
     item: ItemPage
-    appletv: Optional[appletv.ID]
+    appletv: appletv.ID | None
 
 
 def wikidata_search(
     title: str,
     year: int,
     directors: Iterable[str],
-) -> Optional[WikidataSearchResult]:
+) -> WikidataSearchResult | None:
     query = "SELECT DISTINCT ?item ?appletv WHERE {\n"
 
     query += """

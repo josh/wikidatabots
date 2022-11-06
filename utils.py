@@ -1,6 +1,6 @@
 import random
 from collections.abc import Iterable, Iterator, Sequence
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 
@@ -42,7 +42,7 @@ def uniq(*lists: Iterable[T]) -> Iterator[T]:
                 seen.append(el)
 
 
-def tryint(value: Any) -> Optional[int]:
+def tryint(value: Any) -> int | None:
     try:
         return int(value)
     except ValueError:

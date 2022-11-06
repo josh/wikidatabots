@@ -1,5 +1,5 @@
 import os
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 import requests
 
@@ -25,7 +25,7 @@ class OpenCriticGame(TypedDict):
     criticalReviewDate: str
 
 
-def fetch_game(game_id: int, api_key: Optional[str] = RAPIDAPI_KEY) -> OpenCriticGame:
+def fetch_game(game_id: int, api_key: str | None = RAPIDAPI_KEY) -> OpenCriticGame:
     assert api_key, "No RapidAPI key provided"
     url = f"https://opencritic-api.p.rapidapi.com/game/{game_id}"
     headers = {

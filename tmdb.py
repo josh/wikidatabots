@@ -1,5 +1,5 @@
 import os
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import backoff
 import requests
@@ -18,7 +18,7 @@ def api_request(
     path: str,
     params: dict[str, str] = {},
     version: int = 3,
-    api_key: Optional[str] = TMDB_API_KEY,
+    api_key: str | None = TMDB_API_KEY,
 ) -> dict[str, Any]:
     url = f"https://api.themoviedb.org/{str(version)}{path}"
     headers = {"Accept-Encoding": "identity"}
@@ -49,8 +49,8 @@ def object(
     id: int,
     type: ObjectType,
     append: list[str] = [],
-    api_key: Optional[str] = TMDB_API_KEY,
-) -> Optional[ObjectResult]:
+    api_key: str | None = TMDB_API_KEY,
+) -> ObjectResult | None:
     assert type in object_types
 
     params: dict[str, str] = {}
@@ -104,8 +104,8 @@ def find(
     id: str | int,
     source: FindSource,
     type: FindType,
-    api_key: Optional[str] = TMDB_API_KEY,
-) -> Optional[FindResult]:
+    api_key: str | None = TMDB_API_KEY,
+) -> FindResult | None:
     assert source in find_sources
     assert type in find_types
 

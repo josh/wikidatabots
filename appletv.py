@@ -3,7 +3,7 @@ import json
 import re
 import zlib
 from collections.abc import Iterable, Iterator
-from typing import Any, Literal, NewType, Optional, TypedDict
+from typing import Any, Literal, NewType, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
@@ -21,7 +21,7 @@ def id(id: str) -> ID:
     return ID(id)
 
 
-def tryid(id: Any) -> Optional[ID]:
+def tryid(id: Any) -> ID | None:
     if type(id) is str and re.fullmatch(IDPattern, id):
         return ID(id)
     return None
@@ -29,16 +29,16 @@ def tryid(id: Any) -> Optional[ID]:
 
 class MovieDict(TypedDict):
     id: ID
-    itunes_id: Optional[itunes.ID]
+    itunes_id: itunes.ID | None
 
 
-def movie(id: ID) -> Optional[MovieDict]:
+def movie(id: ID) -> MovieDict | None:
     soup = fetch(f"https://tv.apple.com/us/movie/{id}")
     if not soup:
         return None
 
-    itunes_id: Optional[itunes.ID] = None
-    possible_itunes_id: Optional[itunes.ID] = extract_itunes_id(soup)
+    itunes_id: itunes.ID | None = None
+    possible_itunes_id: itunes.ID | None = extract_itunes_id(soup)
     if possible_itunes_id:
         for (id2, result) in itunes.batch_lookup([possible_itunes_id]):
             if result:
@@ -63,7 +63,7 @@ request_headers = {
 }
 
 
-def fetch(url: str) -> Optional[BeautifulSoup]:
+def fetch(url: str) -> BeautifulSoup | None:
     r = session.get(url, headers=request_headers)
     r.raise_for_status()
 
@@ -115,7 +115,7 @@ def extract_shoebox(soup: BeautifulSoup) -> list[Any]:
     return json.loads(script.text).values()
 
 
-def extract_itunes_id(soup: BeautifulSoup) -> Optional[itunes.ID]:
+def extract_itunes_id(soup: BeautifulSoup) -> itunes.ID | None:
     for data in extract_shoebox(soup):
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:

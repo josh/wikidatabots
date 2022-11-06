@@ -6,7 +6,7 @@ MUST be logged in first. See pwb.py
 
 import csv
 import urllib.parse
-from typing import Optional, TextIO
+from typing import TextIO
 
 import page
 import wikitext
@@ -17,7 +17,7 @@ def edit_statements_page(
     title: str,
     csv_file: TextIO,
     username: str,
-    summary: Optional[str] = None,
+    summary: str | None = None,
 ):
     """
     Edit a wiki page of suggested statements.

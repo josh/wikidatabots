@@ -5,7 +5,6 @@ Small API wrapper for submitting QuickStatements batches.
 
 
 from collections.abc import Iterable
-from typing import Optional
 
 import requests
 from pywikibot import ItemPage, PropertyPage
@@ -20,8 +19,8 @@ def import_batch(
     token: str,
     format: str,
     data: str | Iterable[str],
-    batchname: Optional[str] = None,
-) -> Optional[int]:
+    batchname: str | None = None,
+) -> int | None:
     """
     Import and run QuickStatements batch in background.
     Returns a batch ID if successfully enqueued.
