@@ -2,8 +2,9 @@ import itertools
 import logging
 import os
 from collections import OrderedDict
+from collections.abc import Iterable
 from datetime import date
-from typing import Iterable, Optional, TypeVar
+from typing import Optional, TypeVar
 
 import pywikibot
 import pywikibot.config

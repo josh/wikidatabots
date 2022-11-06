@@ -2,7 +2,8 @@ import html
 import itertools
 import json
 import re
-from typing import Any, Iterable, Literal, Optional, TypedDict
+from collections.abc import Iterable
+from typing import Any, Literal, Optional, TypedDict
 
 import backoff
 import requests

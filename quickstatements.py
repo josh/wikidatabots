@@ -4,7 +4,8 @@ Small API wrapper for submitting QuickStatements batches.
 """
 
 
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from typing import Optional
 
 import requests
 from pywikibot import ItemPage, PropertyPage

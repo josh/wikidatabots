@@ -9,7 +9,8 @@ import logging
 import math
 import os
 import platform
-from typing import Iterable, Literal, Optional, TypedDict
+from collections.abc import Iterable
+from typing import Literal, Optional, TypedDict
 
 import backoff
 import requests

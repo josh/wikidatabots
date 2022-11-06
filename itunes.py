@@ -1,4 +1,5 @@
-from typing import Iterable, Iterator, Optional, TypedDict
+from collections.abc import Iterable, Iterator
+from typing import Optional, TypedDict
 
 import backoff
 import requests

@@ -2,7 +2,8 @@ import csv
 import json
 import re
 import zlib
-from typing import Any, Iterable, Iterator, Literal, NewType, Optional, TypedDict
+from collections.abc import Iterable, Iterator
+from typing import Any, Literal, NewType, Optional, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
