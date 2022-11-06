@@ -34,7 +34,7 @@ def main():
         if not item.get(INSTANCE_OF_PID) or item.get(ITUNES_MOVIE_ID_PID):
             continue
 
-        instance_of = set([v for (_, v) in item[INSTANCE_OF_PID]])
+        instance_of = {v for (_, v) in item[INSTANCE_OF_PID]}
         if instance_of.isdisjoint(allowed_classes):
             continue
 
