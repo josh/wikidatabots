@@ -29,6 +29,17 @@ def tryid(id: Any) -> ID | None:
     return None
 
 
+def parse_movie_url(url: str) -> ID | None:
+    m = re.match(
+        r"https://tv.apple.com/us/(movie)/([^/]+/)?(umc.cmc.[0-9a-z]+)",
+        url,
+    )
+    if m:
+        assert m.group(1) == "movie"
+        return ID(m.group(3))
+    return None
+
+
 class MovieDict(TypedDict):
     id: ID
     itunes_id: itunes.ID | None

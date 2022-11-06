@@ -3,9 +3,8 @@
 import html
 import itertools
 import json
-import re
 from collections.abc import Iterable
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import backoff
 import requests
@@ -18,19 +17,6 @@ from sparql import sparql
 from utils import shuffled, tryint
 
 session = requests.Session()
-
-
-def parseurl(
-    url: str,
-) -> tuple[Literal["movie"], appletv.ID] | tuple[Literal["unknown"], None]:
-    m = re.match(
-        r"https://tv.apple.com/us/(movie)/([^/]+/)?(umc.cmc.[0-9a-z]+)",
-        url,
-    )
-    if m:
-        assert m.group(1) == "movie"
-        return ("movie", appletv.ID(m.group(3)))
-    return ("unknown", None)
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
@@ -160,18 +146,14 @@ def main():
 
     def candiate_urls():
         for url in shuffled(appletv.fetch_new_sitemap_urls())[0:250]:
-            (type, id) = parseurl(url)
-            if type != "movie":
-                continue
+            id = appletv.parse_movie_url(url)
             if not id or id in skip_ids:
                 continue
             yield (url, id)
 
         for index_url in shuffled(appletv.fetch_sitemap_index_urls())[0:250]:
             for url in shuffled(appletv.fetch_sitemap_index(index_url)):
-                (type, id) = parseurl(url)
-                if type != "movie":
-                    continue
+                id = appletv.parse_movie_url(url)
                 if not id or id in skip_ids:
                     continue
                 yield (url, id)
