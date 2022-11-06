@@ -5,7 +5,7 @@ import json
 import re
 import zlib
 from collections.abc import Iterator
-from typing import Any, Literal, NewType, TypedDict
+from typing import Any, Literal, NewType
 
 import requests
 from bs4 import BeautifulSoup
@@ -40,27 +40,20 @@ def parse_movie_url(url: str) -> ID | None:
     return None
 
 
-class MovieDict(TypedDict):
-    id: ID
-    itunes_id: itunes.ID | None
-
-
-def movie(id: ID) -> MovieDict | None:
-    soup = fetch(f"https://tv.apple.com/us/movie/{id}")
+def appletv_to_itunes(appletv_id: ID) -> itunes.ID | None:
+    soup = fetch(f"https://tv.apple.com/us/movie/{appletv_id}")
     if not soup:
         return None
 
-    itunes_id: itunes.ID | None = None
-    possible_itunes_id: itunes.ID | None = extract_itunes_id(soup)
-    if possible_itunes_id:
-        for (id2, result) in itunes.batch_lookup([possible_itunes_id]):
-            if result:
-                itunes_id = id2
+    possible_itunes_id = extract_itunes_id(soup)
+    if not possible_itunes_id:
+        return None
 
-    return {
-        "id": id,
-        "itunes_id": itunes_id,
-    }
+    for (itunes_id, result) in itunes.batch_lookup([possible_itunes_id]):
+        if result:
+            return itunes_id
+
+    return None
 
 
 user_agent = (

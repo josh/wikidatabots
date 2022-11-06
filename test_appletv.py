@@ -21,11 +21,11 @@ def test_parse_movie_url():
     assert id is None
 
 
-def test_movie():
-    info = appletv.movie(appletv.id("umc.cmc.459n4f98t82t8ommdoa7ebnny"))
-    assert info
-    assert info["id"] == "umc.cmc.459n4f98t82t8ommdoa7ebnny"
-    assert info["itunes_id"] == 282875479
+def test_appletv_to_itunes():
+    itunes_id = appletv.appletv_to_itunes(
+        appletv.id("umc.cmc.459n4f98t82t8ommdoa7ebnny")
+    )
+    assert itunes_id == 282875479
 
 
 def test_fetch_sitemap_index_urls():
