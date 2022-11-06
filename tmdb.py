@@ -40,7 +40,7 @@ def api_request(
 
 
 ObjectType = Literal["movie", "tv", "person"]
-object_types: set[ObjectType] = set(["movie", "tv", "person"])
+object_types: set[ObjectType] = {"movie", "tv", "person"}
 
 ObjectResult = dict[str, Any]
 
@@ -77,8 +77,7 @@ FindSource = Literal[
     "twitter_id",
     "instagram_id",
 ]
-find_sources: set[FindSource] = set(
-    [
+find_sources: set[FindSource] = {
         "imdb_id",
         "freebase_mid",
         "freebase_id",
@@ -87,11 +86,10 @@ find_sources: set[FindSource] = set(
         "facebook_id",
         "twitter_id",
         "instagram_id",
-    ]
-)
+}
 
 FindType = Literal["movie", "person", "tv", "tv_episode", "tv_season"]
-find_types: set[FindType] = set(["movie", "person", "tv", "tv_episode", "tv_season"])
+find_types: set[FindType] = {"movie", "person", "tv", "tv_episode", "tv_season"}
 
 FindResult = dict[str, Any]
 
