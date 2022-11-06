@@ -1,6 +1,7 @@
 # pyright: strict
 
 import os
+from collections.abc import Iterable
 from typing import Any, Literal
 
 import backoff
@@ -50,7 +51,7 @@ ObjectResult = dict[str, Any]
 def object(
     id: int,
     type: ObjectType,
-    append: list[str] = [],
+    append: Iterable[str] = [],
     api_key: str | None = TMDB_API_KEY,
 ) -> ObjectResult | None:
     assert type in object_types
