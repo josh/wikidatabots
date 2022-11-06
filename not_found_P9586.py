@@ -1,3 +1,5 @@
+# pyright: strict
+
 import appletv
 import sparql
 from constants import APPLE_TV_MOVIE_ID_PID, WITHDRAWN_IDENTIFIER_VALUE_QID

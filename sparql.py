@@ -1,3 +1,5 @@
+# pyright: strict
+
 """
 Small API wrapper for interacting with Wikidata's SPARQL query service.
 <https://query.wikidata.org/>

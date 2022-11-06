@@ -1,3 +1,5 @@
+# pyright: strict
+
 """
 Wikidata page modifications wrapper using pywikibot.
 

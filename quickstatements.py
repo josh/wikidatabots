@@ -1,3 +1,5 @@
+# pyright: strict
+
 """
 Small API wrapper for submitting QuickStatements batches.
 <https://quickstatements.toolforge.org/>

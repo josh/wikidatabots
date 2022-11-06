@@ -1,3 +1,5 @@
+# pyright: strict
+
 import requests
 
 from imdb import ID, canonical_id, extract_id, formatted_url, id

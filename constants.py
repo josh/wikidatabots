@@ -1,3 +1,5 @@
+# pyright: strict
+
 from typing import NewType
 
 # TODO: Move to a separate file

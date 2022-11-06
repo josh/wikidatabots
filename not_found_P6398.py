@@ -1,3 +1,5 @@
+# pyright: strict
+
 import itunes
 import sparql
 from constants import ITUNES_MOVIE_ID_PID, WITHDRAWN_IDENTIFIER_VALUE_QID

@@ -1,3 +1,6 @@
+# pyright: strict
+
+
 def link(title: str, url: str) -> str:
     return f"[{url} {title}]"
 

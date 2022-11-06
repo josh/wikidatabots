@@ -1,3 +1,5 @@
+# pyright: strict
+
 import random
 from collections.abc import Iterable, Iterator, Sequence
 from typing import Any, TypeVar

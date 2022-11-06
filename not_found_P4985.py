@@ -1,3 +1,5 @@
+# pyright: strict
+
 from tqdm import tqdm
 
 import tmdb

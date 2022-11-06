@@ -1,3 +1,5 @@
+# pyright: strict
+
 import pytest
 
 import opencritic

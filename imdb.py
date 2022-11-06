@@ -1,3 +1,5 @@
+# pyright: strict
+
 import re
 from typing import Any, NewType
 from urllib.parse import urlparse

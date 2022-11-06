@@ -1,3 +1,5 @@
+# pyright: strict
+
 import logging
 
 from tqdm import tqdm

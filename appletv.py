@@ -1,3 +1,5 @@
+# pyright: strict
+
 import csv
 import json
 import re

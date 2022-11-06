@@ -1,3 +1,5 @@
+# pyright: strict
+
 from collections.abc import Iterable, Iterator
 from typing import Literal, TypedDict
 

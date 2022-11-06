@@ -1,3 +1,5 @@
+# pyright: strict
+
 import logging
 from typing import TypedDict
 
