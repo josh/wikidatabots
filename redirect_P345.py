@@ -5,14 +5,15 @@ import pywikibot.config
 from tqdm import tqdm
 
 import imdb
-from constants import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID
-from items import REDIRECT_ITEM
+from constants import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID, REDIRECT_QID
 from sparql import sample_items
 from wikidata import SITE
 
 REASON_FOR_DEPRECATED_RANK_PROPERTY = pywikibot.PropertyPage(
     SITE, REASON_FOR_DEPRECATED_RANK_PID
 )
+
+REDIRECT_ITEM = pywikibot.ItemPage(SITE, REDIRECT_QID)
 
 IMDB_ID_PROPERTY = pywikibot.PropertyPage(SITE, IMDB_ID_PID)
 

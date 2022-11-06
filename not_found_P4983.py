@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
 import tmdb
-from items import WITHDRAWN_IDENTIFIER_VALUE_QID
+from constants import WITHDRAWN_IDENTIFIER_VALUE_QID
 from sparql import sparql
 from utils import tryint
 

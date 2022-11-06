@@ -12,26 +12,27 @@ from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
 
 from constants import (
+    CRITIC_REVIEW_QID,
     DETERMINATION_METHOD_PID,
     NUMBER_OF_REVIEWS_RATINGS_PID,
     OPENCRITIC_ID_PID,
+    OPENCRITIC_QID,
+    OPENCRITIC_TOP_CRITIC_AVERAGE_QID,
     POINT_IN_TIME_PID,
     RETRIEVED_PID,
     REVIEW_SCORE_BY_PID,
     REVIEW_SCORE_PID,
     STATED_IN_PID,
 )
-from items import (
-    CRITIC_REVIEW_ITEM,
-    OPENCRITIC_ITEM,
-    OPENCRITIC_QID,
-    OPENCRITIC_TOP_CRITIC_AVERAGE_ITEM,
-)
 from opencritic import fetch_game
 from page import blocked_qids
 from sparql import sparql
 from utils import position_weighted_shuffled, tryint
 from wikidata import SITE, find_or_initialize_qualifier
+
+CRITIC_REVIEW_ITEM = ItemPage(SITE, CRITIC_REVIEW_QID)
+OPENCRITIC_ITEM = ItemPage(SITE, OPENCRITIC_QID)
+OPENCRITIC_TOP_CRITIC_AVERAGE_ITEM = ItemPage(SITE, OPENCRITIC_TOP_CRITIC_AVERAGE_QID)
 
 DETERMINATION_METHOD_PROPERTY = PropertyPage(SITE, DETERMINATION_METHOD_PID)
 NUMBER_OF_REVIEWS_RATINGS_PROPERTY = PropertyPage(SITE, NUMBER_OF_REVIEWS_RATINGS_PID)

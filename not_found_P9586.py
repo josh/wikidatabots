@@ -1,7 +1,6 @@
 import appletv
 import sparql
-from constants import APPLE_TV_MOVIE_ID_PID
-from items import WITHDRAWN_IDENTIFIER_VALUE_QID
+from constants import APPLE_TV_MOVIE_ID_PID, WITHDRAWN_IDENTIFIER_VALUE_QID
 from page import page_qids
 from sparql import sample_items
 

@@ -1,7 +1,6 @@
 import itunes
 import sparql
-from constants import ITUNES_MOVIE_ID_PID
-from items import NORMAL_RANK_QID
+from constants import ITUNES_MOVIE_ID_PID, NORMAL_RANK_QID
 from utils import tryint
 
 

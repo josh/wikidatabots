@@ -11,8 +11,7 @@ import pywikibot
 import pywikibot.config
 from pywikibot import ItemPage
 
-from constants import REASON_FOR_DEPRECATED_RANK_PID
-from items import NORMAL_RANK_QID
+from constants import NORMAL_RANK_QID, REASON_FOR_DEPRECATED_RANK_PID
 from wikidata import SITE, find_claim_by_guid
 
 REASON_FOR_DEPRECATED_RANK_PROPERTY = pywikibot.PropertyPage(
