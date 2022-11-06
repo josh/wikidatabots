@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Iterator
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 import backoff
 import requests
@@ -10,6 +10,36 @@ ID = int
 
 session: requests.Session = requests.Session()
 
+Country = Literal[
+    "us",
+    "gb",
+    "au",
+    "br",
+    "de",
+    "ca",
+    "it",
+    "es",
+    "fr",
+    "jp",
+    "jp",
+    "cn",
+]
+
+countries: set[Country] = {
+    "us",
+    "gb",
+    "au",
+    "br",
+    "de",
+    "ca",
+    "it",
+    "es",
+    "fr",
+    "jp",
+    "jp",
+    "cn",
+}
+
 
 class LookupResult(TypedDict):
     wrapperType: str
@@ -18,7 +48,7 @@ class LookupResult(TypedDict):
 
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=5)
-def lookup(ids: list[ID] | ID, country: str | None = None) -> list[LookupResult]:
+def lookup(ids: list[ID] | ID, country: Country | None = None) -> list[LookupResult]:
     params: dict[str, str] = {}
 
     if type(ids) is list:
@@ -38,7 +68,7 @@ def lookup(ids: list[ID] | ID, country: str | None = None) -> list[LookupResult]
 
 def batch_lookup(
     ids: Iterable[ID],
-    country: str = "us",
+    country: Country = "us",
 ) -> Iterator[tuple[ID, LookupResult | None]]:
     """
     Look up many iTunes tracks by IDs.
@@ -56,10 +86,7 @@ def batch_lookup(
             yield (id, results.get(id))
 
 
-countries = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn"]
-
-
-def all_not_found(id: int) -> bool:
+def all_not_found(id: ID) -> bool:
     for country in countries:
         (id2, found) = next(batch_lookup([id], country=country))
         assert id == id2
