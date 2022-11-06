@@ -16,6 +16,8 @@ from typing import Any, Literal, TypedDict
 import backoff
 import requests
 
+from constants import QID
+
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
 
@@ -144,7 +146,7 @@ def sparql(query: str) -> list[Any]:
 
 
 def fetch_statements(
-    qids: Iterable[str],
+    qids: Iterable[QID],
     properties: Iterable[str],
     deprecated: bool = False,
 ) -> dict[str, dict[str, list[tuple[str, str]]]]:
@@ -209,9 +211,9 @@ def sample_items(
     property: str,
     limit: int,
     type: SampleType | None = None,
-) -> set[str]:
+) -> set[QID]:
     if type is None:
-        items = set()
+        items: set[QID] = set()
         items |= sample_items(property, type="created", limit=math.floor(limit / 3))
         items |= sample_items(property, type="updated", limit=math.floor(limit / 3))
         items |= sample_items(property, type="random", limit=limit - len(items))
@@ -266,9 +268,9 @@ def sample_items(
     Result = TypedDict("Result", item=str)
     results: list[Result] = sparql(query)
 
-    items: set[str] = set()
+    items: set[QID] = set()
     for result in results:
-        items.add(result["item"])
+        items.add(QID(result["item"]))
     return items
 
 

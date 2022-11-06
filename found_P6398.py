@@ -4,7 +4,7 @@ from typing import TypedDict
 
 import itunes
 import sparql
-from constants import ITUNES_MOVIE_ID_PID, NORMAL_RANK_QID
+from constants import ITUNES_MOVIE_ID_PID, NORMAL_RANK_QID, QID
 from utils import tryint
 
 
@@ -24,9 +24,9 @@ def main():
     Result = TypedDict("Result", item=str)
     results: list[Result] = sparql.sparql(query)
 
-    qids: set[str] = set()
+    qids: set[QID] = set()
     for result in results:
-        qids.add(result["item"])
+        qids.add(QID(result["item"]))
 
     statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID], deprecated=True)
     itunes_ids = extract_itunes_ids(statements)
