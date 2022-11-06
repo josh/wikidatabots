@@ -16,7 +16,8 @@ from typing import Any, Literal, TypedDict
 import backoff
 import requests
 
-from wikidata import PID, QID
+import wikidata
+from wikidata import PID, QID, StatementGUID
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -149,7 +150,7 @@ def fetch_statements(
     qids: Iterable[QID],
     properties: Iterable[PID],
     deprecated: bool = False,
-) -> dict[QID, dict[PID, list[tuple[str, str]]]]:
+) -> dict[QID, dict[PID, list[tuple[StatementGUID, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
     query += """
@@ -166,12 +167,14 @@ def fetch_statements(
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    Result = TypedDict("Result", statement=str, item=QID, property=PID, value=str)
+    Result = TypedDict(
+        "Result", statement=StatementGUID, item=QID, property=PID, value=str
+    )
     results: list[Result] = sparql(query)
 
-    items: dict[QID, dict[PID, list[tuple[str, str]]]] = {}
+    items: dict[QID, dict[PID, list[tuple[StatementGUID, str]]]] = {}
     for result in results:
-        statement = result["statement"]
+        statement = wikidata.statement(result["statement"])
         qid = result["item"]
         prop = result["property"]
         value = result["value"]

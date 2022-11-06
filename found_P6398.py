@@ -38,7 +38,9 @@ def main():
 
 
 def extract_itunes_ids(
-    statements: dict[wikidata.QID, dict[wikidata.PID, list[tuple[str, str]]]]
+    statements: dict[
+        wikidata.QID, dict[wikidata.PID, list[tuple[wikidata.StatementGUID, str]]]
+    ]
 ) -> dict[int, str]:
     itunes_ids: dict[int, str] = {}
     for item in statements.values():
