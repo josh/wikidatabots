@@ -8,6 +8,7 @@ T = TypeVar("T")
 
 
 def batches(iterable: Iterable[T], size: int) -> Iterator[list[T]]:
+    assert size > 0
     batch: list[T] = []
 
     for element in iterable:
