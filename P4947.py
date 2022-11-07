@@ -37,7 +37,7 @@ def main():
       BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
     }
     ORDER BY ?random
-    LIMIT 5000
+    LIMIT 10000
     """
     Result = TypedDict("Result", item=str, imdb=str)
     results: list[Result] = sparql(query)
