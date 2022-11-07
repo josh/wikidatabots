@@ -7,6 +7,7 @@ from tqdm import tqdm
 import tmdb
 from constants import WITHDRAWN_IDENTIFIER_VALUE_QID
 from sparql import sparql
+from timeout import iter_until_deadline
 from utils import tryint
 
 
@@ -23,7 +24,7 @@ def main():
     Result = TypedDict("Result", statement=str, value=str)
     results: list[Result] = sparql(query)
 
-    for result in tqdm(results):
+    for result in iter_until_deadline(tqdm(results)):
         statement = result["statement"]
         id = tryint(result["value"])
 
