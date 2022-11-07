@@ -1,12 +1,28 @@
 import logging
+from functools import cache
 from typing import NewType, TextIO
 
 import pywikibot
 import pywikibot.config
 from rdflib import Graph
-from rdflib.term import URIRef
+from rdflib.term import BNode, Literal, URIRef
 
-from wikidata import PQ, PS, WD, WDS, WIKIBASE
+from wikidata import (
+    PQ,
+    PS,
+    PSN,
+    PSV,
+    RDF,
+    RDFS,
+    SCHEMA,
+    SKOS,
+    WD,
+    WDS,
+    WDT,
+    WDTN,
+    WIKIBASE,
+    P,
+)
 
 Ontology = NewType("Ontology", str)
 ResolvedURI = pywikibot.PropertyPage | pywikibot.ItemPage | pywikibot.Claim | Ontology
@@ -21,34 +37,98 @@ def process_graph(username: str, input: TextIO) -> None:
     graph = Graph()
     graph.parse(input)
 
-    subjects: set[URIRef] = set()
+    bnodes: dict[BNode, tuple[URIRef, URIRef]] = {}
+    changed_claims: dict[URIRef, pywikibot.Claim] = dict()
 
-    for subject, predicate, object in graph:
-        if isinstance(subject, URIRef):
-            subjects.add(subject)
+    def visit(
+        subject: URIRef | BNode,
+        predicate: URIRef,
+        object: URIRef | BNode | Literal,
+    ) -> None:
+        if isinstance(subject, BNode):
+            assert isinstance(object, URIRef)
+            bnodes[subject] = (predicate, object)
+        elif predicate == RDF.type:
+            pass
+        elif subject in WDS:
+            visit_wds_subject(subject, predicate, object)
+        elif subject in WD:
+            visit_wd_subject(subject, predicate, object)
+        else:
+            logging.warning(f"Unknown triple: {subject} {predicate} {object}")
 
-        if (
-            isinstance(subject, URIRef)
-            and subject in WDS
-            and isinstance(predicate, URIRef)
-            and predicate in PS
-        ):
-            logging.debug("Processing statement property statement")
-            claim = resolve_entity_statement(subject)
-            property = resolve_property_statement(predicate)
-            pass  # TODO
+    def visit_wd_subject(
+        subject: URIRef,
+        predicate: URIRef,
+        object: URIRef | BNode | Literal,
+    ) -> None:
+        subject_id = subject.removeprefix(WD)
 
-        elif (
-            isinstance(subject, URIRef)
-            and subject in WDS
-            and isinstance(predicate, URIRef)
-            and predicate in PQ
-            and isinstance(object, URIRef)
-            and object in WD
-        ):
-            logging.debug("Processing statement property qualifier")
-            claim = resolve_entity_statement(subject)
-            property = resolve_property_qualifier(predicate)
+        if predicate in WIKIBASE:
+            pass
+
+        elif subject_id.startswith("Q") and predicate in WDTN:
+            _ = get_item_page(subject_id)
+            pid = predicate.removeprefix(WDTN)
+            _ = get_property_page(pid)
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        elif subject_id.startswith("Q") and predicate in WDT:
+            _ = get_item_page(subject_id)
+            pid = predicate.removeprefix(WDT)
+            _ = get_property_page(pid)
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        elif subject_id.startswith("Q") and predicate in P and object in WDS:
+            _ = get_item_page(subject_id)
+            pid = predicate.removeprefix(P)
+            _ = get_property_page(pid)
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        elif predicate == SCHEMA.name and isinstance(object, Literal):
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        elif predicate == SCHEMA.description and isinstance(object, Literal):
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        elif predicate == RDFS.label and isinstance(object, Literal):
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        elif predicate == SKOS.altLabel and isinstance(object, Literal):
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        elif predicate == SKOS.prefLabel and isinstance(object, Literal):
+            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+
+        else:
+            logging.warning(f"Unknown wd triple: {subject} {predicate} {object}")
+
+    def visit_wds_subject(
+        subject: URIRef,
+        predicate: URIRef,
+        object: URIRef | BNode | Literal,
+    ) -> None:
+        claim = resolve_entity_statement(subject)
+        changed_claims[subject] = claim
+
+        if predicate in PSN:
+            pid = predicate.removeprefix(PSN)
+            property = get_property_page(pid)
+            logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
+
+        elif predicate in PSV:
+            pid = predicate.removeprefix(PSV)
+            property = get_property_page(pid)
+            logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
+
+        elif predicate in PS:
+            pid = predicate.removeprefix(PS)
+            property = get_property_page(pid)
+            logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
+
+        elif predicate in PQ and isinstance(object, URIRef) and object in WD:
+            pid = predicate.removeprefix(PQ)
+            property = get_property_page(pid)
             target = resolve_entity(object)
 
             qualifier = claim.qualifiers.get(property.id, [])[0]
@@ -58,77 +138,62 @@ def process_graph(username: str, input: TextIO) -> None:
             qualifier.setTarget(target)
 
         elif (
-            isinstance(subject, URIRef)
-            and subject in WDS
-            and isinstance(predicate, URIRef)
-            and predicate == WIKIBASE.rank
+            predicate == WIKIBASE.rank
             and isinstance(object, URIRef)
             and object in WIKIBASE
         ):
-            logging.debug("Processing statement rank")
-            claim = resolve_entity_statement(subject)
             claim_set_rank(claim, object)
 
         else:
-            logging.error(f"Unknown triple: {subject} {predicate} {object}")
+            logging.warning(f"Unknown wds triple: {subject} {predicate} {object}")
 
-    for subject in subjects:
-        if subject in WDS:
-            claim = resolve_entity_statement(subject)
-            item: pywikibot.ItemPage | None = claim.on_item
-            assert item
-            logging.info(f"Will update claim {claim.id} on item {item.id}")
-        else:
-            logging.error(f"Failed to save unknown subject: {subject}")
+    for subject, predicate, object in graph:
+        assert isinstance(subject, URIRef) or isinstance(subject, BNode)
+        assert isinstance(predicate, URIRef)
+        assert (
+            isinstance(object, URIRef)
+            or isinstance(object, BNode)
+            or isinstance(object, Literal)
+        )
+
+        visit(subject, predicate, object)
+
+    for claim in changed_claims.values():
+        item: pywikibot.ItemPage | None = claim.on_item
+        assert item, "Claim is not on an item"
+        logging.info(f"Will update claim {claim.id} on item {item.id}")
 
 
-ITEM_CACHE: dict[URIRef, pywikibot.ItemPage] = {}
-PROPERTY_CACHE: dict[URIRef, pywikibot.PropertyPage] = {}
-CLAIM_CACHE: dict[URIRef, pywikibot.Claim] = {}
+@cache
+def get_item_page(qid: str) -> pywikibot.ItemPage:
+    assert qid.startswith("Q"), qid
+    logging.debug(f"Load item page: {qid}")
+    return pywikibot.ItemPage(SITE, qid)
 
 
+@cache
+def get_property_page(pid: str) -> pywikibot.PropertyPage:
+    assert pid.startswith("P"), pid
+    logging.debug(f"Load property page: {pid}")
+    return pywikibot.PropertyPage(SITE, pid)
+
+
+@cache
 def resolve_entity(uri: URIRef) -> pywikibot.ItemPage:
     assert uri.startswith("http://www.wikidata.org/entity/Q"), uri
-    if uri in ITEM_CACHE:
-        return ITEM_CACHE[uri]
-    item = pywikibot.ItemPage.from_entity_uri(SITE, uri)
-    ITEM_CACHE[uri] = item
-    logging.debug(f"Loading item {item.getID()}")
-    return item
+    qid = uri.removeprefix("http://www.wikidata.org/entity/")
+    return get_item_page(qid)
 
 
-def resolve_property_statement(uri: URIRef) -> pywikibot.PropertyPage:
-    assert uri.startswith("http://www.wikidata.org/prop/statement/P"), uri
-    if uri in PROPERTY_CACHE:
-        return PROPERTY_CACHE[uri]
-    pid = uri.removeprefix("http://www.wikidata.org/prop/statement/")
-    property = pywikibot.PropertyPage(SITE, pid)
-    PROPERTY_CACHE[uri] = property
-    logging.debug(f"Loading property {property.getID()}")
-    return property
-
-
-def resolve_property_qualifier(uri: URIRef) -> pywikibot.PropertyPage:
-    assert uri.startswith("http://www.wikidata.org/prop/qualifier/P"), uri
-    if uri in PROPERTY_CACHE:
-        return PROPERTY_CACHE[uri]
-    pid = uri.removeprefix("http://www.wikidata.org/prop/qualifier/")
-    property = pywikibot.PropertyPage(SITE, pid)
-    PROPERTY_CACHE[uri] = property
-    logging.debug(f"Loading property {property.getID()}")
-    return property
-
-
+@cache
 def resolve_entity_statement(uri: URIRef) -> pywikibot.Claim:
-    if uri in CLAIM_CACHE:
-        return CLAIM_CACHE[uri]
-
+    assert uri.startswith("http://www.wikidata.org/entity/statement/"), uri
     guid = uri.removeprefix("http://www.wikidata.org/entity/statement/")
     assert "$" not in guid
     qid, hash = guid.split("-", 1)
     snak = f"{qid}${hash}"
 
-    item = resolve_entity(URIRef(f"http://www.wikidata.org/entity/{qid.upper()}"))
+    item = get_item_page(qid.upper())
 
     for property in item.claims:
         for claim in item.claims[property]:
@@ -154,7 +219,7 @@ if __name__ == "__main__":
     import os
     import sys
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
     parser.add_argument("--username", action="store")
