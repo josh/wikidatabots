@@ -5,7 +5,7 @@ from collections.abc import Iterable, Iterator
 from typing import TypeVar
 
 START_TIME = time.time()
-DEFAULT_TIMEOUT = 5 * 60
+DEFAULT_TIMEOUT = 10 * 60
 DEFAULT_DEADLINE = START_TIME + DEFAULT_TIMEOUT
 
 T = TypeVar("T")
