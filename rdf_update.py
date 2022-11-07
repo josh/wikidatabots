@@ -6,7 +6,7 @@ import pywikibot.config
 from rdflib import Graph
 from rdflib.term import URIRef
 
-from wikidata import PQ, WD, WDS, WIKIBASE
+from wikidata import PQ, PS, WD, WDS, WIKIBASE
 
 Ontology = NewType("Ontology", str)
 ResolvedURI = pywikibot.PropertyPage | pywikibot.ItemPage | pywikibot.Claim | Ontology
@@ -24,13 +24,28 @@ def process_graph(username: str, input: TextIO) -> None:
     subjects: set[URIRef] = set()
 
     for subject, predicate, object in graph:
-        assert isinstance(subject, URIRef)
-        assert isinstance(predicate, URIRef)
-        assert isinstance(object, URIRef)
+        if isinstance(subject, URIRef):
+            subjects.add(subject)
 
-        subjects.add(subject)
+        if (
+            isinstance(subject, URIRef)
+            and subject in WDS
+            and isinstance(predicate, URIRef)
+            and predicate in PS
+        ):
+            logging.debug("Processing statement property statement")
+            claim = resolve_entity_statement(subject)
+            property = resolve_property_statement(predicate)
+            pass  # TODO
 
-        if subject in WDS and predicate in PQ and object in WD:
+        elif (
+            isinstance(subject, URIRef)
+            and subject in WDS
+            and isinstance(predicate, URIRef)
+            and predicate in PQ
+            and isinstance(object, URIRef)
+            and object in WD
+        ):
             logging.debug("Processing statement property qualifier")
             claim = resolve_entity_statement(subject)
             property = resolve_property_qualifier(predicate)
@@ -42,7 +57,14 @@ def process_graph(username: str, input: TextIO) -> None:
                 claim.qualifiers[property.id] = [qualifier]
             qualifier.setTarget(target)
 
-        elif subject in WDS and predicate == WIKIBASE.rank and object in WIKIBASE:
+        elif (
+            isinstance(subject, URIRef)
+            and subject in WDS
+            and isinstance(predicate, URIRef)
+            and predicate == WIKIBASE.rank
+            and isinstance(object, URIRef)
+            and object in WIKIBASE
+        ):
             logging.debug("Processing statement rank")
             claim = resolve_entity_statement(subject)
             claim_set_rank(claim, object)
@@ -66,7 +88,7 @@ CLAIM_CACHE: dict[URIRef, pywikibot.Claim] = {}
 
 
 def resolve_entity(uri: URIRef) -> pywikibot.ItemPage:
-    assert uri.startswith("http://www.wikidata.org/entity/Q")
+    assert uri.startswith("http://www.wikidata.org/entity/Q"), uri
     if uri in ITEM_CACHE:
         return ITEM_CACHE[uri]
     item = pywikibot.ItemPage.from_entity_uri(SITE, uri)
@@ -75,8 +97,19 @@ def resolve_entity(uri: URIRef) -> pywikibot.ItemPage:
     return item
 
 
+def resolve_property_statement(uri: URIRef) -> pywikibot.PropertyPage:
+    assert uri.startswith("http://www.wikidata.org/prop/statement/P"), uri
+    if uri in PROPERTY_CACHE:
+        return PROPERTY_CACHE[uri]
+    pid = uri.removeprefix("http://www.wikidata.org/prop/statement/")
+    property = pywikibot.PropertyPage(SITE, pid)
+    PROPERTY_CACHE[uri] = property
+    logging.debug(f"Loading property {property.getID()}")
+    return property
+
+
 def resolve_property_qualifier(uri: URIRef) -> pywikibot.PropertyPage:
-    assert uri.startswith("http://www.wikidata.org/prop/qualifier/P")
+    assert uri.startswith("http://www.wikidata.org/prop/qualifier/P"), uri
     if uri in PROPERTY_CACHE:
         return PROPERTY_CACHE[uri]
     pid = uri.removeprefix("http://www.wikidata.org/prop/qualifier/")
@@ -87,17 +120,15 @@ def resolve_property_qualifier(uri: URIRef) -> pywikibot.PropertyPage:
 
 
 def resolve_entity_statement(uri: URIRef) -> pywikibot.Claim:
-    assert uri.startswith("http://www.wikidata.org/entity/statement/Q")
     if uri in CLAIM_CACHE:
         return CLAIM_CACHE[uri]
 
     guid = uri.removeprefix("http://www.wikidata.org/entity/statement/")
     assert "$" not in guid
-    assert guid.startswith("Q")
     qid, hash = guid.split("-", 1)
     snak = f"{qid}${hash}"
 
-    item = resolve_entity(URIRef(f"http://www.wikidata.org/entity/{qid}"))
+    item = resolve_entity(URIRef(f"http://www.wikidata.org/entity/{qid.upper()}"))
 
     for property in item.claims:
         for claim in item.claims[property]:
