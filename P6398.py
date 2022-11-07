@@ -19,7 +19,7 @@ def main():
     Outputs QuickStatements CSV commands.
     """
 
-    qids = sample_items(APPLE_TV_MOVIE_ID_PID, limit=1000)
+    qids = sample_items(APPLE_TV_MOVIE_ID_PID, limit=2000)
 
     allowed_classes = type_constraints(ITUNES_MOVIE_ID_PID)
     results = fetch_statements(
