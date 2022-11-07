@@ -174,7 +174,10 @@ def update_review_score_claim(item: ItemPage):
 
     assert claim.toJSON()
     logging.info(f"Editting {item.id}")
-    item.editEntity({"claims": [claim.toJSON()]})
+    item.editEntity(
+        {"claims": [claim.toJSON()]},
+        summary="Update OpenCritic review score",
+    )
 
 
 def find_opencritic_id(item: ItemPage) -> int | None:
