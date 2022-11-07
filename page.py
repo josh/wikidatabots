@@ -8,6 +8,7 @@ MUST be logged in first. See pwb.py
 
 import logging
 import re
+from collections.abc import Iterable, Iterator
 
 import requests
 
@@ -66,3 +67,12 @@ def blocked_qids() -> set[wikidata.QID]:
     if not _blocked_qids:
         _blocked_qids = page_qids("User:Josh404Bot/Blocklist", blocked=True)
     return _blocked_qids
+
+
+def filter_blocked_qids(qids: Iterable[wikidata.QID]) -> Iterator[wikidata.QID]:
+    blocked = blocked_qids()
+    for qid in qids:
+        if qid in blocked:
+            logging.warn(f"{qid} is blocked")
+            continue
+        yield qid

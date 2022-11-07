@@ -1,8 +1,6 @@
-import itertools
 import logging
 import os
 from collections import OrderedDict
-from collections.abc import Iterable
 from datetime import date
 from typing import TypedDict, TypeVar
 
@@ -11,6 +9,7 @@ import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
 
+import wikidata
 from constants import (
     CRITIC_REVIEW_QID,
     DETERMINATION_METHOD_PID,
@@ -25,9 +24,9 @@ from constants import (
     STATED_IN_PID,
 )
 from opencritic import fetch_game
-from page import blocked_qids
+from page import filter_blocked_qids
 from sparql import sparql
-from utils import position_weighted_shuffled, tryint
+from utils import iter_with_timeout, position_weighted_shuffled, tryint
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -71,14 +70,16 @@ pywikibot.config.password_file = "user-password.py"
 
 
 def main():
-    limit = 50
-    items = tqdm(itertools.islice(game_items(), limit), total=limit)
+    qids = fetch_game_qids()
+    qids = position_weighted_shuffled(qids)
+    qids = tqdm(qids)
 
-    for item in items:
+    for qid in iter_with_timeout(qids, timeout=5 * 60):
+        item = ItemPage(SITE, qid)
         update_review_score_claim(item)
 
 
-def game_items() -> Iterable[ItemPage]:
+def fetch_game_qids() -> list[wikidata.QID]:
     query = """
     SELECT ?item WHERE {
       ?item wdt:P2864 ?opencritic.
@@ -91,18 +92,13 @@ def game_items() -> Iterable[ItemPage]:
     }
     ORDER BY DESC (?timestamp)
     """
-    Result = TypedDict("Result", item=str)
+
+    class Result(TypedDict):
+        item: wikidata.QID
+
     results: list[Result] = sparql(query)
-    results = position_weighted_shuffled(results)
-
-    for result in results:
-        qid = result["item"]
-
-        if qid in blocked_qids():
-            logging.warn(f"{qid} is blocked")
-            continue
-
-        yield ItemPage(SITE, qid)
+    qids = [result["item"] for result in results]
+    return list(filter_blocked_qids(qids))
 
 
 def update_review_score_claim(item: ItemPage):
