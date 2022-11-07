@@ -3,6 +3,18 @@
 import re
 from typing import Any, NewType
 
+from rdflib import Namespace
+
+WD = Namespace("http://www.wikidata.org/entity/")
+WDS = Namespace("http://www.wikidata.org/entity/statement/")
+WDV = Namespace("http://www.wikidata.org/value/")
+WDT = Namespace("http://www.wikidata.org/prop/direct/")
+WIKIBASE = Namespace("http://wikiba.se/ontology#")
+P = Namespace("http://www.wikidata.org/prop/")
+PS = Namespace("http://www.wikidata.org/prop/statement/")
+PQ = Namespace("http://www.wikidata.org/prop/qualifier/")
+RDFS = Namespace("http://www.w3.org/2000/01/rdf-schema#")
+
 PID = NewType("PID", str)
 QID = NewType("QID", str)
 StatementGUID = NewType("StatementGUID", str)
