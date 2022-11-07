@@ -8,6 +8,7 @@ from tqdm import tqdm
 import tmdb
 from page import blocked_qids
 from sparql import sparql
+from timeout import iter_until_deadline
 
 
 def main():
@@ -38,7 +39,7 @@ def main():
     results: list[Result] = sparql(query)
 
     print("qid,P4985")
-    for result in tqdm(results):
+    for result in iter_until_deadline(tqdm(results)):
         qid = result["item"]
 
         if qid in blocked_qids():

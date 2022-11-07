@@ -14,6 +14,7 @@ from tqdm import tqdm
 import appletv
 import wikidata
 from sparql import sparql
+from timeout import iter_until_deadline
 from utils import shuffled, tryint
 
 session = requests.Session()
@@ -159,7 +160,9 @@ def main():
                 yield (url, id)
 
     print("qid,P9586")
-    for (url, id) in tqdm(itertools.islice(candiate_urls(), limit), total=limit):
+    for (url, id) in iter_until_deadline(
+        tqdm(itertools.islice(candiate_urls(), limit), total=limit)
+    ):
         info = fetch_movie(url)
         if not info:
             continue

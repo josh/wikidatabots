@@ -8,6 +8,7 @@ from tqdm import tqdm
 import tmdb
 from page import blocked_qids
 from sparql import sparql
+from timeout import iter_until_deadline
 
 
 class Item(TypedDict):
@@ -72,7 +73,7 @@ def main():
             item["tvdb"].add(result["tvdb"])
 
     print("qid,P4983")
-    for qid in tqdm(items):
+    for qid in iter_until_deadline(tqdm(items)):
         item = items[qid]
         tmdb_ids: set[int] = set()
 

@@ -9,6 +9,7 @@ import tmdb
 from constants import TMDB_MOVIE_ID_PID
 from page import blocked_qids
 from sparql import sparql
+from timeout import iter_until_deadline
 
 
 def main():
@@ -42,7 +43,7 @@ def main():
     results: list[Result] = sparql(query)
 
     print(f"qid,{TMDB_MOVIE_ID_PID}")
-    for result in tqdm(results):
+    for result in iter_until_deadline(tqdm(results)):
         qid = result["item"]
 
         if qid in blocked_qids():
