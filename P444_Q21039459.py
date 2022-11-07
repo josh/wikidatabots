@@ -1,11 +1,13 @@
 import logging
 import os
+import time
 from collections import OrderedDict
 from datetime import date
 from typing import TypedDict, TypeVar
 
 import pywikibot
 import pywikibot.config
+from deadline import iter_until_deadline
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
 
@@ -26,7 +28,7 @@ from constants import (
 from opencritic import fetch_game
 from page import filter_blocked_qids
 from sparql import sparql
-from utils import iter_with_timeout, position_weighted_shuffled, tryint
+from utils import position_weighted_shuffled, tryint
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -74,7 +76,7 @@ def main():
     qids = position_weighted_shuffled(qids)
     qids = tqdm(qids)
 
-    for qid in iter_with_timeout(qids, timeout=5 * 60):
+    for qid in iter_until_deadline(qids):
         item = ItemPage(SITE, qid)
         update_review_score_claim(item)
 

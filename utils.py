@@ -1,7 +1,6 @@
 # pyright: strict
 
 import random
-import time
 from collections.abc import Iterable, Iterator, Sequence
 from typing import Any, TypeVar
 
@@ -51,11 +50,3 @@ def tryint(value: Any) -> int | None:
         return int(value)
     except ValueError:
         return None
-
-
-def iter_with_timeout(seq: Iterable[T], timeout: float) -> Iterator[T]:
-    start = time.time()
-    for el in seq:
-        yield el
-        if time.time() - start > timeout:
-            break
