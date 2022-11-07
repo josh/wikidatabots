@@ -6,7 +6,6 @@ from typing import TypedDict, TypeVar
 
 import pywikibot
 import pywikibot.config
-from deadline import iter_until_deadline
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
 
@@ -27,6 +26,7 @@ from constants import (
 from opencritic import fetch_game
 from page import filter_blocked_qids
 from sparql import sparql
+from timeout import iter_until_deadline
 from utils import position_weighted_shuffled, tryint
 
 SITE = pywikibot.Site("wikidata", "wikidata")
