@@ -9,6 +9,8 @@ import tmdb
 from page import blocked_qids
 from sparql import sparql
 from timeout import iter_until_deadline
+from utils import position_weighted_shuffled
+from wikidata import QID
 
 
 class Item(TypedDict):
@@ -26,7 +28,7 @@ def main():
     """
 
     query = """
-    SELECT ?item ?imdb ?tvdb ?random WHERE {
+    SELECT ?item ?imdb ?tvdb WHERE {
       # Items with either IMDb or TVDB IDs
       { ?item wdt:P4835 []. }
       UNION
@@ -45,16 +47,16 @@ def main():
       OPTIONAL { ?item wdt:P4983 ?tmdb. }
       FILTER(!(BOUND(?tmdb)))
 
-      # Generate random sorting key
-      BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
+      # Generate sort id
+      BIND(xsd:integer(STRAFTER(STR(?item), "Q")) AS ?id)
     }
-    ORDER BY ?random
-    LIMIT 10000
+    ORDER BY DESC (?id)
     """
-    Result = TypedDict("Result", item=str, imdb=str | None, tvdb=str | None)
+    Result = TypedDict("Result", item=QID, imdb=str | None, tvdb=str | None)
     results: list[Result] = sparql(query)
+    results = position_weighted_shuffled(results)
 
-    items: dict[str, Item] = {}
+    items: dict[QID, Item] = {}
     for result in results:
         qid = result["item"]
 
