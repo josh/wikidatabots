@@ -3,7 +3,11 @@
 import itunes
 import sparql
 import wikidata
-from constants import ITUNES_MOVIE_ID_PID, WITHDRAWN_IDENTIFIER_VALUE_QID
+from constants import (
+    ITUNES_MOVIE_ID_PID,
+    REASON_FOR_DEPRECATED_RANK_PID,
+    WITHDRAWN_IDENTIFIER_VALUE_QID,
+)
 from page import page_qids
 from sparql import sample_items
 from timeout import iter_until_deadline
@@ -20,9 +24,22 @@ def main():
     statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID])
     itunes_ids = extract_itunes_ids(statements)
 
+    print("PREFIX wd: <http://www.wikidata.org/entity/>")
+    print("PREFIX wds: <http://www.wikidata.org/entity/statement/>")
+    print("PREFIX wikibase: <http://wikiba.se/ontology#>")
+    print("PREFIX pq: <http://www.wikidata.org/prop/qualifier/>")
+
     for (id, obj) in iter_until_deadline(itunes.batch_lookup(itunes_ids.keys())):
         if not obj and itunes.all_not_found(id):
-            print(f"{itunes_ids[id]},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
+            guid = itunes_ids[id]
+            assert "$" in guid
+            guid = guid.replace("$", "-")
+            print(
+                f"wds:{guid} "
+                f"wikibase:rank wikibase:DeprecatedRank ; "
+                f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
+                f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ."
+            )
 
 
 def extract_itunes_ids(
