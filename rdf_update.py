@@ -142,6 +142,7 @@ def process_graph(
                 qualifier = property.newClaim(is_qualifier=True)
                 claim.qualifiers[property.id] = [qualifier]
                 changed_claims.add(subject)
+            assert qualifier
 
             if not qualifier.target_equals(target):
                 qualifier.setTarget(target)
