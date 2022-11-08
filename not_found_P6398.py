@@ -28,6 +28,9 @@ def main():
     print("PREFIX wds: <http://www.wikidata.org/entity/statement/>")
     print("PREFIX wikibase: <http://wikiba.se/ontology#>")
     print("PREFIX pq: <http://www.wikidata.org/prop/qualifier/>")
+    print("PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>")
+
+    edit_summary = "Deprecate iTunes movie ID delisted from store"
 
     for (id, obj) in iter_until_deadline(itunes.batch_lookup(itunes_ids.keys())):
         if not obj and itunes.all_not_found(id):
@@ -37,8 +40,9 @@ def main():
             print(
                 f"wds:{guid} "
                 f"wikibase:rank wikibase:DeprecatedRank ; "
-                f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
-                f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ."
+                f"pq:{REASON_FOR_DEPRECATED_RANK_PID} ; "
+                f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
+                f'wikidatabots:editSummary "{edit_summary}" . '
             )
 
 

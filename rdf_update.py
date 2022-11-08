@@ -4,7 +4,7 @@ from typing import NewType, TextIO
 
 import pywikibot
 import pywikibot.config
-from rdflib import Graph
+from rdflib import Graph, Namespace
 from rdflib.term import BNode, Literal, URIRef
 
 from utils import first
@@ -25,6 +25,8 @@ from wikidata import (
     P,
 )
 
+SCRIPT_NS = Namespace("https://github.com/josh/wikidatabots#")
+
 Ontology = NewType("Ontology", str)
 ResolvedURI = pywikibot.PropertyPage | pywikibot.ItemPage | pywikibot.Claim | Ontology
 
@@ -44,6 +46,7 @@ def process_graph(
     graph.parse(input)
 
     bnodes: dict[BNode, tuple[URIRef, URIRef]] = {}
+    edit_summaries: dict[URIRef, str] = {}
     changed_claims: set[URIRef] = set()
 
     def visit(
@@ -156,6 +159,9 @@ def process_graph(
             if claim_set_rank(claim, object):
                 changed_claims.add(subject)
 
+        elif predicate == SCRIPT_NS.editSummary:
+            edit_summaries[subject] = object
+
         else:
             logging.warning(f"Unknown wds triple: {subject} {predicate} {object}")
 
@@ -176,11 +182,11 @@ def process_graph(
         assert item, "Claim is not on an item"
         claim_json = claim.toJSON()
         assert claim_json, "Claim had serialization error"
+        edit_summary: str | None = edit_summaries.get(uri, summary)
+        verb = "Edit" if save else "Would edit"
+        logging.info(f"{verb} {item.id} / {claim.id} / {claim.snak} -- {edit_summary}")
         if save:
-            logging.info(f"Edit {item.id} / {claim.id} / {claim.snak}")
-            item.editEntity({"claims": [claim_json]}, summary=summary)
-        else:
-            logging.info(f"Would have editted {item.id} / {claim.id} / {claim.snak}")
+            item.editEntity({"claims": [claim_json]}, summary=edit_summary)
 
 
 @cache
