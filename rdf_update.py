@@ -7,6 +7,7 @@ import pywikibot.config
 from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
+from utils import first
 from wikidata import (
     PQ,
     PS,
@@ -30,7 +31,12 @@ ResolvedURI = pywikibot.PropertyPage | pywikibot.ItemPage | pywikibot.Claim | On
 SITE = pywikibot.Site("wikidata", "wikidata")
 
 
-def process_graph(username: str, input: TextIO, save: bool = True) -> None:
+def process_graph(
+    username: str,
+    input: TextIO,
+    summary: str | None = None,
+    save: bool = True,
+) -> None:
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = "user-password.py"
 
@@ -38,7 +44,7 @@ def process_graph(username: str, input: TextIO, save: bool = True) -> None:
     graph.parse(input)
 
     bnodes: dict[BNode, tuple[URIRef, URIRef]] = {}
-    changed_claims: dict[URIRef, pywikibot.Claim] = dict()
+    changed_claims: set[URIRef] = set()
 
     def visit(
         subject: URIRef | BNode,
@@ -109,7 +115,6 @@ def process_graph(username: str, input: TextIO, save: bool = True) -> None:
         object: URIRef | BNode | Literal,
     ) -> None:
         claim = resolve_entity_statement(subject)
-        changed_claims[subject] = claim
 
         if predicate in PSN:
             pid = predicate.removeprefix(PSN)
@@ -131,18 +136,24 @@ def process_graph(username: str, input: TextIO, save: bool = True) -> None:
             property = get_property_page(pid)
             target = resolve_entity(object)
 
-            qualifier = claim.qualifiers.get(property.id, [])[0]
+            # TODO: Figure out how to handle appending additional qualifier
+            qualifier: pywikibot.Claim | None = first(claim.qualifiers.get(property.id))
             if not qualifier:
-                qualifier = property.newClaim(isQualifier=True)
+                qualifier = property.newClaim(is_qualifier=True)
                 claim.qualifiers[property.id] = [qualifier]
-            qualifier.setTarget(target)
+                changed_claims.add(subject)
+
+            if not qualifier.target_equals(target):
+                qualifier.setTarget(target)
+                changed_claims.add(subject)
 
         elif (
             predicate == WIKIBASE.rank
             and isinstance(object, URIRef)
             and object in WIKIBASE
         ):
-            claim_set_rank(claim, object)
+            if claim_set_rank(claim, object):
+                changed_claims.add(subject)
 
         else:
             logging.warning(f"Unknown wds triple: {subject} {predicate} {object}")
@@ -158,10 +169,17 @@ def process_graph(username: str, input: TextIO, save: bool = True) -> None:
 
         visit(subject, predicate, object)
 
-    for claim in changed_claims.values():
+    for uri in changed_claims:
+        claim = resolve_entity_statement(uri)
         item: pywikibot.ItemPage | None = claim.on_item
         assert item, "Claim is not on an item"
-        logging.info(f"Will update claim {claim.id} on item {item.id}")
+        claim_json = claim.toJSON()
+        assert claim_json, "Claim had serialization error"
+        if save:
+            logging.info(f"Edit {item.id} / {claim.id} / {claim.snak}")
+            item.editEntity({"claims": [claim_json]}, summary=summary)
+        else:
+            logging.info(f"Would have editted {item.id} / {claim.id} / {claim.snak}")
 
 
 @cache
@@ -203,15 +221,19 @@ def resolve_entity_statement(uri: URIRef) -> pywikibot.Claim:
     assert False, f"Can't resolve statement GUID: {uri}"
 
 
-def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> None:
-    if rank == WIKIBASE.NormalRank:
-        claim.setRank("normal")
-    elif rank == WIKIBASE.DeprecatedRank:
-        claim.setRank("deprecated")
-    elif rank == WIKIBASE.PreferredRank:
-        claim.setRank("preferred")
-    else:
-        assert False, f"Unknown rank: {rank}"
+RANKS: dict[URIRef, str] = {
+    WIKIBASE.NormalRank: "normal",
+    WIKIBASE.DeprecatedRank: "deprecated",
+    WIKIBASE.PreferredRank: "preferred",
+}
+
+
+def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
+    rank_str: str = RANKS[rank]
+    if claim.rank == rank_str:
+        return False
+    claim.setRank(rank_str)
+    return True
 
 
 if __name__ == "__main__":
@@ -223,6 +245,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
     parser.add_argument("-u", "--username", action="store")
+    parser.add_argument("-m", "--summary", action="store")
     parser.add_argument("-n", "--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -231,5 +254,6 @@ if __name__ == "__main__":
         or os.environ.get("QUICKSTATEMENTS_USERNAME")
         or os.environ["WIKIDATA_USERNAME"],
         input=sys.stdin,
+        summary=args.summary,
         save=not args.dry_run,
     )
