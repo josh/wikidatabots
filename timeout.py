@@ -29,3 +29,7 @@ def iter_until_deadline(
 def iter_with_timeout(seq: Iterable[T], timeout: float) -> Iterator[T]:
     deadline = time.time() + timeout
     return iter_until_deadline(seq, deadline)
+
+
+def max_time() -> float:
+    return max(DEFAULT_DEADLINE - time.time(), 0)

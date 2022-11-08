@@ -16,6 +16,7 @@ from typing import Any, Literal, TypedDict
 import backoff
 import requests
 
+import timeout
 import wikidata
 from wikidata import PID, QID, StatementGUID
 
@@ -88,8 +89,18 @@ class SPARQLDocument(TypedDict):
     results: SPARQLResults
 
 
-@backoff.on_exception(backoff.expo, TimeoutException, max_tries=14)
-@backoff.on_exception(backoff.expo, json.decoder.JSONDecodeError, max_tries=3)
+@backoff.on_exception(
+    backoff.expo,
+    TimeoutException,
+    max_tries=14,
+    max_time=timeout.max_time,
+)
+@backoff.on_exception(
+    backoff.expo,
+    json.decoder.JSONDecodeError,
+    max_tries=3,
+    max_time=timeout.max_time,
+)
 def sparql(query: str) -> list[Any]:
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
