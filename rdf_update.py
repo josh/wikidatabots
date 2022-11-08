@@ -30,7 +30,7 @@ ResolvedURI = pywikibot.PropertyPage | pywikibot.ItemPage | pywikibot.Claim | On
 SITE = pywikibot.Site("wikidata", "wikidata")
 
 
-def process_graph(username: str, input: TextIO) -> None:
+def process_graph(username: str, input: TextIO, save: bool = True) -> None:
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = "user-password.py"
 
@@ -222,7 +222,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
-    parser.add_argument("--username", action="store")
+    parser.add_argument("-u", "--username", action="store")
+    parser.add_argument("-n", "--dry-run", action="store_true")
     args = parser.parse_args()
 
     process_graph(
@@ -230,4 +231,5 @@ if __name__ == "__main__":
         or os.environ.get("QUICKSTATEMENTS_USERNAME")
         or os.environ["WIKIDATA_USERNAME"],
         input=sys.stdin,
+        save=not args.dry_run,
     )
