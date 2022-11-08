@@ -223,4 +223,4 @@ jobs:
 
       - name: Process batch
         run: |
-          python rdf_update.py --dry-run <output.ttl
+          python rdf_update.py <output.ttl
