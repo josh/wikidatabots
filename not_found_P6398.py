@@ -41,7 +41,7 @@ def main():
             print(
                 f"wds:{guid} "
                 f"wikibase:rank wikibase:DeprecatedRank ; "
-                f"pq:{REASON_FOR_DEPRECATED_RANK_PID} ; "
+                f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
                 f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
                 f'wikidatabots:editSummary "{edit_summary}" . '
             )
