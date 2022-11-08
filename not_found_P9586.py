@@ -2,7 +2,11 @@
 
 import appletv
 import sparql
-from constants import APPLE_TV_MOVIE_ID_PID, WITHDRAWN_IDENTIFIER_VALUE_QID
+from constants import (
+    APPLE_TV_MOVIE_ID_PID,
+    REASON_FOR_DEPRECATED_RANK_PID,
+    WITHDRAWN_IDENTIFIER_VALUE_QID,
+)
 from page import page_qids
 from sparql import sample_items
 from timeout import iter_until_deadline
@@ -18,6 +22,14 @@ def main():
 
     results = sparql.fetch_statements(qids, [APPLE_TV_MOVIE_ID_PID])
 
+    print("PREFIX wd: <http://www.wikidata.org/entity/>")
+    print("PREFIX wds: <http://www.wikidata.org/entity/statement/>")
+    print("PREFIX wikibase: <http://wikiba.se/ontology#>")
+    print("PREFIX pq: <http://www.wikidata.org/prop/qualifier/>")
+    print("PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>")
+
+    edit_summary = "Deprecate Apple TV movie ID delisted from store"
+
     for qid in iter_until_deadline(results):
         item = results[qid]
 
@@ -27,7 +39,16 @@ def main():
                 continue
 
             if appletv.all_not_found(type="movie", id=id):
-                print(f"{statement},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
+                # TODO: Get original statement IRIs
+                assert "$" in statement
+                guid = statement.replace("$", "-")
+                print(
+                    f"wds:{guid} "
+                    f"wikibase:rank wikibase:DeprecatedRank ; "
+                    f"pq:{REASON_FOR_DEPRECATED_RANK_PID} ; "
+                    f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
+                    f'wikidatabots:editSummary "{edit_summary}" . '
+                )
 
 
 if __name__ == "__main__":

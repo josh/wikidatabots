@@ -34,6 +34,7 @@ def main():
 
     for (id, obj) in iter_until_deadline(itunes.batch_lookup(itunes_ids.keys())):
         if not obj and itunes.all_not_found(id):
+            # TODO: Get original statement IRIs
             guid = itunes_ids[id]
             assert "$" in guid
             guid = guid.replace("$", "-")
