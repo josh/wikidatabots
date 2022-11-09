@@ -1,6 +1,7 @@
 import logging
+from collections import defaultdict
 from functools import cache
-from typing import NewType, TextIO
+from typing import Any, NewType, TextIO
 
 import pywikibot
 import pywikibot.config
@@ -33,6 +34,19 @@ ResolvedURI = pywikibot.PropertyPage | pywikibot.ItemPage | pywikibot.Claim | On
 SITE = pywikibot.Site("wikidata", "wikidata")
 
 
+class HashableClaim(object):
+    def __init__(self, claim: pywikibot.Claim):
+        self.claim = claim
+
+    def __hash__(self):
+        return 0
+
+    def __eq__(self, other):
+        if not isinstance(other, HashableClaim):
+            return False
+        return self.claim == other.claim
+
+
 def process_graph(
     username: str,
     input: TextIO,
@@ -45,9 +59,8 @@ def process_graph(
     graph = Graph()
     graph.parse(input)
 
-    bnodes: dict[BNode, tuple[URIRef, URIRef]] = {}
-    edit_summaries: dict[URIRef, str] = {}
-    changed_claims: set[URIRef] = set()
+    changed_claims: dict[pywikibot.ItemPage, set[HashableClaim]] = defaultdict(set)
+    edit_summaries: dict[pywikibot.ItemPage, str] = {}
 
     def visit(
         subject: URIRef | BNode,
@@ -55,8 +68,8 @@ def process_graph(
         object: URIRef | BNode | Literal,
     ) -> None:
         if isinstance(subject, BNode):
-            assert isinstance(object, URIRef)
-            bnodes[subject] = (predicate, object)
+            assert isinstance(object, URIRef) or isinstance(object, Literal)
+            pass
         elif predicate == RDF.type:
             pass
         elif subject in WDS:
@@ -94,6 +107,23 @@ def process_graph(
             _ = get_property_page(pid)
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
+        elif (
+            subject_id.startswith("Q") and predicate in P and isinstance(object, BNode)
+        ):
+            item: pywikibot.ItemPage = get_item_page(subject_id)
+            pid = predicate.removeprefix(P)
+            assert pid.startswith("P")
+            property: pywikibot.PropertyPage = get_property_page(pid)
+            predicate_statement_uri = PS[pid]
+
+            for object2 in graph.objects(object, predicate_statement_uri):
+                assert isinstance(object2, Literal)
+                did_change, claim = item_append_claim_target(
+                    item, property, object2.toPython()
+                )
+                if did_change:
+                    changed_claims[item].add(HashableClaim(claim))
+
         elif predicate == SCHEMA.name and isinstance(object, Literal):
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
@@ -109,6 +139,10 @@ def process_graph(
         elif predicate == SKOS.prefLabel and isinstance(object, Literal):
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
+        elif predicate == SCRIPT_NS.editSummary:
+            item: pywikibot.ItemPage = resolve_entity(subject)
+            edit_summaries[item] = object.toPython()
+
         else:
             logging.warning(f"Unknown wd triple: {subject} {predicate} {object}")
 
@@ -117,7 +151,9 @@ def process_graph(
         predicate: URIRef,
         object: URIRef | BNode | Literal,
     ) -> None:
-        claim = resolve_entity_statement(subject)
+        claim: pywikibot.Claim = resolve_entity_statement(subject)
+        item: pywikibot.ItemPage | None = claim.on_item
+        assert item
 
         if predicate in PSN:
             pid = predicate.removeprefix(PSN)
@@ -144,12 +180,12 @@ def process_graph(
             if not qualifier:
                 qualifier = property.newClaim(is_qualifier=True)
                 claim.qualifiers[property.id] = [qualifier]
-                changed_claims.add(subject)
+                changed_claims[item].add(HashableClaim(claim))
             assert qualifier
 
             if not qualifier.target_equals(target):
                 qualifier.setTarget(target)
-                changed_claims.add(subject)
+                changed_claims[item].add(HashableClaim(claim))
 
         elif (
             predicate == WIKIBASE.rank
@@ -157,10 +193,10 @@ def process_graph(
             and object in WIKIBASE
         ):
             if claim_set_rank(claim, object):
-                changed_claims.add(subject)
+                changed_claims[item].add(HashableClaim(claim))
 
         elif predicate == SCRIPT_NS.editSummary:
-            edit_summaries[subject] = object
+            edit_summaries[item] = object.toPython()
 
         else:
             logging.warning(f"Unknown wds triple: {subject} {predicate} {object}")
@@ -176,17 +212,23 @@ def process_graph(
 
         visit(subject, predicate, object)
 
-    for uri in changed_claims:
-        claim = resolve_entity_statement(uri)
-        item: pywikibot.ItemPage | None = claim.on_item
-        assert item, "Claim is not on an item"
-        claim_json = claim.toJSON()
-        assert claim_json, "Claim had serialization error"
-        edit_summary: str | None = edit_summaries.get(uri, summary)
-        verb = "Edit" if save else "Would edit"
-        logging.info(f"{verb} {item.id} / {claim.id} / {claim.snak} -- {edit_summary}")
+    verb = "Edit" if save else "Would edit"
+
+    for item, claims in changed_claims.items():
+        edit_summary: str | None = edit_summaries.get(item)
+        logging.info(f"{verb} {item.id}: {edit_summary}")
+
+        claims_json: list = []
+        for hclaim in claims:
+            claim: pywikibot.Claim = hclaim.claim
+            claim_json = claim.toJSON()
+            assert claim_json, "Claim had serialization error"
+            claims_json.append(claim_json)
+            logging.info(f" ⮑  {claim.id} / {claim.snak or '(new claim)'}")
+
+        assert len(claims_json) > 0, "No claims to save"
         if save:
-            item.editEntity({"claims": [claim_json]}, summary=edit_summary)
+            item.editEntity({"claims": claims_json}, summary=edit_summary)
 
 
 @cache
@@ -233,6 +275,25 @@ RANKS: dict[URIRef, str] = {
     WIKIBASE.DeprecatedRank: "deprecated",
     WIKIBASE.PreferredRank: "preferred",
 }
+
+
+def item_append_claim_target(
+    item: pywikibot.ItemPage,
+    property: pywikibot.PropertyPage,
+    target: Any,
+) -> tuple[bool, pywikibot.Claim]:
+    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
+    existing_claims = item.claims.get(property.id, [])
+    for claim in existing_claims:
+        if claim.target_equals(target):
+            return (False, claim)
+
+    claim: pywikibot.Claim = property.newClaim()
+    claim.setTarget(target)
+    if not item.claims.get(property.id):
+        item.claims[property.id] = []
+    item.claims[property.id].append(claim)
+    return (True, claim)
 
 
 def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
