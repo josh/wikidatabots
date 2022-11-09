@@ -55,6 +55,7 @@ def process_graph(
 ) -> None:
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = "user-password.py"
+    pywikibot.config.put_throttle = 1
 
     graph = Graph()
     graph.parse(input)

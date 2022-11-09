@@ -68,6 +68,7 @@ RETRIEVED_TODAY_REFERENCE.setTarget(TODAY_WBTIME)
 
 pywikibot.config.usernames["wikidata"]["wikidata"] = os.environ["WIKIDATA_USERNAME"]
 pywikibot.config.password_file = "user-password.py"
+pywikibot.config.put_throttle = 1
 
 
 def main():
