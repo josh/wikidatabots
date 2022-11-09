@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from functools import cache
-from typing import Any, NewType, TextIO
+from typing import Any, Iterator, NewType, TextIO
 
 import pywikibot
 import pywikibot.config
@@ -48,11 +48,8 @@ class HashableClaim(object):
 
 
 def process_graph(
-    username: str,
-    input: TextIO,
-    summary: str | None = None,
-    save: bool = True,
-) -> None:
+    username: str, input: TextIO
+) -> Iterator[tuple[pywikibot.ItemPage, list[dict[str, Any]], str | None]]:
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = "user-password.py"
     pywikibot.config.put_throttle = 0
@@ -213,23 +210,20 @@ def process_graph(
 
         visit(subject, predicate, object)
 
-    verb = "Edit" if save else "Would edit"
-
     for item, claims in changed_claims.items():
-        edit_summary: str | None = edit_summaries.get(item)
-        logging.info(f"{verb} {item.id}: {edit_summary}")
+        summary: str | None = edit_summaries.get(item)
+        logging.info(f"Edit {item.id}: {summary}")
 
-        claims_json: list = []
+        claims_json: list[dict[str, Any]] = []
         for hclaim in claims:
             claim: pywikibot.Claim = hclaim.claim
-            claim_json = claim.toJSON()
+            claim_json: dict[str, Any] = claim.toJSON()
             assert claim_json, "Claim had serialization error"
             claims_json.append(claim_json)
-            logging.info(f" ⮑  {claim.id} / {claim.snak or '(new claim)'}")
+            logging.info(f" ⮑ {claim.id} / {claim.snak or '(new claim)'}")
 
         assert len(claims_json) > 0, "No claims to save"
-        if save:
-            item.editEntity({"claims": claims_json}, summary=edit_summary)
+        yield (item, claims_json, summary)
 
 
 @cache
@@ -271,13 +265,6 @@ def resolve_entity_statement(uri: URIRef) -> pywikibot.Claim:
     assert False, f"Can't resolve statement GUID: {uri}"
 
 
-RANKS: dict[URIRef, str] = {
-    WIKIBASE.NormalRank: "normal",
-    WIKIBASE.DeprecatedRank: "deprecated",
-    WIKIBASE.PreferredRank: "preferred",
-}
-
-
 def item_append_claim_target(
     item: pywikibot.ItemPage,
     property: pywikibot.PropertyPage,
@@ -297,6 +284,13 @@ def item_append_claim_target(
     return (True, claim)
 
 
+RANKS: dict[URIRef, str] = {
+    WIKIBASE.NormalRank: "normal",
+    WIKIBASE.DeprecatedRank: "deprecated",
+    WIKIBASE.PreferredRank: "preferred",
+}
+
+
 def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
     rank_str: str = RANKS[rank]
     if claim.rank == rank_str:
@@ -314,15 +308,17 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
     parser.add_argument("-u", "--username", action="store")
-    parser.add_argument("-m", "--summary", action="store")
     parser.add_argument("-n", "--dry-run", action="store_true")
     args = parser.parse_args()
 
-    process_graph(
+    edits = process_graph(
         username=args.username
         or os.environ.get("QUICKSTATEMENTS_USERNAME")
         or os.environ["WIKIDATA_USERNAME"],
         input=sys.stdin,
-        summary=args.summary,
-        save=not args.dry_run,
     )
+
+    for (item, claims, summary) in edits:
+        if args.dry_run:
+            continue
+        item.editEntity({"claims": claims}, summary=summary)
