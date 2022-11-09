@@ -1,44 +1,33 @@
 import logging
 
-import pywikibot
-import pywikibot.config
 from tqdm import tqdm
 
 import imdb
+import sparql
 from constants import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID, REDIRECT_QID
-from sparql import sample_items
-
-SITE = pywikibot.Site("wikidata", "wikidata")
-REASON_FOR_DEPRECATED_RANK_PROPERTY = pywikibot.PropertyPage(
-    SITE, REASON_FOR_DEPRECATED_RANK_PID
-)
-REDIRECT_ITEM = pywikibot.ItemPage(SITE, REDIRECT_QID)
-IMDB_ID_PROPERTY = pywikibot.PropertyPage(SITE, IMDB_ID_PID)
 
 
 def main():
-    pywikibot.config.usernames["wikidata"]["wikidata"] = "Josh404"
-    pywikibot.config.password_file = "user-password.py"
+    qids = sparql.sample_items(IMDB_ID_PID, limit=100)
+    results = sparql.fetch_statements(qids, [IMDB_ID_PID])
 
-    qids = sample_items(IMDB_ID_PID, limit=10)
+    print("PREFIX wd: <http://www.wikidata.org/entity/>")
+    print("PREFIX wds: <http://www.wikidata.org/entity/statement/>")
+    print("PREFIX p: <http://www.wikidata.org/prop/>")
+    print("PREFIX pq: <http://www.wikidata.org/prop/qualifier/>")
+    print("PREFIX ps: <http://www.wikidata.org/prop/statement/>")
+    print("PREFIX wikibase: <http://wikiba.se/ontology#>")
+    print("PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>")
 
-    for qid in tqdm(qids):
-        item = pywikibot.ItemPage(SITE, qid)
+    edit_summary = "Add claim for canonical IMDb ID"
 
-        if item.isRedirectPage():
-            logging.debug(f"{item} is a redirect")
-            continue
+    for qid in tqdm(results):
+        item = results[qid]
 
-        for claim in item.claims.get(IMDB_ID_PID, []):
-            id = claim.target
-            assert type(id) is str
-
-            if claim.rank == "deprecated":
-                continue
-
-            id = imdb.tryid(id)
+        for (statement, value) in item.get(IMDB_ID_PID, []):
+            id = imdb.tryid(value)
             if not id:
-                logging.debug(f"{id} is invalid format")
+                logging.debug(f"{value} is invalid format")
                 continue
 
             new_id = imdb.canonical_id(id)
@@ -46,34 +35,25 @@ def main():
                 logging.debug(f"{id} not found")
                 continue
 
+            # TODO: Get original statement IRIs
+            assert "$" in statement
+            guid = statement.replace("$", "-")
+
             if id is not new_id:
-                claim.setRank("deprecated")
-                qualifier = REASON_FOR_DEPRECATED_RANK_PROPERTY.newClaim()
-                qualifier.isQualifier = True
-                qualifier.setTarget(REDIRECT_ITEM)
-                claim.qualifiers[REASON_FOR_DEPRECATED_RANK_PID] = [qualifier]
-
-                if claim_exists(item, IMDB_ID_PID, new_id):
-                    item.editEntity({"claims": [claim.toJSON()]})
-                else:
-                    new_claim = IMDB_ID_PROPERTY.newClaim()
-                    new_claim.setTarget(new_id)
-                    item.editEntity(
-                        {
-                            "claims": [
-                                new_claim.toJSON(),
-                                claim.toJSON(),
-                            ],
-                        }
-                    )
-
-
-def claim_exists(page: pywikibot.ItemPage, property: str, value: str) -> bool:
-    for claim in page.claims[property]:
-        if claim.target == value:
-            return True
-    return False
+                print(
+                    f"wd:Q2851520 p:P345 "
+                    f'[ ps:P345 "{new_id}" ] ; '
+                    f'wikidatabots:editSummary "{edit_summary}" . '
+                )
+                print(
+                    f"wds:{guid} "
+                    f"wikibase:rank wikibase:DeprecatedRank ; "
+                    f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
+                    f"wd:{REDIRECT_QID} ; "
+                    f'wikidatabots:editSummary "{edit_summary}" . '
+                )
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()
