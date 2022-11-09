@@ -25,11 +25,9 @@ WIKIBASE = Namespace("http://wikiba.se/ontology#")
 
 PID = NewType("PID", str)
 QID = NewType("QID", str)
-StatementGUID = NewType("StatementGUID", str)
 
 PIDPattern = re.compile("Q[1-9][0-9]*")
 QIDPattern = re.compile("Q[1-9][0-9]*")
-StatementGUIDPattern = re.compile("[qQ][0-9]+\\$[0-9a-fA-F-]+")
 
 
 def pid(id: Any) -> PID:
@@ -53,18 +51,4 @@ def qid(id: Any) -> QID:
 def tryqid(id: Any) -> QID | None:
     if type(id) is str and re.fullmatch(QIDPattern, id):
         return QID(id)
-    return None
-
-
-def statement(guid: Any) -> StatementGUID:
-    assert type(guid) is str, f"'{repr(guid)}' is not a valid statement GUID"
-    assert re.fullmatch(
-        StatementGUIDPattern, guid
-    ), f"'{guid}' is not a valid statement GUID"
-    return StatementGUID(guid)
-
-
-def trystatement(guid: Any) -> StatementGUID | None:
-    if type(guid) is str and re.fullmatch(StatementGUIDPattern, guid):
-        return StatementGUID(guid)
     return None

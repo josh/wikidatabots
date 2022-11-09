@@ -39,11 +39,8 @@ def main():
                 continue
 
             if appletv.all_not_found(type="movie", id=id):
-                # TODO: Get original statement IRIs
-                assert "$" in statement
-                guid = statement.replace("$", "-")
                 print(
-                    f"wds:{guid} "
+                    f"{statement.n3()} "
                     f"wikibase:rank wikibase:DeprecatedRank ; "
                     f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
                     f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "

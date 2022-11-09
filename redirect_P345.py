@@ -35,10 +35,6 @@ def main():
                 logging.debug(f"{id} not found")
                 continue
 
-            # TODO: Get original statement IRIs
-            assert "$" in statement
-            guid = statement.replace("$", "-")
-
             if id is not new_id:
                 print(
                     f"wd:Q2851520 p:P345 "
@@ -46,7 +42,7 @@ def main():
                     f'wikidatabots:editSummary "{edit_summary}" . '
                 )
                 print(
-                    f"wds:{guid} "
+                    f"{statement.n3()} "
                     f"wikibase:rank wikibase:DeprecatedRank ; "
                     f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
                     f"wd:{REDIRECT_QID} ; "

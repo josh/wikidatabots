@@ -15,10 +15,10 @@ from typing import Any, Literal, TypedDict
 
 import backoff
 import requests
+from rdflib.term import URIRef
 
 import timeout
-import wikidata
-from wikidata import PID, QID, StatementGUID
+from wikidata import PID, QID
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -144,7 +144,7 @@ def sparql(query: str) -> list[Any]:
             elif obj["value"].startswith("http://www.wikidata.org/entity/"):
                 label = obj["value"].replace("http://www.wikidata.org/entity/", "")
                 if label.startswith("statement/"):
-                    return "$".join(label.replace("statement/", "").split("-", 1))
+                    return URIRef(obj["value"])
                 else:
                     return label
             else:
@@ -161,7 +161,7 @@ def fetch_statements(
     qids: Iterable[QID],
     properties: Iterable[PID],
     deprecated: bool = False,
-) -> dict[QID, dict[PID, list[tuple[StatementGUID, str]]]]:
+) -> dict[QID, dict[PID, list[tuple[URIRef, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
     query += """
@@ -178,14 +178,12 @@ def fetch_statements(
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    Result = TypedDict(
-        "Result", statement=StatementGUID, item=QID, property=PID, value=str
-    )
+    Result = TypedDict("Result", statement=URIRef, item=QID, property=PID, value=str)
     results: list[Result] = sparql(query)
 
-    items: dict[QID, dict[PID, list[tuple[StatementGUID, str]]]] = {}
+    items: dict[QID, dict[PID, list[tuple[URIRef, str]]]] = {}
     for result in results:
-        statement = wikidata.statement(result["statement"])
+        statement = result["statement"]
         qid = result["item"]
         prop = result["property"]
         value = result["value"]

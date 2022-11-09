@@ -1,5 +1,7 @@
 # pyright: strict
 
+from rdflib.term import URIRef
+
 import itunes
 import sparql
 import wikidata
@@ -34,12 +36,9 @@ def main():
 
     for (id, obj) in iter_until_deadline(itunes.batch_lookup(itunes_ids.keys())):
         if not obj and itunes.all_not_found(id):
-            # TODO: Get original statement IRIs
-            guid = itunes_ids[id]
-            assert "$" in guid
-            guid = guid.replace("$", "-")
+            statement = itunes_ids[id]
             print(
-                f"wds:{guid} "
+                f"{statement.n3()} "
                 f"wikibase:rank wikibase:DeprecatedRank ; "
                 f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
                 f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
@@ -48,11 +47,9 @@ def main():
 
 
 def extract_itunes_ids(
-    statements: dict[
-        wikidata.QID, dict[wikidata.PID, list[tuple[wikidata.StatementGUID, str]]]
-    ]
-) -> dict[int, str]:
-    itunes_ids: dict[int, str] = {}
+    statements: dict[wikidata.QID, dict[wikidata.PID, list[tuple[URIRef, str]]]]
+) -> dict[int, URIRef]:
+    itunes_ids: dict[int, URIRef] = {}
     for item in statements.values():
         for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
             id = tryint(value)

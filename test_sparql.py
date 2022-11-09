@@ -33,7 +33,11 @@ def test_sparql_property():
         """
     )
     assert len(results) == 1
-    assert results[0]["statement"] == "Q1$789eef0c-4108-cdda-1a63-505cdd324564"
+    uri = results[0]["statement"].toPython()
+    assert (
+        uri == "http://www.wikidata.org/entity/statement/"
+        "Q1-789eef0c-4108-cdda-1a63-505cdd324564"
+    )
 
 
 def test_type_constraints():
