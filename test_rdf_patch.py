@@ -15,9 +15,9 @@ def setup_function(function):
 
 def test_deprecate_statement():
     rdf = """
-    <http://www.wikidata.org/entity/statement/Q172241-6B571F20-7732-47E1-86B2-1DFA6D0A15F5>
-    <http://wikiba.se/ontology#rank>
-    <http://wikiba.se/ontology#DeprecatedRank> .
+    wds:Q172241-6B571F20-7732-47E1-86B2-1DFA6D0A15F5
+    wikibase:rank
+    wikibase:DeprecatedRank .
     """
     edits = list(process_graph(username, StringIO(rdf)))
     assert len(edits) == 1
@@ -30,9 +30,9 @@ def test_deprecate_statement():
 
 def test_noop_change_statement_rank():
     rdf = """
-    <http://www.wikidata.org/entity/statement/Q172241-6B571F20-7732-47E1-86B2-1DFA6D0A15F5>
-    <http://wikiba.se/ontology#rank>
-    <http://wikiba.se/ontology#NormalRank> .
+    wds:Q172241-6B571F20-7732-47E1-86B2-1DFA6D0A15F5
+    wikibase:rank
+    wikibase:NormalRank .
     """
     edits = list(process_graph(username, StringIO(rdf)))
     assert len(edits) == 0

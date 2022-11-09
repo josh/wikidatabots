@@ -11,14 +11,6 @@ def main():
     qids = sparql.sample_items(IMDB_ID_PID, limit=100)
     results = sparql.fetch_statements(qids, [IMDB_ID_PID])
 
-    print("PREFIX wd: <http://www.wikidata.org/entity/>")
-    print("PREFIX wds: <http://www.wikidata.org/entity/statement/>")
-    print("PREFIX p: <http://www.wikidata.org/prop/>")
-    print("PREFIX pq: <http://www.wikidata.org/prop/qualifier/>")
-    print("PREFIX ps: <http://www.wikidata.org/prop/statement/>")
-    print("PREFIX wikibase: <http://wikiba.se/ontology#>")
-    print("PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>")
-
     edit_summary = "Add claim for canonical IMDb ID"
 
     for qid in tqdm(results):

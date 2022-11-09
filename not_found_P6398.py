@@ -26,12 +26,6 @@ def main():
     statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID])
     itunes_ids = extract_itunes_ids(statements)
 
-    print("PREFIX wd: <http://www.wikidata.org/entity/>")
-    print("PREFIX wds: <http://www.wikidata.org/entity/statement/>")
-    print("PREFIX wikibase: <http://wikiba.se/ontology#>")
-    print("PREFIX pq: <http://www.wikidata.org/prop/qualifier/>")
-    print("PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>")
-
     edit_summary = "Deprecate iTunes movie ID delisted from store"
 
     for (id, obj) in iter_until_deadline(itunes.batch_lookup(itunes_ids.keys())):

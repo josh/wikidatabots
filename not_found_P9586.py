@@ -22,12 +22,6 @@ def main():
 
     results = sparql.fetch_statements(qids, [APPLE_TV_MOVIE_ID_PID])
 
-    print("PREFIX wd: <http://www.wikidata.org/entity/>")
-    print("PREFIX wds: <http://www.wikidata.org/entity/statement/>")
-    print("PREFIX wikibase: <http://wikiba.se/ontology#>")
-    print("PREFIX pq: <http://www.wikidata.org/prop/qualifier/>")
-    print("PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>")
-
     edit_summary = "Deprecate Apple TV movie ID delisted from store"
 
     for qid in iter_until_deadline(results):
