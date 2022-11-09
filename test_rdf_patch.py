@@ -1,6 +1,6 @@
 from io import StringIO
 
-from rdf_update import process_graph
+from rdf_patch import process_graph
 
 username = "Test"
 

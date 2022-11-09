@@ -186,4 +186,4 @@ jobs:
 
       - name: Process batch
         run: |
-          python rdf_update.py <output.ttl
+          python rdf_patch.py <output.ttl
