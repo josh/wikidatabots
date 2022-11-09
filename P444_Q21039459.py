@@ -89,6 +89,7 @@ def fetch_game_qids() -> list[wikidata.QID]:
         ?statement pq:P447 wd:Q21039459.
         ?statement pq:P585 ?pointInTime.
       }
+      FILTER((?pointInTime < NOW() - "P7D"^^xsd:duration) || !(BOUND(?pointInTime)))
       BIND(IF(BOUND(?pointInTime), ?pointInTime, NOW()) AS ?timestamp)
     }
     ORDER BY DESC (?timestamp)
