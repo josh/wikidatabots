@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 from collections import OrderedDict
@@ -74,6 +75,7 @@ pywikibot.config.put_throttle = 0
 def main():
     qids = fetch_game_qids()
     qids = position_weighted_shuffled(qids)
+    qids = itertools.islice(qids, 500)
 
     for qid in iter_until_deadline(qids):
         item = ItemPage(SITE, qid)
