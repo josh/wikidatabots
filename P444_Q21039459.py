@@ -8,6 +8,7 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
+import opencritic
 import wikidata
 from constants import (
     CRITIC_REVIEW_QID,
@@ -76,7 +77,11 @@ def main():
 
     for qid in iter_until_deadline(qids):
         item = ItemPage(SITE, qid)
-        update_review_score_claim(item)
+        try:
+            update_review_score_claim(item)
+        except opencritic.RatelimitException:
+            logging.error("API ratelimited")
+            break
 
 
 def fetch_game_qids() -> list[wikidata.QID]:

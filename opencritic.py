@@ -8,6 +8,10 @@ import requests
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 
 
+class RatelimitException(Exception):
+    pass
+
+
 class OpenCriticGame(TypedDict):
     id: int
     name: str
@@ -35,5 +39,7 @@ def fetch_game(game_id: int, api_key: str | None = RAPIDAPI_KEY) -> OpenCriticGa
         "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
     }
     response = requests.get(url, headers=headers, timeout=5)
+    if response.status_code == 429:
+        raise RatelimitException()
     response.raise_for_status()
     return response.json()
