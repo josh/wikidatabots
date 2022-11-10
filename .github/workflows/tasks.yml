@@ -149,15 +149,15 @@ jobs:
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
 
-  not_found:
+  rdf_patch:
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
         property:
-          - "P6398"
-          - "P9586"
+          - "not_found_P6398"
+          - "not_found_P9586"
 
     steps:
       - uses: actions/checkout@v3
@@ -176,7 +176,7 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python not_found_${{ matrix.property }}.py | tee output.ttl
+          python ${{ matrix.property }}.py | tee output.ttl
 
       - name: Login
         env:
@@ -184,6 +184,6 @@ jobs:
         run: |
           python pwb.py login
 
-      - name: Process batch
+      - name: Process RDF statements
         run: |
           python rdf_patch.py <output.ttl
