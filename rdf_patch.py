@@ -8,7 +8,6 @@ import pywikibot.config
 from rdflib import Graph, Namespace
 from rdflib.term import BNode, Literal, URIRef
 
-from utils import first
 from wikidata import (
     PQ,
     PS,

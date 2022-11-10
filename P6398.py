@@ -2,8 +2,6 @@
 
 import logging
 
-from tqdm import tqdm
-
 import appletv
 from constants import APPLE_TV_MOVIE_ID_PID, INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID
 from page import blocked_qids
@@ -27,7 +25,7 @@ def main():
     )
 
     print("qid,P6398")
-    for qid in iter_until_deadline(tqdm(results)):
+    for qid in iter_until_deadline(results):
         item = results[qid]
 
         if qid in blocked_qids():

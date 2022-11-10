@@ -1,7 +1,5 @@
 import logging
 
-from tqdm import tqdm
-
 import imdb
 import sparql
 from constants import IMDB_ID_PID, REASON_FOR_DEPRECATED_RANK_PID, REDIRECT_QID
@@ -13,7 +11,7 @@ def main():
 
     edit_summary = "Add claim for canonical IMDb ID"
 
-    for qid in tqdm(results):
+    for qid in results:
         item = results[qid]
 
         for (statement, value) in item.get(IMDB_ID_PID, []):

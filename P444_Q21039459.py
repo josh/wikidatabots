@@ -7,7 +7,6 @@ from typing import TypedDict, TypeVar
 import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
-from tqdm import tqdm
 
 import wikidata
 from constants import (
@@ -74,7 +73,6 @@ pywikibot.config.put_throttle = 0
 def main():
     qids = fetch_game_qids()
     qids = position_weighted_shuffled(qids)
-    qids = tqdm(qids)
 
     for qid in iter_until_deadline(qids):
         item = ItemPage(SITE, qid)

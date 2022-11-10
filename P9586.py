@@ -9,7 +9,6 @@ from typing import Any, TypedDict
 import backoff
 import requests
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 
 import appletv
 import wikidata
@@ -160,9 +159,7 @@ def main():
                 yield (url, id)
 
     print("qid,P9586")
-    for (url, id) in iter_until_deadline(
-        tqdm(itertools.islice(candiate_urls(), limit), total=limit)
-    ):
+    for (url, id) in iter_until_deadline(itertools.islice(candiate_urls(), limit)):
         info = fetch_movie(url)
         if not info:
             continue

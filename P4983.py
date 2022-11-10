@@ -3,8 +3,6 @@
 import logging
 from typing import TypedDict
 
-from tqdm import tqdm
-
 import tmdb
 from page import blocked_qids
 from sparql import sparql
@@ -75,7 +73,7 @@ def main():
             item["tvdb"].add(result["tvdb"])
 
     print("qid,P4983")
-    for qid in iter_until_deadline(tqdm(items)):
+    for qid in iter_until_deadline(items):
         item = items[qid]
         tmdb_ids: set[int] = set()
 

@@ -3,8 +3,6 @@
 import logging
 from typing import TypedDict
 
-from tqdm import tqdm
-
 import tmdb
 from constants import TMDB_MOVIE_ID_PID
 from page import blocked_qids
@@ -43,7 +41,7 @@ def main():
     results: list[Result] = sparql(query)
 
     print(f"qid,{TMDB_MOVIE_ID_PID}")
-    for result in iter_until_deadline(tqdm(results)):
+    for result in iter_until_deadline(results):
         qid = result["item"]
 
         if qid in blocked_qids():
