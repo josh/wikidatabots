@@ -18,7 +18,7 @@ import requests
 from rdflib.term import URIRef
 
 import timeout
-from wikidata import PID, QID
+from wikidata import PID, QID, WDSURIRef
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -161,7 +161,7 @@ def fetch_statements(
     qids: Iterable[QID],
     properties: Iterable[PID],
     deprecated: bool = False,
-) -> dict[QID, dict[PID, list[tuple[URIRef, str]]]]:
+) -> dict[QID, dict[PID, list[tuple[WDSURIRef, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
     query += """
@@ -178,10 +178,10 @@ def fetch_statements(
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    Result = TypedDict("Result", statement=URIRef, item=QID, property=PID, value=str)
+    Result = TypedDict("Result", statement=WDSURIRef, item=QID, property=PID, value=str)
     results: list[Result] = sparql(query)
 
-    items: dict[QID, dict[PID, list[tuple[URIRef, str]]]] = {}
+    items: dict[QID, dict[PID, list[tuple[WDSURIRef, str]]]] = {}
     for result in results:
         statement = result["statement"]
         qid = result["item"]

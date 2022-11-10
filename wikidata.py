@@ -4,6 +4,7 @@ import re
 from typing import Any, NewType
 
 from rdflib import Namespace
+from rdflib.term import URIRef
 
 P = Namespace("http://www.wikidata.org/prop/")
 PQ = Namespace("http://www.wikidata.org/prop/qualifier/")
@@ -52,3 +53,63 @@ def tryqid(id: Any) -> QID | None:
     if type(id) is str and re.fullmatch(QIDPattern, id):
         return QID(id)
     return None
+
+
+class WikidataURIRef(URIRef):
+    prefix: str
+    namespace: Namespace
+
+    def __new__(cls, value: str) -> "WikidataURIRef":
+        if cls == WikidataURIRef:
+            if value.startswith(WDS):
+                return WDSURIRef(value)
+            elif value.startswith(WDT):
+                return WDTURIRef(value)
+            elif value.startswith(WD):
+                return WDURIRef(value)
+            else:
+                assert False, f"Invalid WikidataURIRef: {value}"
+
+        return str.__new__(cls, value)
+
+    def __init__(self, value: str):
+        assert value.startswith(self.namespace)
+        URIRef.__init__(self)
+        assert "/" not in self.local_name()
+
+    def local_name(self) -> str:
+        start = len(self.namespace)
+        return self[start:]
+
+    def qname(self) -> str:
+        return f"{self.prefix}:{self.local_name()}"
+
+
+class PURIRef(WikidataURIRef):
+    prefix: str = "p"
+    namespace: Namespace = P
+
+
+class PQURIRef(WikidataURIRef):
+    prefix: str = "pq"
+    namespace: Namespace = PQ
+
+
+class PSURIRef(WikidataURIRef):
+    prefix: str = "ps"
+    namespace: Namespace = PS
+
+
+class WDURIRef(WikidataURIRef):
+    prefix: str = "wd"
+    namespace: Namespace = WD
+
+
+class WDSURIRef(WikidataURIRef):
+    prefix: str = "wds"
+    namespace: Namespace = WDS
+
+
+class WDTURIRef(WikidataURIRef):
+    prefix: str = "wdt"
+    namespace: Namespace = WDT

@@ -2,8 +2,6 @@
 
 from typing import TypedDict
 
-from rdflib.term import URIRef
-
 import itunes
 import sparql
 import wikidata
@@ -37,15 +35,16 @@ def main():
     for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
         if obj:
             uri = itunes_ids[id]
-            guid: str = uri.removeprefix("http://www.wikidata.org/entity/statement/")
-            guid: str = "$".join(guid.split("-", 1))
-            print(f"{guid},{NORMAL_RANK_QID}")
+            snak = "$".join(uri.local_name().split("-", 1))
+            print(f"{snak},{NORMAL_RANK_QID}")
 
 
 def extract_itunes_ids(
-    statements: dict[wikidata.QID, dict[wikidata.PID, list[tuple[URIRef, str]]]]
-) -> dict[int, URIRef]:
-    itunes_ids: dict[int, URIRef] = {}
+    statements: dict[
+        wikidata.QID, dict[wikidata.PID, list[tuple[wikidata.WDSURIRef, str]]]
+    ]
+) -> dict[int, wikidata.WDSURIRef]:
+    itunes_ids: dict[int, wikidata.WDSURIRef] = {}
     for item in statements.values():
         for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
             id = tryint(value)

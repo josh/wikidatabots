@@ -1,6 +1,5 @@
 # pyright: strict
 
-from rdflib.term import URIRef
 
 import itunes
 import sparql
@@ -41,9 +40,11 @@ def main():
 
 
 def extract_itunes_ids(
-    statements: dict[wikidata.QID, dict[wikidata.PID, list[tuple[URIRef, str]]]]
-) -> dict[int, URIRef]:
-    itunes_ids: dict[int, URIRef] = {}
+    statements: dict[
+        wikidata.QID, dict[wikidata.PID, list[tuple[wikidata.WDSURIRef, str]]]
+    ]
+) -> dict[int, wikidata.WDSURIRef]:
+    itunes_ids: dict[int, wikidata.WDSURIRef] = {}
     for item in statements.values():
         for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
             id = tryint(value)
