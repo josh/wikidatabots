@@ -1,6 +1,15 @@
 from rdflib.term import URIRef
 
-from wikidata import WD, WDS, WDSURIRef, WDURIRef, WikidataURIRef, qid
+from wikidata import (
+    WD,
+    WDS,
+    WIKIDATABOTS,
+    WDSURIRef,
+    WDURIRef,
+    WikidatabotsURIRef,
+    WikidataURIRef,
+    qid,
+)
 
 
 def test_qid():
@@ -43,3 +52,15 @@ def test_wdsref():
 
     assert wds_uri_ref.local_name() == "q172241-91B6C9F4-2F78-4577-9726-6E9D8D76B486"
     assert wds_uri_ref.qname() == "wds:q172241-91B6C9F4-2F78-4577-9726-6E9D8D76B486"
+
+
+def test_wikidatabotsref():
+    wdbots_uri_ref = WikidatabotsURIRef(
+        "https://github.com/josh/wikidatabots#editSummary"
+    )
+    assert isinstance(wdbots_uri_ref, str)
+    assert isinstance(wdbots_uri_ref, URIRef)
+    assert isinstance(wdbots_uri_ref, WikidatabotsURIRef)
+
+    assert WikidatabotsURIRef.namespace == WIKIDATABOTS
+    assert WikidatabotsURIRef.prefix == "wikidatabots"

@@ -5,7 +5,7 @@ from typing import Any, Iterator, TextIO
 
 import pywikibot
 import pywikibot.config
-from rdflib import Graph, Namespace
+from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
 from wikidata import (
@@ -17,6 +17,7 @@ from wikidata import (
     SCHEMA,
     SKOS,
     WIKIBASE,
+    WIKIDATABOTS,
     PQURIRef,
     PURIRef,
     WDSURIRef,
@@ -25,9 +26,6 @@ from wikidata import (
     WDURIRef,
     parse_uriref,
 )
-
-SCRIPT_NS = Namespace("https://github.com/josh/wikidatabots#")
-
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -179,7 +177,7 @@ def process_graph(
         elif predicate == SKOS.prefLabel and isinstance(object, Literal):
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
-        elif predicate == SCRIPT_NS.editSummary:
+        elif predicate == WIKIDATABOTS.editSummary:
             item: pywikibot.ItemPage = get_item_page(subject.local_name())
             edit_summaries[item] = object.toPython()
 
@@ -221,7 +219,7 @@ def process_graph(
             if claim_set_rank(claim, object):
                 changed_claims[item].add(HashableClaim(claim))
 
-        elif predicate == SCRIPT_NS.editSummary:
+        elif predicate == WIKIDATABOTS.editSummary:
             edit_summaries[item] = object.toPython()
 
         else:

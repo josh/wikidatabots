@@ -25,6 +25,8 @@ WDTN = Namespace("http://www.wikidata.org/prop/direct-normalized/")
 WDV = Namespace("http://www.wikidata.org/value/")
 WIKIBASE = Namespace("http://wikiba.se/ontology#")
 
+WIKIDATABOTS = Namespace("https://github.com/josh/wikidatabots#")
+
 PID = NewType("PID", str)
 QID = NewType("QID", str)
 
@@ -71,6 +73,8 @@ def parse_uriref(uri: str) -> URIRef:
         return PQURIRef(uri)
     elif uri.startswith(P):
         return PURIRef(uri)
+    elif uri.startswith(WIKIDATABOTS):
+        return WikidatabotsURIRef(uri)
     else:
         logging.info(f"Unknown subtype for URIRef: {uri}")
         return URIRef(uri)
@@ -134,3 +138,8 @@ class WDTURIRef(WikidataURIRef):
 class WDTNURIRef(WikidataURIRef):
     prefix: str = "wdtn"
     namespace: Namespace = WDTN
+
+
+class WikidatabotsURIRef(WikidataURIRef):
+    prefix: str = "wikidatabots"
+    namespace: Namespace = WIKIDATABOTS
