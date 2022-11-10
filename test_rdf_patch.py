@@ -56,3 +56,35 @@ def test_noop_change_prop_direct_value():
     triple = ["wd:Q172241", "wdt:P4947", '"278"', "."]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
     assert len(edits) == 0
+
+
+def test_add_prop_qualifer():
+    triple = [
+        "wds:q172241-E0C7392E-5020-4DC1-8520-EEBF57C3AB66",
+        "pq:P4633",
+        '"Narrator"',
+        ".",
+    ]
+    edits = list(process_graph(username, StringIO(" ".join(triple))))
+    assert len(edits) == 1
+    (item, claims, summary) = edits[0]
+    assert item.id == "Q172241"
+    assert summary is None
+    assert len(claims) == 1
+    assert claims[0]["mainsnak"]["property"] == "P161"
+    assert (
+        claims[0]["qualifiers"]["P4633"][0]["datavalue"]["value"]
+        == 'Ellis Boyd "Red" Redding'
+    )
+    assert claims[0]["qualifiers"]["P4633"][1]["datavalue"]["value"] == "Narrator"
+
+
+def test_noop_change_prop_qualifer():
+    triple = [
+        "wds:q172241-91B6C9F4-2F78-4577-9726-6E9D8D76B486",
+        "pq:P4633",
+        '"Andy Dufresne"',
+        ".",
+    ]
+    edits = list(process_graph(username, StringIO(" ".join(triple))))
+    assert len(edits) == 0

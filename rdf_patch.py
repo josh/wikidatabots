@@ -160,9 +160,9 @@ def process_graph(
             predicate_statement_uri = PS[pid]
 
             for object2 in graph.objects(object, predicate_statement_uri):
-                assert isinstance(object2, Literal)
+                assert isinstance(object2, Literal) or isinstance(object2, URIRef)
                 did_change, claim = item_append_claim_target(
-                    item, property, object2.toPython()
+                    item, property, object_to_target(object2)
                 )
                 if did_change:
                     changed_claims[item].add(HashableClaim(claim))
@@ -213,21 +213,13 @@ def process_graph(
             property = get_property_page(pid)
             logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
 
-        elif predicate in PQ and isinstance(object, URIRef) and object in WD:
+        elif predicate in PQ:
             pid = predicate.removeprefix(PQ)
             property = get_property_page(pid)
-            target = resolve_entity(object)
+            target = object_to_target(object)
 
-            # TODO: Figure out how to handle appending additional qualifier
-            qualifier: pywikibot.Claim | None = first(claim.qualifiers.get(property.id))
-            if not qualifier:
-                qualifier = property.newClaim(is_qualifier=True)
-                claim.qualifiers[property.id] = [qualifier]
-                changed_claims[item].add(HashableClaim(claim))
-            assert qualifier
-
-            if not qualifier.target_equals(target):
-                qualifier.setTarget(target)
+            did_change, _ = claim_append_qualifer(claim, property, target)
+            if did_change:
                 changed_claims[item].add(HashableClaim(claim))
 
         elif (
@@ -324,18 +316,47 @@ def item_append_claim_target(
     property: pywikibot.PropertyPage,
     target: Any,
 ) -> tuple[bool, pywikibot.Claim]:
+    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
     assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
-    existing_claims = item.claims.get(property.id, [])
-    for claim in existing_claims:
+
+    pid: str = property.id
+    if pid not in item.claims:
+        item.claims[pid] = []
+    claims = item.claims[pid]
+
+    for claim in claims:
         if claim.target_equals(target):
             return (False, claim)
 
     claim: pywikibot.Claim = property.newClaim()
     claim.setTarget(target)
-    if not item.claims.get(property.id):
-        item.claims[property.id] = []
-    item.claims[property.id].append(claim)
+    item.claims[pid].append(claim)
+
     return (True, claim)
+
+
+def claim_append_qualifer(
+    claim: pywikibot.Claim,
+    property: pywikibot.PropertyPage,
+    target: Any,
+) -> tuple[bool, pywikibot.Claim]:
+    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
+    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
+
+    pid: str = property.id
+    if pid not in claim.qualifiers:
+        claim.qualifiers[pid] = []
+    qualifiers = claim.qualifiers[pid]
+
+    for qualifier in qualifiers:
+        if qualifier.target_equals(target):
+            return (False, qualifier)
+
+    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
+    qualifier.setTarget(target)
+    claim.qualifiers[pid].append(qualifier)
+
+    return (True, qualifier)
 
 
 RANKS: dict[URIRef, str] = {
