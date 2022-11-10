@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
 from functools import cache
-from typing import Any, Iterator, NewType, TextIO
+from typing import Any, Iterator, TextIO
 
 import pywikibot
 import pywikibot.config
@@ -9,7 +9,6 @@ from rdflib import Graph, Namespace
 from rdflib.term import BNode, Literal, URIRef
 
 from wikidata import (
-    PQ,
     PS,
     PSN,
     PSV,
@@ -17,18 +16,18 @@ from wikidata import (
     RDFS,
     SCHEMA,
     SKOS,
-    WD,
-    WDS,
-    WDT,
-    WDTN,
     WIKIBASE,
-    P,
+    PQURIRef,
+    PURIRef,
+    WDSURIRef,
+    WDTNURIRef,
+    WDTURIRef,
+    WDURIRef,
+    parse_uriref,
 )
 
 SCRIPT_NS = Namespace("https://github.com/josh/wikidatabots#")
 
-Ontology = NewType("Ontology", str)
-ResolvedURI = pywikibot.PropertyPage | pywikibot.ItemPage | pywikibot.Claim | Ontology
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -110,32 +109,29 @@ def process_graph(
             pass
         elif predicate == RDF.type:
             pass
-        elif subject in WDS:
+        elif isinstance(subject, WDSURIRef):
             visit_wds_subject(subject, predicate, object)
-        elif subject in WD:
+        elif isinstance(subject, WDURIRef):
             visit_wd_subject(subject, predicate, object)
         else:
             logging.warning(f"Unknown triple: {subject} {predicate} {object}")
 
     def visit_wd_subject(
-        subject: URIRef,
+        subject: WDURIRef,
         predicate: URIRef,
         object: URIRef | BNode | Literal,
     ) -> None:
-        subject_id = subject.removeprefix(WD)
+        subject_id = subject.local_name()
 
         if predicate in WIKIBASE:
             pass
 
-        elif subject_id.startswith("Q") and predicate in WDTN:
-            _ = get_item_page(subject_id)
-            pid = predicate.removeprefix(WDTN)
-            _ = get_property_page(pid)
+        elif subject_id.startswith("Q") and isinstance(predicate, WDTNURIRef):
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
-        elif subject_id.startswith("Q") and predicate in WDT:
+        elif subject_id.startswith("Q") and isinstance(predicate, WDTURIRef):
             item = get_item_page(subject_id)
-            pid = predicate.removeprefix(WDT)
+            pid = predicate.local_name()
             property = get_property_page(pid)
             target = object_to_target(object)
 
@@ -143,18 +139,20 @@ def process_graph(
             if did_change:
                 changed_claims[item].add(HashableClaim(claim))
 
-        elif subject_id.startswith("Q") and predicate in P and object in WDS:
-            _ = get_item_page(subject_id)
-            pid = predicate.removeprefix(P)
-            _ = get_property_page(pid)
+        elif (
+            subject_id.startswith("Q")
+            and isinstance(predicate, PURIRef)
+            and isinstance(object, WDSURIRef)
+        ):
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
         elif (
-            subject_id.startswith("Q") and predicate in P and isinstance(object, BNode)
+            subject_id.startswith("Q")
+            and isinstance(predicate, PURIRef)
+            and isinstance(object, BNode)
         ):
             item: pywikibot.ItemPage = get_item_page(subject_id)
-            pid = predicate.removeprefix(P)
-            assert pid.startswith("P")
+            pid = predicate.local_name()
             property: pywikibot.PropertyPage = get_property_page(pid)
             predicate_statement_uri = PS[pid]
 
@@ -182,14 +180,14 @@ def process_graph(
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
         elif predicate == SCRIPT_NS.editSummary:
-            item: pywikibot.ItemPage = resolve_entity(subject)
+            item: pywikibot.ItemPage = get_item_page(subject.local_name())
             edit_summaries[item] = object.toPython()
 
         else:
             logging.warning(f"Unknown wd triple: {subject} {predicate} {object}")
 
     def visit_wds_subject(
-        subject: URIRef,
+        subject: WDSURIRef,
         predicate: URIRef,
         object: URIRef | BNode | Literal,
     ) -> None:
@@ -198,22 +196,16 @@ def process_graph(
         assert item
 
         if predicate in PSN:
-            pid = predicate.removeprefix(PSN)
-            property = get_property_page(pid)
             logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
 
         elif predicate in PSV:
-            pid = predicate.removeprefix(PSV)
-            property = get_property_page(pid)
             logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
 
         elif predicate in PS:
-            pid = predicate.removeprefix(PS)
-            property = get_property_page(pid)
             logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
 
-        elif predicate in PQ:
-            pid = predicate.removeprefix(PQ)
+        elif isinstance(predicate, PQURIRef):
+            pid = predicate.local_name()
             property = get_property_page(pid)
             target = object_to_target(object)
 
@@ -243,6 +235,13 @@ def process_graph(
             or isinstance(object, BNode)
             or isinstance(object, Literal)
         )
+
+        if isinstance(subject, URIRef):
+            subject = parse_uriref(subject)
+        if isinstance(predicate, URIRef):
+            predicate = parse_uriref(predicate)
+        if isinstance(object, URIRef):
+            object = parse_uriref(object)
 
         visit(subject, predicate, object)
 
@@ -277,18 +276,8 @@ def get_property_page(pid: str) -> pywikibot.PropertyPage:
 
 
 @cache
-def resolve_entity(uri: URIRef) -> pywikibot.ItemPage:
-    assert uri.startswith("http://www.wikidata.org/entity/Q"), uri
-    qid = uri.removeprefix("http://www.wikidata.org/entity/")
-    return get_item_page(qid)
-
-
-@cache
-def resolve_entity_statement(uri: URIRef) -> pywikibot.Claim:
-    assert uri.startswith("http://www.wikidata.org/entity/statement/"), uri
-    guid = uri.removeprefix("http://www.wikidata.org/entity/statement/")
-    assert "$" not in guid
-    qid, hash = guid.split("-", 1)
+def resolve_entity_statement(uri: WDSURIRef) -> pywikibot.Claim:
+    qid, hash = uri.local_name().split("-", 1)
     snak = f"{qid}${hash}"
 
     item = get_item_page(qid.upper())
@@ -304,8 +293,8 @@ def resolve_entity_statement(uri: URIRef) -> pywikibot.Claim:
 def object_to_target(object: URIRef | BNode | Literal) -> Any:
     if isinstance(object, Literal):
         return object.toPython()
-    elif isinstance(object, URIRef):
-        return resolve_entity(object)
+    elif isinstance(object, WDURIRef):
+        return get_item_page(object.local_name())
     else:
         assert False, f"Can't convert object to target: {object}"
 

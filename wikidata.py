@@ -1,5 +1,6 @@
 # pyright: strict
 
+import logging
 import re
 from typing import Any, NewType
 
@@ -55,20 +56,35 @@ def tryqid(id: Any) -> QID | None:
     return None
 
 
+def parse_uriref(uri: str) -> URIRef:
+    if uri.startswith(WDS):
+        return WDSURIRef(uri)
+    elif uri.startswith(WDTN):
+        return WDTNURIRef(uri)
+    elif uri.startswith(WDT):
+        return WDTURIRef(uri)
+    elif uri.startswith(WD):
+        return WDURIRef(uri)
+    elif uri.startswith(PS):
+        return PSURIRef(uri)
+    elif uri.startswith(PQ):
+        return PQURIRef(uri)
+    elif uri.startswith(P):
+        return PURIRef(uri)
+    else:
+        logging.info(f"Unknown subtype for URIRef: {uri}")
+        return URIRef(uri)
+
+
 class WikidataURIRef(URIRef):
     prefix: str
     namespace: Namespace
 
     def __new__(cls, value: str) -> "WikidataURIRef":
         if cls == WikidataURIRef:
-            if value.startswith(WDS):
-                return WDSURIRef(value)
-            elif value.startswith(WDT):
-                return WDTURIRef(value)
-            elif value.startswith(WD):
-                return WDURIRef(value)
-            else:
-                assert False, f"Invalid WikidataURIRef: {value}"
+            uri = parse_uriref(value)
+            assert isinstance(uri, WikidataURIRef), f"Invalid WikidataURIRef: {value}"
+            return uri
 
         return str.__new__(cls, value)
 
@@ -113,3 +129,8 @@ class WDSURIRef(WikidataURIRef):
 class WDTURIRef(WikidataURIRef):
     prefix: str = "wdt"
     namespace: Namespace = WDT
+
+
+class WDTNURIRef(WikidataURIRef):
+    prefix: str = "wdtn"
+    namespace: Namespace = WDTN
