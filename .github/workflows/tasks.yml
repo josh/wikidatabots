@@ -18,7 +18,6 @@ jobs:
       matrix:
         property:
           - "P4947"
-          - "P4983"
           - "P4985"
 
     steps:
@@ -158,6 +157,7 @@ jobs:
         property:
           - "not_found_P6398"
           - "not_found_P9586"
+          - "P4983"
 
     steps:
       - uses: actions/checkout@v3
