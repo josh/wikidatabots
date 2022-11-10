@@ -135,10 +135,14 @@ def process_graph(
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
         elif subject_id.startswith("Q") and predicate in WDT:
-            _ = get_item_page(subject_id)
+            item = get_item_page(subject_id)
             pid = predicate.removeprefix(WDT)
-            _ = get_property_page(pid)
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
+            property = get_property_page(pid)
+            target = object_to_target(object)
+
+            did_change, claim = item_append_claim_target(item, property, target)
+            if did_change:
+                changed_claims[item].add(HashableClaim(claim))
 
         elif subject_id.startswith("Q") and predicate in P and object in WDS:
             _ = get_item_page(subject_id)
@@ -304,6 +308,15 @@ def resolve_entity_statement(uri: URIRef) -> pywikibot.Claim:
                 return claim
 
     assert False, f"Can't resolve statement GUID: {uri}"
+
+
+def object_to_target(object: URIRef | BNode | Literal) -> Any:
+    if isinstance(object, Literal):
+        return object.toPython()
+    elif isinstance(object, URIRef):
+        return resolve_entity(object)
+    else:
+        assert False, f"Can't convert object to target: {object}"
 
 
 def item_append_claim_target(
