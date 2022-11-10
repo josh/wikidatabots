@@ -128,7 +128,7 @@ def update_review_score_claim(item: ItemPage):
             orig_claim = c.copy()
 
     if data["topCriticScore"] <= 0:
-        logging.warning(f"Skipping {item.id}, has no score")
+        logging.debug(f"Skipping {item.id}, has no score")
         return
 
     # Update review score value top OpenCritic top-critic score
