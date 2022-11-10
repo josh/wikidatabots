@@ -79,8 +79,8 @@ def main():
         item = ItemPage(SITE, qid)
         try:
             update_review_score_claim(item)
-        except opencritic.RatelimitException:
-            logging.error("API ratelimited")
+        except opencritic.RatelimitException as e:
+            logging.error(e)
             break
 
 
