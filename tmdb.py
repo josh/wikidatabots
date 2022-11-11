@@ -6,10 +6,16 @@ from typing import Any, Literal
 
 import backoff
 import requests
+import requests_cache
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
-session = requests.Session()
+session = requests_cache.CachedSession(
+    ".cache/tmdb_requests_cache",
+    expire_after=0,
+    cache_control=True,
+    ignored_parameters=["api_key"],
+)
 
 
 class UnauthorizedException(Exception):
