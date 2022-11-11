@@ -18,12 +18,14 @@ from wikidata import (
     SKOS,
     WIKIBASE,
     WIKIDATABOTS,
+    OntologyURIRef,
     PQURIRef,
     PURIRef,
     WDSURIRef,
     WDTNURIRef,
     WDTURIRef,
     WDURIRef,
+    WikidatabotsURIRef,
     parse_uriref,
 )
 
@@ -177,7 +179,7 @@ def process_graph(
         elif predicate == SKOS.prefLabel and isinstance(object, Literal):
             logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
 
-        elif predicate == WIKIDATABOTS.editSummary:
+        elif predicate == WikidatabotsURIRef(WIKIDATABOTS.editSummary):
             item: pywikibot.ItemPage = get_item_page(subject.local_name())
             edit_summaries[item] = object.toPython()
 
@@ -212,14 +214,14 @@ def process_graph(
                 changed_claims[item].add(HashableClaim(claim))
 
         elif (
-            predicate == WIKIBASE.rank
-            and isinstance(object, URIRef)
-            and object in WIKIBASE
+            isinstance(predicate, OntologyURIRef)
+            and predicate.local_name() == "rank"
+            and isinstance(object, OntologyURIRef)
         ):
             if claim_set_rank(claim, object):
                 changed_claims[item].add(HashableClaim(claim))
 
-        elif predicate == WIKIDATABOTS.editSummary:
+        elif predicate == WikidatabotsURIRef(WIKIDATABOTS.editSummary):
             edit_summaries[item] = object.toPython()
 
         else:
@@ -345,15 +347,15 @@ def claim_append_qualifer(
     return (True, qualifier)
 
 
-RANKS: dict[URIRef, str] = {
-    WIKIBASE.NormalRank: "normal",
-    WIKIBASE.DeprecatedRank: "deprecated",
-    WIKIBASE.PreferredRank: "preferred",
+RANKS: dict[str, str] = {
+    str(WIKIBASE.NormalRank): "normal",
+    str(WIKIBASE.DeprecatedRank): "deprecated",
+    str(WIKIBASE.PreferredRank): "preferred",
 }
 
 
 def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
-    rank_str: str = RANKS[rank]
+    rank_str: str = RANKS[str(rank)]
     if claim.rank == rank_str:
         return False
     claim.setRank(rank_str)

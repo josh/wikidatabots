@@ -3,7 +3,9 @@ from rdflib.term import URIRef
 from wikidata import (
     WD,
     WDS,
+    WIKIBASE,
     WIKIDATABOTS,
+    OntologyURIRef,
     WDSURIRef,
     WDURIRef,
     WikidatabotsURIRef,
@@ -64,3 +66,16 @@ def test_wikidatabotsref():
 
     assert WikidatabotsURIRef.namespace == WIKIDATABOTS
     assert WikidatabotsURIRef.prefix == "wikidatabots"
+
+
+def test_ontology_rank():
+    ontology_uri_ref = OntologyURIRef("http://wikiba.se/ontology#rank")
+    assert isinstance(ontology_uri_ref, str)
+    assert isinstance(ontology_uri_ref, URIRef)
+    assert isinstance(ontology_uri_ref, OntologyURIRef)
+
+    assert OntologyURIRef.namespace == WIKIBASE
+    assert OntologyURIRef.prefix == "wikibase"
+
+    assert ontology_uri_ref == OntologyURIRef(WIKIBASE.rank)
+    assert ontology_uri_ref.local_name() == "rank"

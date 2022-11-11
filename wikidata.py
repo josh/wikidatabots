@@ -75,6 +75,8 @@ def parse_uriref(uri: str) -> URIRef:
         return PURIRef(uri)
     elif uri.startswith(WIKIDATABOTS):
         return WikidatabotsURIRef(uri)
+    elif uri.startswith(WIKIBASE):
+        return OntologyURIRef(uri)
     else:
         logging.info(f"Unknown subtype for URIRef: {uri}")
         return URIRef(uri)
@@ -143,3 +145,8 @@ class WDTNURIRef(WikidataURIRef):
 class WikidatabotsURIRef(WikidataURIRef):
     prefix: str = "wikidatabots"
     namespace: Namespace = WIKIDATABOTS
+
+
+class OntologyURIRef(WikidataURIRef):
+    prefix: str = "wikibase"
+    namespace: Namespace = WIKIBASE
