@@ -181,6 +181,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Load cache
+        uses: actions/cache@v3
+        with:
+          path: .cache/
+          key: cache-${{ github.job }}-${{ matrix.property }}-${{ github.run_id }}
+          restore-keys: |
+            cache-${{ github.job }}-${{ matrix.property }}-
+
       - name: Run script
         run: |
           set -o pipefail
