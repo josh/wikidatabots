@@ -173,6 +173,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Load cache
+        uses: actions/cache@v3
+        with:
+          path: .cache/
+          key: cache-${{ runner.os }}
+
       - name: Run script
         run: |
           set -o pipefail
