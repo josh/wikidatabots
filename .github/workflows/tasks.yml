@@ -140,9 +140,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .cache/
-          key: cache-${{ job.name }}-${{ matrix.property }}-${{ github.run_id }}
+          key: cache-${{ github.job }}-${{ matrix.property }}-${{ github.run_id }}
           restore-keys: |
-            cache-${{ job.name }}-${{ matrix.property }}-
+            cache-${{ github.job }}-${{ matrix.property }}-
 
       - name: Login
         env:
