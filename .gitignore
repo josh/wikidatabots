@@ -1,4 +1,5 @@
 /__pycache__/
+/.cache/
 /.venv/
 /apicache-py3/
 pywikibot.lwp
