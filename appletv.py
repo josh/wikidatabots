@@ -8,11 +8,16 @@ from collections.abc import Iterator
 from typing import Any, Literal, NewType
 
 import requests
+import requests_cache
 from bs4 import BeautifulSoup
 
 import itunes
 
-session = requests.Session()
+session = requests_cache.CachedSession(
+    ".cache/appletv_requests_cache",
+    expire_after=0,
+    cache_control=True,
+)
 
 ID = NewType("ID", str)
 IDPattern = re.compile("umc.cmc.[a-z0-9]{22,25}")
