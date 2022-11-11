@@ -3,11 +3,15 @@
 import os
 from typing import TypedDict
 
-import requests
+import requests_cache
 
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 
-session: requests.Session = requests.Session()
+session = requests_cache.CachedSession(
+    ".cache/opencritic_requests_cache",
+    expire_after=0,
+    cache_control=True,
+)
 session.headers.update({"X-RapidAPI-Host": "opencritic-api.p.rapidapi.com"})
 
 
