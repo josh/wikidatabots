@@ -21,10 +21,9 @@ session = requests.Session()
 
 @backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
 def fetch_movie(url: str) -> tuple[str, int, set[str]] | None:
-    r = session.get(url, headers=appletv.request_headers)
-    r.raise_for_status()
-
-    soup = BeautifulSoup(r.text, "html.parser")
+    soup = appletv.fetch(url)
+    if not soup:
+        return None
 
     ld = find_ld(soup)
     if not ld:
