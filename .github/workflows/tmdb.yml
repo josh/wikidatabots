@@ -1,0 +1,82 @@
+name: TMDB
+
+on:
+  push:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: "movie"
+            export_name: "movie_ids"
+          - type: "tv"
+            export_name: "tv_series_ids"
+          - type: "person"
+            export_name: "person_ids"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate export filename
+        id: export_filename
+        run: |
+          DATE=$(date +'%m_%d_%Y')
+          echo "filename=${EXPORT_NAME}_${DATE}.json.gz" >>"$GITHUB_OUTPUT"
+        env:
+          EXPORT_NAME: ${{ matrix.export_name }}
+
+      - name: Download export
+        run: |
+          wget "http://files.tmdb.org/p/exports/$FILENAME"
+        env:
+          FILENAME: ${{ steps.export_filename.outputs.filename }}
+
+      - name: Run script
+        run: |
+          python tmdb_index.py "$FILENAME" "mask.feather"
+        env:
+          FILENAME: ${{ steps.export_filename.outputs.filename }}
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "mask.feather" "s3://$BUCKET_NAME/tmdb/$EXPORT_TYPE/mask.feather"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          EXPORT_TYPE: ${{ matrix.type }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-null-export
+          path: |
+            *.feather
+          retention-days: 3
+
+  test:
+    needs: export
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: echo "Hello, world!"
