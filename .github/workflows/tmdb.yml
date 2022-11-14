@@ -31,10 +31,6 @@ jobs:
           python-version: "3.10"
           cache: "pip"
 
-      - name: Test AWS cli
-        run: |
-          aws help
-
       - name: Run script
         run: |
           python tmdb_index.py ${{ matrix.type }}
