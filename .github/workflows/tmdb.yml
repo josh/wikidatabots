@@ -39,7 +39,7 @@ jobs:
         id: export_filename
         run: |
           DATE=$(date +'%m_%d_%Y')
-          echo "filename=$EXPORT_TYPE_$DATE.json.gz" >>"$GITHUB_OUTPUT"
+          echo "filename=${EXPORT_TYPE}_${DATE}.json.gz" >>"$GITHUB_OUTPUT"
         env:
           EXPORT_TYPE: ${{ matrix.type }}
 
