@@ -1,9 +1,7 @@
 import logging
-import os
 import sys
 from datetime import datetime
 from typing import Literal
-from urllib.request import urlretrieve
 
 import numpy as np
 import numpy.typing as npt
@@ -46,17 +44,6 @@ TYPE_TO_EXPORT_NAME: dict[IndexType, ExportName] = {
 }
 
 
-def download_export(type: IndexType) -> pa.Table:
-    filename = f"{TYPE_TO_EXPORT_NAME[type]}_{TODAY_STR}.json.gz"
-    url = f"http://files.tmdb.org/p/exports/{filename}"
-    logging.info(f"Downloading {url}")
-    tmp_path, _ = urlretrieve(url, filename)
-    assert tmp_path.endswith(".json.gz")
-    table = json.read_json(tmp_path)
-    os.remove(tmp_path)
-    return table
-
-
 def index_null_ids(table: pa.Table) -> pa.Table:
     size: int = pc.max(table["id"]).as_py() + 1  # type: ignore
     mask = np.ones(size, bool)
@@ -76,7 +63,7 @@ def fetch_mask(type: IndexType) -> npt.NDArray[np.bool_]:
 
 def main():
     index_type = STR_TO_TYPE[sys.argv[1]]
-    table = download_export(index_type)
+    table = json.read_json(sys.argv[2])
     bitmap = index_null_ids(table)
     feather.write_feather(bitmap, f"{index_type}-mask.feather")
     upload_mask(index_type, bitmap)

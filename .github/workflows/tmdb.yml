@@ -48,7 +48,7 @@ jobs:
 
       - name: Run script
         run: |
-          python tmdb_index.py ${{ matrix.type }}
+          python tmdb_index.py ${{ matrix.type }} "${{ steps.export_filename.outputs.filename }}"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
