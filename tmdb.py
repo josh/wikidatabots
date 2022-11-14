@@ -1,8 +1,9 @@
 # pyright: strict
 
+import datetime
 import os
 from collections.abc import Iterable
-from typing import Any, Literal
+from typing import Any, Iterator, Literal
 
 import backoff
 import requests
@@ -129,3 +130,42 @@ def find(
         return results[0]
     else:
         return None
+
+
+ChangeType = Literal["movie", "person", "tv"]
+change_types: set[ChangeType] = {"movie", "person", "tv"}
+
+
+def changes(
+    type: ChangeType,
+    page: int = 1,
+    start_date: datetime.date | None = None,
+    end_date: datetime.date | None = None,
+    api_key: str | None = TMDB_API_KEY,
+) -> Iterator[int]:
+    assert type in change_types
+    assert page >= 1
+    assert page <= 1000
+
+    params = {
+        "page": str(page),
+    }
+
+    if start_date:
+        params["start_date"] = start_date.isoformat()
+
+    if end_date:
+        params["end_date"] = end_date.isoformat()
+
+    resp = api_request(f"/{type}/changes", params=params, api_key=api_key)
+    assert resp.get("success", True)
+
+    assert page == resp["page"]
+
+    for result in resp["results"]:
+        id: int = result["id"]
+        yield id
+
+    total_pages: int = resp["total_pages"]
+    if page < total_pages:
+        yield from changes(type, page + 1, api_key=api_key)
