@@ -40,9 +40,10 @@ jobs:
         run: |
           python tmdb_index.py ${{ matrix.type }}
 
-      - name: Archive artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.type }}-feather
           path: |
             *.feather
+          retention-days: 3
