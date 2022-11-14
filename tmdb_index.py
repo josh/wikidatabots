@@ -9,14 +9,14 @@ from pyarrow import json
 
 
 def main():
-    index_type = sys.argv[1]
-    table = json.read_json(sys.argv[2])
+    table = json.read_json(sys.argv[1])
+    output_filename = sys.argv[2]
     size: int = pc.max(table["id"]).as_py() + 1  # type: ignore
     mask = np.ones(size, bool)
     for id in table["id"]:
         mask[id.as_py()] = False
     bitmap = pa.Table.from_arrays([mask], names=["null"])
-    feather.write_feather(bitmap, f"{index_type}-mask.feather")
+    feather.write_feather(bitmap, output_filename)
 
 
 if __name__ == "__main__":
