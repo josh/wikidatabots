@@ -6,10 +6,6 @@ on:
     - cron: "0 8 * * *"
   workflow_dispatch:
 
-env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -53,6 +49,9 @@ jobs:
       - name: Run script
         run: |
           python tmdb_index.py ${{ matrix.type }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
