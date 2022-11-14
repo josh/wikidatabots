@@ -40,7 +40,7 @@ jobs:
         run: |
           DATE=$(date +'%m_%d_%Y')
           echo "filename=$EXPORT_TYPE_$DATE.json.gz" >>"$GITHUB_OUTPUT"
-        ENV:
+        env:
           EXPORT_TYPE: ${{ matrix.type }}
 
       - name: Download export
