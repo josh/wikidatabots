@@ -42,7 +42,7 @@ jobs:
       - name: Generate export filename
         id: export_filename
         run: |
-          DATE=$(date +'%m-%d-%Y')
+          DATE=$(date +'%m_%d_%Y')
           FILENAME="${{ matrix.export_name }}_$DATE.json.gz"
           echo "filename=$FILENAME" >>"$GITHUB_OUTPUT"
 
