@@ -68,7 +68,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.type }}-feather
+          name: ${{ matrix.type }}-null-export
           path: |
             *.feather
           retention-days: 3
