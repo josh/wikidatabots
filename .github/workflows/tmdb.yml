@@ -49,16 +49,15 @@ jobs:
       - name: Run script
         run: |
           python tmdb_index.py ${{ matrix.type }} "${{ steps.export_filename.outputs.filename }}"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Upload to S3
         run: |
-          aws s3 cp "${{ matrix.type }}-mask.feather" "s3://wikidatabots/tmdb/${{ matrix.type }}/mask.feather"
+          aws s3 cp "${{ matrix.type }}-mask.feather" "s3://$BUCKET_NAME/tmdb/${{ matrix.type }}/mask.feather"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
