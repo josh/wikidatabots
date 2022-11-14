@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  export:
     runs-on: ubuntu-latest
 
     strategy:
