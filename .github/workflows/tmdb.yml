@@ -72,3 +72,11 @@ jobs:
           path: |
             *.feather
           retention-days: 3
+
+  test:
+    needs: export
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: echo "Hello, world!"
