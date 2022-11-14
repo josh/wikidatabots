@@ -17,10 +17,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        type:
-          - "movie"
-          - "tv"
-          - "person"
+        include:
+          - type: "movie"
+            export_name: "movie_ids"
+          - type: "tv"
+            export_name: "tv_series_ids"
+          - type: "person"
+            export_name: "person_ids"
 
     steps:
       - uses: actions/checkout@v3
@@ -35,6 +38,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Generate export filename
+        id: export_filename
+        run: |
+          DATE=$(date +'%m-%d-%Y')
+          FILENAME="${{ matrix.export_name }}_$DATE.json.gz"
+          echo "filename=$FILENAME" >>"$GITHUB_OUTPUT"
+
+      - name: Download export
+        run: |
+          wget "http://files.tmdb.org/p/exports/${{ steps.export_filename.outputs.filename }}"
 
       - name: Run script
         run: |
