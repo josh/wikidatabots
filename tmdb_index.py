@@ -78,7 +78,7 @@ def main():
     index_type = STR_TO_TYPE[sys.argv[1]]
     table = download_export(index_type)
     bitmap = index_null_ids(table)
-    feather.write_feather(table, f"{index_type}-mask.feather")
+    feather.write_feather(bitmap, f"{index_type}-mask.feather")
     upload_mask(index_type, bitmap)
 
 
