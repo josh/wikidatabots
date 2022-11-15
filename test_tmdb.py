@@ -22,6 +22,12 @@ def test_find():
 
 
 @pytest.mark.skipif(tmdb.TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
+def test_external_ids():
+    ids = tmdb.external_ids(id=278, type="movie")
+    assert ids["imdb_id"] == "tt0111161"
+
+
+@pytest.mark.skipif(tmdb.TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_changes():
     ids = tmdb.changes(type="movie")
     assert len(list(ids)) > 0

@@ -3,7 +3,7 @@
 import datetime
 import os
 from collections.abc import Iterable
-from typing import Any, Iterator, Literal
+from typing import Any, Iterator, Literal, TypedDict
 
 import backoff
 import requests
@@ -130,6 +130,25 @@ def find(
         return results[0]
     else:
         return None
+
+
+class ExternalIDs(TypedDict):
+    imdb_id: str | None
+    tvdb_id: int | None
+
+
+def external_ids(
+    id: int,
+    type: ObjectType,
+    api_key: str | None = TMDB_API_KEY,
+) -> ExternalIDs:
+    assert type in object_types
+    result: Any = {}
+    resp = api_request(f"/{type}/{id}/external_ids", api_key=api_key)
+    if resp.get("success") is False:
+        return result
+    result = resp
+    return result
 
 
 ChangeType = Literal["movie", "person", "tv"]
