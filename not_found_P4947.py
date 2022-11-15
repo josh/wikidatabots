@@ -1,16 +1,22 @@
-# pyright: strict
+# pyright: basic
 
 from typing import TypedDict
 
+import pyarrow.feather as feather
+from pyarrow import fs
+
 import tmdb
-from constants import WITHDRAWN_IDENTIFIER_VALUE_QID
+from constants import REASON_FOR_DEPRECATED_RANK_PID, WITHDRAWN_IDENTIFIER_VALUE_QID
 from sparql import sparql
-from timeout import iter_until_deadline
 from utils import tryint
+from wikidata import WDSURIRef
 
 
 def main():
-    assert tmdb.object(140607, type="movie")
+    s3 = fs.S3FileSystem(region="us-east-1")
+    f = s3.open_input_file("wikidatabots/tmdb/movie/mask.arrow")
+    table = feather.read_table(f)
+    is_null_col = table["null"]
 
     query = """
     SELECT ?statement ?value WHERE {
@@ -19,15 +25,28 @@ def main():
       FILTER(?rank != wikibase:DeprecatedRank)
     }
     """
-    Result = TypedDict("Result", statement=str, value=str)
+    Result = TypedDict("Result", statement=WDSURIRef, value=str)
     results: list[Result] = sparql(query)
 
-    for result in iter_until_deadline(results):
+    edit_summary = "Deprecate removed TMDB movie ID"
+
+    for result in results:
         statement = result["statement"]
         id = tryint(result["value"])
+        if not id:
+            continue
 
-        if id and not tmdb.object(id, type="movie"):
-            print(f"{statement},{WITHDRAWN_IDENTIFIER_VALUE_QID}")
+        if id < table.num_rows and is_null_col[id].as_py() is False:
+            continue
+
+        if not tmdb.object(id, type="movie"):
+            print(
+                f"{statement.n3()} "
+                f"wikibase:rank wikibase:DeprecatedRank ; "
+                f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
+                f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
+                f'wikidatabots:editSummary "{edit_summary}" . '
+            )
 
 
 if __name__ == "__main__":
