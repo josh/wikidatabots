@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 import numpy as np
 import pyarrow as pa
@@ -43,7 +44,19 @@ def main(type_: str, filename: str):
     assert tvdb_ids.flags["WRITEABLE"]
     assert timestamps.flags["WRITEABLE"]
 
-    start_date = datetime.date.today() - datetime.timedelta(days=3)
+    def generate_stats() -> str:
+        stats = "non-zero counts:\n"
+        stats += f"imdb_id: {np.count_nonzero(imdb_ids)}/{imdb_ids.size}\n"
+        if np.any(tvdb_ids):
+            stats += f"tvdb_id: {np.count_nonzero(tvdb_ids)}/{tvdb_ids.size}\n"
+        stats += (
+            f"timestamps: {np.count_nonzero(~np.isnan(timestamps))}/{timestamps.size}"
+        )
+        return stats
+
+    logging.info(generate_stats())
+
+    start_date = datetime.date.today() - datetime.timedelta(days=1)
     changed_ids = tmdb.changes(type, start_date=start_date)
 
     for tmdb_id in tqdm.tqdm(changed_ids):
@@ -60,6 +73,8 @@ def main(type_: str, filename: str):
         tvdb_ids[tmdb_id] = ids.get("tvdb_id") or 0
 
         timestamps[tmdb_id] = np.datetime64("now")
+
+    logging.info(generate_stats())
 
     cols = []
     names = []
@@ -80,9 +95,7 @@ def main(type_: str, filename: str):
 
 
 if __name__ == "__main__":
-    import logging
     import sys
 
     logging.basicConfig(level=logging.INFO)
-
     main(sys.argv[1], sys.argv[2])
