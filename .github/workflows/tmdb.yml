@@ -53,6 +53,14 @@ jobs:
         env:
           FILENAME: ${{ steps.export_filename.outputs.filename }}
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-null-export
+          path: |
+            *.arrow
+          retention-days: 3
+
       - name: Upload to S3
         run: |
           aws s3 cp "mask.arrow" "s3://$BUCKET_NAME/tmdb/$EXPORT_TYPE/mask.arrow"
@@ -62,14 +70,6 @@ jobs:
           BUCKET_NAME: wikidatabots
           AWS_DEFAULT_REGION: us-east-1
           EXPORT_TYPE: ${{ matrix.type }}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.type }}-null-export
-          path: |
-            *.arrow
-          retention-days: 3
 
   test:
     needs: export
