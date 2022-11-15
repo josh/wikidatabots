@@ -3,7 +3,7 @@
 import datetime
 import os
 from collections.abc import Iterable
-from typing import Any, Iterator, Literal, TypedDict
+from typing import Any, Literal, TypedDict
 
 import backoff
 import requests
