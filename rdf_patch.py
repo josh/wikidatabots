@@ -1,3 +1,5 @@
+# pyright: basic
+
 import logging
 from collections import defaultdict
 from functools import cache

@@ -1,3 +1,5 @@
+# pyright: basic
+
 import itertools
 import logging
 import os

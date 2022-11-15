@@ -1,3 +1,5 @@
+# pyright: basic
+
 import time
 
 from timeout import iter_until_deadline, iter_with_timeout

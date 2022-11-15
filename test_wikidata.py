@@ -1,3 +1,5 @@
+# pyright: basic
+
 from rdflib.term import URIRef
 
 from wikidata import (

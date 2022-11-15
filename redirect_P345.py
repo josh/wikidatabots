@@ -1,3 +1,5 @@
+# pyright: basic
+
 import logging
 
 import imdb

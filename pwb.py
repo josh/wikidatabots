@@ -1,3 +1,5 @@
+# pyright: basic
+
 """
 Pywikibot login wrapper.
 """

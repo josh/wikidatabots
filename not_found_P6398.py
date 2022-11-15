@@ -1,6 +1,5 @@
 # pyright: strict
 
-
 import itunes
 import sparql
 import wikidata

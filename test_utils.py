@@ -1,3 +1,5 @@
+# pyright: basic
+
 import numpy as np
 
 from utils import batches, np_reserve_capacity
