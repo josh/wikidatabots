@@ -1,8 +1,12 @@
 # pyright: strict
 
+import logging
 import random
 from collections.abc import Iterable, Iterator, Sequence
 from typing import Any, TypeVar
+
+import numpy as np
+import numpy.typing as npt
 
 T = TypeVar("T")
 
@@ -58,3 +62,20 @@ def tryint(value: Any) -> int | None:
         return int(value)
     except ValueError:
         return None
+
+
+T1 = TypeVar("T1", bound=npt.NBitBase)
+T2 = TypeVar("T2", bound=npt.NBitBase)
+
+
+def np_reserve_capacity(
+    array: np.ndarray[T1, np.dtype[Any]],
+    size: int,
+    fill_value: Any,
+) -> np.ndarray[T1, np.dtype[Any]]:
+    if array.size >= size:
+        return array
+    logging.debug(f"Resizing ndarray {array.size}->{size}")
+    new_array = np.full(size, fill_value=fill_value, dtype=array.dtype)
+    new_array[: array.size] = array
+    return new_array
