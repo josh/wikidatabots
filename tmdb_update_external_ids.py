@@ -56,7 +56,7 @@ def main(type_: str, filename: str):
 
     logging.info(generate_stats())
 
-    start_date = datetime.date.today() - datetime.timedelta(days=1)
+    start_date = datetime.date.today() - datetime.timedelta(days=3)
     changed_ids = tmdb.changes(type, start_date=start_date)
 
     for tmdb_id in tqdm.tqdm(changed_ids):
