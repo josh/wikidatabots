@@ -107,8 +107,9 @@ jobs:
 
       - name: Run script
         run: |
-          echo TODO
+          python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow"
         env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           EXPORT_TYPE: ${{ matrix.type }}
 
       - name: Upload artifacts
