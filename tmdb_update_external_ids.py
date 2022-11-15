@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pyarrow as pa
 import pyarrow.feather as feather
@@ -41,7 +43,8 @@ def main(type_: str, filename: str):
     assert tvdb_ids.flags["WRITEABLE"]
     assert timestamps.flags["WRITEABLE"]
 
-    changed_ids = tmdb.changes(type)
+    start_date = datetime.date.today() - datetime.timedelta(days=3)
+    changed_ids = tmdb.changes(type, start_date=start_date)
 
     for tmdb_id in tqdm.tqdm(changed_ids):
         size = tmdb_id + 1
