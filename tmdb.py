@@ -151,17 +151,13 @@ def external_ids(
     return result
 
 
-ChangeType = Literal["movie", "person", "tv"]
-change_types: set[ChangeType] = {"movie", "person", "tv"}
-
-
 def changes(
-    type: ChangeType,
+    type: ObjectType,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     api_key: str | None = TMDB_API_KEY,
 ) -> set[int]:
-    assert type in change_types
+    assert type in object_types
 
     path = f"/{type}/changes"
 
