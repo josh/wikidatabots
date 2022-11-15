@@ -104,3 +104,27 @@ jobs:
           BUCKET_NAME: wikidatabots
           AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
+
+      - name: Run script
+        run: |
+          echo TODO
+        env:
+          EXPORT_TYPE: ${{ matrix.type }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-external_ids-export
+          path: |
+            *.arrow
+          retention-days: 3
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/$EXPORT_TYPE/external_ids.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          EXPORT_TYPE: ${{ matrix.type }}
