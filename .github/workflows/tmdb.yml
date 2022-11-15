@@ -50,7 +50,7 @@ jobs:
 
       - name: Run script
         run: |
-          python tmdb_index.py "$FILENAME" "mask.arrow"
+          python tmdb_build_mask.py "$FILENAME" "mask.arrow"
         env:
           FILENAME: ${{ steps.export_filename.outputs.filename }}
 

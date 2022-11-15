@@ -1,16 +1,15 @@
 import numpy as np
 import pyarrow as pa
-import pyarrow.compute as pc
 import pyarrow.feather as feather
 from pyarrow import json
 
 
 def main(input_path: str, output_path: str):
     table = json.read_json(input_path)
-    size: int = pc.max(table["id"]).as_py() + 1  # type: ignore
+    valid_ids = table["id"].to_numpy()
+    size = valid_ids.max() + 1
     mask = np.ones(size, bool)
-    for id in table["id"]:
-        mask[id.as_py()] = False
+    mask[valid_ids] = 0
     bitmap = pa.Table.from_arrays([mask], names=["null"])
     feather.write_feather(bitmap, output_path)
 
