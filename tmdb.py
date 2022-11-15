@@ -157,34 +157,25 @@ change_types: set[ChangeType] = {"movie", "person", "tv"}
 
 def changes(
     type: ChangeType,
-    page: int = 1,
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     api_key: str | None = TMDB_API_KEY,
-) -> Iterator[int]:
+) -> set[int]:
     assert type in change_types
-    assert page >= 1
-    assert page <= 1000
 
-    params = {
-        "page": str(page),
-    }
+    path = f"/{type}/changes"
 
+    params: dict[str, str] = {}
     if start_date:
         params["start_date"] = start_date.isoformat()
-
     if end_date:
         params["end_date"] = end_date.isoformat()
 
-    resp = api_request(f"/{type}/changes", params=params, api_key=api_key)
+    resp = api_request(path, params=params, api_key=api_key)
     assert resp.get("success", True)
 
-    assert page == resp["page"]
+    assert resp["page"] == 1
+    assert resp["total_results"] == 1
+    assert resp["total_pages"] == 1
 
-    for result in resp["results"]:
-        id: int = result["id"]
-        yield id
-
-    total_pages: int = resp["total_pages"]
-    if page < total_pages:
-        yield from changes(type, page + 1, api_key=api_key)
+    return set(result["id"] for result in resp["results"])
