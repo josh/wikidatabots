@@ -1,12 +1,14 @@
 # pyright: strict
 
+import logging
 import re
-from typing import Any, NewType
+from typing import Any, Literal, NewType
 from urllib.parse import urlparse
 
 import requests
 
 ID = NewType("ID", str)
+IMDBIDType = Literal["tt", "nm"]
 
 
 def id(id: str) -> ID:
@@ -109,3 +111,25 @@ def extract_id(url: str) -> ID | None:
             return ID(m.group(1))
 
     return None
+
+
+def decode_numeric_id(id: str, type: IMDBIDType) -> int | None:
+    m = re.fullmatch(r"(tt|nm)(\d+)", id)
+    if not m:
+        return None
+
+    if type != m.group(1):
+        logging.error(f"Not expected type: {id}")
+        return None
+
+    numeric_id: int = int(m.group(2))
+
+    if encode_numeric_id(numeric_id, type) != id:
+        logging.error(f"Non-canonical id: {id}")
+        return None
+
+    return numeric_id
+
+
+def encode_numeric_id(numeric_id: int, type: IMDBIDType) -> str:
+    return type + str(numeric_id).zfill(7)

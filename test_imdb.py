@@ -2,7 +2,15 @@
 
 import requests
 
-from imdb import ID, canonical_id, extract_id, formatted_url, id
+from imdb import (
+    ID,
+    canonical_id,
+    decode_numeric_id,
+    encode_numeric_id,
+    extract_id,
+    formatted_url,
+    id,
+)
 
 
 def test_extract_id():
@@ -113,3 +121,17 @@ def test_canonical_id():
 
     assert not canonical_id(id("tt100000000"))
     assert not canonical_id(id("tt1555101"))
+
+
+def test_decode_numeric_id():
+    assert decode_numeric_id("tt9114286", type="tt") == 9114286
+    assert decode_numeric_id("tt0114369", type="tt") == 114369
+    assert decode_numeric_id("nm1569276", type="nm") == 1569276
+    assert decode_numeric_id("nm0000399", type="nm") == 399
+
+
+def test_encode_numeric_id():
+    assert encode_numeric_id(9114286, type="tt") == "tt9114286"
+    assert encode_numeric_id(114369, type="tt") == "tt0114369"
+    assert encode_numeric_id(1569276, type="nm") == "nm1569276"
+    assert encode_numeric_id(399, type="nm") == "nm0000399"
