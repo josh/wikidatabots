@@ -1,4 +1,4 @@
-# pyright: basic
+# pyright: strict
 
 from rdflib.term import URIRef
 

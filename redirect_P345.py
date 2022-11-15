@@ -1,4 +1,4 @@
-# pyright: basic
+# pyright: strict
 
 import logging
 
