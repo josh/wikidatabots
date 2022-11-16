@@ -5,14 +5,14 @@ on: [push, pull_request]
 jobs:
   black:
     uses: josh/workflows/.github/workflows/black.yml@main
+    with:
+      isort: false
 
   flake8:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          isort: false
 
       - name: Set up Python
         uses: actions/setup-python@v4
