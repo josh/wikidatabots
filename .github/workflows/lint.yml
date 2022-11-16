@@ -11,6 +11,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          isort: false
 
       - name: Set up Python
         uses: actions/setup-python@v4
