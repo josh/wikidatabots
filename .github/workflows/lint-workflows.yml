@@ -1,0 +1,9 @@
+name: Lint Workflows
+
+on:
+  push:
+    paths: ".github/workflows/**.yml"
+
+jobs:
+  lint:
+    uses: josh/workflows/.github/workflows/workflow-lint.yml@main
