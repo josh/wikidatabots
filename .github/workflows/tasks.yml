@@ -45,7 +45,7 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python $PROPERTY_ID.py | tee output.csv
+          python "$PROPERTY_ID.py" | tee output.csv
         env:
           PROPERTY_ID: ${{ matrix.property }}
 
@@ -89,7 +89,7 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python $PROPERTY_ID.py | tee output.csv
+          python "$PROPERTY_ID.py" | tee output.csv
         env:
           PROPERTY_ID: ${{ matrix.property }}
 
@@ -133,7 +133,7 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python $PROPERTY_ID.py | tee output.csv
+          python "$PROPERTY_ID.py" | tee output.csv
         env:
           PROPERTY_ID: ${{ matrix.property }}
 
@@ -223,7 +223,7 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python $PROPERTY_ID.py | tee output.ttl
+          python "$PROPERTY_ID.py" | tee output.ttl
         env:
           PROPERTY_ID: ${{ matrix.property }}
 
