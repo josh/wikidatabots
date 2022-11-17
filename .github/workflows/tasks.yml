@@ -45,7 +45,9 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python ${{ matrix.property }}.py | tee output.csv
+          python $PROPERTY_ID.py | tee output.csv
+        env:
+          PROPERTY_ID: ${{ matrix.property }}
 
       - name: Submit QuickStatements batch
         env:
@@ -87,7 +89,9 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python ${{ matrix.property }}.py | tee output.csv
+          python $PROPERTY_ID.py | tee output.csv
+        env:
+          PROPERTY_ID: ${{ matrix.property }}
 
       - name: Submit QuickStatements batch
         env:
@@ -129,7 +133,9 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python ${{ matrix.property }}.py | tee output.csv
+          python $PROPERTY_ID.py | tee output.csv
+        env:
+          PROPERTY_ID: ${{ matrix.property }}
 
       - name: Submit QuickStatements batch
         env:
@@ -176,9 +182,10 @@ jobs:
 
       - name: Run script
         run: |
-          python ${{ matrix.property }}.py
+          python $PROPERTY_ID.py
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          PROPERTY_ID: ${{ matrix.property }}
 
   rdf_patch:
     runs-on: ubuntu-latest
@@ -216,7 +223,9 @@ jobs:
       - name: Run script
         run: |
           set -o pipefail
-          python ${{ matrix.property }}.py | tee output.ttl
+          python $PROPERTY_ID.py | tee output.ttl
+        env:
+          PROPERTY_ID: ${{ matrix.property }}
 
       - name: Login
         env:
