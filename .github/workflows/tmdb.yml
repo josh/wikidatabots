@@ -63,8 +63,25 @@ jobs:
           EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Run script
+        shell: python
         run: |
-          python tmdb_build_mask.py "$EXPORT_NAME.json.gz" "mask.arrow"
+          import os
+
+          import numpy as np
+          import pyarrow as pa
+          import pyarrow.feather as feather
+          from pyarrow import json
+
+          export_name = os.environ["EXPORT_NAME"]
+          table = json.read_json(f"{export_name}.json.gz")
+          valid_ids = table["id"].to_numpy()
+          size = valid_ids.max() + 1
+          mask = np.ones(size, bool)
+          mask[valid_ids] = 0
+          null_count = np.sum(mask)
+          print(f"Null count: {null_count}/{size}")
+          table = pa.Table.from_arrays([mask], names=["null"])
+          feather.write_feather(table, "mask.arrow")
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
 
