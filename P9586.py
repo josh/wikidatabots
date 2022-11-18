@@ -133,8 +133,7 @@ def matched_appletv_ids() -> set[appletv.ID]:
     query = "SELECT DISTINCT ?appletv WHERE { ?statement ps:P9586 ?appletv. }"
     ids: set[appletv.ID] = set()
     for result in sparql(query):
-        id = appletv.tryid(result["appletv"])
-        if id:
+        if id := appletv.tryid(result["appletv"]):
             ids.add(id)
     return ids
 

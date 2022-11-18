@@ -44,32 +44,25 @@ def canonical_id(id: ID) -> ID | None:
 
 
 def formatted_url(id: str) -> str | None:
-    m = re.fullmatch(r"(tt\d+)", id)
-    if m:
+    if m := re.fullmatch(r"(tt\d+)", id):
         return f"https://www.imdb.com/title/{m.group(1)}/"
 
-    m = re.fullmatch(r"(nm\d+)", id)
-    if m:
+    if m := re.fullmatch(r"(nm\d+)", id):
         return f"https://www.imdb.com/name/{m.group(1)}/"
 
-    m = re.fullmatch(r"(ch\d+)", id)
-    if m:
+    if m := re.fullmatch(r"(ch\d+)", id):
         return f"https://www.imdb.com/character/{m.group(1)}/"
 
-    m = re.fullmatch(r"(ev\d+)/(\d+)/(\d+)", id)
-    if m:
+    if m := re.fullmatch(r"(ev\d+)/(\d+)/(\d+)", id):
         return f"https://www.imdb.com/event/{m.group(1)}/{m.group(2)}/{m.group(3)}"
 
-    m = re.fullmatch(r"(ev\d+)/(\d+)", id)
-    if m:
+    if m := re.fullmatch(r"(ev\d+)/(\d+)", id):
         return f"https://www.imdb.com/event/{m.group(1)}/{m.group(2)}/1"
 
-    m = re.fullmatch(r"(ev\d+)", id)
-    if m:
+    if m := re.fullmatch(r"(ev\d+)", id):
         return f"https://www.imdb.com/event/{m.group(1)}"
 
-    m = re.fullmatch(r"(co\d+)", id)
-    if m:
+    if m := re.fullmatch(r"(co\d+)", id):
         return f"https://www.imdb.com/search/title/?companies={m.group(1)}"
 
     return None
@@ -81,33 +74,26 @@ def extract_id(url: str) -> ID | None:
     if r.netloc != "www.imdb.com" and r.netloc != "":
         return None
 
-    m = re.match(r"/title/(tt\d+)/?$", r.path)
-    if m:
+    if m := re.match(r"/title/(tt\d+)/?$", r.path):
         return ID(m.group(1))
 
-    m = re.match(r"/name/(nm\d+)/?$", r.path)
-    if m:
+    if m := re.match(r"/name/(nm\d+)/?$", r.path):
         return ID(m.group(1))
 
-    m = re.match(r"/character/(ch\d+)/?$", r.path)
-    if m:
+    if m := re.match(r"/character/(ch\d+)/?$", r.path):
         return ID(m.group(1))
 
-    m = re.match(r"/event/(ev\d+)/(\d+)(/|/\d+)?$", r.path)
-    if m:
+    if m := re.match(r"/event/(ev\d+)/(\d+)(/|/\d+)?$", r.path):
         return ID(f"{m.group(1)}/{m.group(2)}")
 
-    m = re.match(r"/event/(ev\d+)/?$", r.path)
-    if m:
+    if m := re.match(r"/event/(ev\d+)/?$", r.path):
         return ID(m.group(1))
 
-    m = re.match(r"/company/(co\d+)/?$", r.path)
-    if m:
+    if m := re.match(r"/company/(co\d+)/?$", r.path):
         return ID(m.group(1))
 
     if r.path == "/search/title/":
-        m = re.match(r"companies=(co\d+)", r.query)
-        if m:
+        if m := re.match(r"companies=(co\d+)", r.query):
             return ID(m.group(1))
 
     return None

@@ -41,8 +41,7 @@ def main():
 
         for (_statement, value) in item.get(APPLE_TV_MOVIE_ID_PID, []):
             id = appletv.id(value)
-            itunes_id = appletv.appletv_to_itunes(id)
-            if itunes_id:
+            if itunes_id := appletv.appletv_to_itunes(id):
                 print(f'{qid},"""{itunes_id}"""')
 
 

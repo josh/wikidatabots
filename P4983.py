@@ -83,14 +83,12 @@ def main():
         tmdb_id_sources: dict[int, str] = {}
 
         for imdb_id in item["imdb"]:
-            tv = tmdb.find(id=imdb_id, source="imdb_id", type="tv")
-            if tv:
+            if tv := tmdb.find(id=imdb_id, source="imdb_id", type="tv"):
                 tmdb_ids.add(tv["id"])
                 tmdb_id_sources.setdefault(tv["id"], IMDB_ID_PROPERTY_NAME)
 
         for tvdb_id in item["tvdb"]:
-            tv = tmdb.find(id=tvdb_id, source="tvdb_id", type="tv")
-            if tv:
+            if tv := tmdb.find(id=tvdb_id, source="tvdb_id", type="tv"):
                 tmdb_ids.add(tv["id"])
                 tmdb_id_sources.setdefault(tv["id"], TVDB_ID_PROPERTY_NAME)
 

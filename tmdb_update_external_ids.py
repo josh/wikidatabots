@@ -69,8 +69,7 @@ def main(type_: str, filename: str, filename2: str):
         timestamps = np_reserve_capacity(timestamps, size, np.datetime64("nat"))
 
         ids = tmdb.external_ids(tmdb_id, type=type)
-        imdb_id = ids.get("imdb_id")
-        if imdb_id:
+        if imdb_id := ids.get("imdb_id"):
             imdb_ids[tmdb_id] = imdb.decode_numeric_id(imdb_id, imdb_type) or 0
 
         tvdb_ids[tmdb_id] = ids.get("tvdb_id") or 0

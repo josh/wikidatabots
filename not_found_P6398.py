@@ -46,8 +46,7 @@ def extract_itunes_ids(
     itunes_ids: dict[int, wikidata.WDSURIRef] = {}
     for item in statements.values():
         for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
-            id = tryint(value)
-            if id:
+            if id := tryint(value):
                 itunes_ids[id] = statement
     return itunes_ids
 
