@@ -15,7 +15,6 @@ from typing import Any, Literal, TypedDict
 
 import backoff
 import requests
-from rdflib.term import URIRef
 
 import timeout
 import wikidata
