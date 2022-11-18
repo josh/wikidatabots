@@ -11,8 +11,6 @@ from constants import (
     TMDB_MOVIE_ID_PID,
     TMDB_PERSON_ID_PID,
     TMDB_TV_SERIES_ID_PID,
-    WD_DEPRECATED_RANK,
-    WD_RANK,
     WITHDRAWN_IDENTIFIER_VALUE_QID,
 )
 from sparql import sparql
@@ -58,8 +56,7 @@ def main(type: tmdb.ObjectType):
         if not tmdb.object(id, type=type):
             print(
                 f"{statement.n3()} "
-                f"{WD_RANK.n3()} "
-                f"{WD_DEPRECATED_RANK.n3()} ; "
+                f"wikibase:rank wikibase:DeprecatedRank ; "
                 f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
                 f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
                 f'wikidatabots:editSummary "{edit_summary}" . '
