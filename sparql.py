@@ -18,6 +18,7 @@ import requests
 from rdflib.term import URIRef
 
 import timeout
+import wikidata
 from wikidata import PID, QID, WDSURIRef
 
 url = "https://query.wikidata.org/sparql"
@@ -133,22 +134,19 @@ def sparql(query: str) -> list[Any]:
         elif obj["type"] == "literal":
             return obj["value"]
         elif obj["type"] == "uri":
-            if obj["value"].startswith("http://www.wikidata.org/prop/"):
-                return obj["value"].replace("http://www.wikidata.org/prop/", "")
+            uri = wikidata.parse_uriref(obj["value"])
+            if isinstance(uri, wikidata.WDURIRef):
+                return uri.local_name()
+            elif isinstance(uri, wikidata.PURIRef):
+                return uri.local_name()
             elif obj["value"] == "http://wikiba.se/ontology#DeprecatedRank":
                 return "deprecated"
             elif obj["value"] == "http://wikiba.se/ontology#NormalRank":
                 return "normal"
             elif obj["value"] == "http://wikiba.se/ontology#PreferredRank":
                 return "preferred"
-            elif obj["value"].startswith("http://www.wikidata.org/entity/"):
-                label = obj["value"].replace("http://www.wikidata.org/entity/", "")
-                if label.startswith("statement/"):
-                    return URIRef(obj["value"])
-                else:
-                    return label
             else:
-                return obj["value"]
+                return uri
         elif obj["type"] == "bnode":
             return None
         else:
