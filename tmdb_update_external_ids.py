@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import pyarrow as pa
 import pyarrow.feather as feather
+import pyarrow.parquet as pq
 import tqdm
 
 import imdb
@@ -19,7 +20,7 @@ TYPE_TO_IMDB_TYPE: dict[tmdb.ObjectType, imdb.IMDBIDType] = {
 }
 
 
-def main(type_: str, filename: str):
+def main(type_: str, filename: str, filename2: str):
     assert type_ in tmdb.object_types
     type: tmdb.ObjectType = type_
     imdb_type: imdb.IMDBIDType = TYPE_TO_IMDB_TYPE[type]
@@ -94,10 +95,11 @@ def main(type_: str, filename: str):
     table = pa.table(cols, names=names)
     logging.info(f"Saving {table}")
     feather.write_feather(table, filename)
+    pq.write_table(table, filename2)
 
 
 if __name__ == "__main__":
     import sys
 
     logging.basicConfig(level=logging.INFO)
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3])
