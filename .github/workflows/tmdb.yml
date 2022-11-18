@@ -46,6 +46,7 @@ jobs:
 
       - name: Download today's export
         id: wget_today_export
+        continue-on-error: true
         run: |
           wget -O "$EXPORT_NAME.json.gz" "http://files.tmdb.org/p/exports/$FILENAME"
         env:
