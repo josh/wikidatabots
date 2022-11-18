@@ -18,14 +18,16 @@ def test_change_statement_rank():
     triple = [
         "wds:Q172241-6B571F20-7732-47E1-86B2-1DFA6D0A15F5",
         "wikibase:rank",
-        "wikibase:DeprecatedRank",
+        "wikibase:DeprecatedRank;",
+        "wikidatabots:editSummary",
+        '"Changed rank"',
         ".",
     ]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
     assert len(edits) == 1
     (item, claims, summary) = edits[0]
     assert item.id == "Q172241"
-    assert summary is None
+    assert summary == "Changed rank"
     assert len(claims) == 1
     assert claims[0]["rank"] == "deprecated"
 
@@ -42,12 +44,18 @@ def test_noop_change_statement_rank():
 
 
 def test_add_prop_direct_value():
-    triple = ["wd:Q172241", "wdt:P4947", '"123"', "."]
+    triple = [
+        "wd:Q172241",
+        "wdt:P4947",
+        '"123";',
+        "wikidatabots:editSummary",
+        '"Changed TMDb movie ID"' ".",
+    ]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
     assert len(edits) == 1
     (item, claims, summary) = edits[0]
     assert item.id == "Q172241"
-    assert summary is None
+    assert summary == "Changed TMDb movie ID"
     assert len(claims) == 1
     assert claims[0]["mainsnak"]["property"] == "P4947"
     assert claims[0]["mainsnak"]["datavalue"]["value"] == "123"
