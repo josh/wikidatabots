@@ -189,6 +189,7 @@ jobs:
 
   rdf_patch:
     runs-on: ubuntu-latest
+    concurrency: rdf_patch_${{ matrix.property }}
 
     strategy:
       fail-fast: false

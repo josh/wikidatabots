@@ -8,6 +8,7 @@ on:
 jobs:
   mask:
     runs-on: ubuntu-latest
+    concurrency: tmdb_mask_${{ matrix.type }}
 
     strategy:
       fail-fast: false
@@ -73,6 +74,7 @@ jobs:
 
   external_ids:
     runs-on: ubuntu-latest
+    concurrency: tmdb_external_ids_${{ matrix.type }}
 
     strategy:
       fail-fast: false
