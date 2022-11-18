@@ -10,6 +10,7 @@ import pywikibot.config
 from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
+from page import blocked_qids
 from wikidata import (
     PS,
     PSN,
@@ -248,6 +249,10 @@ def process_graph(
         visit(subject, predicate, object)
 
     for item, claims in changed_claims.items():
+        if item.id in blocked_qids():
+            logging.warning(f"Skipping edit, {item.id} is blocked")
+            continue
+
         summary: str | None = edit_summaries.get(item)
         logging.info(f"Edit {item.id}: {summary}")
 
