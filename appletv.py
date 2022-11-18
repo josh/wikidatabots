@@ -1,7 +1,9 @@
 # pyright: strict
 
+import atexit
 import csv
 import json
+import logging
 import re
 import zlib
 from collections.abc import Iterator
@@ -18,6 +20,17 @@ session = requests_cache.CachedSession(
     expire_after=0,
     cache_control=True,
 )
+request_count = 0
+cache_hit_count = 0
+
+
+def _track_cache_stats(response: Any):
+    global request_count
+    global cache_hit_count
+    request_count += 1
+    if response.from_cache:
+        cache_hit_count += 1
+
 
 ID = NewType("ID", str)
 IDPattern = re.compile("umc.cmc.[a-z0-9]{22,25}")
@@ -76,6 +89,7 @@ request_headers = {
 
 def fetch(url: str) -> BeautifulSoup | None:
     r = session.get(url, headers=request_headers)
+    _track_cache_stats(r)
     r.raise_for_status()
 
     html = r.text
@@ -106,6 +120,7 @@ def all_not_found(type: Type, id: ID) -> bool:
 
 def not_found(url: str) -> bool:
     r = session.get(url, headers=request_headers)
+    _track_cache_stats(r)
     r.raise_for_status()
 
     html = r.text
@@ -176,6 +191,7 @@ def fetch_sitemap_index_urls() -> Iterator[str]:
 
 def fetch_sitemap_index_url(url: str) -> set[str]:
     r = session.get(url)
+    _track_cache_stats(r)
     r.raise_for_status()
 
     soup = BeautifulSoup(r.content, "xml")
@@ -214,3 +230,11 @@ def fetch_new_sitemap_urls() -> Iterator[str]:
     for (_id, name, _desc, url, _type) in csv.reader(new_rows()):
         if name:
             yield url
+
+
+def log_cache_stats():
+    session.remove_expired_responses()
+    logging.info(f"appletv requests-cache: {cache_hit_count}/{request_count}")
+
+
+atexit.register(log_cache_stats)

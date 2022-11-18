@@ -1,6 +1,8 @@
 # pyright: strict
 
+import atexit
 import datetime
+import logging
 import os
 from collections.abc import Iterable
 from typing import Any, Literal, TypedDict
@@ -17,6 +19,16 @@ session = requests_cache.CachedSession(
     cache_control=True,
     ignored_parameters=["api_key"],
 )
+request_count = 0
+cache_hit_count = 0
+
+
+def _track_cache_stats(response: Any):
+    global request_count
+    global cache_hit_count
+    request_count += 1
+    if response.from_cache:
+        cache_hit_count += 1
 
 
 class UnauthorizedException(Exception):
@@ -38,6 +50,7 @@ def api_request(
     post_params.update(params)
 
     r = session.get(url, headers=headers, params=post_params)
+    _track_cache_stats(r)
 
     if r.headers.get("Content-Type", "").startswith("application/json"):
         data = r.json()
@@ -175,3 +188,11 @@ def changes(
     assert resp["total_pages"] == 1
 
     return set(result["id"] for result in resp["results"])
+
+
+def log_cache_stats():
+    session.remove_expired_responses()
+    logging.info(f"tmdb requests-cache: {cache_hit_count}/{request_count}")
+
+
+atexit.register(log_cache_stats)
