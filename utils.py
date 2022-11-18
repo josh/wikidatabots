@@ -65,7 +65,6 @@ def tryint(value: Any) -> int | None:
 
 
 T1 = TypeVar("T1", bound=npt.NBitBase)
-T2 = TypeVar("T2", bound=npt.NBitBase)
 
 
 def np_reserve_capacity(

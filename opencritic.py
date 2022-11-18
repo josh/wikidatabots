@@ -36,19 +36,9 @@ class OpenCriticGame(TypedDict):
     id: int
     name: str
     url: str
-    percentRecommended: float
     numReviews: int
-    numTopCriticReviews: int
-    medianScore: int
     topCriticScore: float
-    percentile: int
-    firstReleaseDate: str
-    createdAt: str
-    updatedAt: str
-    firstReviewDate: str
     latestReviewDate: str
-    tenthReviewDate: str
-    criticalReviewDate: str
 
 
 request_count = 0

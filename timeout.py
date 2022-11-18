@@ -11,11 +11,6 @@ DEFAULT_DEADLINE = START_TIME + DEFAULT_TIMEOUT
 T = TypeVar("T")
 
 
-def check_deadline(deadline: float = DEFAULT_DEADLINE) -> None:
-    if time.time() >= deadline:
-        exit(0)
-
-
 def iter_until_deadline(
     seq: Iterable[T],
     deadline: float = DEFAULT_DEADLINE,

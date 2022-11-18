@@ -24,13 +24,15 @@ def main(type_: str, filename: str):
     type: tmdb.ObjectType = type_
     imdb_type: imdb.IMDBIDType = TYPE_TO_IMDB_TYPE[type]
 
+    imdb_ids = np.zeros(0, np.uint32)
+    tvdb_ids = np.zeros(0, np.uint32)
+    timestamps = np.empty(0, "datetime64[s]")
+
     table = feather.read_table(filename)
     logging.info(f"Loaded {table}")
     imdb_ids = table.column("imdb_id").to_numpy().copy()
     if "tvdb_id" in table.column_names:
         tvdb_ids = table.column("tvdb_id").to_numpy().copy()
-    else:
-        tvdb_ids = np.zeros(0, np.uint32)
     timestamps = table.column("retrieved_at").to_numpy().copy()
 
     start_date = datetime.date.today() - datetime.timedelta(days=3)

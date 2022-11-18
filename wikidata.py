@@ -40,22 +40,10 @@ def pid(id: Any) -> PID:
     return PID(id)
 
 
-def trypid(id: Any) -> PID | None:
-    if type(id) is str and re.fullmatch(PIDPattern, id):
-        return PID(id)
-    return None
-
-
 def qid(id: Any) -> QID:
     assert type(id) is str, f"'{repr(id)}' is not a valid QID"
     assert re.fullmatch(QIDPattern, id), f"'{id}' is not a valid QID"
     return QID(id)
-
-
-def tryqid(id: Any) -> QID | None:
-    if type(id) is str and re.fullmatch(QIDPattern, id):
-        return QID(id)
-    return None
 
 
 def parse_uriref(uri: str) -> URIRef:

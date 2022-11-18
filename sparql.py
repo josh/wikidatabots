@@ -65,7 +65,7 @@ class SPARQLLiteralResult(TypedDict):
 class SPARQLLiteralWithDatatypeResult(TypedDict):
     type: Literal["literal"]
     value: SPARQLLiteralValue
-    datatype: str
+    # datatype: str
 
 
 class SPARQLBlankNodeResult(TypedDict):
