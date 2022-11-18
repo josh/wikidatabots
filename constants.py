@@ -1,6 +1,6 @@
 # pyright: strict
 
-from wikidata import PID, QID
+from wikidata import PID, QID, OntologyURIRef
 
 # Wikidata Property IDs
 APPLE_TV_EPISODE_ID_PID = PID("P9750")
@@ -31,3 +31,7 @@ OPENCRITIC_TOP_CRITIC_AVERAGE_QID = QID("Q114712322")
 PREFERRED_RANK_QID = QID("Q71533031")
 REDIRECT_QID = QID("Q45403344")
 WITHDRAWN_IDENTIFIER_VALUE_QID = QID("Q21441764")
+
+# Wikidata ontology
+WD_RANK = OntologyURIRef("http://wikiba.se/ontology#rank")
+WD_DEPRECATED_RANK = OntologyURIRef("http://wikiba.se/ontology#DeprecatedRank")
