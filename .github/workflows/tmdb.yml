@@ -37,22 +37,35 @@ jobs:
       - name: Generate export filename
         id: export_filename
         run: |
-          DATE=$(date +'%m_%d_%Y')
-          echo "filename=${EXPORT_NAME}_${DATE}.json.gz" >>"$GITHUB_OUTPUT"
+          TODAY=$(date --date=today +'%m_%d_%Y')
+          YESTERDAY=$(date --date=yesterday +'%m_%d_%Y')
+          echo "today_filename=${EXPORT_NAME}_${TODAY}.json.gz" >>"$GITHUB_OUTPUT"
+          echo "yesterday_filename=${EXPORT_NAME}_${YESTERDAY}.json.gz" >>"$GITHUB_OUTPUT"
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
 
-      - name: Download export
+      - name: Download today's export
+        id: wget_today_export
         run: |
-          wget "http://files.tmdb.org/p/exports/$FILENAME"
+          wget -O "$EXPORT_NAME.json.gz" "http://files.tmdb.org/p/exports/$FILENAME"
         env:
-          FILENAME: ${{ steps.export_filename.outputs.filename }}
+          FILENAME: ${{ steps.export_filename.outputs.today_filename }}
+          EXPORT_NAME: ${{ matrix.export_name }}
+
+      - name: Download yesterdays's export
+        id: wget_yesterday_export
+        if: failure() && steps.integrationTests.outcome == 'failure'
+        run: |
+          wget -O "$EXPORT_NAME.json.gz" "http://files.tmdb.org/p/exports/$FILENAME"
+        env:
+          FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
+          EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Run script
         run: |
-          python tmdb_build_mask.py "$FILENAME" "mask.arrow"
+          python tmdb_build_mask.py "$EXPORT_NAME.json.gz" "mask.arrow"
         env:
-          FILENAME: ${{ steps.export_filename.outputs.filename }}
+          EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
