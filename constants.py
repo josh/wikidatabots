@@ -1,9 +1,9 @@
 # pyright: strict
 
-from wikidata import PID, QID, OntologyURIRef
+from wikidata import PID, QID, OntologyURIRef, PURIRef
 
 # Wikidata Property IDs
-APPLE_TV_EPISODE_ID_PID = PID("P9750")
+APPLE_TV_EPISODE_ID_URI = PURIRef("http://www.wikidata.org/prop/P9750")
 APPLE_TV_MOVIE_ID_PID = PID("P9586")
 APPLE_TV_SHOW_ID_PID = PID("P9751")
 DETERMINATION_METHOD_PID = PID("P459")
