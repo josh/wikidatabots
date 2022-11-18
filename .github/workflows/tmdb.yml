@@ -64,7 +64,7 @@ jobs:
 
       - name: Run script
         run: |
-          python tmdb_build_mask.py "$EXPORT_NAME.json.gz" "mask.arrow" "mask.parquet"
+          python tmdb_build_mask.py "$EXPORT_NAME.json.gz" "mask.arrow"
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
 
@@ -74,13 +74,11 @@ jobs:
           name: ${{ matrix.type }}-mask-export
           path: |
             *.arrow
-            *.parquet
           retention-days: 3
 
       - name: Upload to S3
         run: |
           aws s3 cp "mask.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/mask.arrow"
-          aws s3 cp "mask.parquet" "s3://$BUCKET_NAME/tmdb/$TYPE/mask.parquet"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -125,7 +123,7 @@ jobs:
 
       - name: Run script
         run: |
-          python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow" "external_ids.parquet"
+          python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
@@ -136,13 +134,11 @@ jobs:
           name: ${{ matrix.type }}-external_ids-export
           path: |
             *.arrow
-            *.parquet
           retention-days: 3
 
       - name: Upload to S3
         run: |
           aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/external_ids.arrow"
-          aws s3 cp "external_ids.parquet" "s3://$BUCKET_NAME/tmdb/$TYPE/external_ids.parquet"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
