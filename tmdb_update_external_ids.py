@@ -39,25 +39,6 @@ def main(type_: str, filename: str):
             tvdb_ids = table.column("tvdb_id").to_numpy().copy()
         timestamps = table.column("retrieved_at").to_numpy().copy()
 
-    assert imdb_ids.dtype == np.uint32
-    assert tvdb_ids.dtype == np.uint32
-    assert timestamps.dtype == "datetime64[s]"
-    assert imdb_ids.flags["WRITEABLE"]
-    assert tvdb_ids.flags["WRITEABLE"]
-    assert timestamps.flags["WRITEABLE"]
-
-    def generate_stats() -> str:
-        stats = "non-zero counts:\n"
-        stats += f"imdb_id: {np.count_nonzero(imdb_ids)}/{imdb_ids.size}\n"
-        if np.any(tvdb_ids):
-            stats += f"tvdb_id: {np.count_nonzero(tvdb_ids)}/{tvdb_ids.size}\n"
-        stats += (
-            f"timestamps: {np.count_nonzero(~np.isnan(timestamps))}/{timestamps.size}"
-        )
-        return stats
-
-    logging.info(generate_stats())
-
     start_date = datetime.date.today() - datetime.timedelta(days=3)
     changed_ids = tmdb.changes(type, start_date=start_date)
 
@@ -74,8 +55,6 @@ def main(type_: str, filename: str):
         tvdb_ids[tmdb_id] = ids.get("tvdb_id") or 0
 
         timestamps[tmdb_id] = np.datetime64("now")
-
-    logging.info(generate_stats())
 
     cols = []
     names = []

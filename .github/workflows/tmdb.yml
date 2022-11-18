@@ -138,11 +138,55 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
 
+      - name: Print stats
+        shell: python
+        run: |
+          import os
+
+          import numpy as np
+          import pyarrow.feather as feather
+
+          table = feather.read_table("external_ids.arrow")
+
+          col = table.column("imdb_id").to_numpy()
+          print(f"imdb_id: {np.count_nonzero(col)}/{col.size}")
+
+          if os.environ["TYPE"] == "tv":
+              col = table.column("tvdb_id").to_numpy()
+              print(f"tvdb_id: {np.count_nonzero(col)}/{col.size}")
+
+          col = table.column("retrieved_at").to_numpy()
+          print(f"timestamps: {np.count_nonzero(~np.isnan(col))}/{col.size}")
+        env:
+          TYPE: ${{ matrix.type }}
+
       - name: Run script
         run: |
           python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TYPE: ${{ matrix.type }}
+
+      - name: Print stats
+        shell: python
+        run: |
+          import os
+
+          import numpy as np
+          import pyarrow.feather as feather
+
+          table = feather.read_table("external_ids.arrow")
+
+          col = table.column("imdb_id").to_numpy()
+          print(f"imdb_id: {np.count_nonzero(col)}/{col.size}")
+
+          if os.environ["TYPE"] == "tv":
+              col = table.column("tvdb_id").to_numpy()
+              print(f"tvdb_id: {np.count_nonzero(col)}/{col.size}")
+
+          col = table.column("retrieved_at").to_numpy()
+          print(f"timestamps: {np.count_nonzero(~np.isnan(col))}/{col.size}")
+        env:
           TYPE: ${{ matrix.type }}
 
       - name: Upload artifacts
