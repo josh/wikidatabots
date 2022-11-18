@@ -1,5 +1,6 @@
 # pyright: basic
 
+import logging
 from typing import TypedDict
 
 import pyarrow.feather as feather
@@ -26,6 +27,7 @@ PROPERTY_MAP: dict[tmdb.ObjectType, PID] = {
 
 def main(type: tmdb.ObjectType):
     s3 = fs.S3FileSystem(region="us-east-1")
+    logging.info(f"Reading feather {type} mask")
     f = s3.open_input_file(f"wikidatabots/tmdb/{type}/mask.arrow")
     table = feather.read_table(f)
     is_null_col = table["null"]
@@ -61,3 +63,11 @@ def main(type: tmdb.ObjectType):
                 f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
                 f'wikidatabots:editSummary "{edit_summary}" . '
             )
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
+    main(type="movie")
+    main(type="tv")
+    main(type="person")
