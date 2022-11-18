@@ -55,7 +55,7 @@ jobs:
 
       - name: Download yesterdays's export
         id: wget_yesterday_export
-        if: steps.integrationTests.outcome == 'failure'
+        if: steps.wget_today_export.outcome == 'failure'
         run: |
           wget -O "$EXPORT_NAME.json.gz" "http://files.tmdb.org/p/exports/$FILENAME"
         env:
