@@ -112,8 +112,11 @@ jobs:
       matrix:
         include:
           - type: "movie"
+            imdb_type: "tt"
           - type: "tv"
+            imdb_type: "tt"
           - type: "person"
+            imdb_type: "nm"
 
     steps:
       - uses: actions/checkout@v3
@@ -229,7 +232,7 @@ jobs:
       - name: Upload to S3
         run: |
           aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/external_ids.arrow"
-          aws s3 cp "imdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/imdb/tmdb_${TYPE}_exists.arrow"
+          aws s3 cp "imdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/imdb/${IMDB_TYPE}/tmdb_${TYPE}_exists.arrow"
           if [ -f "tvdb_tmdb_exists.arrow" ]; then
             aws s3 cp "tvdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/tvdb/tmdb_${TYPE}_exists.arrow"
           fi
@@ -239,3 +242,4 @@ jobs:
           BUCKET_NAME: wikidatabots
           AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
+          IMDB_TYPE: ${{ matrix.imdb_type }}
