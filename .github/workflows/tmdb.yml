@@ -228,10 +228,10 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/external_ids.arrow"
-          aws s3 cp "imdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/imdb/tmdb_$TYPE_exists.arrow"
+          aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/external_ids.arrow"
+          aws s3 cp "imdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/imdb/tmdb_${TYPE}_exists.arrow"
           if [ -f "tvdb_tmdb_exists.arrow" ]; then
-            aws s3 cp "tvdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/tvdb/tmdb_$TYPE_exists.arrow"
+            aws s3 cp "tvdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/tvdb/tmdb_${TYPE}_exists.arrow"
           fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
