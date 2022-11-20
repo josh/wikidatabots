@@ -24,6 +24,7 @@ WDT = Namespace("http://www.wikidata.org/prop/direct/")
 WDTN = Namespace("http://www.wikidata.org/prop/direct-normalized/")
 WDV = Namespace("http://www.wikidata.org/value/")
 WIKIBASE = Namespace("http://wikiba.se/ontology#")
+GENID = Namespace("http://www.wikidata.org/.well-known/genid/")
 
 WIKIDATABOTS = Namespace("https://github.com/josh/wikidatabots#")
 
@@ -65,6 +66,8 @@ def parse_uriref(uri: str) -> URIRef:
         return WikidatabotsURIRef(uri)
     elif uri.startswith(WIKIBASE):
         return OntologyURIRef(uri)
+    elif uri.startswith(GENID):
+        return GenidURIRef(uri)
     else:
         logging.info(f"Unknown subtype for URIRef: {uri}")
         return URIRef(uri)
@@ -138,3 +141,8 @@ class WikidatabotsURIRef(WikidataURIRef):
 class OntologyURIRef(WikidataURIRef):
     prefix: str = "wikibase"
     namespace: Namespace = WIKIBASE
+
+
+class GenidURIRef(WikidataURIRef):
+    prefix: str = "genid"
+    namespace: Namespace = GENID

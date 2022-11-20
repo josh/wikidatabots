@@ -68,3 +68,21 @@ def test_fetch_statements():
     assert item
     assert item[IMDB_ID_PID]
     assert item[TMDB_MOVIE_ID_PID]
+
+
+def test_sparql_some_value():
+    results = sparql(
+        """
+        SELECT ?gender WHERE {
+          wd:Q100330360 wdt:P21 ?gender.
+          FILTER(wikibase:isSomeValue(?gender))
+        }
+        LIMIT 1
+        """
+    )
+    assert len(results) == 1
+    result = results[0]
+    assert result
+    assert result["gender"] == wikidata.GenidURIRef(
+        "http://www.wikidata.org/.well-known/genid/804129ad66d7a442efd976927d7a6fb0"
+    )
