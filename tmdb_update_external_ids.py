@@ -12,17 +12,11 @@ import imdb
 import tmdb
 from utils import np_reserve_capacity
 
-TYPE_TO_IMDB_TYPE: dict[tmdb.ObjectType, imdb.IMDBIDType] = {
-    "movie": "tt",
-    "tv": "tt",
-    "person": "nm",
-}
-
 
 def main(type_: str, filename: str):
     assert type_ in tmdb.object_types
     type: tmdb.ObjectType = type_
-    imdb_type: imdb.IMDBIDType = TYPE_TO_IMDB_TYPE[type]
+    imdb_type: imdb.IMDBIDType = tmdb.TMDB_TYPE_TO_IMDB_TYPE[type]
 
     imdb_ids = np.zeros(0, np.uint32)
     tvdb_ids = np.zeros(0, np.uint32)

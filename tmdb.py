@@ -11,6 +11,8 @@ import backoff
 import requests
 import requests_cache
 
+import imdb
+
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
 session = requests_cache.CachedSession(
@@ -188,6 +190,13 @@ def changes(
     assert resp["total_pages"] == 1
 
     return set(result["id"] for result in resp["results"])
+
+
+TMDB_TYPE_TO_IMDB_TYPE: dict[ObjectType, imdb.IMDBIDType] = {
+    "movie": "tt",
+    "tv": "tt",
+    "person": "nm",
+}
 
 
 def log_cache_stats():
