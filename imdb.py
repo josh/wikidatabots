@@ -1,6 +1,5 @@
 # pyright: strict
 
-import logging
 import re
 from typing import Any, Literal, NewType
 from urllib.parse import urlparse
