@@ -105,13 +105,11 @@ def decode_numeric_id(id: str, type: IMDBIDType) -> int | None:
         return None
 
     if type != m.group(1):
-        logging.error(f"Not expected type: {id}")
         return None
 
     numeric_id: int = int(m.group(2))
 
     if encode_numeric_id(numeric_id, type) != id:
-        logging.error(f"Non-canonical id: {id}")
         return None
 
     return numeric_id
