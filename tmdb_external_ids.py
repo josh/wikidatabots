@@ -27,7 +27,9 @@ def load_index(tmdb_type: tmdb.ObjectType) -> pa.Table:
     f = s3.open_input_file(
         f"wikidatabots/imdb/{imdb_type}/tmdb_{tmdb_type}_exists.arrow"
     )
-    table = feather.read_table(f)
+    # FIXME: Streaming from S3 just randomly broke
+    f.download(f"/tmp/tmdb_{tmdb_type}_exists.arrow")
+    table = feather.read_table(f"/tmp/tmdb_{tmdb_type}_exists.arrow")
     CACHED_INDEXES[tmdb_type] = table
     elapsed_seconds = time.time() - start
     logging.info(f"Loaded {tmdb_type} external_ids feather index in {elapsed_seconds}s")
@@ -64,3 +66,9 @@ def log_stats():
 
 
 atexit.register(log_stats)
+
+
+s3 = fs.S3FileSystem(region="us-east-1")
+f = s3.open_input_file("wikidatabots/imdb/tt/tmdb_tv_exists.arrow")
+f.readall()
+# table = feather.read_table(f)
