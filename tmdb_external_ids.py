@@ -1,7 +1,7 @@
 # pyright: basic
 
-import logging
 import atexit
+import logging
 import time
 
 import pyarrow as pa
