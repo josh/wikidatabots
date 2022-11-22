@@ -451,6 +451,7 @@ jobs:
         run: |
           python tmdb_update_changed_at.py "$TYPE" changed_at.arrow
         env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
 
       - name: Print IMDB stats
