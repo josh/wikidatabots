@@ -133,11 +133,8 @@ jobs:
       matrix:
         include:
           - type: "movie"
-            imdb_type: "tt"
           - type: "tv"
-            imdb_type: "tt"
           - type: "person"
-            imdb_type: "nm"
 
     steps:
       - uses: actions/checkout@v3
@@ -259,6 +256,63 @@ jobs:
         env:
           TYPE: ${{ matrix.type }}
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-external_ids-export
+          path: |
+            *.arrow
+          retention-days: 3
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/external_ids.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          TYPE: ${{ matrix.type }}
+
+  reverse_external_ids:
+    needs: external_ids
+    runs-on: ubuntu-latest
+    concurrency: tmdb_reverse_external_ids_${{ matrix.type }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: "movie"
+            imdb_type: "tt"
+          - type: "tv"
+            imdb_type: "tt"
+          - type: "person"
+            imdb_type: "nm"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download from S3
+        run: |
+          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/external_ids.arrow" "external_ids.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          TYPE: ${{ matrix.type }}
+  
       - name: Build reverse IMDB index
         shell: python
         run: |
@@ -272,6 +326,29 @@ jobs:
           bitmap[valid_ids] = 1
           table = pa.Table.from_arrays([bitmap], names=["tmdb_exists"])
           feather.write_feather(table, "imdb_tmdb_exists.arrow")
+
+      - name: Print IMDB stats
+        shell: python
+        run: |
+          import time
+
+          import numpy as np
+          import pyarrow as pa
+          import pyarrow.feather as feather
+
+          start = time.time()
+          table = feather.read_table(f"imdb_tmdb_exists.arrow", memory_map=False)
+          elapsed = time.time() - start
+
+          tmdb_exists = table["tmdb_exists"]
+          size = len(tmdb_exists)
+          nonzero_count = np.count_nonzero(tmdb_exists)
+          zero_count = size - nonzero_count
+          print(f"   has tmdb: {nonzero_count:,} ({nonzero_count/size:.2%})")
+          print(f"has no tmdb: {zero_count:,} ({zero_count/size:.2%})")
+          print(f"      total: {size:,}")
+          print(f"       load: {elapsed:0.2}s")
+          print(f"        rss: {pa.total_allocated_bytes() >> 20:,}MB")
 
       - name: Build reverse TheTVDB index
         shell: python
@@ -288,6 +365,30 @@ jobs:
           table = pa.Table.from_arrays([bitmap], names=["tmdb_exists"])
           feather.write_feather(table, "tvdb_tmdb_exists.arrow")
 
+      - name: Print TheTVDB stats
+        shell: python
+        if: matrix.type == 'tv'
+        run: |
+          import time
+
+          import numpy as np
+          import pyarrow as pa
+          import pyarrow.feather as feather
+
+          start = time.time()
+          table = feather.read_table(f"tvdb_tmdb_exists.arrow", memory_map=False)
+          elapsed = time.time() - start
+
+          tmdb_exists = table["tmdb_exists"]
+          size = len(tmdb_exists)
+          nonzero_count = np.count_nonzero(tmdb_exists)
+          zero_count = size - nonzero_count
+          print(f"   has tmdb: {nonzero_count:,} ({nonzero_count/size:.2%})")
+          print(f"has no tmdb: {zero_count:,} ({zero_count/size:.2%})")
+          print(f"      total: {size:,}")
+          print(f"       load: {elapsed:0.2}s")
+          print(f"        rss: {pa.total_allocated_bytes() >> 20:,}MB")
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -298,7 +399,6 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/external_ids.arrow"
           aws s3 cp "imdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/imdb/${IMDB_TYPE}/tmdb_${TYPE}_exists.arrow"
           if [ -f "tvdb_tmdb_exists.arrow" ]; then
             aws s3 cp "tvdb_tmdb_exists.arrow" "s3://$BUCKET_NAME/tvdb/tmdb_${TYPE}_exists.arrow"
