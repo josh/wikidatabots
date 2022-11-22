@@ -337,7 +337,7 @@ jobs:
           import pyarrow.feather as feather
 
           start = time.time()
-          table = feather.read_table(f"imdb_tmdb_exists.arrow", memory_map=False)
+          table = feather.read_table("imdb_tmdb_exists.arrow", memory_map=False)
           elapsed = time.time() - start
 
           tmdb_exists = table["tmdb_exists"]
@@ -376,7 +376,7 @@ jobs:
           import pyarrow.feather as feather
 
           start = time.time()
-          table = feather.read_table(f"tvdb_tmdb_exists.arrow", memory_map=False)
+          table = feather.read_table("tvdb_tmdb_exists.arrow", memory_map=False)
           elapsed = time.time() - start
 
           tmdb_exists = table["tmdb_exists"]
