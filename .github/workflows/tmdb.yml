@@ -125,6 +125,7 @@ jobs:
           TYPE: ${{ matrix.type }}
 
   external_ids:
+    needs: changed_at
     runs-on: ubuntu-latest
     concurrency: tmdb_external_ids_${{ matrix.type }}
 
