@@ -312,7 +312,7 @@ jobs:
           BUCKET_NAME: wikidatabots
           AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
-  
+
       - name: Build reverse IMDB index
         shell: python
         run: |
