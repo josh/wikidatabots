@@ -62,7 +62,7 @@ jobs:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
 
-      - name: Run script
+      - name: Build null mask
         shell: python
         run: |
           import os
@@ -78,12 +78,33 @@ jobs:
           size = valid_ids.max() + 1
           mask = np.ones(size, bool)
           mask[valid_ids] = 0
-          null_count = np.sum(mask)
-          print(f"Null count: {null_count}/{size}")
           table = pa.Table.from_arrays([mask], names=["null"])
           feather.write_feather(table, "mask.arrow")
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
+
+      - name: Print stats
+        shell: python
+        run: |
+          import time
+
+          import numpy as np
+          import pyarrow as pa
+          import pyarrow.feather as feather
+
+          start = time.time()
+          table = feather.read_table("mask.arrow", memory_map=False)
+          elapsed = time.time() - start
+          mask = table["null"]
+          size = len(mask)
+          null_count = np.count_nonzero(mask)
+          valid_count = size - null_count
+
+          print(f"valid: {valid_count:,} ({valid_count/size:.2%})")
+          print(f" null: {null_count:,} ({null_count/size:.2%})")
+          print(f"total: {size:,}")
+          print(f" load: {elapsed:0.2}s")
+          print(f"  rss: {pa.total_allocated_bytes() >> 10:,}KB")
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
