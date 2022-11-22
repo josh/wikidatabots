@@ -437,7 +437,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Download from S3
-        continue-on-error: true
         run: |
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changed_at.arrow" "changed_at.arrow"
         env:
@@ -454,7 +453,7 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
 
-      - name: Print IMDB stats
+      - name: Print stats
         shell: python
         run: |
           import time

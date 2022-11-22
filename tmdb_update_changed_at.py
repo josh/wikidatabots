@@ -16,11 +16,8 @@ def main(type_: str, filename: str):
     assert type_ in tmdb.object_types
     type: tmdb.ObjectType = type_
 
-    try:
-        table = feather.read_table(filename)
-        timestamps = table.column("changed_at").to_numpy().copy()
-    except FileNotFoundError:
-        timestamps = np.empty(0, "datetime64[D]")
+    table = feather.read_table(filename)
+    timestamps = table.column("changed_at").to_numpy().copy()
 
     pbar = tqdm.tqdm(list(reversed(range(3))))
     for n in pbar:
