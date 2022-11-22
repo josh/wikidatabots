@@ -66,9 +66,3 @@ def log_stats():
 
 
 atexit.register(log_stats)
-
-
-s3 = fs.S3FileSystem(region="us-east-1")
-f = s3.open_input_file("wikidatabots/imdb/tt/tmdb_tv_exists.arrow")
-f.readall()
-# table = feather.read_table(f)
