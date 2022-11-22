@@ -171,8 +171,11 @@ def changes(
     start_date: datetime.date | None = None,
     end_date: datetime.date | None = None,
     api_key: str | None = TMDB_API_KEY,
-) -> set[int]:
+) -> list[int]:
     assert type in object_types
+
+    if start_date and end_date:
+        assert start_date < end_date, "start_date must be before end_date"
 
     path = f"/{type}/changes"
 
@@ -189,7 +192,7 @@ def changes(
     assert resp["total_results"] == 1
     assert resp["total_pages"] == 1
 
-    return set(result["id"] for result in resp["results"])
+    return list(result["id"] for result in resp["results"])
 
 
 TMDB_TYPE_TO_IMDB_TYPE: dict[ObjectType, imdb.IMDBIDType] = {
