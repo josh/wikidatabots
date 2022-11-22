@@ -410,3 +410,85 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
           IMDB_TYPE: ${{ matrix.imdb_type }}
+
+  changed_at:
+    runs-on: ubuntu-latest
+    concurrency: tmdb_changed_at_${{ matrix.type }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: "movie"
+          - type: "tv"
+          - type: "person"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download from S3
+        run: |
+          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changed_at.arrow" "changed_at.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          TYPE: ${{ matrix.type }}
+
+      - name: Record changed at timestamps
+        run: |
+          python tmdb_update_changed_at.py "$TYPE" changed_at.arrow
+        env:
+          TYPE: ${{ matrix.type }}
+
+      - name: Print IMDB stats
+        shell: python
+        run: |
+          import time
+
+          import numpy as np
+          import pyarrow as pa
+          import pyarrow.feather as feather
+
+          start = time.time()
+          table = feather.read_table("changed_at.arrow", memory_map=False)
+          elapsed = time.time() - start
+
+          timestamps = table["changed_at"]
+          size = len(timestamps)
+          nonzero_count = np.count_nonzero(~np.isnan(timestamps))
+          zero_count = size - nonzero_count
+          print(f"   changed_at: {nonzero_count:,} ({nonzero_count/size:.2%})")
+          print(f"no changed_at: {zero_count:,} ({zero_count/size:.2%})")
+          print(f"        total: {size:,}")
+          print(f"         load: {elapsed:0.2}s")
+          print(f"          rss: {pa.total_allocated_bytes() >> 20:,}MB")
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-external_ids-export
+          path: |
+            *.arrow
+          retention-days: 3
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "changed_at.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changed_at.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          TYPE: ${{ matrix.type }}
