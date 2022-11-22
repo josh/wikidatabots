@@ -23,7 +23,6 @@ def main(type_: str, filename: str):
     timestamps = np.empty(0, "datetime64[s]")
 
     table = feather.read_table(filename)
-    logging.info(f"Loaded {table}")
     imdb_ids = table.column("imdb_id").to_numpy().copy()
     if "tvdb_id" in table.column_names:
         tvdb_ids = table.column("tvdb_id").to_numpy().copy()
@@ -59,7 +58,6 @@ def main(type_: str, filename: str):
     cols.append(timestamps)
 
     table = pa.table(cols, names=names)
-    logging.info(f"Saving {table}")
     feather.write_feather(table, filename)
 
 
