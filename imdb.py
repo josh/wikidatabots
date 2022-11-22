@@ -21,6 +21,10 @@ def tryid(id: Any) -> ID | None:
     return None
 
 
+class CaptchaException(Exception):
+    pass
+
+
 def canonical_id(id: ID) -> ID | None:
     url = formatted_url(id)
     assert url, f"bad id: {id}"
@@ -38,6 +42,8 @@ def canonical_id(id: ID) -> ID | None:
         return new_id
     elif r.status_code == 404:
         return None
+    elif r.status_code == 405 and r.headers.get("x-amzn-waf-action") == "captcha":
+        raise CaptchaException()
     else:
         assert f"unhandled imdb status code: {r.status_code}"
 

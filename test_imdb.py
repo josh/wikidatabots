@@ -1,9 +1,11 @@
 # pyright: strict
 
+import pytest
 import requests
 
 from imdb import (
     ID,
+    CaptchaException,
     canonical_id,
     decode_numeric_id,
     encode_numeric_id,
@@ -109,18 +111,21 @@ def test_externalid_url():
 
 
 def test_canonical_id():
-    assert canonical_id(id("tt0111161")) == id("tt0111161")
-    assert canonical_id(id("nm0000151")) == id("nm0000151")
-    assert canonical_id(id("co0018704")) == id("co0018704")
-    assert canonical_id(id("ev0000292/1997")) == id("ev0000292/1997")
-    assert canonical_id(id("ev0000203")) == id("ev0000203")
+    try:
+        assert canonical_id(id("tt0111161")) == id("tt0111161")
+        assert canonical_id(id("nm0000151")) == id("nm0000151")
+        assert canonical_id(id("co0018704")) == id("co0018704")
+        assert canonical_id(id("ev0000292/1997")) == id("ev0000292/1997")
+        assert canonical_id(id("ev0000203")) == id("ev0000203")
 
-    assert canonical_id(id("ch0348376")) == id("ch0348376")
+        assert canonical_id(id("ch0348376")) == id("ch0348376")
 
-    assert canonical_id(id("tt11639970")) == id("tt2177268")
+        assert canonical_id(id("tt11639970")) == id("tt2177268")
 
-    assert not canonical_id(id("tt100000000"))
-    assert not canonical_id(id("tt1555101"))
+        assert not canonical_id(id("tt100000000"))
+        assert not canonical_id(id("tt1555101"))
+    except CaptchaException:
+        pytest.skip("captcha error")
 
 
 def test_decode_numeric_id():
