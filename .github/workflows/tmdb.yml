@@ -166,21 +166,44 @@ jobs:
         shell: python
         run: |
           import os
+          import time
 
           import numpy as np
+          import pyarrow as pa
           import pyarrow.feather as feather
 
-          table = feather.read_table("external_ids.arrow")
+          start = time.time()
+          table = feather.read_table("external_ids.arrow", memory_map=False)
+          elapsed = time.time() - start
 
-          col = table.column("imdb_id").to_numpy()
-          print(f"imdb_id: {np.count_nonzero(col)}/{col.size}")
+          imdb_ids = table["imdb_id"]
+          size = len(imdb_ids)
+          nonzero_count = np.count_nonzero(imdb_ids)
+          zero_count = size - nonzero_count
+          print(f"   imdb_id: {nonzero_count:,} ({nonzero_count/size:.2%})")
+          print(f"no imdb_id: {zero_count:,} ({zero_count/size:.2%})")
 
           if os.environ["TYPE"] == "tv":
-              col = table.column("tvdb_id").to_numpy()
-              print(f"tvdb_id: {np.count_nonzero(col)}/{col.size}")
+              tvdb_ids = table["tvdb_id"]
+              size = len(tvdb_ids)
+              nonzero_count = np.count_nonzero(tvdb_ids)
+              zero_count = size - nonzero_count
+              print("")
+              print(f"   tvdb_id: {nonzero_count:,} ({nonzero_count/size:.2%})")
+              print(f"no tvdb_id: {zero_count:,} ({zero_count/size:.2%})")
 
-          col = table.column("retrieved_at").to_numpy()
-          print(f"timestamps: {np.count_nonzero(~np.isnan(col))}/{col.size}")
+          timestamps = table["retrieved_at"]
+          size = len(timestamps)
+          nonzero_count = np.count_nonzero(~np.isnan(timestamps))
+          zero_count = size - nonzero_count
+          print("")
+          print(f"   retrieved_at: {nonzero_count:,} ({nonzero_count/size:.2%})")
+          print(f"no retrieved_at: {zero_count:,} ({zero_count/size:.2%})")
+
+          print("")
+          print(f"total: {size:,}")
+          print(f" load: {elapsed:0.2}s")
+          print(f"  rss: {pa.total_allocated_bytes() >> 20:,}MB")
         env:
           TYPE: ${{ matrix.type }}
 
@@ -195,21 +218,44 @@ jobs:
         shell: python
         run: |
           import os
+          import time
 
           import numpy as np
+          import pyarrow as pa
           import pyarrow.feather as feather
 
-          table = feather.read_table("external_ids.arrow")
+          start = time.time()
+          table = feather.read_table("external_ids.arrow", memory_map=False)
+          elapsed = time.time() - start
 
-          col = table.column("imdb_id").to_numpy()
-          print(f"imdb_id: {np.count_nonzero(col)}/{col.size}")
+          imdb_ids = table["imdb_id"]
+          size = len(imdb_ids)
+          nonzero_count = np.count_nonzero(imdb_ids)
+          zero_count = size - nonzero_count
+          print(f"   imdb_id: {nonzero_count:,} ({nonzero_count/size:.2%})")
+          print(f"no imdb_id: {zero_count:,} ({zero_count/size:.2%})")
 
           if os.environ["TYPE"] == "tv":
-              col = table.column("tvdb_id").to_numpy()
-              print(f"tvdb_id: {np.count_nonzero(col)}/{col.size}")
+              tvdb_ids = table["tvdb_id"]
+              size = len(tvdb_ids)
+              nonzero_count = np.count_nonzero(tvdb_ids)
+              zero_count = size - nonzero_count
+              print("")
+              print(f"   tvdb_id: {nonzero_count:,} ({nonzero_count/size:.2%})")
+              print(f"no tvdb_id: {zero_count:,} ({zero_count/size:.2%})")
 
-          col = table.column("retrieved_at").to_numpy()
-          print(f"timestamps: {np.count_nonzero(~np.isnan(col))}/{col.size}")
+          timestamps = table["retrieved_at"]
+          size = len(timestamps)
+          nonzero_count = np.count_nonzero(~np.isnan(timestamps))
+          zero_count = size - nonzero_count
+          print("")
+          print(f"   retrieved_at: {nonzero_count:,} ({nonzero_count/size:.2%})")
+          print(f"no retrieved_at: {zero_count:,} ({zero_count/size:.2%})")
+
+          print("")
+          print(f"total: {size:,}")
+          print(f" load: {elapsed:0.2}s")
+          print(f"  rss: {pa.total_allocated_bytes() >> 20:,}MB")
         env:
           TYPE: ${{ matrix.type }}
 
