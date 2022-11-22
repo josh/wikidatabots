@@ -437,6 +437,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Download from S3
+        continue-on-error: true
         run: |
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changed_at.arrow" "changed_at.arrow"
         env:
