@@ -393,7 +393,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.type }}-external_ids-export
+          name: ${{ matrix.type }}-reverse_external_ids-export
           path: |
             *.arrow
           retention-days: 3
@@ -480,7 +480,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.type }}-external_ids-export
+          name: ${{ matrix.type }}-changed_at-export
           path: |
             *.arrow
           retention-days: 3
