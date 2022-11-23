@@ -42,6 +42,8 @@ def canonical_id(id: ID) -> ID | None:
         return new_id
     elif r.status_code == 404:
         return None
+    elif r.status_code == 403:
+        raise CaptchaException()
     elif r.status_code == 405 and r.headers.get("x-amzn-waf-action") == "captcha":
         raise CaptchaException()
     else:
