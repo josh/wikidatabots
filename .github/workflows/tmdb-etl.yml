@@ -1,4 +1,4 @@
-name: TMDB
+name: TMDB ETL
 
 on:
   schedule:
