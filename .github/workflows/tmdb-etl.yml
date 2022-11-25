@@ -48,7 +48,7 @@ jobs:
         id: wget_today_export
         continue-on-error: true
         run: |
-          wget -O "$EXPORT_NAME.json.gz" "http://files.tmdb.org/p/exports/$FILENAME"
+          curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip >"$EXPORT_NAME.json"
         env:
           FILENAME: ${{ steps.export_filename.outputs.today_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
@@ -57,7 +57,7 @@ jobs:
         id: wget_yesterday_export
         if: steps.wget_today_export.outcome == 'failure'
         run: |
-          wget -O "$EXPORT_NAME.json.gz" "http://files.tmdb.org/p/exports/$FILENAME"
+          curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip >"$EXPORT_NAME.json"
         env:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
@@ -73,7 +73,7 @@ jobs:
           from pyarrow import json
 
           export_name = os.environ["EXPORT_NAME"]
-          table = json.read_json(f"{export_name}.json.gz")
+          table = json.read_json(f"{export_name}.json")
           valid_ids = table["id"].to_numpy()
           size = valid_ids.max() + 1
           mask = np.ones(size, bool)
