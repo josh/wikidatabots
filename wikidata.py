@@ -4,7 +4,8 @@ import logging
 import re
 from typing import Any, NewType
 
-from rdflib import Namespace
+from rdflib import Graph
+from rdflib.namespace import Namespace, NamespaceManager
 from rdflib.term import URIRef
 
 P = Namespace("http://www.wikidata.org/prop/")
@@ -24,11 +25,24 @@ WDS = Namespace("http://www.wikidata.org/entity/statement/")
 WDT = Namespace("http://www.wikidata.org/prop/direct/")
 WDTN = Namespace("http://www.wikidata.org/prop/direct-normalized/")
 WDV = Namespace("http://www.wikidata.org/value/")
+WDNO = Namespace("http://www.wikidata.org/prop/novalue/")
 WIKIBASE = Namespace("http://wikiba.se/ontology#")
 GENID = Namespace("http://www.wikidata.org/.well-known/genid/")
 
 WIKIDATABOTS = Namespace("https://github.com/josh/wikidatabots#")
 
+NS_MANAGER = NamespaceManager(Graph())
+NS_MANAGER.bind("wikibase", WIKIBASE)
+NS_MANAGER.bind("wd", WD)
+NS_MANAGER.bind("wds", WDS)
+NS_MANAGER.bind("wdv", WDV)
+NS_MANAGER.bind("wdref", WDREF)
+NS_MANAGER.bind("wdt", WDT)
+NS_MANAGER.bind("p", P)
+NS_MANAGER.bind("wdno", WDNO)
+NS_MANAGER.bind("ps", PS)
+NS_MANAGER.bind("psv", PSV)
+NS_MANAGER.bind("pq", PQ)
 
 PID = NewType("PID", str)
 QID = NewType("QID", str)
