@@ -43,6 +43,7 @@ NS_MANAGER.bind("wdno", WDNO)
 NS_MANAGER.bind("ps", PS)
 NS_MANAGER.bind("psv", PSV)
 NS_MANAGER.bind("pq", PQ)
+NS_MANAGER.bind("pr", PR)
 
 PID = NewType("PID", str)
 QID = NewType("QID", str)

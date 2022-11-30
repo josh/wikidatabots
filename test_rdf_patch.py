@@ -61,6 +61,27 @@ def test_add_prop_direct_value():
     assert claims[0]["mainsnak"]["datavalue"]["value"] == "123"
 
 
+def test_add_prop_statement_value():
+    triples = [
+        "wd:Q172241",
+        "p:P4947",
+        "_:a",
+        ".",
+        "_:a",
+        "ps:P4947",
+        '"123"',
+        ".",
+    ]
+    edits = list(process_graph(username, StringIO(" ".join(triples))))
+    assert len(edits) == 1
+    (item, claims, summary) = edits[0]
+    assert item.id == "Q172241"
+    assert summary is None
+    assert len(claims) == 1
+    assert claims[0]["mainsnak"]["property"] == "P4947"
+    assert claims[0]["mainsnak"]["datavalue"]["value"] == "123"
+
+
 def test_noop_change_prop_direct_value():
     triple = ["wd:Q172241", "wdt:P4947", '"278"', "."]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
@@ -108,3 +129,32 @@ def test_noop_change_prop_statement():
     ]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
     assert len(edits) == 0
+
+
+def test_add_item_prop_qualifer():
+    triples = [
+        "wd:Q172241",
+        "p:P161",
+        "_:a",
+        ".",
+        "_:a",
+        "ps:P161",
+        "wd:Q48337",
+        ".",
+        "_:a",
+        "pq:P4633",
+        '"Narrator"',
+        ".",
+    ]
+    edits = list(process_graph(username, StringIO(" ".join(triples))))
+    assert len(edits) == 1
+    (item, claims, summary) = edits[0]
+    assert item.id == "Q172241"
+    assert summary is None
+    assert len(claims) == 1
+    assert claims[0]["mainsnak"]["property"] == "P161"
+    assert (
+        claims[0]["qualifiers"]["P4633"][0]["datavalue"]["value"]
+        == 'Ellis Boyd "Red" Redding'
+    )
+    assert claims[0]["qualifiers"]["P4633"][1]["datavalue"]["value"] == "Narrator"
