@@ -11,26 +11,7 @@ from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
 from page import blocked_qids
-from wikidata import (
-    PS,
-    PSN,
-    PSV,
-    RDF,
-    RDFS,
-    SCHEMA,
-    SKOS,
-    WIKIBASE,
-    WIKIDATABOTS,
-    OntologyURIRef,
-    PQURIRef,
-    PURIRef,
-    WDSURIRef,
-    WDTNURIRef,
-    WDTURIRef,
-    WDURIRef,
-    WikidatabotsURIRef,
-    parse_uriref,
-)
+from wikidata import NS_MANAGER, PS, WIKIBASE, WIKIDATABOTS
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -102,62 +83,24 @@ def process_graph(
     changed_claims: dict[pywikibot.ItemPage, set[HashableClaim]] = defaultdict(set)
     edit_summaries: dict[pywikibot.ItemPage, str] = {}
 
-    def visit(
-        subject: URIRef | BNode,
-        predicate: URIRef,
-        object: URIRef | BNode | Literal,
-    ) -> None:
-        if isinstance(subject, BNode):
-            assert isinstance(object, URIRef) or isinstance(object, Literal)
-            pass
-        elif predicate == RDF.type:
-            pass
-        elif isinstance(subject, WDSURIRef):
-            visit_wds_subject(subject, predicate, object)
-        elif isinstance(subject, WDURIRef):
-            visit_wd_subject(subject, predicate, object)
-        else:
-            logging.warning(f"Unknown triple: {subject} {predicate} {object}")
-
     def visit_wd_subject(
-        subject: WDURIRef,
+        item: pywikibot.ItemPage,
+        subject: URIRef,
         predicate: URIRef,
         object: URIRef | BNode | Literal,
     ) -> None:
-        subject_id = subject.local_name()
+        predicate_ns, _, predicate_local_name = NS_MANAGER.compute_qname(predicate)
 
-        if predicate in WIKIBASE:
-            pass
-
-        elif subject_id.startswith("Q") and isinstance(predicate, WDTNURIRef):
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
-
-        elif subject_id.startswith("Q") and isinstance(predicate, WDTURIRef):
-            item = get_item_page(subject_id)
-            pid = predicate.local_name()
-            property = get_property_page(pid)
+        if predicate_ns == "wdt":
+            property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
             target = object_to_target(object)
-
             did_change, claim = item_append_claim_target(item, property, target)
             if did_change:
                 changed_claims[item].add(HashableClaim(claim))
 
-        elif (
-            subject_id.startswith("Q")
-            and isinstance(predicate, PURIRef)
-            and isinstance(object, WDSURIRef)
-        ):
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
-
-        elif (
-            subject_id.startswith("Q")
-            and isinstance(predicate, PURIRef)
-            and isinstance(object, BNode)
-        ):
-            item: pywikibot.ItemPage = get_item_page(subject_id)
-            pid = predicate.local_name()
-            property: pywikibot.PropertyPage = get_property_page(pid)
-            predicate_statement_uri = PS[pid]
+        elif predicate_ns == "p" and isinstance(object, BNode):
+            property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
+            predicate_statement_uri = PS[predicate_local_name]
 
             for object2 in graph.objects(object, predicate_statement_uri):
                 assert isinstance(object2, Literal) or isinstance(object2, URIRef)
@@ -167,86 +110,67 @@ def process_graph(
                 if did_change:
                     changed_claims[item].add(HashableClaim(claim))
 
-        elif predicate == SCHEMA.name and isinstance(object, Literal):
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
-
-        elif predicate == SCHEMA.description and isinstance(object, Literal):
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
-
-        elif predicate == RDFS.label and isinstance(object, Literal):
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
-
-        elif predicate == SKOS.altLabel and isinstance(object, Literal):
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
-
-        elif predicate == SKOS.prefLabel and isinstance(object, Literal):
-            logging.error(f"Unimplemented wd triple: {subject} {predicate} {object}")
-
-        elif predicate == WikidatabotsURIRef(WIKIDATABOTS.editSummary):
-            item: pywikibot.ItemPage = get_item_page(subject.local_name())
+        elif predicate == WIKIDATABOTS.editSummary:
             edit_summaries[item] = object.toPython()
 
         else:
             logging.warning(f"Unknown wd triple: {subject} {predicate} {object}")
 
     def visit_wds_subject(
-        subject: WDSURIRef,
+        item: pywikibot.ItemPage,
+        claim: pywikibot.Claim,
+        subject: URIRef,
         predicate: URIRef,
         object: URIRef | BNode | Literal,
     ) -> None:
-        claim: pywikibot.Claim = resolve_entity_statement(subject)
-        item: pywikibot.ItemPage | None = claim.on_item
-        assert item
+        predicate_ns, _, predicate_local_name = NS_MANAGER.compute_qname(predicate)
 
-        if predicate in PSN:
-            logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
-
-        elif predicate in PSV:
-            logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
-
-        elif predicate in PS:
-            logging.error(f"Unimplemented wds triple: {subject} {predicate} {object}")
-
-        elif isinstance(predicate, PQURIRef):
-            pid = predicate.local_name()
-            property = get_property_page(pid)
+        if predicate_ns == "pq":
+            property = get_property_page(predicate_local_name)
             target = object_to_target(object)
 
             did_change, _ = claim_append_qualifer(claim, property, target)
             if did_change:
                 changed_claims[item].add(HashableClaim(claim))
 
-        elif (
-            isinstance(predicate, OntologyURIRef)
-            and predicate.local_name() == "rank"
-            and isinstance(object, OntologyURIRef)
-        ):
+        elif predicate_ns == "ps":
+            property = get_property_page(predicate_local_name)
+            target = object_to_target(object)
+
+            if not claim.target_equals(target):
+                claim.setTarget(target)
+                changed_claims[item].add(HashableClaim(claim))
+
+        elif predicate == WIKIBASE.rank:
+            assert isinstance(object, URIRef)
             if claim_set_rank(claim, object):
                 changed_claims[item].add(HashableClaim(claim))
 
-        elif predicate == WikidatabotsURIRef(WIKIDATABOTS.editSummary):
+        elif predicate == WIKIDATABOTS.editSummary:
             edit_summaries[item] = object.toPython()
 
         else:
             logging.warning(f"Unknown wds triple: {subject} {predicate} {object}")
 
-    for subject, predicate, object in graph:
-        assert isinstance(subject, URIRef) or isinstance(subject, BNode)
-        assert isinstance(predicate, URIRef)
-        assert (
-            isinstance(object, URIRef)
-            or isinstance(object, BNode)
-            or isinstance(object, Literal)
-        )
+    for subject in subjects(graph):
+        ns, _, local_name = NS_MANAGER.compute_qname(subject)
 
-        if isinstance(subject, URIRef):
-            subject = parse_uriref(subject)
-        if isinstance(predicate, URIRef):
-            predicate = parse_uriref(predicate)
-        if isinstance(object, URIRef):
-            object = parse_uriref(object)
+        if ns == "wd":
+            assert isinstance(subject, URIRef)
+            item: pywikibot.ItemPage = get_item_page(local_name)
+            for (predicate, object) in predicate_objects(graph, subject):
+                visit_wd_subject(item, subject, predicate, object)
 
-        visit(subject, predicate, object)
+        elif ns == "wds":
+            assert isinstance(subject, URIRef)
+            claim: pywikibot.Claim = resolve_claim_guid(local_name)
+            claim_item: pywikibot.ItemPage | None = claim.on_item
+            assert claim_item
+            for (predicate, object) in predicate_objects(graph, subject):
+                visit_wds_subject(claim_item, claim, subject, predicate, object)
+
+        else:
+            logging.warning(f"Unknown subject: {subject}")
 
     for item, claims in changed_claims.items():
         if item.id in blocked_qids():
@@ -268,6 +192,30 @@ def process_graph(
         yield (item, claims_json, summary)
 
 
+AnySubject = URIRef | BNode
+AnyPredicate = URIRef
+AnyObject = URIRef | BNode | Literal
+
+
+def subjects(graph: Graph) -> Iterator[AnySubject]:
+    for subject in graph.subjects():
+        assert isinstance(subject, URIRef) or isinstance(subject, BNode)
+        yield subject
+
+
+def predicate_objects(
+    graph: Graph, subject: AnySubject
+) -> Iterator[tuple[AnyPredicate, AnyObject]]:
+    for (predicate, object) in graph.predicate_objects(subject):
+        assert isinstance(predicate, URIRef)
+        assert (
+            isinstance(object, URIRef)
+            or isinstance(object, BNode)
+            or isinstance(object, Literal)
+        )
+        yield predicate, object
+
+
 @cache
 def get_item_page(qid: str) -> pywikibot.ItemPage:
     assert qid.startswith("Q"), qid
@@ -283,8 +231,8 @@ def get_property_page(pid: str) -> pywikibot.PropertyPage:
 
 
 @cache
-def resolve_entity_statement(uri: WDSURIRef) -> pywikibot.Claim:
-    qid, hash = uri.local_name().split("-", 1)
+def resolve_claim_guid(guid: str) -> pywikibot.Claim:
+    qid, hash = guid.split("-", 1)
     snak = f"{qid}${hash}"
 
     item = get_item_page(qid.upper())
@@ -294,14 +242,16 @@ def resolve_entity_statement(uri: WDSURIRef) -> pywikibot.Claim:
             if snak == claim.snak:
                 return claim
 
-    assert False, f"Can't resolve statement GUID: {uri}"
+    assert False, f"Can't resolve statement GUID: {guid}"
 
 
 def object_to_target(object: URIRef | BNode | Literal) -> Any:
     if isinstance(object, Literal):
         return object.toPython()
-    elif isinstance(object, WDURIRef):
-        return get_item_page(object.local_name())
+    elif isinstance(object, URIRef):
+        ns, _, local_name = NS_MANAGER.compute_qname(object)
+        assert ns == "wd"
+        return get_item_page(local_name)
     else:
         assert False, f"Can't convert object to target: {object}"
 

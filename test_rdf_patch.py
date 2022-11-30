@@ -11,7 +11,7 @@ username = "Test"
 def setup_function(function):
     rdf_patch.get_item_page.cache_clear()
     rdf_patch.get_property_page.cache_clear()
-    rdf_patch.resolve_entity_statement.cache_clear()
+    rdf_patch.resolve_claim_guid.cache_clear()
 
 
 def test_change_statement_rank():
@@ -93,6 +93,17 @@ def test_noop_change_prop_qualifer():
         "wds:q172241-91B6C9F4-2F78-4577-9726-6E9D8D76B486",
         "pq:P4633",
         '"Andy Dufresne"',
+        ".",
+    ]
+    edits = list(process_graph(username, StringIO(" ".join(triple))))
+    assert len(edits) == 0
+
+
+def test_noop_change_prop_statement():
+    triple = [
+        "wds:q172241-E0C7392E-5020-4DC1-8520-EEBF57C3AB66",
+        "ps:P161",
+        "wd:Q48337",
         ".",
     ]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
