@@ -1,10 +1,10 @@
 # pyright: strict
 
+import inspect
 import logging
 import os
-from typing import Callable, Iterable
 import uuid
-import inspect
+from typing import Callable, Iterable
 
 logging.basicConfig(
     level=logging.DEBUG,

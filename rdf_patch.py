@@ -8,8 +8,8 @@ from typing import Any, Iterator, TextIO
 import pywikibot
 import pywikibot.config
 from rdflib import Graph
-from rdflib.term import BNode, Literal, URIRef
 from rdflib.namespace import XSD
+from rdflib.term import BNode, Literal, URIRef
 
 from page import blocked_qids
 from wikidata import NS_MANAGER, PROV, PS, WIKIBASE, WIKIDATABOTS

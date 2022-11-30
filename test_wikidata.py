@@ -3,11 +3,11 @@
 from rdflib.term import URIRef
 
 from wikidata import (
+    NS_MANAGER,
     WD,
     WDS,
     WIKIBASE,
     WIKIDATABOTS,
-    NS_MANAGER,
     OntologyURIRef,
     WDSURIRef,
     WDURIRef,
