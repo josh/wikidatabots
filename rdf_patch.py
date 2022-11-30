@@ -1,5 +1,6 @@
 # pyright: basic
 
+import datetime
 import logging
 from collections import defaultdict
 from functools import cache
@@ -8,7 +9,6 @@ from typing import Any, Iterator, TextIO
 import pywikibot
 import pywikibot.config
 from rdflib import Graph
-from rdflib.namespace import XSD
 from rdflib.term import BNode, Literal, URIRef
 
 from page import blocked_qids
@@ -285,10 +285,11 @@ def resolve_claim_guid(guid: str) -> pywikibot.Claim:
 
 def object_to_target(object: AnyObject) -> Any:
     if isinstance(object, Literal):
-        if object.datatype == XSD.date:
+        value = object.toPython()
+        if type(value) == datetime.date:
             return pywikibot.WbTime.fromTimestr(f"{object}T00:00:00Z", precision=11)
         else:
-            return object.toPython()
+            return value
     elif isinstance(object, URIRef):
         prefix, local_name = compute_qname(object)
         assert prefix == "wd"
