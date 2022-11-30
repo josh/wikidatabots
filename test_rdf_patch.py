@@ -49,16 +49,29 @@ def test_add_prop_direct_value():
         "wdt:P4947",
         '"123";',
         "wikidatabots:editSummary",
-        '"Changed TMDb movie ID"' ".",
+        '"Add TMDb movie ID"' ".",
     ]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
     assert len(edits) == 1
     (item, claims, summary) = edits[0]
     assert item.id == "Q172241"
-    assert summary == "Changed TMDb movie ID"
+    assert summary == "Add TMDb movie ID"
     assert len(claims) == 1
     assert claims[0]["mainsnak"]["property"] == "P4947"
     assert claims[0]["mainsnak"]["datavalue"]["value"] == "123"
+
+
+def test_noop_change_prop_direct_value():
+    triple = ["wd:Q172241", "wdt:P4947", '"278"', "."]
+    edits = list(process_graph(username, StringIO(" ".join(triple))))
+    assert len(edits) == 0
+
+
+# TODO: This should probably add a new statement
+def test_noop_change_prop_direct_deprecated_value():
+    triple = ["wd:Q1292541", "wdt:P4947", '"429486"', "."]
+    edits = list(process_graph(username, StringIO(" ".join(triple))))
+    assert len(edits) == 0
 
 
 def test_add_prop_statement_value():
@@ -80,12 +93,6 @@ def test_add_prop_statement_value():
     assert len(claims) == 1
     assert claims[0]["mainsnak"]["property"] == "P4947"
     assert claims[0]["mainsnak"]["datavalue"]["value"] == "123"
-
-
-def test_noop_change_prop_direct_value():
-    triple = ["wd:Q172241", "wdt:P4947", '"278"', "."]
-    edits = list(process_graph(username, StringIO(" ".join(triple))))
-    assert len(edits) == 0
 
 
 def test_add_prop_qualifer():
@@ -118,6 +125,23 @@ def test_noop_change_prop_qualifer():
     ]
     edits = list(process_graph(username, StringIO(" ".join(triple))))
     assert len(edits) == 0
+
+
+def test_delete_prop_qualifer():
+    triple = [
+        "wds:Q1292541-2203A57C-488F-4371-9F88-9A5EB91C4883",
+        "pq:P2241",
+        "[]",
+        ".",
+    ]
+    edits = list(process_graph(username, StringIO(" ".join(triple))))
+    assert len(edits) == 1
+    (item, claims, summary) = edits[0]
+    assert item.id == "Q1292541"
+    assert summary is None
+    assert len(claims) == 1
+    assert claims[0]["mainsnak"]["property"] == "P4947"
+    assert claims[0].get("qualifiers") is None
 
 
 def test_noop_change_prop_statement():
@@ -153,8 +177,5 @@ def test_add_item_prop_qualifer():
     assert summary is None
     assert len(claims) == 1
     assert claims[0]["mainsnak"]["property"] == "P161"
-    assert (
-        claims[0]["qualifiers"]["P4633"][0]["datavalue"]["value"]
-        == 'Ellis Boyd "Red" Redding'
-    )
-    assert claims[0]["qualifiers"]["P4633"][1]["datavalue"]["value"] == "Narrator"
+    assert claims[0]["mainsnak"]["datavalue"]["value"]["numeric-id"] == 48337
+    assert claims[0]["qualifiers"]["P4633"][0]["datavalue"]["value"] == "Narrator"

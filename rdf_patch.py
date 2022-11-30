@@ -12,7 +12,7 @@ from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
 from page import blocked_qids
-from wikidata import NS_MANAGER, PROV, PS, WIKIBASE, WIKIDATABOTS
+from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -84,6 +84,12 @@ def process_graph(
     changed_claims: dict[pywikibot.ItemPage, set[HashableClaim]] = defaultdict(set)
     edit_summaries: dict[pywikibot.ItemPage, str] = {}
 
+    def mark_changed(
+        item: pywikibot.ItemPage, claim: pywikibot.Claim, did_change: bool = True
+    ):
+        if did_change:
+            changed_claims[item].add(HashableClaim(claim))
+
     def visit_wd_subject(
         item: pywikibot.ItemPage, predicate: URIRef, object: AnyObject
     ) -> None:
@@ -93,20 +99,14 @@ def process_graph(
             property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
             target = object_to_target(object)
             did_change, claim = item_append_claim_target(item, property, target)
-            if did_change:
-                changed_claims[item].add(HashableClaim(claim))
+            mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "p" and isinstance(object, BNode):
             property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
 
-            prop_value = graph_value(graph, object, PS[predicate_local_name])
-            assert prop_value
-
-            did_change, claim = item_append_claim_target(
-                item, property, object_to_target(prop_value)
-            )
-            if did_change:
-                changed_claims[item].add(HashableClaim(claim))
+            claim: pywikibot.Claim = property.newClaim()
+            item.claims[predicate_local_name].append(claim)
+            mark_changed(item, claim)
 
             for (predicate, object) in predicate_objects(graph, object):
                 visit_wds_subject(item, claim, predicate, object)
@@ -127,11 +127,15 @@ def process_graph(
 
         if predicate_prefix == "pq":
             property = get_property_page(predicate_local_name)
-            target = object_to_target(object)
 
-            did_change, _ = claim_append_qualifer(claim, property, target)
-            if did_change:
-                changed_claims[item].add(HashableClaim(claim))
+            if graph_empty_node(graph, object):
+                did_change = predicate_local_name in claim.qualifiers
+                del claim.qualifiers[predicate_local_name]
+                mark_changed(item, claim, did_change)
+            else:
+                target = object_to_target(object)
+                did_change, _ = claim_append_qualifer(claim, property, target)
+                mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "ps":
             property = get_property_page(predicate_local_name)
@@ -140,12 +144,12 @@ def process_graph(
 
             if not claim.target_equals(target):
                 claim.setTarget(target)
-                changed_claims[item].add(HashableClaim(claim))
+                mark_changed(item, claim)
 
         elif predicate == WIKIBASE.rank:
             assert isinstance(object, URIRef)
-            if claim_set_rank(claim, object):
-                changed_claims[item].add(HashableClaim(claim))
+            did_change = claim_set_rank(claim, object)
+            mark_changed(item, claim, did_change)
 
         elif predicate == PROV.wasDerivedFrom:
             assert isinstance(object, BNode)
@@ -247,6 +251,10 @@ def graph_value(
         or isinstance(value, Literal)
     )
     return value
+
+
+def graph_empty_node(graph: Graph, object: AnyObject) -> bool:
+    return isinstance(object, BNode) and len(list(graph.predicate_objects(object))) == 0
 
 
 def compute_qname(uri: URIRef) -> tuple[str, str]:
