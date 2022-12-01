@@ -1,5 +1,7 @@
 # pyright: strict
 
+from rdflib import URIRef
+
 import wikidata
 from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
 from sparql import fetch_statements, sample_items, sparql, type_constraints
@@ -34,8 +36,8 @@ def test_sparql_property():
     )
     assert len(results) == 1
     uri = results[0]["statement"].toPython()
-    assert (
-        uri == "http://www.wikidata.org/entity/statement/"
+    assert uri == (
+        "http://www.wikidata.org/entity/statement/"
         "Q1-789eef0c-4108-cdda-1a63-505cdd324564"
     )
 
@@ -83,6 +85,6 @@ def test_sparql_some_value():
     assert len(results) == 1
     result = results[0]
     assert result
-    assert result["gender"] == wikidata.GenidURIRef(
+    assert result["gender"] == URIRef(
         "http://www.wikidata.org/.well-known/genid/804129ad66d7a442efd976927d7a6fb0"
     )

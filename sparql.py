@@ -15,10 +15,10 @@ from typing import Any, Literal, TypedDict
 
 import backoff
 import requests
+from rdflib import URIRef
 
 import timeout
-import wikidata
-from wikidata import PID, QID, WDSURIRef
+from wikidata import PID, QID
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -133,11 +133,10 @@ def sparql(query: str) -> list[Any]:
         elif obj["type"] == "literal":
             return obj["value"]
         elif obj["type"] == "uri":
-            uri = wikidata.parse_uriref(obj["value"])
-            if isinstance(uri, wikidata.WDURIRef):
-                return uri.local_name()
-            elif isinstance(uri, wikidata.PURIRef):
-                return uri.local_name()
+            if obj["value"].startswith("http://www.wikidata.org/entity/Q"):
+                return obj["value"][31:]
+            elif obj["value"].startswith("http://www.wikidata.org/prop/P"):
+                return obj["value"][29:]
             elif obj["value"] == "http://wikiba.se/ontology#DeprecatedRank":
                 return "deprecated"
             elif obj["value"] == "http://wikiba.se/ontology#NormalRank":
@@ -145,7 +144,7 @@ def sparql(query: str) -> list[Any]:
             elif obj["value"] == "http://wikiba.se/ontology#PreferredRank":
                 return "preferred"
             else:
-                return uri
+                return URIRef(obj["value"])
         elif obj["type"] == "bnode":
             return None
         else:
@@ -158,7 +157,7 @@ def fetch_statements(
     qids: Iterable[QID],
     properties: Iterable[PID],
     deprecated: bool = False,
-) -> dict[QID, dict[PID, list[tuple[WDSURIRef, str]]]]:
+) -> dict[QID, dict[PID, list[tuple[URIRef, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
     query += """
@@ -175,10 +174,10 @@ def fetch_statements(
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    Result = TypedDict("Result", statement=WDSURIRef, item=QID, property=PID, value=str)
+    Result = TypedDict("Result", statement=URIRef, item=QID, property=PID, value=str)
     results: list[Result] = sparql(query)
 
-    items: dict[QID, dict[PID, list[tuple[WDSURIRef, str]]]] = {}
+    items: dict[QID, dict[PID, list[tuple[URIRef, str]]]] = {}
     for result in results:
         statement = result["statement"]
         qid = result["item"]

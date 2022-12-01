@@ -5,6 +5,7 @@ from typing import TypedDict
 
 import pyarrow.feather as feather
 from pyarrow import fs
+from rdflib import URIRef
 
 import tmdb
 from constants import (
@@ -16,7 +17,7 @@ from constants import (
 )
 from sparql import sparql
 from utils import tryint
-from wikidata import PID, WDSURIRef
+from wikidata import PID
 
 PROPERTY_MAP: dict[tmdb.ObjectType, PID] = {
     "movie": TMDB_MOVIE_ID_PID,
@@ -41,7 +42,7 @@ def main(type: tmdb.ObjectType):
     """
     query = query.replace("P0000", PROPERTY_MAP[type])
 
-    Result = TypedDict("Result", statement=WDSURIRef, value=str)
+    Result = TypedDict("Result", statement=URIRef, value=str)
     results: list[Result] = sparql(query)
 
     edit_summary = f"Deprecate removed TMDB {type} ID"
