@@ -45,7 +45,7 @@ jobs:
           EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Download today's export
-        id: wget_today_export
+        id: curl_today_export
         continue-on-error: true
         run: |
           curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip >"$EXPORT_NAME.json"
@@ -54,8 +54,8 @@ jobs:
           EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Download yesterdays's export
-        id: wget_yesterday_export
-        if: steps.wget_today_export.outcome == 'failure'
+        id: curl_yesterday_export
+        if: steps.curl_today_export.outcome == 'failure'
         run: |
           curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip >"$EXPORT_NAME.json"
         env:
@@ -69,42 +69,29 @@ jobs:
 
           import numpy as np
           import pyarrow as pa
+          import pyarrow.compute as pc
           import pyarrow.feather as feather
           from pyarrow import json
 
           export_name = os.environ["EXPORT_NAME"]
           table = json.read_json(f"{export_name}.json")
-          valid_ids = table["id"].to_numpy()
-          size = valid_ids.max() + 1
+          size = pc.max(table["id"]).as_py() + 1
+
+          adult = np.zeros(size, bool)
+          adult[table["id"]] = table["adult"]
+
           mask = np.ones(size, bool)
-          mask[valid_ids] = 0
-          table = pa.Table.from_arrays([mask], names=["null"])
-          feather.write_feather(table, "mask.arrow")
+          mask[table["id"]] = 0
+
+          adult_col = pa.array(adult, type=pa.bool_(), mask=mask)
+          table = pa.Table.from_arrays([adult_col], names=["adult"])
+          feather.write_feather(table, "adult.arrow")
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Print stats
-        shell: python
         run: |
-          import time
-
-          import numpy as np
-          import pyarrow as pa
-          import pyarrow.feather as feather
-
-          start = time.time()
-          table = feather.read_table("mask.arrow", memory_map=False)
-          elapsed = time.time() - start
-          mask = table["null"]
-          size = len(mask)
-          null_count = np.count_nonzero(mask)
-          valid_count = size - null_count
-
-          print(f"valid: {valid_count:,} ({valid_count/size:.2%})")
-          print(f" null: {null_count:,} ({null_count/size:.2%})")
-          print(f"total: {size:,}")
-          print(f" load: {elapsed:0.2}s")
-          print(f"  rss: {pa.total_allocated_bytes() >> 10:,}KB")
+          python print_table_stats.py adult.arrow 
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -116,7 +103,7 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "mask.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/mask.arrow"
+          aws s3 cp "adult.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/adult.arrow"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
