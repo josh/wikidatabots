@@ -28,7 +28,7 @@ PROPERTY_MAP: dict[tmdb.ObjectType, PID] = {
 
 def main(type: tmdb.ObjectType):
     s3 = fs.S3FileSystem(region="us-east-1")
-    logging.info(f"Reading feather {type} mask")
+    logging.info(f"Reading feather {type}")
     f = s3.open_input_file(f"wikidatabots/tmdb/{type}/adult.arrow")
     table = feather.read_table(f)
     adult_col = table["adult"]

@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  mask:
+  export:
     runs-on: ubuntu-latest
-    concurrency: tmdb_mask_${{ matrix.type }}
+    concurrency: tmdb_export_${{ matrix.type }}
 
     strategy:
       fail-fast: false
@@ -62,7 +62,7 @@ jobs:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
 
-      - name: Build null mask
+      - name: Build index
         shell: python
         run: |
           import os
@@ -96,7 +96,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.type }}-mask-export
+          name: ${{ matrix.type }}-export
           path: |
             *.arrow
           retention-days: 3
