@@ -19,12 +19,18 @@ for column_name in table.column_names:
 
     print(f"{column_name}: {col.type}")
     if col.type == pa.bool_():
-        print(f"|  true: {ary.true_count:,} ({ary.true_count/count:.2%})")
-        print(f"| false: {ary.false_count:,} ({ary.false_count/count:.2%})")
+        print(f"|   true: {ary.true_count:,} ({ary.true_count/count:.2%})")
+        print(f"|  false: {ary.false_count:,} ({ary.false_count/count:.2%})")
 
-    print(f"|  null: {ary.null_count:,} ({ary.null_count/count:.2%})")
-    print(f"| total: {count:,}")
+    print(f"|   null: {ary.null_count:,} ({ary.null_count/count:.2%})")
+    print(f"|- total: {count:,}")
+    print()
 
-print("")
 print(f"load: {elapsed:0.2}s")
-print(f" rss: {pa.total_allocated_bytes() >> 10:,}KB")
+
+kb = pa.total_allocated_bytes() >> 10
+mb = pa.total_allocated_bytes() >> 20
+if mb > 2:
+    print(f" rss: {mb:,}MB")
+else:
+    print(f" rss: {kb:,}KB")
