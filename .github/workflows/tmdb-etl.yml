@@ -78,6 +78,10 @@ jobs:
           size = pc.max(table["id"]).as_py() + 1
 
           adult = np.zeros(size, bool)
+          if "adult" in table:
+            adult[table["id"]] = table["adult"]
+          else:
+            adult[table["id"]] = False
           adult[table["id"]] = table["adult"]
 
           mask = np.ones(size, bool)
