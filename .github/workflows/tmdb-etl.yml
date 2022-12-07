@@ -91,7 +91,7 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py adult.arrow 
+          python print_table_stats.py adult.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
