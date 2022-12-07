@@ -79,10 +79,9 @@ jobs:
 
           adult = np.zeros(size, bool)
           if "adult" in table:
-            adult[table["id"]] = table["adult"]
+              adult[table["id"]] = table["adult"]
           else:
-            adult[table["id"]] = False
-          adult[table["id"]] = table["adult"]
+              adult[table["id"]] = False
 
           mask = np.ones(size, bool)
           mask[table["id"]] = 0
