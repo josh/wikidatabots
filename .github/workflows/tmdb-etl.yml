@@ -451,27 +451,8 @@ jobs:
           TYPE: ${{ matrix.type }}
 
       - name: Print stats
-        shell: python
         run: |
-          import time
-
-          import numpy as np
-          import pyarrow as pa
-          import pyarrow.feather as feather
-
-          start = time.time()
-          table = feather.read_table("changed_at.arrow", memory_map=False)
-          elapsed = time.time() - start
-
-          timestamps = table["changed_at"]
-          size = len(timestamps)
-          nonzero_count = np.count_nonzero(~np.isnan(timestamps))
-          zero_count = size - nonzero_count
-          print(f"   changed_at: {nonzero_count:,} ({nonzero_count/size:.2%})")
-          print(f"no changed_at: {zero_count:,} ({zero_count/size:.2%})")
-          print(f"        total: {size:,}")
-          print(f"         load: {elapsed:0.2}s")
-          print(f"          rss: {pa.total_allocated_bytes() >> 20:,}MB")
+          python print_table_stats.py changed_at.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
