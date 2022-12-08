@@ -62,20 +62,9 @@ jobs:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
 
-      - name: Build index
-        shell: python
+      - name: Backfill missing ids
         run: |
-          import os
-
-          import pyarrow.feather as feather
-          from pyarrow import json
-
-          from pyarrow_utils import fill_ids
-
-          name = os.environ["EXPORT_NAME"]
-          table = json.read_json(f"{name}.json.gz")
-          table = fill_ids(table)
-          feather.write_feather(table, "export.arrow")
+          python pyarrow_fill_ids.py "$EXPORT_NAME.json.gz" "export.arrow"
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
 
