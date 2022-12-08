@@ -29,9 +29,9 @@ PROPERTY_MAP: dict[tmdb.ObjectType, PID] = {
 def main(type: tmdb.ObjectType):
     s3 = fs.S3FileSystem(region="us-east-1")
     logging.info(f"Reading feather {type}")
-    f = s3.open_input_file(f"wikidatabots/tmdb/{type}/adult.arrow")
+    f = s3.open_input_file(f"wikidatabots/tmdb/{type}/export.arrow")
     table = feather.read_table(f)
-    adult_col = table["adult"]
+    popularity_col = table["popularity"]
 
     query = """
     SELECT ?statement ?value WHERE {
@@ -53,7 +53,7 @@ def main(type: tmdb.ObjectType):
         if not id:
             continue
 
-        if id < table.num_rows and adult_col[id].as_py() is None:
+        if id < table.num_rows and popularity_col[id].as_py() is not None:
             continue
 
         if not tmdb.object(id, type=type):
