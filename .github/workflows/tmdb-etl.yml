@@ -57,7 +57,7 @@ jobs:
         id: curl_yesterday_export
         if: steps.curl_today_export.outcome == 'failure'
         run: |
-          curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip >"$EXPORT_NAME.json"
+          curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip | python json_to_arrow.py >"$EXPORT_NAME.arrow"
         env:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
@@ -71,10 +71,9 @@ jobs:
           import pyarrow as pa
           import pyarrow.compute as pc
           import pyarrow.feather as feather
-          from pyarrow import json
 
           export_name = os.environ["EXPORT_NAME"]
-          table = json.read_json(f"{export_name}.json")
+          table = feather.read_table(f"{export_name}.arrow")
           size = pc.max(table["id"]).as_py() + 1
 
           adult = np.zeros(size, bool)
