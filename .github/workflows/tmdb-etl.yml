@@ -48,8 +48,7 @@ jobs:
         id: curl_today_export
         continue-on-error: true
         run: |
-          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" | gunzip | python json_to_arrow.py >"$EXPORT_NAME.arrow"
-          python print_table_stats.py "$EXPORT_NAME.arrow"
+          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "$EXPORT_NAME.json.gz"
         env:
           FILENAME: ${{ steps.export_filename.outputs.today_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
@@ -58,8 +57,7 @@ jobs:
         id: curl_yesterday_export
         if: steps.curl_today_export.outcome == 'failure'
         run: |
-          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" | gunzip | python json_to_arrow.py >"$EXPORT_NAME.arrow"
-          python print_table_stats.py "$EXPORT_NAME.arrow"
+          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "$EXPORT_NAME.json.gz"
         env:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
@@ -69,25 +67,21 @@ jobs:
         run: |
           import os
 
-          import numpy.ma as ma
-          import pyarrow as pa
           import pyarrow.feather as feather
+          from pyarrow import json
 
-          export_name = os.environ["EXPORT_NAME"]
-          table = feather.read_table(f"{export_name}.arrow")
-          size = table["id"].to_numpy().max() + 1
+          from pyarrow_utils import fill_ids
 
-          madult = ma.masked_all(size, dtype=bool)
-          madult[table["id"]] = table["adult"] if "adult" in table else False
-
-          table = pa.Table.from_arrays([madult], names=["adult"])
-          feather.write_feather(table, "adult.arrow")
+          name = os.environ["EXPORT_NAME"]
+          table = json.read_json(f"{name}.json.gz")
+          table = fill_ids(table)
+          feather.write_feather(table, "export.arrow")
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Print stats
         run: |
-          python print_table_stats.py adult.arrow
+          python print_table_stats.py export.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -99,7 +93,7 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "adult.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/adult.arrow"
+          aws s3 cp "export.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/export.arrow"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
