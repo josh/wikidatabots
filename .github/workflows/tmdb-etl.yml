@@ -48,7 +48,8 @@ jobs:
         id: curl_today_export
         continue-on-error: true
         run: |
-          curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip >"$EXPORT_NAME.json"
+          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" | gunzip | python json_to_arrow.py >"$EXPORT_NAME.arrow"
+          python print_table_stats.py "$EXPORT_NAME.arrow"
         env:
           FILENAME: ${{ steps.export_filename.outputs.today_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
@@ -57,7 +58,8 @@ jobs:
         id: curl_yesterday_export
         if: steps.curl_today_export.outcome == 'failure'
         run: |
-          curl "http://files.tmdb.org/p/exports/$FILENAME" | gunzip | python json_to_arrow.py >"$EXPORT_NAME.arrow"
+          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" | gunzip | python json_to_arrow.py >"$EXPORT_NAME.arrow"
+          python print_table_stats.py "$EXPORT_NAME.arrow"
         env:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
           EXPORT_NAME: ${{ matrix.export_name }}
