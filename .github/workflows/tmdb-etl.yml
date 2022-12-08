@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'numpy|pyarrow' requirements.txt)
+          pip install -r <(grep -E 'pyarrow' requirements.txt)
 
       - name: Generate export filename
         id: export_filename
