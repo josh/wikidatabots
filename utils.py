@@ -81,7 +81,7 @@ def np_reserve_capacity(
     return new_array
 
 
-def mp_reserve_capacity(
+def ma_reserve_capacity(
     array: np.ma.MaskedArray[T1, np.dtype[Any]],
     size: int,
 ) -> np.ma.MaskedArray[T1, np.dtype[Any]]:

@@ -3,7 +3,7 @@
 import numpy as np
 import numpy.ma as ma
 
-from utils import batches, mp_reserve_capacity, np_reserve_capacity
+from utils import batches, ma_reserve_capacity, np_reserve_capacity
 
 
 def test_batches():
@@ -28,8 +28,8 @@ def test_ma_reserve_capacity():
     x = np.array([1, 2, 3])
     mx = ma.masked_array(x, mask=[0, 1, 0])
 
-    mx = mp_reserve_capacity(mx, size=5)
+    mx = ma_reserve_capacity(mx, size=5)
     assert mx.tolist() == [1, None, 3, None, None]
 
-    mx = mp_reserve_capacity(mx, size=4)
+    mx = ma_reserve_capacity(mx, size=4)
     assert mx.tolist() == [1, None, 3, None, None]
