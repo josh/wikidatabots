@@ -245,27 +245,8 @@ jobs:
           feather.write_feather(table, "imdb_tmdb_exists.arrow")
 
       - name: Print IMDB stats
-        shell: python
         run: |
-          import time
-
-          import numpy as np
-          import pyarrow as pa
-          import pyarrow.feather as feather
-
-          start = time.time()
-          table = feather.read_table("imdb_tmdb_exists.arrow", memory_map=False)
-          elapsed = time.time() - start
-
-          tmdb_exists = table["tmdb_exists"]
-          size = len(tmdb_exists)
-          nonzero_count = np.count_nonzero(tmdb_exists)
-          zero_count = size - nonzero_count
-          print(f"   has tmdb: {nonzero_count:,} ({nonzero_count/size:.2%})")
-          print(f"has no tmdb: {zero_count:,} ({zero_count/size:.2%})")
-          print(f"      total: {size:,}")
-          print(f"       load: {elapsed:0.2}s")
-          print(f"        rss: {pa.total_allocated_bytes() >> 20:,}MB")
+          python print_table_stats.py imdb_tmdb_exists.arrow
 
       - name: Build reverse TheTVDB index
         shell: python
@@ -283,28 +264,9 @@ jobs:
           feather.write_feather(table, "tvdb_tmdb_exists.arrow")
 
       - name: Print TheTVDB stats
-        shell: python
         if: matrix.type == 'tv'
         run: |
-          import time
-
-          import numpy as np
-          import pyarrow as pa
-          import pyarrow.feather as feather
-
-          start = time.time()
-          table = feather.read_table("tvdb_tmdb_exists.arrow", memory_map=False)
-          elapsed = time.time() - start
-
-          tmdb_exists = table["tmdb_exists"]
-          size = len(tmdb_exists)
-          nonzero_count = np.count_nonzero(tmdb_exists)
-          zero_count = size - nonzero_count
-          print(f"   has tmdb: {nonzero_count:,} ({nonzero_count/size:.2%})")
-          print(f"has no tmdb: {zero_count:,} ({zero_count/size:.2%})")
-          print(f"      total: {size:,}")
-          print(f"       load: {elapsed:0.2}s")
-          print(f"        rss: {pa.total_allocated_bytes() >> 20:,}MB")
+          python print_table_stats.py tvdb_tmdb_exists.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
