@@ -373,8 +373,8 @@ jobs:
             END_DATE=$(date --date="today -$N day +1 day" +%Y-%m-%d)
             URL="https://api.themoviedb.org/3/$TYPE/changes?api_key=$TMDB_API_KEY&start_date=$START_DATE&end_date=$END_DATE"
             echo "curl $URL" >/dev/stderr
-            curl --no-progress-meter "$URL" | jq --compact-output '.results[]' >"$RUNNER_TEMP/changes/$START_DATE.json"
-            python print_table_stats.py "$RUNNER_TEMP/changes/$START_DATE.json"
+            curl --no-progress-meter "$URL" | jq --compact-output '.results[]' | python json_to_arrow.py >"$RUNNER_TEMP/changes/$START_DATE.arrow"
+            python print_table_stats.py "$RUNNER_TEMP/changes/$START_DATE.arrow"
           done
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
