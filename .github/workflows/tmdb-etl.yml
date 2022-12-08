@@ -69,26 +69,18 @@ jobs:
         run: |
           import os
 
-          import numpy as np
+          import numpy.ma as ma
           import pyarrow as pa
-          import pyarrow.compute as pc
           import pyarrow.feather as feather
 
           export_name = os.environ["EXPORT_NAME"]
           table = feather.read_table(f"{export_name}.arrow")
-          size = pc.max(table["id"]).as_py() + 1
+          size = table["id"].to_numpy().max() + 1
 
-          adult = np.zeros(size, bool)
-          if "adult" in table:
-              adult[table["id"]] = table["adult"]
-          else:
-              adult[table["id"]] = False
+          madult = ma.masked_all(size, dtype=bool)
+          madult[table["id"]] = table["adult"] if "adult" in table else False
 
-          mask = np.ones(size, bool)
-          mask[table["id"]] = 0
-
-          adult_col = pa.array(adult, type=pa.bool_(), mask=mask)
-          table = pa.Table.from_arrays([adult_col], names=["adult"])
+          table = pa.Table.from_arrays([madult], names=["adult"])
           feather.write_feather(table, "adult.arrow")
         env:
           EXPORT_NAME: ${{ matrix.export_name }}
