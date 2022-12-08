@@ -1,4 +1,4 @@
-# pyright: strict
+# pyright: basic
 
 import logging
 import random
@@ -6,6 +6,7 @@ from collections.abc import Iterable, Iterator, Sequence
 from typing import Any, TypeVar
 
 import numpy as np
+import numpy.ma as ma
 import numpy.typing as npt
 
 T = TypeVar("T")
@@ -76,5 +77,17 @@ def np_reserve_capacity(
         return array
     logging.debug(f"Resizing ndarray {array.size}->{size}")
     new_array = np.full(size, fill_value=fill_value, dtype=array.dtype)
+    new_array[: array.size] = array
+    return new_array
+
+
+def mp_reserve_capacity(
+    array: np.ma.MaskedArray[T1, np.dtype[Any]],
+    size: int,
+) -> np.ma.MaskedArray[T1, np.dtype[Any]]:
+    if array.size >= size:
+        return array
+    logging.debug(f"Resizing ndarray {array.size}->{size}")
+    new_array = ma.masked_all(size, dtype=array.dtype)
     new_array[: array.size] = array
     return new_array
