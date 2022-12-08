@@ -1,48 +1,39 @@
 # pyright: basic
 
-import datetime
-import logging
+import os
+import sys
 
 import numpy as np
 import pyarrow as pa
 import pyarrow.feather as feather
-import tqdm
 
-import tmdb
 from utils import np_reserve_capacity
 
+main_filename = sys.argv[1]
+changes_filename = sys.argv[2]
 
-def main(type_: str, filename: str):
-    assert type_ in tmdb.object_types
-    type: tmdb.ObjectType = type_
+table = feather.read_table(main_filename)
+all_timestamps = table["changed_at"].to_numpy().copy()
 
-    table = feather.read_table(filename)
-    timestamps = table.column("changed_at").to_numpy().copy()
+changes_table = feather.read_table(changes_filename)
+changed_ids = changes_table["id"].to_numpy()
+datestr = os.path.basename(changes_filename).removesuffix(".arrow")
+date = np.datetime64(datestr, "D")
 
-    pbar = tqdm.tqdm(list(reversed(range(3))))
-    for n in pbar:
-        start_date = datetime.date.today() - datetime.timedelta(days=n + 1)
-        end_date = datetime.date.today() - datetime.timedelta(days=n)
-        today = np.datetime64(start_date.isoformat(), "D")
-        pbar.set_description(f"{today}")
+size = changed_ids.max() + 1
+all_timestamps = np_reserve_capacity(all_timestamps, size, np.datetime64("nat"))
 
-        tmdb_ids = tmdb.changes(
-            type=type,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        assert len(tmdb_ids) > 0
-        for tmdb_id in tmdb_ids:
-            size = tmdb_id + 1
-            timestamps = np_reserve_capacity(timestamps, size, np.datetime64("nat"))
-            timestamps[tmdb_id] = today
+updated_rows = 0
 
-    table = pa.table([timestamps], names=["changed_at"])
-    feather.write_feather(table, filename)
+for id in changed_ids:
+    if all_timestamps[id] < date:
+        all_timestamps[id] = date
+        updated_rows += 1
 
 
-if __name__ == "__main__":
-    import sys
-
-    logging.basicConfig(level=logging.INFO)
-    main(sys.argv[1], sys.argv[2])
+if updated_rows:
+    print(f"updated rows: {updated_rows}", file=sys.stderr)
+    table = pa.table([all_timestamps], names=["changed_at"])
+    feather.write_feather(table, main_filename)
+else:
+    print("no rows updated", file=sys.stderr)
