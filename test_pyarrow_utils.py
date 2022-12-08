@@ -1,7 +1,8 @@
 # pyright: basic
 
-from pyarrow_utils import fill_ids
 import pyarrow as pa
+
+from pyarrow_utils import fill_ids
 
 
 def test_fill_ids():

@@ -1,7 +1,7 @@
 # pyright: basic
 
-import pyarrow.compute as pc
 import pyarrow as pa
+import pyarrow.compute as pc
 
 
 def fill_ids(table: pa.Table, key: str = "id") -> pa.Table:
