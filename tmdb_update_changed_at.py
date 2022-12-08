@@ -32,8 +32,8 @@ for id in changed_ids:
 
 
 if updated_rows:
-    print(f"updated rows: {updated_rows}", file=sys.stderr)
+    print(f"{datestr}: updated rows: {updated_rows}", file=sys.stderr)
     table = pa.table([all_timestamps], names=["changed_at"])
     feather.write_feather(table, main_filename)
 else:
-    print("no rows updated", file=sys.stderr)
+    print("{datestr}: no rows updated", file=sys.stderr)
