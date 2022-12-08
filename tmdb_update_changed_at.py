@@ -30,7 +30,6 @@ for id in changed_ids:
         all_timestamps[id] = date
         updated_rows += 1
 
-
 if updated_rows:
     print(f"{datestr}: updated rows: {updated_rows}", file=sys.stderr)
     table = pa.table([all_timestamps], names=["changed_at"])
