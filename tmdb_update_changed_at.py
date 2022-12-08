@@ -29,7 +29,7 @@ changed_at = ma_reserve_capacity(changed_at, changed_ids.max() + 1)
 updated_rows = 0
 
 for id in changed_ids:
-    if changed_at[id] < date:
+    if changed_at[id] is ma.masked or changed_at[id] < date:
         changed_at[id] = date
         updated_rows += 1
 
