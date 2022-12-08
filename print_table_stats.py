@@ -23,7 +23,6 @@ for column_name in table.column_names:
         print(f"|  false: {ary.false_count:,} ({ary.false_count/count:.2%})")
 
     print(f"|   null: {ary.null_count:,} ({ary.null_count/count:.2%})")
-    print()
 
 print(f"total: {count:,}")
 print(f" load: {elapsed:0.2}s")
