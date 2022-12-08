@@ -35,4 +35,4 @@ if updated_rows:
     table = pa.table([all_timestamps], names=["changed_at"])
     feather.write_feather(table, main_filename)
 else:
-    print("{datestr}: no rows updated", file=sys.stderr)
+    print(f"{datestr}: no rows updated", file=sys.stderr)
