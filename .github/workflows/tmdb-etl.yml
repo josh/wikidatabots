@@ -48,7 +48,7 @@ jobs:
         id: curl_today_export
         continue-on-error: true
         run: |
-          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "export.json.gz"
+          curl --fail --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "export.json.gz"
         env:
           FILENAME: ${{ steps.export_filename.outputs.today_filename }}
 
@@ -56,7 +56,7 @@ jobs:
         id: curl_yesterday_export
         if: steps.curl_today_export.outcome == 'failure'
         run: |
-          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "export.json.gz"
+          curl --fail --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "export.json.gz"
         env:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
 
