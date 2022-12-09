@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'pyarrow' requirements.txt)
+          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
 
       - name: Generate export filename
         id: export_filename
@@ -48,25 +48,33 @@ jobs:
         id: curl_today_export
         continue-on-error: true
         run: |
-          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "$EXPORT_NAME.json.gz"
+          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "export.json.gz"
         env:
           FILENAME: ${{ steps.export_filename.outputs.today_filename }}
-          EXPORT_NAME: ${{ matrix.export_name }}
 
       - name: Download yesterdays's export
         id: curl_yesterday_export
         if: steps.curl_today_export.outcome == 'failure'
         run: |
-          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "$EXPORT_NAME.json.gz"
+          curl --no-progress-meter "http://files.tmdb.org/p/exports/$FILENAME" --output "export.json.gz"
         env:
           FILENAME: ${{ steps.export_filename.outputs.yesterday_filename }}
-          EXPORT_NAME: ${{ matrix.export_name }}
 
-      - name: Backfill missing ids
+      - name: Transform export data
+        shell: python
         run: |
-          python pyarrow_fill_ids.py "$EXPORT_NAME.json.gz" "export.arrow"
-        env:
-          EXPORT_NAME: ${{ matrix.export_name }}
+          import pandas as pd
+          import pyarrow.feather as feather
+
+          df = pd.read_json("export.json.gz", lines=True).set_index("id")
+          df["in_export"] = True
+
+          size = df.index.max() + 2
+          df2 = pd.DataFrame({"id": range(size)}).set_index("id")
+
+          df = df.join(df2, how="right", sort=True)
+          df["in_export"] = df["in_export"].fillna(False)
+          feather.write_feather(df, "export.arrow")
 
       - name: Print stats
         run: |
