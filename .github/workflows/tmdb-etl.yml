@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
+          pip install -r <(grep -E 'pandas' requirements.txt)
 
       - name: Generate export filename
         id: export_filename
@@ -64,7 +64,6 @@ jobs:
         shell: python
         run: |
           import pandas as pd
-          import pyarrow.feather as feather
 
           df = pd.read_json("export.json.gz", lines=True).set_index("id")
           df["in_export"] = True
@@ -74,7 +73,7 @@ jobs:
 
           df = df.join(df2, how="right", sort=True)
           df["in_export"] = df["in_export"].fillna(False)
-          feather.write_feather(df, "export.arrow")
+          df.to_feather("export.arrow")
 
       - name: Print stats
         run: |
