@@ -31,7 +31,7 @@ def main(type: tmdb.ObjectType):
     logging.info(f"Reading feather {type}")
     f = s3.open_input_file(f"wikidatabots/tmdb/{type}/export.arrow")
     table = feather.read_table(f)
-    popularity_col = table["popularity"]
+    in_export_col = table["in_export"]
 
     query = """
     SELECT ?statement ?value WHERE {
@@ -53,7 +53,7 @@ def main(type: tmdb.ObjectType):
         if not id:
             continue
 
-        if id < table.num_rows and popularity_col[id].as_py() is not None:
+        if id < table.num_rows and in_export_col[id].as_py() is True:
             continue
 
         if not tmdb.object(id, type=type):
