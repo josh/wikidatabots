@@ -73,7 +73,7 @@ jobs:
 
           df = df.join(df2, how="right", sort=True)
           df["in_export"] = df["in_export"].fillna(False)
-          df.to_feather("export.arrow")
+          df.reset_index().to_feather("export.arrow")
 
       - name: Print stats
         run: |
