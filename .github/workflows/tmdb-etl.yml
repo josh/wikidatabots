@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'pandas' requirements.txt)
+          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
 
       - name: Generate export filename
         id: export_filename
