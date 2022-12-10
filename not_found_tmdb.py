@@ -1,10 +1,8 @@
 # pyright: basic
 
 import logging
-from typing import TypedDict
 
-import pyarrow.feather as feather
-from pyarrow import fs
+import pandas as pd
 from rdflib import URIRef
 
 import tmdb
@@ -15,48 +13,40 @@ from constants import (
     TMDB_TV_SERIES_ID_PID,
     WITHDRAWN_IDENTIFIER_VALUE_QID,
 )
-from sparql import sparql
-from utils import tryint
-from wikidata import PID
+from sparql import sparql_csv
 
-PROPERTY_MAP: dict[tmdb.ObjectType, PID] = {
+PROPERTY_MAP: dict[tmdb.ObjectType, str] = {
     "movie": TMDB_MOVIE_ID_PID,
     "tv": TMDB_TV_SERIES_ID_PID,
     "person": TMDB_PERSON_ID_PID,
 }
 
 
-def main(type: tmdb.ObjectType):
-    s3 = fs.S3FileSystem(region="us-east-1")
-    logging.info(f"Reading feather {type}")
-    f = s3.open_input_file(f"wikidatabots/tmdb/{type}/export.arrow")
-    table = feather.read_table(f)
-    in_export_col = table["in_export"]
+def main(tmdb_type: tmdb.ObjectType):
+    export_uri = f"s3://wikidatabots/tmdb/{tmdb_type}/export.arrow"
+    export_df = pd.read_feather(export_uri, columns=["id", "in_export"])
 
     query = """
-    SELECT ?statement ?value WHERE {
+    SELECT ?statement ?value ?rank WHERE {
       ?statement ps:P0000 ?value.
       ?statement wikibase:rank ?rank.
       FILTER(?rank != wikibase:DeprecatedRank)
+      FILTER(xsd:integer(?value))
     }
     """
-    query = query.replace("P0000", PROPERTY_MAP[type])
+    query = query.replace("P0000", PROPERTY_MAP[tmdb_type])
+    df = pd.read_csv(sparql_csv(query))
 
-    Result = TypedDict("Result", statement=URIRef, value=str)
-    results: list[Result] = sparql(query)
+    df = df.join(export_df, on="value", how="left")
+    df = df[df["in_export"] != True]  # noqa: E712
 
-    edit_summary = f"Deprecate removed TMDB {type} ID"
+    edit_summary = f"Deprecate removed TMDB {tmdb_type} ID"
 
-    for result in results:
-        statement = result["statement"]
-        id = tryint(result["value"])
-        if not id:
-            continue
+    for row in df.itertuples():
+        statement = URIRef(row.statement)
+        id = int(row.value)
 
-        if id < table.num_rows and in_export_col[id].as_py() is True:
-            continue
-
-        if not tmdb.object(id, type=type):
+        if not tmdb.object(id, type=tmdb_type):
             print(
                 f"{statement.n3()} "
                 f"wikibase:rank wikibase:DeprecatedRank ; "
@@ -69,6 +59,6 @@ def main(type: tmdb.ObjectType):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    main(type="movie")
-    main(type="tv")
-    main(type="person")
+    main(tmdb_type="movie")
+    main(tmdb_type="tv")
+    main(tmdb_type="person")
