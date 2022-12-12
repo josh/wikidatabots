@@ -321,7 +321,6 @@ jobs:
             echo "curl $URL" >/dev/stderr
             curl --no-progress-meter "$URL" | jq --compact-output '.results[]' | python json_to_arrow.py >"$RUNNER_TEMP/changes/$START_DATE.arrow"
             python print_table_stats.py "$RUNNER_TEMP/changes/$START_DATE.arrow"
-            python tmdb_append_changes.py changes.arrow "$RUNNER_TEMP/changes/$START_DATE.arrow"
           done
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -330,6 +329,7 @@ jobs:
       - name: Record changed at timestamps
         run: |
           for filename in "$RUNNER_TEMP/changes"/*.arrow; do
+            python tmdb_append_changes.py changes.arrow "$filename"
             python tmdb_update_changed_at.py changed_at.arrow "$filename"
           done
 
