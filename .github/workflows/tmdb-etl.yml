@@ -301,6 +301,7 @@ jobs:
 
       - name: Download from S3
         run: |
+          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changed_at.arrow" "changed_at.arrow"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

@@ -5,12 +5,7 @@ from datetime import date
 import pandas as pd
 
 filename_existing = sys.argv[1]
-if os.path.exists(filename_existing):
-    df_existing = pd.read_feather(filename_existing)
-else:
-    df_existing = pd.DataFrame(columns=["date", "id", "adult"]).astype(
-        {"id": "int64", "adult": "bool"}
-    )
+df_existing = pd.read_feather(filename_existing)
 
 filename_new = sys.argv[2]
 new_datestar = os.path.basename(filename_new).removesuffix(".arrow")
