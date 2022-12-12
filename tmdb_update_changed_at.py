@@ -18,10 +18,14 @@ changed_at_col = ma.masked_array(
     table["changed_at"].to_numpy(),
     mask=table["changed_at"].is_null().to_numpy(),
 )
-adult_col = ma.masked_array(
-    table["adult"].to_numpy(),
-    mask=table["adult"].is_null().to_numpy(),
-)
+
+if "adult" in table:
+    adult_col = ma.masked_array(
+        table["adult"].to_numpy(),
+        mask=table["adult"].is_null().to_numpy(),
+    )
+else:
+    adult_col = ma.masked_all(len(changed_at_col), dtype=bool)
 
 changes_table = feather.read_table(changes_filename)
 changed_ids = changes_table["id"].to_numpy()
