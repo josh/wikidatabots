@@ -320,6 +320,7 @@ jobs:
             echo "curl $URL" >/dev/stderr
             curl --no-progress-meter "$URL" | jq --compact-output '.results[]' | python json_to_arrow.py >"$RUNNER_TEMP/changes/$START_DATE.arrow"
             python print_table_stats.py "$RUNNER_TEMP/changes/$START_DATE.arrow"
+            python tmdb_append_changes.py changes.arrow "$RUNNER_TEMP/changes/$START_DATE.arrow"
           done
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -333,6 +334,7 @@ jobs:
 
       - name: Print stats
         run: |
+          python print_table_stats.py changes.arrow
           python print_table_stats.py changed_at.arrow
 
       - name: Upload artifacts
@@ -345,6 +347,7 @@ jobs:
 
       - name: Upload to S3
         run: |
+          aws s3 cp "changes.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow"
           aws s3 cp "changed_at.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changed_at.arrow"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
