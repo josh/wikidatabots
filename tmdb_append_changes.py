@@ -1,3 +1,5 @@
+# pyright: basic
+
 import json
 import os
 import sys
