@@ -1,9 +1,9 @@
 import os
 import sys
 from datetime import date
+from glob import glob
 
 import pandas as pd
-from glob import glob
 
 removed = 0
 added = 0
