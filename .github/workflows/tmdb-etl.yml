@@ -321,7 +321,7 @@ jobs:
               END_DATE=$(date --date="today -$N day +1 day" +%Y-%m-%d)
               URL="https://api.themoviedb.org/3/$TYPE/changes?api_key=$TMDB_API_KEY&start_date=$START_DATE&end_date=$END_DATE"
               echo "url = \"$URL\""
-              echo "output = \"$RUNNER_TEMP/changes/$START_DATE.json\"" 
+              echo "output = \"$RUNNER_TEMP/changes/$START_DATE.json\""
             done
           }
           curl_config | tee "$RUNNER_TEMP/curl_config.txt"
