@@ -30,7 +30,7 @@ else:
 changes_table = feather.read_table(changes_filename)
 changed_ids = changes_table["id"].to_numpy()
 changed_adult = changes_table["adult"].to_numpy()
-datestr = os.path.basename(changes_filename).removesuffix(".arrow")
+datestr = os.path.basename(changes_filename).split(".")[0]
 date = np.datetime64(datestr, "D")
 
 new_size = changed_ids.max() + 1
