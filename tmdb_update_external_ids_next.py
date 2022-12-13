@@ -13,13 +13,18 @@ import tmdb
 from utils import np_reserve_capacity
 
 
-def main(type_: str, changed_at_filename: str, external_ids_filename: str):
+def main(type_: str, changes_filename: str, external_ids_filename: str):
     assert type_ in tmdb.object_types
     type: tmdb.ObjectType = type_
     imdb_type: imdb.IMDBIDType = tmdb.TMDB_TYPE_TO_IMDB_TYPE[type]
 
-    changed_at_table = feather.read_table(changed_at_filename)
-    changed_ats = changed_at_table.column("changed_at").to_numpy()
+    # TODO: Precompute `latest_changes_df` data frame
+    changes_table = pd.read_feather(changes_filename)
+    id_size = changes_table["id"].max() + 1
+    latest_changes_df = changes_table.groupby("id").tail(1).set_index("id")
+    ids_df = pd.DataFrame({"id": range(id_size)}).set_index("id")
+    latest_changes_df = latest_changes_df.join(ids_df, how="right", sort=True)
+    changed_ats = latest_changes_df["date"].to_numpy()
 
     external_ids_table = feather.read_table(external_ids_filename)
     imdb_ids = external_ids_table.column("imdb_id").to_numpy().copy()
@@ -29,7 +34,7 @@ def main(type_: str, changed_at_filename: str, external_ids_filename: str):
         tvdb_ids = np.zeros(0, np.uint32)
     retrieved_ats = external_ids_table.column("retrieved_at").to_numpy().copy()
 
-    size = max(changed_at_table.num_rows, external_ids_table.num_rows)
+    size = max(len(changed_ats), external_ids_table.num_rows)
     changed_ats = np_reserve_capacity(changed_ats, size, np.datetime64("nat"))
     retrieved_ats = np_reserve_capacity(retrieved_ats, size, np.datetime64("nat"))
     imdb_ids = np_reserve_capacity(imdb_ids, size, 0)
