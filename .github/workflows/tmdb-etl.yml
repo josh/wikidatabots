@@ -340,8 +340,8 @@ jobs:
 
       - name: Record changed at timestamps
         run: |
+          python tmdb_append_changes.py changes.arrow "$RUNNER_TEMP/changes"
           for filename in "$RUNNER_TEMP/changes"/*.arrow; do
-            python tmdb_append_changes.py changes.arrow "$filename"
             python tmdb_update_changed_at.py changed_at.arrow "$filename"
           done
 
