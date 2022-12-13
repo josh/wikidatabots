@@ -329,13 +329,14 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
 
-      - name: Record changed at timestamps
+      - name: Append TMDB changes
         run: |
           python tmdb_append_changes.py changes.arrow "$RUNNER_TEMP/changes"
 
+      - name: Record latest changed at timestamps
+        run: |
           for filename in "$RUNNER_TEMP/changes"/*.json; do
             jq --compact-output '.results[]' "$filename" | python json_to_arrow.py >"$filename.arrow"
-            python print_table_stats.py "$filename.arrow"
             python tmdb_update_changed_at.py changed_at.arrow "$filename.arrow"
           done
 
