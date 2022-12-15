@@ -67,13 +67,11 @@ jobs:
 
           df = pd.read_json("export.json.gz", lines=True).set_index("id")
           df["in_export"] = True
-
           size = df.index.max() + 1
-          df2 = pd.DataFrame({"id": range(size)}).set_index("id")
-
-          df = df.join(df2, how="right", sort=True)
+          df = df.reindex(pd.RangeIndex(0, size))
           df["in_export"] = df["in_export"].fillna(False)
-          df.reset_index().to_feather("export.arrow")
+          df.reset_index(names=["id"]).to_feather("export.arrow")
+
 
       - name: Print stats
         run: |
