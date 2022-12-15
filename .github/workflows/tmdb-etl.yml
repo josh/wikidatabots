@@ -295,7 +295,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
 
       - name: Download from S3
         run: |
