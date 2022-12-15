@@ -200,7 +200,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r <(grep -E 'numpy|pyarrow' requirements.txt)
 
       - name: Download from S3
         run: |
