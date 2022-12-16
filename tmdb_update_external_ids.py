@@ -13,10 +13,13 @@ import tmdb
 from utils import np_reserve_capacity
 
 
-def main(type_: str, filename: str):
+def main(type_: str, filename: str, changed_ids_filename: str):
     assert type_ in tmdb.object_types
     type: tmdb.ObjectType = type_
     imdb_type: imdb.IMDBIDType = tmdb.TMDB_TYPE_TO_IMDB_TYPE[type]
+
+    with open(changed_ids_filename) as f:
+        changed_ids_next: set[int] = set(map(int, f.readlines()))
 
     imdb_ids = np.zeros(0, np.uint32)
     tvdb_ids = np.zeros(0, np.uint32)
@@ -30,6 +33,11 @@ def main(type_: str, filename: str):
 
     start_date = datetime.date.today() - datetime.timedelta(days=3)
     changed_ids = tmdb.changes(type, start_date=start_date)
+
+    print(
+        f"changed_ids: {len(changed_ids)}, changed_ids_next: {len(changed_ids_next)}",
+        file=sys.stderr,
+    )
 
     for tmdb_id in tqdm.tqdm(changed_ids):
         size = tmdb_id + 1
@@ -65,4 +73,4 @@ if __name__ == "__main__":
     import sys
 
     logging.basicConfig(level=logging.INFO)
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3])
