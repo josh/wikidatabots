@@ -72,7 +72,6 @@ jobs:
           df["in_export"] = df["in_export"].fillna(False)
           df.reset_index(names=["id"]).to_feather("export.arrow")
 
-
       - name: Print stats
         run: |
           python print_table_stats.py export.arrow
