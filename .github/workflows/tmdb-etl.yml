@@ -151,7 +151,7 @@ jobs:
             done
           }
           mkdir -p "$RUNNER_TEMP/external_ids/"
-          cat "$changed_ids/ids.txt" | curl_config | tee "$RUNNER_TEMP/curl_config.txt"
+          cat "$RUNNER_TEMP/changed_ids.txt" | curl_config | tee "$RUNNER_TEMP/curl_config.txt"
           # curl --fail --config "$RUNNER_TEMP/curl_config.txt"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
