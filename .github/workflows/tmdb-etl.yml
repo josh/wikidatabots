@@ -140,6 +140,23 @@ jobs:
           python tmdb_external_ids_outdated.py external_ids.arrow changes.arrow >"$RUNNER_TEMP/changed_ids.txt"
           wc -l "$RUNNER_TEMP/changed_ids.txt"
 
+      - name: Fetch changed TMDB external IDs
+        shell: bash
+        run: |
+          curl_config() {
+            while read -r ID; do
+              URL="https://api.themoviedb.org/3/$TYPE/$ID/external_ids?api_key=$TMDB_API_KEY"
+              echo "url = \"$URL\""
+              echo "output = \"$RUNNER_TEMP/external_ids/$ID.json\""
+            done
+          }
+          mkdir -p "$RUNNER_TEMP/external_ids/"
+          cat "$changed_ids/ids.txt" | curl_config | tee "$RUNNER_TEMP/curl_config.txt"
+          # curl --fail --config "$RUNNER_TEMP/curl_config.txt"
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TYPE: ${{ matrix.type }}
+
       - name: Run script
         run: |
           python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow" "$RUNNER_TEMP/changed_ids.txt"
