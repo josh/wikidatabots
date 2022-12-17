@@ -136,11 +136,14 @@ jobs:
           python print_table_stats.py external_ids.arrow
 
       - name: Get changed IDs
+        id: tmdb_external_ids_outdated
         run: |
           python tmdb_external_ids_outdated.py external_ids.arrow changes.arrow >"$RUNNER_TEMP/changed_ids.txt"
-          wc -l "$RUNNER_TEMP/changed_ids.txt"
+          count=$(wc -l <"$RUNNER_TEMP/changed_ids.txt")
+          echo "count=$count" | tee --append "$GITHUB_OUTPUT"
 
-      - name: Fetch changed TMDB external IDs
+      - name: Generate changed curl config
+        id: curl_config
         shell: bash
         run: |
           curl_config() {
@@ -152,10 +155,14 @@ jobs:
           }
           mkdir -p "$RUNNER_TEMP/external_ids/"
           curl_config <"$RUNNER_TEMP/changed_ids.txt" | tee "$RUNNER_TEMP/curl_config.txt"
-          # curl --fail --config "$RUNNER_TEMP/curl_config.txt"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
+
+      - name: Fetch changed TMDB external IDs
+        if: steps.tmdb_external_ids_outdated.outputs.count > 0
+        run: |
+          echo curl --fail --config "$RUNNER_TEMP/curl_config.txt"
 
       - name: Run script
         run: |
