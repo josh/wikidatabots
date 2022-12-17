@@ -29,9 +29,9 @@ changed_df["imdb_numeric_id"] = pd.to_numeric(
 changed_df["retrieved_at"] = pd.Timestamp.now().floor("s")
 
 if "tvdb_id" in changed_df:
-    changed_df = changed_df[["imdb_numeric_id", "tvdb_id", "retrieved_at"]]
+    changed_df = changed_df[["imdb_id", "imdb_numeric_id", "tvdb_id", "retrieved_at"]]
 else:
-    changed_df = changed_df[["imdb_numeric_id", "retrieved_at"]]
+    changed_df = changed_df[["imdb_id", "imdb_numeric_id", "retrieved_at"]]
 
 existing_rows = df.index.isin(changed_df.index)
 print(f"Dropping {len(df[existing_rows]):,} existing rows", file=sys.stderr)
@@ -40,9 +40,10 @@ df = pd.concat([df[~existing_rows], changed_df])
 df = df.sort_index().reset_index(names=["id"])
 
 if "tvdb_id" in df:
-    df = df[["id", "imdb_numeric_id", "tvdb_id", "retrieved_at"]]
+    df = df[["id", "imdb_id", "imdb_numeric_id", "tvdb_id", "retrieved_at"]]
+    df = df.astype({"tvdb_id": "Int64"})
 else:
-    df = df[["id", "imdb_numeric_id", "retrieved_at"]]
+    df = df[["id", "imdb_id", "imdb_numeric_id", "retrieved_at"]]
 
 print(f"Would write {len(df):,} rows", file=sys.stderr)
 print(df)
