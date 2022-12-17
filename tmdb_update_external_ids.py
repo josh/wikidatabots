@@ -1,79 +1,72 @@
 # pyright: basic
 
-import logging
+import os
+import sys
 from glob import glob
 
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 import pyarrow.feather as feather
-import tqdm
 
 import imdb
 import tmdb
 from utils import np_reserve_capacity
 
+assert sys.argv[1] in tmdb.object_types
+type_: tmdb.ObjectType = sys.argv[1]
+imdb_type: imdb.IMDBIDType = tmdb.TMDB_TYPE_TO_IMDB_TYPE[type_]
 
-def main(
-    type_: str,
-    filename: str,
-    changed_ids_filename: str,
-    changed_json_dirname: str,
-):
-    assert type_ in tmdb.object_types
-    type: tmdb.ObjectType = type_
-    imdb_type: imdb.IMDBIDType = tmdb.TMDB_TYPE_TO_IMDB_TYPE[type]
+changed_json_dirname = sys.argv[3]
+changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
+changed_json_ids = [int(fn.split(".")[0]) for fn in changed_json_filenames]
 
-    with open(changed_ids_filename) as f:
-        changed_ids_next: set[int] = set(map(int, f.readlines()))
+dfs = []
+for idx, fn in enumerate(changed_json_filenames):
+    dfx = pd.read_json(os.path.join(changed_json_dirname, fn), lines=True)
+    dfx["id"] = changed_json_ids[idx]
+    dfs.append(dfx)
+df = pd.concat(dfs, ignore_index=True)
+df = df.drop(columns=["success", "status_code", "status_message"], errors="ignore")
+print(df, file=sys.stderr)
 
-    changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
-    changed_json_ids = [int(fn.split(".")[0]) for fn in changed_json_filenames]
+imdb_ids = np.zeros(0, np.uint32)
+tvdb_ids = np.zeros(0, np.uint32)
+timestamps = np.empty(0, "datetime64[s]")
 
-    print("changed_json_filenames:", changed_json_filenames, file=sys.stderr)
-    print("changed_json_ids:", changed_json_ids, file=sys.stderr)
+filename = sys.argv[2]
+table = feather.read_table(filename)
+imdb_ids = table.column("imdb_id").to_numpy().copy()
+if "tvdb_id" in table.column_names:
+    tvdb_ids = table.column("tvdb_id").to_numpy().copy()
+timestamps = table.column("retrieved_at").to_numpy().copy()
 
-    imdb_ids = np.zeros(0, np.uint32)
-    tvdb_ids = np.zeros(0, np.uint32)
-    timestamps = np.empty(0, "datetime64[s]")
+for row in df.itertuples():
+    size = row.id + 1
+    imdb_ids = np_reserve_capacity(imdb_ids, size, 0)
+    tvdb_ids = np_reserve_capacity(tvdb_ids, size, 0)
+    timestamps = np_reserve_capacity(timestamps, size, np.datetime64("nat"))
 
-    table = feather.read_table(filename)
-    imdb_ids = table.column("imdb_id").to_numpy().copy()
-    if "tvdb_id" in table.column_names:
-        tvdb_ids = table.column("tvdb_id").to_numpy().copy()
-    timestamps = table.column("retrieved_at").to_numpy().copy()
+    if not pd.isna(row.imdb_id):
+        imdb_ids[row.id] = imdb.decode_numeric_id(row.imdb_id, imdb_type) or 0
 
-    for tmdb_id in tqdm.tqdm(changed_ids_next):
-        size = tmdb_id + 1
-        imdb_ids = np_reserve_capacity(imdb_ids, size, 0)
-        tvdb_ids = np_reserve_capacity(tvdb_ids, size, 0)
-        timestamps = np_reserve_capacity(timestamps, size, np.datetime64("nat"))
+    if "tvdb_id" in row:
+        if not pd.isna(row.tvdb_id):
+            tvdb_ids[row.id] = row.tvdb_id
+    timestamps[row.id] = np.datetime64("now")
 
-        ids = tmdb.external_ids(tmdb_id, type=type)
-        if imdb_id := ids.get("imdb_id"):
-            imdb_ids[tmdb_id] = imdb.decode_numeric_id(imdb_id, imdb_type) or 0
+cols = []
+names = []
 
-        tvdb_ids[tmdb_id] = ids.get("tvdb_id") or 0
-        timestamps[tmdb_id] = np.datetime64("now")
+names.append("imdb_id")
+cols.append(imdb_ids)
 
-    cols = []
-    names = []
+if np.any(tvdb_ids):
+    names.append("tvdb_id")
+    cols.append(tvdb_ids)
 
-    names.append("imdb_id")
-    cols.append(imdb_ids)
+names.append("retrieved_at")
+cols.append(timestamps)
 
-    if np.any(tvdb_ids):
-        names.append("tvdb_id")
-        cols.append(tvdb_ids)
-
-    names.append("retrieved_at")
-    cols.append(timestamps)
-
-    table = pa.table(cols, names=names)
-    feather.write_feather(table, filename)
-
-
-if __name__ == "__main__":
-    import sys
-
-    logging.basicConfig(level=logging.INFO)
-    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+table = pa.table(cols, names=names)
+feather.write_feather(table, filename)
