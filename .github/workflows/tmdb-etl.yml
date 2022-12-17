@@ -104,8 +104,11 @@ jobs:
       matrix:
         include:
           - type: "movie"
+            imdb_type: "tt"
           - type: "tv"
+            imdb_type: "tt"
           - type: "person"
+            imdb_type: "nm"
 
     steps:
       - uses: actions/checkout@v3
@@ -166,10 +169,10 @@ jobs:
 
       - name: Run script
         run: |
-          python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow" "$RUNNER_TEMP/external_ids"
+          python tmdb_update_external_ids.py "$IMDB_TYPE" "external_ids.arrow" "$RUNNER_TEMP/external_ids"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          TYPE: ${{ matrix.type }}
+          IMDB_TYPE: ${{ matrix.imdb_type }}
 
       - name: Print stats
         run: |

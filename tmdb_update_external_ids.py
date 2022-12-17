@@ -10,12 +10,10 @@ import pyarrow as pa
 import pyarrow.feather as feather
 
 import imdb
-import tmdb
 from utils import np_reserve_capacity
 
-assert sys.argv[1] in tmdb.object_types
-type_: tmdb.ObjectType = sys.argv[1]
-imdb_type: imdb.IMDBIDType = tmdb.TMDB_TYPE_TO_IMDB_TYPE[type_]
+imdb_type = sys.argv[1]
+assert imdb_type in ("tt", "nm")
 
 changed_json_dirname = sys.argv[3]
 changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
