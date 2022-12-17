@@ -1,7 +1,6 @@
 # pyright: strict
 
 import atexit
-import datetime
 import logging
 import os
 from collections.abc import Iterable
@@ -164,35 +163,6 @@ def external_ids(
         return result
     result = resp
     return result
-
-
-def changes(
-    type: ObjectType,
-    start_date: datetime.date | None = None,
-    end_date: datetime.date | None = None,
-    api_key: str | None = TMDB_API_KEY,
-) -> list[int]:
-    assert type in object_types
-
-    if start_date and end_date:
-        assert start_date < end_date, "start_date must be before end_date"
-
-    path = f"/{type}/changes"
-
-    params: dict[str, str] = {}
-    if start_date:
-        params["start_date"] = start_date.isoformat()
-    if end_date:
-        params["end_date"] = end_date.isoformat()
-
-    resp = api_request(path, params=params, api_key=api_key)
-    assert resp.get("success", True)
-
-    assert resp["page"] == 1
-    assert resp["total_results"] == 1
-    assert resp["total_pages"] == 1
-
-    return list(result["id"] for result in resp["results"])
 
 
 TMDB_TYPE_TO_IMDB_TYPE: dict[ObjectType, imdb.IMDBIDType] = {

@@ -1,6 +1,5 @@
 # pyright: basic
 
-import datetime
 import logging
 
 import numpy as np
@@ -31,15 +30,7 @@ def main(type_: str, filename: str, changed_ids_filename: str):
         tvdb_ids = table.column("tvdb_id").to_numpy().copy()
     timestamps = table.column("retrieved_at").to_numpy().copy()
 
-    start_date = datetime.date.today() - datetime.timedelta(days=3)
-    changed_ids = tmdb.changes(type, start_date=start_date)
-
-    print(
-        f"changed_ids: {len(changed_ids)}, changed_ids_next: {len(changed_ids_next)}",
-        file=sys.stderr,
-    )
-
-    for tmdb_id in tqdm.tqdm(changed_ids):
+    for tmdb_id in tqdm.tqdm(changed_ids_next):
         size = tmdb_id + 1
         imdb_ids = np_reserve_capacity(imdb_ids, size, 0)
         tvdb_ids = np_reserve_capacity(tvdb_ids, size, 0)

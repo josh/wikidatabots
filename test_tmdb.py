@@ -1,7 +1,5 @@
 # pyright: strict
 
-import datetime
-
 import pytest
 
 import tmdb
@@ -25,19 +23,3 @@ def test_find():
 def test_external_ids():
     ids = tmdb.external_ids(id=278, type="movie")
     assert ids["imdb_id"] == "tt0111161"
-
-
-@pytest.mark.skipif(tmdb.TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
-def test_changes():
-    ids = tmdb.changes(type="movie")
-    assert len(list(ids)) > 1
-
-    start_date = datetime.date.today() - datetime.timedelta(days=3)
-    ids = tmdb.changes(type="movie", start_date=start_date)
-    assert len(list(ids)) > 1
-
-    ids = tmdb.changes(type="tv")
-    assert len(list(ids)) > 1
-
-    ids = tmdb.changes(type="person")
-    assert len(list(ids)) > 1
