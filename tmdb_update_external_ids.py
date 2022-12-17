@@ -23,9 +23,12 @@ for idx, fn in enumerate(changed_json_filenames):
 
 df = pd.concat(dfs, ignore_index=True)
 df = df.drop(columns=["success", "status_code", "status_message"], errors="ignore")
-df["imdb_numeric_id"] = (
-    df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm").astype("Int64")
-)
+
+df["imdb_numeric_id"] = pd.to_numeric(
+    df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm"),
+    errors="coerce",
+).astype("Int64")
+
 df["retrieved_at"] = np.datetime64("now")
 print(df, file=sys.stderr)
 
