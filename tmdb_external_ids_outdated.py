@@ -10,5 +10,5 @@ df2 = (
 )
 
 df = pd.read_feather(sys.argv[1], columns=["retrieved_at"]).join(df2, how="left")
-df = df[df["date"] >= df["retrieved_at"]]
+df = df[(df["retrieved_at"].isna()) | (df["date"] >= df["retrieved_at"])]
 df.to_csv(sys.stdout.buffer, columns=[], header=False)
