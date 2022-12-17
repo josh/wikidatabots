@@ -38,6 +38,7 @@ else:
 
 if table.schema.metadata:
     print("-- schema metadata --")
+    sys.stdout.flush()
     for key, value in table.schema.metadata.items():
         sys.stdout.buffer.write(key)
         sys.stdout.write(": ")
