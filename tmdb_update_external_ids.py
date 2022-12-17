@@ -4,71 +4,51 @@ import os
 import sys
 from glob import glob
 
-import numpy as np
 import pandas as pd
-import pyarrow as pa
-import pyarrow.feather as feather
 
-from utils import np_reserve_capacity
+df = pd.read_feather(sys.argv[1])
+if "id" not in df:
+    df = df.reset_index(names=["id"])
+df = df.set_index("id")
+
+df["imdb_id"] = df["imdb_id"].astype("Int64")
+df.loc[df["imdb_id"] == 0, "imdb_id"] = None
+
+if "tvdb_id" in df:
+    df["tvdb_id"] = df["tvdb_id"].astype("Int64")
+    df.loc[df["tvdb_id"] == 0, "tvdb_id"] = None
 
 changed_json_dirname = sys.argv[2]
 changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
 changed_json_ids = [int(fn.split(".")[0]) for fn in changed_json_filenames]
 
-dfs = []
+changed_dfs = []
 for idx, fn in enumerate(changed_json_filenames):
     dfx = pd.read_json(os.path.join(changed_json_dirname, fn), lines=True)
     dfx["id"] = changed_json_ids[idx]
-    dfs.append(dfx)
+    dfx = dfx.set_index("id")
+    changed_dfs.append(dfx)
 
-df = pd.concat(dfs, ignore_index=True)
-df = df.drop(columns=["success", "status_code", "status_message"], errors="ignore")
+changed_df = pd.concat(changed_dfs)
 
-df["imdb_numeric_id"] = pd.to_numeric(
-    df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm"),
+changed_df["imdb_id"] = pd.to_numeric(
+    changed_df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm"),
     errors="coerce",
 ).astype("Int64")
 
-df["retrieved_at"] = np.datetime64("now")
-print(df, file=sys.stderr)
+changed_df["retrieved_at"] = pd.Timestamp.now().floor("s")
 
-imdb_ids = np.zeros(0, np.uint32)
-tvdb_ids = np.zeros(0, np.uint32)
-timestamps = np.empty(0, "datetime64[s]")
+if "tvdb_id" in changed_df:
+    changed_df = changed_df[["imdb_id", "tvdb_id", "retrieved_at"]]
+else:
+    changed_df = changed_df[["imdb_id", "retrieved_at"]]
 
-filename = sys.argv[1]
-table = feather.read_table(filename)
-imdb_ids = table.column("imdb_id").to_numpy().copy()
-if "tvdb_id" in table.column_names:
-    tvdb_ids = table.column("tvdb_id").to_numpy().copy()
-timestamps = table.column("retrieved_at").to_numpy().copy()
+existing_rows = df.index.isin(changed_df.index)
+print(f"Dropping {len(df[existing_rows]):,} existing rows", file=sys.stderr)
 
-for row in df.itertuples():
-    size = row.id + 1
-    imdb_ids = np_reserve_capacity(imdb_ids, size, 0)
-    tvdb_ids = np_reserve_capacity(tvdb_ids, size, 0)
-    timestamps = np_reserve_capacity(timestamps, size, np.datetime64("nat"))
+df = pd.concat([df[~existing_rows], changed_df])
+df = df.sort_index().reset_index(names=["id"])
 
-    if not pd.isna(row.imdb_numeric_id):
-        imdb_ids[row.id] = row.imdb_numeric_id
-
-    if "tvdb_id" in df and not pd.isna(row.tvdb_id):
-        tvdb_ids[row.id] = row.tvdb_id
-
-    timestamps[row.id] = row.retrieved_at
-
-cols = []
-names = []
-
-names.append("imdb_id")
-cols.append(imdb_ids)
-
-if np.any(tvdb_ids):
-    names.append("tvdb_id")
-    cols.append(tvdb_ids)
-
-names.append("retrieved_at")
-cols.append(timestamps)
-
-table = pa.table(cols, names=names)
-feather.write_feather(table, filename)
+print(f"Would write {len(df):,} rows", file=sys.stderr)
+print(df)
+# df.to_feather(sys.argv[1])
