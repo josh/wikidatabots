@@ -13,20 +13,20 @@ if "wikidata_id" not in df.columns:
 else:
     df["wikidata_id"] = df["wikidata_id"].astype("string")
 
-if "facebook_id" not in df.columns:
-    df["facebook_id"] = pd.Series(dtype="string")
-else:
-    df["facebook_id"] = df["facebook_id"].astype("string")
+# if "facebook_id" not in df.columns:
+#     df["facebook_id"] = pd.Series(dtype="string")
+# else:
+#     df["facebook_id"] = df["facebook_id"].astype("string")
 
-if "instagram_id" not in df.columns:
-    df["instagram_id"] = pd.Series(dtype="string")
-else:
-    df["instagram_id"] = df["instagram_id"].astype("string")
+# if "instagram_id" not in df.columns:
+#     df["instagram_id"] = pd.Series(dtype="string")
+# else:
+#     df["instagram_id"] = df["instagram_id"].astype("string")
 
-if "twitter_id" not in df.columns:
-    df["twitter_id"] = pd.Series(dtype="string")
-else:
-    df["twitter_id"] = df["twitter_id"].astype("string")
+# if "twitter_id" not in df.columns:
+#     df["twitter_id"] = pd.Series(dtype="string")
+# else:
+#     df["twitter_id"] = df["twitter_id"].astype("string")
 
 changed_json_dirname = sys.argv[2]
 changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
