@@ -94,6 +94,86 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
 
+  changes:
+    runs-on: ubuntu-latest
+    concurrency: tmdb_changes_${{ matrix.type }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: "movie"
+          - type: "tv"
+          - type: "person"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
+
+      - name: Download from S3
+        run: |
+          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          TYPE: ${{ matrix.type }}
+
+      - name: Fetch recent TMDB changes
+        shell: bash
+        run: |
+          curl_config() {
+            for N in $(seq 0 6); do
+              START_DATE=$(date --date="today -$N day" +%Y-%m-%d)
+              END_DATE=$(date --date="today -$N day +1 day" +%Y-%m-%d)
+              URL="https://api.themoviedb.org/3/$TYPE/changes?api_key=$TMDB_API_KEY&start_date=$START_DATE&end_date=$END_DATE"
+              echo "url = \"$URL\""
+              echo "output = \"$RUNNER_TEMP/changes/$START_DATE.json\""
+            done
+          }
+          mkdir -p "$RUNNER_TEMP/changes/"
+          curl_config | tee "$RUNNER_TEMP/curl_config.txt"
+          curl --fail --config "$RUNNER_TEMP/curl_config.txt"
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TYPE: ${{ matrix.type }}
+
+      - name: Append TMDB changes
+        run: |
+          python tmdb_append_changes.py changes.arrow "$RUNNER_TEMP/changes"
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py changes.arrow
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-changes-export
+          path: |
+            *.arrow
+          retention-days: 3
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "changes.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          TYPE: ${{ matrix.type }}
+
   external_ids:
     needs: changes
     runs-on: ubuntu-latest
@@ -185,86 +265,6 @@ jobs:
       - name: Upload to S3
         run: |
           aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/external_ids.arrow"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          BUCKET_NAME: wikidatabots
-          AWS_DEFAULT_REGION: us-east-1
-          TYPE: ${{ matrix.type }}
-
-  changes:
-    runs-on: ubuntu-latest
-    concurrency: tmdb_changes_${{ matrix.type }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - type: "movie"
-          - type: "tv"
-          - type: "person"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
-
-      - name: Download from S3
-        run: |
-          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          BUCKET_NAME: wikidatabots
-          AWS_DEFAULT_REGION: us-east-1
-          TYPE: ${{ matrix.type }}
-
-      - name: Fetch recent TMDB changes
-        shell: bash
-        run: |
-          curl_config() {
-            for N in $(seq 0 6); do
-              START_DATE=$(date --date="today -$N day" +%Y-%m-%d)
-              END_DATE=$(date --date="today -$N day +1 day" +%Y-%m-%d)
-              URL="https://api.themoviedb.org/3/$TYPE/changes?api_key=$TMDB_API_KEY&start_date=$START_DATE&end_date=$END_DATE"
-              echo "url = \"$URL\""
-              echo "output = \"$RUNNER_TEMP/changes/$START_DATE.json\""
-            done
-          }
-          mkdir -p "$RUNNER_TEMP/changes/"
-          curl_config | tee "$RUNNER_TEMP/curl_config.txt"
-          curl --fail --config "$RUNNER_TEMP/curl_config.txt"
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          TYPE: ${{ matrix.type }}
-
-      - name: Append TMDB changes
-        run: |
-          python tmdb_append_changes.py changes.arrow "$RUNNER_TEMP/changes"
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py changes.arrow
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.type }}-changes-export
-          path: |
-            *.arrow
-          retention-days: 3
-
-      - name: Upload to S3
-        run: |
-          aws s3 cp "changes.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
