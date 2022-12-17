@@ -1,6 +1,7 @@
 # pyright: basic
 
 import logging
+from glob import glob
 
 import numpy as np
 import pyarrow as pa
@@ -12,13 +13,24 @@ import tmdb
 from utils import np_reserve_capacity
 
 
-def main(type_: str, filename: str, changed_ids_filename: str):
+def main(
+    type_: str,
+    filename: str,
+    changed_ids_filename: str,
+    changed_json_dirname: str,
+):
     assert type_ in tmdb.object_types
     type: tmdb.ObjectType = type_
     imdb_type: imdb.IMDBIDType = tmdb.TMDB_TYPE_TO_IMDB_TYPE[type]
 
     with open(changed_ids_filename) as f:
         changed_ids_next: set[int] = set(map(int, f.readlines()))
+
+    changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
+    changed_json_ids = [int(fn.split(".")[0]) for fn in changed_json_filenames]
+
+    print("changed_json_filenames:", changed_json_filenames, file=sys.stderr)
+    print("changed_json_ids:", changed_json_ids, file=sys.stderr)
 
     imdb_ids = np.zeros(0, np.uint32)
     tvdb_ids = np.zeros(0, np.uint32)
@@ -64,4 +76,4 @@ if __name__ == "__main__":
     import sys
 
     logging.basicConfig(level=logging.INFO)
-    main(sys.argv[1], sys.argv[2], sys.argv[3])
+    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

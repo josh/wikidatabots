@@ -162,11 +162,11 @@ jobs:
       - name: Fetch changed TMDB external IDs
         if: steps.tmdb_external_ids_outdated.outputs.count > 0
         run: |
-          echo curl --fail --config "$RUNNER_TEMP/curl_config.txt"
+          curl --config "$RUNNER_TEMP/curl_config.txt"
 
       - name: Run script
         run: |
-          python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow" "$RUNNER_TEMP/changed_ids.txt"
+          python tmdb_update_external_ids.py "$TYPE" "external_ids.arrow" "$RUNNER_TEMP/changed_ids.txt" "$RUNNER_TEMP/external_ids"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
