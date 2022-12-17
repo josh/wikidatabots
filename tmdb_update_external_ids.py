@@ -6,17 +6,7 @@ from glob import glob
 
 import pandas as pd
 
-df = pd.read_feather(sys.argv[1])
-if "id" not in df:
-    df = df.reset_index(names=["id"])
-df = df.set_index("id")
-
-df["imdb_id"] = df["imdb_id"].astype("Int64")
-df.loc[df["imdb_id"] == 0, "imdb_id"] = None
-
-if "tvdb_id" in df:
-    df["tvdb_id"] = df["tvdb_id"].astype("Int64")
-    df.loc[df["tvdb_id"] == 0, "tvdb_id"] = None
+df = pd.read_feather(sys.argv[1]).set_index("id")
 
 changed_json_dirname = sys.argv[2]
 changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
