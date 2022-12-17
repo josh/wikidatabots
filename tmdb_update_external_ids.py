@@ -68,4 +68,4 @@ names.append("retrieved_at")
 cols.append(timestamps)
 
 table = pa.table(cols, names=names)
-# feather.write_feather(table, filename)
+feather.write_feather(table, filename)
