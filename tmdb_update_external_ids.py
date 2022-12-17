@@ -8,15 +8,10 @@ import pandas as pd
 
 df = pd.read_feather(sys.argv[1]).set_index("id")
 
-if "wikidata_id" not in df.columns:
-    df["wikidata_id"] = pd.Series(dtype="string")
+if "facebook_id" not in df.columns:
+    df["facebook_id"] = pd.Series(dtype="string")
 else:
-    df["wikidata_id"] = df["wikidata_id"].astype("string")
-
-# if "facebook_id" not in df.columns:
-#     df["facebook_id"] = pd.Series(dtype="string")
-# else:
-#     df["facebook_id"] = df["facebook_id"].astype("string")
+    df["facebook_id"] = df["facebook_id"].astype("string")
 
 # if "instagram_id" not in df.columns:
 #     df["instagram_id"] = pd.Series(dtype="string")
@@ -51,5 +46,4 @@ print(changed_df, file=sys.stderr)
 
 df = pd.concat([df[~df.index.isin(changed_df.index)], changed_df])
 df = df.sort_index().reset_index(names=["id"])
-print(df)
 df.to_feather(sys.argv[1])
