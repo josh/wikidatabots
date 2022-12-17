@@ -39,6 +39,12 @@ print(f"Dropping {len(df[existing_rows]):,} existing rows", file=sys.stderr)
 df = pd.concat([df[~existing_rows], changed_df])
 df = df.sort_index().reset_index(names=["id"])
 
+df["imdb_numeric_id"] = df["imdb_id"]
+if "tvdb_id" in df:
+    df = df[["id", "imdb_id", "imdb_numeric_id", "tvdb_id", "retrieved_at"]]
+else:
+    df = df[["id", "imdb_id", "imdb_numeric_id", "retrieved_at"]]
+
 print(f"Would write {len(df):,} rows", file=sys.stderr)
 print(df)
 df.to_feather(sys.argv[1])
