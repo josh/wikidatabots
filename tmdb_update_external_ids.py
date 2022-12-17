@@ -51,4 +51,4 @@ df = df.sort_index().reset_index(names=["id"])
 
 print(f"Would write {len(df):,} rows", file=sys.stderr)
 print(df)
-# df.to_feather(sys.argv[1])
+df.to_feather(sys.argv[1])
