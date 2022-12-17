@@ -29,9 +29,9 @@ changed_df["imdb_numeric_id"] = pd.to_numeric(
 changed_df["retrieved_at"] = pd.Timestamp.now().floor("s")
 
 if "tvdb_id" in changed_df:
-    changed_df = changed_df[["imdb_id", "tvdb_id", "retrieved_at"]]
+    changed_df = changed_df[["imdb_numeric_id", "tvdb_id", "retrieved_at"]]
 else:
-    changed_df = changed_df[["imdb_id", "retrieved_at"]]
+    changed_df = changed_df[["imdb_numeric_id", "retrieved_at"]]
 
 existing_rows = df.index.isin(changed_df.index)
 print(f"Dropping {len(df[existing_rows]):,} existing rows", file=sys.stderr)
