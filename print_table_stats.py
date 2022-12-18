@@ -4,6 +4,7 @@ import json
 import sys
 import time
 
+import pandas as pd
 import pyarrow as pa
 import pyarrow.feather as feather
 
@@ -14,11 +15,14 @@ table = feather.read_table(filename, memory_map=False)
 elapsed = time.time() - start
 count = len(table)
 
+df = pd.read_feather(filename)
+
 for column_name in table.column_names:
     col = table[column_name]
     ary = col.combine_chunks()
+    pd_dtype = df[column_name].dtype
 
-    print(f"{column_name}: {col.type}")
+    print(f"{column_name}: {col.type}[pyarrow] / {pd_dtype}[pandas]")
     if col.type == pa.bool_():
         print(f"|   true: {ary.true_count:,} ({ary.true_count/count:.2%})")
         print(f"|  false: {ary.false_count:,} ({ary.false_count/count:.2%})")
