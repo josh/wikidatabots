@@ -10,6 +10,9 @@ import pandas as pd
 
 df = input_df = pd.read_feather(sys.argv[1])
 
+# TMP cast
+df["adult"] = input_df["adult"] = input_df["adult"].astype("boolean")
+
 root_dir = sys.argv[2]
 filenames = sorted(glob("*.json", root_dir=root_dir))
 dates = [date.fromisoformat(filename.split(".")[0]) for filename in filenames]
@@ -25,6 +28,7 @@ for idx, filename in enumerate(filenames):
         data = json.load(f)
     df_new = pd.DataFrame.from_records(data["results"])
     df_new["date"] = dates[idx]
+    df_new["adult"] = df_new["adult"].astype("boolean")
     dfs.append(df_new)
     added += len(df_new)
 
