@@ -8,6 +8,9 @@ from jsondir import read_json_dir_as_df
 
 df = pd.read_feather(sys.argv[1]).set_index("id")
 
+if "tvdb_id" in df:
+    df["tvdb_id"] = df["tvdb_id"].astype("Int64")
+
 changed_df = (
     read_json_dir_as_df(sys.argv[2])
     .rename(columns={"filename": "id", "id": "id_"})
