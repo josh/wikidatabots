@@ -65,12 +65,20 @@ jobs:
         run: |
           import pandas as pd
 
-          df = pd.read_json("export.json.gz", lines=True).set_index("id")
+          dtype = {
+              "id": "int64",
+              "adult": "boolean",
+              "original_title": "string",
+              "original_name": "string",
+              "popularity": "float64",
+              "video": "boolean",
+          }
+          df = pd.read_json("export.json.gz", dtype=dtype, lines=True)
           df["in_export"] = True
-          size = df.index.max() + 1
-          df = df.reindex(pd.RangeIndex(0, size))
+          size = df["id"].max() + 1
+          df = df.set_index("id").reindex(pd.RangeIndex(0, size)).reset_index(names=["id"])
           df["in_export"] = df["in_export"].fillna(False)
-          df.reset_index(names=["id"]).to_feather("export.arrow")
+          df.to_feather("export.arrow")
 
       - name: Print stats
         run: |
