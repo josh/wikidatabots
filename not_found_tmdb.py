@@ -1,7 +1,6 @@
 # pyright: basic
 
 import logging
-import sys
 
 import pandas as pd
 
