@@ -22,6 +22,9 @@ changed_df["imdb_numeric_id"] = pd.to_numeric(
 ).astype("Int64")
 changed_df["retrieved_at"] = pd.Timestamp.now().floor("s")
 changed_df = changed_df[df.columns]
+changed_df = changed_df.astype({"imdb_id": "string", "wikidata_id": "string"})
+if "tvdb_id" in df:
+    changed_df = changed_df.astype({"tvdb_id": "Int64"})
 
 print(changed_df, file=sys.stderr)
 
@@ -34,4 +37,10 @@ assert (
 assert (
     df.dtypes.tolist() == input_df.dtypes.tolist()
 ), f"{df.dtypes} != {input_df.dtypes}"
+
+# TMP cast
+df = df.astype({"imdb_id": "string", "wikidata_id": "string"})
+if "tvdb_id" in df:
+    df = df.astype({"tvdb_id": "Int64"})
+
 df.to_feather(sys.argv[1])
