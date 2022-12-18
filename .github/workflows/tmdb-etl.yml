@@ -70,6 +70,7 @@ jobs:
               "adult": "boolean",
               "original_title": "string",
               "original_name": "string",
+              "name": "string",
               "popularity": "float64",
               "video": "boolean",
           }
