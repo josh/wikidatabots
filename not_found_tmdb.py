@@ -1,9 +1,9 @@
 # pyright: basic
 
 import logging
+import sys
 
 import pandas as pd
-from rdflib import URIRef
 
 import tmdb
 from constants import (
@@ -23,11 +23,17 @@ PROPERTY_MAP: dict[tmdb.ObjectType, str] = {
 
 
 def main(tmdb_type: tmdb.ObjectType):
-    export_uri = f"s3://wikidatabots/tmdb/{tmdb_type}/export.arrow"
-    export_df = pd.read_feather(export_uri, columns=["id", "in_export"])
+    # TODO: Precompute latest changes
+    changes_uri = f"s3://wikidatabots/tmdb/{tmdb_type}/changes.arrow"
+    changes_df = (
+        pd.read_feather(changes_uri, columns=["id", "date", "adult"])
+        .drop_duplicates(subset=["id"], keep="last")
+        .set_index("id")
+        .sort_index()
+    )
 
     query = """
-    SELECT ?statement ?value ?rank WHERE {
+    SELECT ?statement ?value WHERE {
       ?statement ps:P0000 ?value.
       ?statement wikibase:rank ?rank.
       FILTER(?rank != wikibase:DeprecatedRank)
@@ -37,23 +43,30 @@ def main(tmdb_type: tmdb.ObjectType):
     query = query.replace("P0000", PROPERTY_MAP[tmdb_type])
     df = pd.read_csv(sparql_csv(query))
 
-    df = df.join(export_df, on="value", how="left")
-    df = df[df["in_export"] != True]  # noqa: E712
+    df = df.join(changes_df, on="value", how="left", rsuffix="_changes")
+    df = df[df["adult"].isna() & df["date"]]
 
-    edit_summary = f"Deprecate removed TMDB {tmdb_type} ID"
+    if df.empty:
+        return
 
-    for row in df.itertuples():
-        statement = URIRef(row.statement)
-        id = int(row.value)
+    logging.info(f"Verifying {len(df)} {tmdb_type} IDs against API")
+    df["tmdb_exists"] = df["value"].apply(
+        lambda id: bool(tmdb.object(id, type=tmdb_type))
+    )
+    df = df[~df["tmdb_exists"]]
+    logging.info(f"{len(df)} {tmdb_type} IDs are not found in API")
 
-        if not tmdb.object(id, type=tmdb_type):
-            print(
-                f"{statement.n3()} "
-                f"wikibase:rank wikibase:DeprecatedRank ; "
-                f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
-                f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
-                f'wikidatabots:editSummary "{edit_summary}" . '
-            )
+    if df.empty:
+        return
+
+    for statement in df["statement"]:
+        print(
+            f"<{statement}> "
+            f"wikibase:rank wikibase:DeprecatedRank ; "
+            f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
+            f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
+            f'wikidatabots:editSummary "Deprecate removed TMDB {tmdb_type} ID" . '
+        )
 
 
 if __name__ == "__main__":
