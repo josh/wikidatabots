@@ -143,7 +143,7 @@ jobs:
           }
           mkdir -p "$RUNNER_TEMP/changes/"
           curl_config | tee "$RUNNER_TEMP/curl_config.txt"
-          curl --fail --config "$RUNNER_TEMP/curl_config.txt"
+          curl --fail --no-progress-meter --config "$RUNNER_TEMP/curl_config.txt"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
@@ -242,7 +242,7 @@ jobs:
       - name: Fetch changed TMDB external IDs
         if: steps.tmdb_external_ids_outdated.outputs.count > 0
         run: |
-          curl --config "$RUNNER_TEMP/curl_config.txt"
+          curl --no-progress-meter --config "$RUNNER_TEMP/curl_config.txt"
 
       - name: Run script
         run: |
