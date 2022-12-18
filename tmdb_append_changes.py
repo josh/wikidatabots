@@ -8,8 +8,7 @@ from glob import glob
 
 import pandas as pd
 
-filename_existing = sys.argv[1]
-df = pd.read_feather(filename_existing)
+df = input_df = pd.read_feather(sys.argv[1])
 
 root_dir = sys.argv[2]
 filenames = sorted(glob("*.json", root_dir=root_dir))
@@ -34,4 +33,7 @@ df = df.sort_values(by=["date"], kind="stable")
 df = df.reset_index(drop=True)
 
 print(f"{added:,}/-{removed:,} rows", file=sys.stderr)
-df.to_feather(filename_existing)
+
+assert df.columns == input_df.columns, f"{df.columns} != {input_df.columns}"
+assert (df.dtypes == input_df.dtypes).bool(), f"{df.dtypes} != {input_df.dtypes}"
+df.to_feather(sys.argv[1])
