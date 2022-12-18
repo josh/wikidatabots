@@ -38,9 +38,4 @@ assert (
     df.dtypes.tolist() == input_df.dtypes.tolist()
 ), f"{df.dtypes} != {input_df.dtypes}"
 
-# TMP cast
-df = df.astype({"imdb_id": "string", "wikidata_id": "string"})
-if "tvdb_id" in df:
-    df = df.astype({"tvdb_id": "Int64"})
-
 df.to_feather(sys.argv[1])
