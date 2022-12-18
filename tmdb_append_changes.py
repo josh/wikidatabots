@@ -34,6 +34,6 @@ df = df.reset_index(drop=True)
 
 print(f"{added:,}/-{removed:,} rows", file=sys.stderr)
 
-assert df.columns == input_df.columns, f"{df.columns} != {input_df.columns}"
+assert (df.columns == input_df.columns).all(), f"{df.columns} != {input_df.columns}"
 assert (df.dtypes == input_df.dtypes).bool(), f"{df.dtypes} != {input_df.dtypes}"
 df.to_feather(sys.argv[1])

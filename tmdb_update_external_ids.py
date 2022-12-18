@@ -28,6 +28,6 @@ print(changed_df, file=sys.stderr)
 df = pd.concat([df[~df.index.isin(changed_df.index)], changed_df])
 df = df.sort_index().reset_index(names=["id"])
 
-assert df.columns == input_df.columns, f"{df.columns} != {input_df.columns}"
+assert (df.columns == input_df.columns).all(), f"{df.columns} != {input_df.columns}"
 assert (df.dtypes == input_df.dtypes).bool(), f"{df.dtypes} != {input_df.dtypes}"
 df.to_feather(sys.argv[1])
