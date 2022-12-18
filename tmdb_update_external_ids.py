@@ -1,25 +1,20 @@
 # pyright: basic
 
-import os
 import sys
-from glob import glob
 
 import pandas as pd
 
+from jsondir import read_json_dir_as_df
+
 df = pd.read_feather(sys.argv[1]).set_index("id")
 
-changed_json_dirname = sys.argv[2]
-changed_json_filenames = sorted(glob("*.json", root_dir=changed_json_dirname))
-changed_json_ids = [int(fn.split(".")[0]) for fn in changed_json_filenames]
+changed_df = (
+    read_json_dir_as_df(sys.argv[2])
+    .rename(columns={"filename": "id", "id": "id_"})
+    .astype({"id": int})
+    .set_index("id")
+)
 
-changed_dfs = []
-for idx, fn in enumerate(changed_json_filenames):
-    dfx = pd.read_json(os.path.join(changed_json_dirname, fn), lines=True)
-    dfx["id"] = changed_json_ids[idx]
-    dfx = dfx.set_index("id")
-    changed_dfs.append(dfx)
-
-changed_df = pd.concat(changed_dfs)
 changed_df["imdb_numeric_id"] = pd.to_numeric(
     changed_df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm"),
     errors="coerce",
