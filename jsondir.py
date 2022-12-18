@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import tempfile
 from glob import glob
 from typing import Iterator
 
@@ -20,8 +21,18 @@ def read_json_dir(dirname: str) -> Iterator[dict]:
             yield data
 
 
+def json_dir_as_jsonl_file(dirname: str) -> str:
+    f = tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False)
+    for data in read_json_dir(dirname):
+        json.dump(data, f)
+        f.write("\n")
+        f.flush()
+    return f.name
+
+
 def read_json_dir_as_df(dirname: str, **kargs) -> pd.DataFrame:
-    return pd.DataFrame(read_json_dir(dirname), **kargs)
+    filename = json_dir_as_jsonl_file(dirname)
+    return pd.read_json(filename, lines=True, **kargs)  # type: ignore
 
 
 if __name__ == "__main__":
