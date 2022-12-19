@@ -7,12 +7,6 @@ import pandas as pd
 from jsondir import read_json_dir_as_df
 
 df = input_df = pd.read_feather(sys.argv[1])
-
-# TMP migration
-if "success" not in df:
-    df["success"] = None
-    df["success"] = df["success"].astype("boolean")
-
 df = df.set_index("id")
 
 changed_dtype = {
