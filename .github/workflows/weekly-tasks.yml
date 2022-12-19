@@ -5,6 +5,9 @@ on:
     - cron: "0 16 * * 1"
   workflow_dispatch:
 
+env:
+  WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
+
 jobs:
   not_found_tmdb:
     runs-on: ubuntu-latest
