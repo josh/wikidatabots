@@ -26,9 +26,17 @@ jobs:
       - name: Run script
         shell: bash
         run: |
-          python not_found_tmdb.py | tee statements.ttl
+          python not_found_tmdb.py | tee not_found_tmdb.ttl
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: not_found_tmdb_ttl
+          path: |
+            *.ttl
+          retention-days: 7
