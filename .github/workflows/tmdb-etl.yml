@@ -228,6 +228,7 @@ jobs:
         id: tmdb_external_ids_outdated
         run: |
           python tmdb_external_ids_outdated.py external_ids.arrow changes.arrow >"$RUNNER_TEMP/changed_ids.txt"
+          python tmdb_external_ids_backfill.py external_ids.arrow >>"$RUNNER_TEMP/changed_ids.txt"
           count=$(wc -l <"$RUNNER_TEMP/changed_ids.txt")
           echo "count=$count" | tee --append "$GITHUB_OUTPUT"
 
