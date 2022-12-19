@@ -91,7 +91,7 @@ jobs:
           name: ${{ matrix.type }}-export
           path: |
             *.arrow
-          retention-days: 3
+          retention-days: 7
 
       - name: Upload to S3
         run: |
@@ -171,7 +171,7 @@ jobs:
           name: ${{ matrix.type }}-changes-export
           path: |
             *.arrow
-          retention-days: 3
+          retention-days: 7
 
       - name: Upload to S3
         run: |
@@ -270,7 +270,7 @@ jobs:
           name: ${{ matrix.type }}-external_ids-export
           path: |
             *.arrow
-          retention-days: 3
+          retention-days: 7
 
       - name: Upload to S3
         run: |
