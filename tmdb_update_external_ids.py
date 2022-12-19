@@ -7,6 +7,12 @@ import pandas as pd
 from jsondir import read_json_dir_as_df
 
 df = input_df = pd.read_feather(sys.argv[1])
+
+# TMP migration
+if "success" not in df:
+    df["success"] = None
+    df["success"] = df["success"].astype("boolean")
+
 df = df.set_index("id")
 
 changed_dtype = {
@@ -28,6 +34,10 @@ changed_df = (
     .astype({"id": "int64"})
     .set_index("id")
 )
+
+if "success" not in changed_df:
+    changed_df["success"] = True
+changed_df["success"] = changed_df["success"].fillna(True).astype("boolean")
 
 changed_df["imdb_numeric_id"] = pd.to_numeric(
     changed_df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm"),
