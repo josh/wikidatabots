@@ -32,7 +32,7 @@ jobs:
 
       - name: Download sitemap index
         run: |
-          curl --fail --no-progress-meter "https://tv.apple.com/sitemaps_tv_index_$TYPE_1.xml" --output "sitemap_index.xml"
+          curl --fail --no-progress-meter "https://tv.apple.com/sitemaps_tv_index_${TYPE}_1.xml" --output "sitemap_index.xml"
         env:
           TYPE: ${{ matrix.type }}
 
