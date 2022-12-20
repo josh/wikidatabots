@@ -13,6 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - type: "episode"
           - type: "movie"
           - type: "show"
 
@@ -29,19 +30,36 @@ jobs:
         run: |
           pip install -r <(grep -E 'lxml|pandas|pyarrow' requirements.txt)
 
-      - name: Run script
+      - name: Download sitemap index
+        run: |
+          curl --fail --no-progress-meter "https://tv.apple.com/sitemaps_tv_index_$TYPE_1.xml" --output "sitemap_index.xml"
+        env:
+          TYPE: ${{ matrix.type }}
+
+      - name: Fetch sitemaps
         shell: python
         run: |
-          import os
-
           import pandas as pd
 
-          type = os.environ["TYPE"]
-          index_df = pd.read_xml(f"http://tv.apple.com/sitemaps_tv_index_{type}_1.xml")
-          dfs = [pd.read_xml(row.loc) for row in index_df.itertuples()]
+          index_df = pd.read_xml("sitemap_index.xml")
+          dtype = {
+              "loc": "string",
+              "lastmod": "datetime64[ns]",
+              "changefreq": "category",
+              "priority": "float32",
+              "link": "string",
+          }
+          dfs = [pd.read_xml(url, dtype=dtype) for url in index_df["loc"]]
           df = pd.concat(dfs, ignore_index=True)
-          df["loc"] = df["loc"].astype("string")
+          df.to_feather("sitemap_changes.arrow")
 
+      - name: Clean up sitemap
+        shell: python
+        run: |
+          import pandas as pd
+
+          df = pd.read_feather("sitemap_changes.arrow")
+          df = df.drop(columns=["link"])
           loc_df = (
               df["loc"]
               .str.extract(
@@ -54,11 +72,35 @@ jobs:
               .astype({"country": "category", "type": "category"})
           )
           df = pd.concat([df, loc_df], axis=1)
+          df["in_latest_sitemap"] = True
+          df.to_feather("sitemap_changes.arrow")
 
-          df.info()
-          df[["loc", "country", "slug", "id", "priority"]].to_feather("sitemap.arrow")
+      - name: Print stats
+        run: |
+          python print_table_stats.py sitemap_changes.arrow
+
+      - name: Download from S3
+        run: |
+          aws s3 cp "s3://$BUCKET_NAME/appletv/$TYPE/sitemap.arrow" "sitemap.arrow"
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
+
+      - name: Join sitemap changes
+        shell: python
+        run: |
+          import pandas as pd
+
+          df = pd.read_feather("sitemap.arrow")
+          df["in_latest_sitemap"] = False
+          df2 = pd.read_feather("sitemap_changes.arrow")
+          existing_changes = df["loc"].isin(df2["loc"])
+          df = pd.concat([df[~existing_changes], df2], ignore_index=True)
+          print(f"-{len(existing_changes):,}/+{len(df2):,} rows")
+          df.to_feather("sitemap.arrow")
 
       - name: Print stats
         run: |
