@@ -1,0 +1,68 @@
+name: Apple TV ETL
+
+on:
+  schedule:
+    - cron: "0 16 * * 1"
+  workflow_dispatch:
+
+jobs:
+  sitemap:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - type: "movie"
+          - type: "show"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
+
+      - name: Run script
+        shell: python
+        run: |
+          import os
+
+          import pandas as pd
+
+          type = os.environ["TYPE"]
+          siteindex_df = pd.read_xml(f"http://tv.apple.com/sitemaps_tv_index_{type}_1.xml")
+          sitemap_dfs = [pd.read_xml(row.loc) for row in siteindex_df.itertuples()]
+          sitemap_df = pd.concat(sitemap_dfs, ignore_index=True)
+          sitemap_df["loc"] = sitemap_df["loc"].astype("string")
+          sitemap_df.to_feather("sitemap.arrow")
+        env:
+          TYPE: ${{ matrix.type }}
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py sitemap.arrow
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-sitemap
+          path: |
+            *.arrow
+          retention-days: 30
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "sitemap.arrow" "s3://$BUCKET_NAME/appletv/$TYPE/sitemap.arrow"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          BUCKET_NAME: wikidatabots
+          AWS_DEFAULT_REGION: us-east-1
+          TYPE: ${{ matrix.type }}
