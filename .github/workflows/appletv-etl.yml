@@ -41,7 +41,7 @@ jobs:
           sitemap_dfs = [pd.read_xml(row.loc) for row in siteindex_df.itertuples()]
           sitemap_df = pd.concat(sitemap_dfs, ignore_index=True)
           sitemap_df["loc"] = sitemap_df["loc"].astype("string")
-          sitemap_df.to_feather("sitemap.arrow")
+          sitemap_df[["loc", "priority"]].to_feather("sitemap.arrow")
         env:
           TYPE: ${{ matrix.type }}
 
