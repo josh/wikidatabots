@@ -41,9 +41,19 @@ jobs:
           dfs = [pd.read_xml(row.loc) for row in index_df.itertuples()]
           df = pd.concat(dfs, ignore_index=True)
           df["loc"] = df["loc"].astype("string")
-          df["country_code"] = df["loc"].str.extract(r"https://tv.apple.com/([a-z]{2})/").astype("category")
-          df["slug"] = df["loc"].str.extract(r"https://tv.apple.com/[a-z]{2}/[^/]+/([^/]+)/")
-          df["id"] = df["loc"].str.extract(r"https://tv.apple.com/[a-z]{2}/[^/]+/[^/]+/(umc.cmc.[0-9a-z]+)")
+          df["country_code"] = (
+              df["loc"].str.extract(r"https://tv.apple.com/([a-z]{2})/").astype("category")
+          )
+          df["slug"] = (
+              df["loc"]
+              .str.extract(r"https://tv.apple.com/[a-z]{2}/[^/]+/([^/]+)/")
+              .astype("string")
+          )
+          df["id"] = (
+              df["loc"]
+              .str.extract(r"https://tv.apple.com/[a-z]{2}/[^/]+/[^/]+/(umc.cmc.[0-9a-z]+)")
+              .astype("string")
+          )
           df[["loc", "country_code", "slug", "id", "priority"]].to_feather("sitemap.arrow")
         env:
           TYPE: ${{ matrix.type }}
