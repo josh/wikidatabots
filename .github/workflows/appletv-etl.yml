@@ -65,7 +65,7 @@ jobs:
               .str.extract(
                   r"https://tv.apple.com/"
                   r"(?P<country>[a-z]{2})/"
-                  r"(?P<type>[\w]+)/"
+                  r"(?P<type>episode|movie|show)/"
                   r"(?P<slug>[^/]*)/"
                   r"(?P<id>umc.cmc.[0-9a-z]+)"
               )
