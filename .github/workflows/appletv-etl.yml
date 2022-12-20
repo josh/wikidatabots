@@ -27,7 +27,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
+          pip install -r <(grep -E 'lxml|pandas|pyarrow' requirements.txt)
 
       - name: Run script
         shell: python
