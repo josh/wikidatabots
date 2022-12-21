@@ -252,7 +252,7 @@ jobs:
         run: |
           curl --no-progress-meter --config "$RUNNER_TEMP/curl_config.txt"
 
-      - name: Get changed IDs
+      - name: Get backfill IDs
         id: tmdb_external_ids_backfill
         run: |
           python tmdb_external_ids_backfill.py external_ids.arrow >"$RUNNER_TEMP/backfill_ids.txt"
