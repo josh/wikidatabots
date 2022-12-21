@@ -232,7 +232,6 @@ jobs:
           echo "count=$count" | tee --append "$GITHUB_OUTPUT"
 
       - name: Generate changed curl config
-        id: curl_config
         shell: bash
         run: |
           curl_config() {
@@ -261,7 +260,6 @@ jobs:
           echo "count=$count" | tee --append "$GITHUB_OUTPUT"
 
       - name: Generate changed curl config
-        id: curl_config
         shell: bash
         run: |
           curl_config() {
