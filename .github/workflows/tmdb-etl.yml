@@ -66,12 +66,12 @@ jobs:
           import pandas as pd
 
           dtype = {
-              "id": "int64",
+              "id": "uint32",
               "adult": "boolean",
               "original_title": "string",
               "original_name": "string",
               "name": "string",
-              "popularity": "float64",
+              "popularity": "float16",
               "video": "boolean",
           }
           df = pd.read_json("export.json.gz", dtype=dtype, lines=True)
