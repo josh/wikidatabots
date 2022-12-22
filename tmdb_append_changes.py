@@ -8,7 +8,10 @@ from glob import glob
 
 import pandas as pd
 
-df = input_df = pd.read_feather(sys.argv[1])
+input_df = pd.read_feather(sys.argv[1])
+# TMP migration
+input_df["id"] = input_df["id"].astype("uint32")
+df = input_df
 
 root_dir = sys.argv[2]
 filenames = sorted(glob("*.json", root_dir=root_dir))
@@ -25,6 +28,7 @@ for idx, filename in enumerate(filenames):
         data = json.load(f)
     df_new = pd.DataFrame.from_records(data["results"])
     df_new["date"] = dates[idx]
+    df_new["id"] = df_new["id"].astype("uint32")
     df_new["adult"] = df_new["adult"].astype("boolean")
     dfs.append(df_new)
     added += len(df_new)
