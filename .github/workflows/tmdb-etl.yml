@@ -66,7 +66,7 @@ jobs:
           import pandas as pd
 
           dtype = {
-              "id": "int64",
+              "id": "uint32",
               "adult": "boolean",
               "original_title": "string",
               "original_name": "string",

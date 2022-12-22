@@ -7,13 +7,6 @@ import pandas as pd
 from jsondir import read_json_dir_as_df
 
 df = input_df = pd.read_feather(sys.argv[1])
-
-# TMP migration
-df["id"] = df["id"].astype("UInt32")
-df["imdb_numeric_id"] = df["imdb_numeric_id"].astype("UInt32")
-if "tvdb_id" in df:
-    df["tvdb_id"] = df["tvdb_id"].astype("UInt32")
-
 df = df.set_index("id")
 
 changed_dtype = {
@@ -51,6 +44,7 @@ print(changed_df, file=sys.stderr)
 
 df = pd.concat([df[~df.index.isin(changed_df.index)], changed_df])
 df = df.sort_index().reset_index(names=["id"])
+df["id"] = df["id"].astype("UInt32")
 
 # TMP disable during migration
 # assert (
