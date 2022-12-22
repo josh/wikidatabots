@@ -66,7 +66,7 @@ jobs:
           import pandas as pd
 
           dtype = {
-              "id": "uint32",
+              "id": "int64",
               "adult": "boolean",
               "original_title": "string",
               "original_name": "string",
@@ -78,6 +78,7 @@ jobs:
           df["in_export"] = True
           size = df["id"].max() + 1
           df = df.set_index("id").reindex(pd.RangeIndex(0, size)).reset_index(names=["id"])
+          df["id"] = df["id"].astype("uint32")
           df["in_export"] = df["in_export"].fillna(False)
           df.to_feather("export.arrow")
 
