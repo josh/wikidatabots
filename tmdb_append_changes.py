@@ -8,10 +8,7 @@ from glob import glob
 
 import pandas as pd
 
-input_df = pd.read_feather(sys.argv[1])
-# TMP migration
-input_df["id"] = input_df["id"].astype("uint32")
-df = input_df
+df = input_df = pd.read_feather(sys.argv[1])
 
 root_dir = sys.argv[2]
 filenames = sorted(glob("*.json", root_dir=root_dir))
