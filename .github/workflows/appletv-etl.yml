@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'lxml|pandas|pyarrow' requirements.txt)
+          pip install -r <(grep -E 'fsspec|lxml|pandas|pyarrow' requirements.txt)
 
       - name: Download sitemap index
         run: |
