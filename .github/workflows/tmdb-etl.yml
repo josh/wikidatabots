@@ -132,6 +132,7 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
+          cp changes.arrow changes.arrow~
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -165,6 +166,7 @@ jobs:
       - name: Print stats
         run: |
           python print_table_stats.py changes.arrow
+          python print_table_diff.py changes.arrow~ changes.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -214,6 +216,7 @@ jobs:
         run: |
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/external_ids.arrow" "external_ids.arrow"
+          cp external_ids.arrow external_ids.arrow~
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -290,6 +293,7 @@ jobs:
       - name: Print stats
         run: |
           python print_table_stats.py external_ids.arrow
+          python print_table_diff.py external_ids.arrow~ external_ids.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
