@@ -109,7 +109,7 @@ jobs:
       - name: Print stats
         run: |
           python print_table_stats.py sitemap.arrow
-          python print_table_diff.py sitemap.arrow~ sitemap.arrow
+          python print_table_diff.py sitemap.arrow~ sitemap.arrow loc
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

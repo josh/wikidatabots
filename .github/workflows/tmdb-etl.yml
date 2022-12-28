@@ -293,7 +293,7 @@ jobs:
       - name: Print stats
         run: |
           python print_table_stats.py external_ids.arrow
-          python print_table_diff.py external_ids.arrow~ external_ids.arrow
+          python print_table_diff.py external_ids.arrow~ external_ids.arrow id
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

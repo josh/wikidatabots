@@ -2,22 +2,27 @@
 
 from typing import Callable
 
-import fsspec
 import pandas as pd
 
+try:
+    import fsspec
+except ImportError:
+    pass
 
-def df_diff(df1: pd.DataFrame, df2: pd.DataFrame, key: str) -> tuple[int, int, int]:
-    df1_both_indices = df1[key].isin(df2[key])
-    df2_both_indices = df2[key].isin(df1[key])
 
-    df1_both = df1[df1_both_indices]
-    df2_both = df2[df2_both_indices]
-    df3_both = df1_both.merge(df2_both, indicator=True, how="left")
-
-    added = (~df2_both_indices).sum()
-    removed = (~df1_both_indices).sum()
-    updated = (df3_both["_merge"] == "left_only").sum()
-
+def df_diff(
+    df1: pd.DataFrame,
+    df2: pd.DataFrame,
+    on: str | None = None,
+) -> tuple[int, int, int]:
+    df3 = df1.merge(df2, on=on, indicator=True, how="outer")
+    df4 = df1.merge(df2, indicator=True, how="outer")
+    added = (df3["_merge"] == "right_only").sum()
+    removed = (df3["_merge"] == "left_only").sum()
+    both_key = (df3["_merge"] == "both").sum()
+    both_equal = (df4["_merge"] == "both").sum()
+    updated = both_key - both_equal
+    assert updated >= 0
     return (added, removed, updated)
 
 
