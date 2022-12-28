@@ -34,8 +34,6 @@ df = pd.concat(dfs)
 df = df.sort_values(by=["date"], kind="stable")
 df = df.reset_index(drop=True)
 
-print(f"{added:,}/-{removed:,} rows", file=sys.stderr)
-
 assert (
     df.columns.tolist() == input_df.columns.tolist()
 ), f"{df.columns} != {input_df.columns}"

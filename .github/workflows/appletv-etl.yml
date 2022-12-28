@@ -103,7 +103,6 @@ jobs:
           df2 = pd.read_feather("sitemap_changes.arrow")
           existing_changes = df["loc"].isin(df2["loc"])
           df = pd.concat([df[~existing_changes], df2], ignore_index=True)
-          print(f"-{len(existing_changes):,}/+{len(df2):,} rows")
           df.to_feather("sitemap.arrow")
 
       - name: Print stats
