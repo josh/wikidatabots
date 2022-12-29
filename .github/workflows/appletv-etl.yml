@@ -36,46 +36,25 @@ jobs:
           python-version: "3.10"
           cache: "pip"
 
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE:$PYTHONPATH" | tee -a "$GITHUB_ENV"
-
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'fsspec|lxml|pandas|pyarrow' requirements.txt)
+          pip install -r requirements.txt
 
-      - name: Test imports
-        shell: python
+      - name: Set Python path
         run: |
-          import sys
-
-          import pandas_utils
-
-          print(sys.version)
-          print(pandas_utils)
-
-      - name: Download sitemap index
-        run: |
-          curl --fail --no-progress-meter "https://tv.apple.com/sitemaps_tv_index_${TYPE}_1.xml" --output "sitemap_index.xml"
-        env:
-          TYPE: ${{ matrix.type }}
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
       - name: Fetch sitemaps
         shell: python
         run: |
-          import pandas as pd
+          import os
 
-          index_df = pd.read_xml("sitemap_index.xml")
-          dtype = {
-              "loc": "string",
-              "lastmod": "datetime64[ns]",
-              "changefreq": "category",
-              "priority": "float16",
-              "link": "string",
-          }
-          dfs = [pd.read_xml(url, dtype=dtype, parser="etree") for url in index_df["loc"]]
-          df = pd.concat(dfs, ignore_index=True)
+          import appletv_etl
+
+          df = appletv_etl.sitemap(type=os.environ["SITEMAP_TYPE"])
           df.to_feather("sitemap_changes.arrow")
+        env:
+          SITEMAP_TYPE: ${{ matrix.type }}
 
       - name: Clean up sitemap
         shell: python
