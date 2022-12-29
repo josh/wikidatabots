@@ -59,26 +59,12 @@ jobs:
       - name: Clean up sitemap
         shell: python
         run: |
-          import urllib.parse
-
           import pandas as pd
 
+          import appletv_etl
+
           df = pd.read_feather("sitemap_changes.arrow")
-          df = df.drop(columns=["link"])
-          loc_df = (
-              df["loc"]
-              .str.extract(
-                  r"https://tv.apple.com/"
-                  r"(?P<country>[a-z]{2})/"
-                  r"(?P<type>episode|movie|show)/"
-                  r"(?P<slug>[^/]*)/"
-                  r"(?P<id>umc.cmc.[0-9a-z]+)"
-              )
-              .astype({"country": "category", "type": "category"})
-          )
-          loc_df["slug"] = loc_df["slug"].apply(urllib.parse.unquote).astype("string")
-          df = pd.concat([df, loc_df], axis=1)
-          df["in_latest_sitemap"] = True
+          df = appletv_etl.clean_sitemap(df)
           df.to_feather("sitemap_changes.arrow")
 
       - name: Print stats
