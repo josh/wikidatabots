@@ -16,6 +16,14 @@ jobs:
   not_found_tmdb:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tmdb_type: "movie"
+          - tmdb_type: "tv"
+          - tmdb_type: "person"
+
     steps:
       - uses: actions/checkout@v3
 
@@ -39,9 +47,10 @@ jobs:
       - name: Run script
         shell: bash
         run: |
-          python not_found_tmdb.py | tee not_found_tmdb.ttl
+          python not_found_tmdb.py "$TMDB_TYPE" | tee not_found_tmdb.ttl
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TMDB_TYPE: ${{ matrix.tmdb_type }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3

@@ -1,6 +1,7 @@
 # pyright: basic
 
 import logging
+import sys
 
 import pandas as pd
 
@@ -70,6 +71,6 @@ def main(tmdb_type: tmdb.ObjectType):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    main(tmdb_type="movie")
-    main(tmdb_type="tv")
-    main(tmdb_type="person")
+    tmdb_type = sys.argv[1]
+    assert tmdb_type in PROPERTY_MAP
+    main(tmdb_type=tmdb_type)
