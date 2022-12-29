@@ -71,6 +71,5 @@ jobs:
         with:
           path: artifacts
 
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: artifacts
+      - name: Combine artifacts
+        run: find artifacts/ -name "not_found_tmdb.ttl" -exec cat {} \; | tee not_found_tmdb.ttl
