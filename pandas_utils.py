@@ -15,12 +15,15 @@ def df_diff(
     df2: pd.DataFrame,
     on: str | None = None,
 ) -> tuple[int, int, int]:
-    df3 = df1.merge(df2, on=on, indicator=True, how="outer")
-    df4 = df1.merge(df2, indicator=True, how="outer")
-    added = (df3["_merge"] == "right_only").sum()
-    removed = (df3["_merge"] == "left_only").sum()
-    both_key = (df3["_merge"] == "both").sum()
-    both_equal = (df4["_merge"] == "both").sum()
+    df3 = df1.merge(df2, indicator=True, how="outer")
+    if on:
+        df4 = df1.merge(df2, on=on, indicator=True, how="outer")
+    else:
+        df4 = df3
+    added = (df4["_merge"] == "right_only").sum()
+    removed = (df4["_merge"] == "left_only").sum()
+    both_key = (df4["_merge"] == "both").sum()
+    both_equal = (df3["_merge"] == "both").sum()
     updated = both_key - both_equal
     assert updated >= 0
     return (added, removed, updated)
