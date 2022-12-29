@@ -55,7 +55,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: not_found_tmdb_ttl
+          name: not_found_tmdb_${{ matrix.tmdb_type }}_ttl
           path: |
             *.ttl
           retention-days: 7
