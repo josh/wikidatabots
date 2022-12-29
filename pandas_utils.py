@@ -3,6 +3,8 @@
 from typing import Callable
 
 import pandas as pd
+import pyarrow as pa
+import pyarrow.feather as feather
 
 try:
     import fsspec
@@ -48,3 +50,13 @@ def update_feather(
     df = handle(df)
     with fsspec.open(urlpath, mode="wb") as f:
         df.to_feather(f)  # type: ignore
+
+
+def write_feather_with_index(df: pd.DataFrame, urlpath: str) -> None:
+    table = pa.Table.from_pandas(df, preserve_index=None)
+
+    for field in table.schema:
+        assert not field.name.startswith("__index_level_"), field.name
+
+    with fsspec.open(urlpath, mode="wb") as f:
+        feather.write_feather(table, f)

@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from pandas_utils import df_diff, df_upsert, update_feather
+from pandas_utils import df_diff, df_upsert, update_feather, write_feather_with_index
 
 
 def test_df_diff():
@@ -64,3 +64,25 @@ def test_update_feather():
     df = pd.read_feather(path)
     assert df["a"].tolist() == [1, 2, 3]
     assert df["b"].tolist() == [4, 5, 6]
+
+
+def test_write_feather_with_index():
+    path = "/tmp/test.feather"
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": ["a", "b", "c"]})
+    write_feather_with_index(df, path)
+
+    df = pd.read_feather(path)
+    assert df.index.dtype == "int64"
+    assert df.columns.tolist() == ["a", "b", "c"]
+    assert df["a"].dtype == "int64"
+    assert df["b"].dtype == "int64"
+    assert df["c"].dtype == "object"
+
+    df = df.set_index("c")
+    write_feather_with_index(df, path)
+
+    df = pd.read_feather(path)
+    assert df.index.dtype == "object"
+    assert df.columns.tolist() == ["a", "b"]
+    assert df["a"].dtype == "int64"
+    assert df["b"].dtype == "int64"
