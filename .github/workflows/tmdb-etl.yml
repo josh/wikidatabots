@@ -5,6 +5,10 @@ on:
     - cron: "0 8 * * *"
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   export:
     runs-on: ubuntu-latest
@@ -23,6 +27,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
@@ -98,10 +108,7 @@ jobs:
         run: |
           aws s3 cp "export.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/export.arrow"
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BUCKET_NAME: wikidatabots
-          AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
 
   changes:
@@ -119,6 +126,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
@@ -134,10 +147,7 @@ jobs:
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
           cp changes.arrow changes.arrow~
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BUCKET_NAME: wikidatabots
-          AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
 
       - name: Fetch recent TMDB changes
@@ -180,10 +190,7 @@ jobs:
         run: |
           aws s3 cp "changes.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow"
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BUCKET_NAME: wikidatabots
-          AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
 
   external_ids:
@@ -202,6 +209,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
@@ -218,10 +231,7 @@ jobs:
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/external_ids.arrow" "external_ids.arrow"
           cp external_ids.arrow external_ids.arrow~
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BUCKET_NAME: wikidatabots
-          AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
 
       - name: Print stats
@@ -307,8 +317,5 @@ jobs:
         run: |
           aws s3 cp "external_ids.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/external_ids.arrow"
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BUCKET_NAME: wikidatabots
-          AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}

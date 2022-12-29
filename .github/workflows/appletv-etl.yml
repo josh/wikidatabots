@@ -24,6 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
@@ -86,21 +92,12 @@ jobs:
         run: |
           python print_table_stats.py sitemap_changes.arrow
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
       - name: Download from S3
         run: |
           aws s3 cp "s3://$BUCKET_NAME/appletv/$TYPE/sitemap.arrow" "sitemap.arrow"
           cp sitemap.arrow sitemap.arrow~
         env:
-          # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BUCKET_NAME: wikidatabots
-          # AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
 
       - name: Join sitemap changes
@@ -132,8 +129,5 @@ jobs:
         run: |
           aws s3 cp "sitemap.arrow" "s3://$BUCKET_NAME/appletv/$TYPE/sitemap.arrow"
         env:
-          # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           BUCKET_NAME: wikidatabots
-          # AWS_DEFAULT_REGION: us-east-1
           TYPE: ${{ matrix.type }}
