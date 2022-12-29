@@ -176,6 +176,9 @@ jobs:
       - name: Print stats
         run: |
           python print_table_stats.py changes.arrow
+
+      - name: Print diff
+        run: |
           python print_table_diff.py changes.arrow~ changes.arrow
 
       - name: Upload artifacts
@@ -303,6 +306,9 @@ jobs:
       - name: Print stats
         run: |
           python print_table_stats.py external_ids.arrow
+
+      - name: Print diff
+        run: |
           python print_table_diff.py external_ids.arrow~ external_ids.arrow id
 
       - name: Upload artifacts
