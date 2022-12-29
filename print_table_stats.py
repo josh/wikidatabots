@@ -20,7 +20,11 @@ df = pd.read_feather(filename)
 for column_name in table.column_names:
     col = table[column_name]
     ary = col.combine_chunks()
-    pd_dtype = df[column_name].dtype
+
+    if df.index.name == column_name:
+        pd_dtype = df.index.dtype
+    else:
+        pd_dtype = df[column_name].dtype
 
     print(f"{column_name}: {col.type}[pyarrow] / {pd_dtype}[pandas]")
     if col.type == pa.bool_():
