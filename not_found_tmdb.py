@@ -51,7 +51,9 @@ def main(tmdb_type: tmdb.ObjectType):
         return
 
     logging.info(f"Verifying {len(df)} {tmdb_type} IDs against API")
-    df = df.assign(tmdb_exists=lambda row: bool(tmdb.object(row.value, type=tmdb_type)))
+    df["tmdb_exists"] = df["value"].apply(
+        lambda id: bool(tmdb.object(id, type=tmdb_type))
+    )
     df = df[~df["tmdb_exists"]]
     logging.info(f"{len(df)} {tmdb_type} IDs are not found in API")
 
