@@ -133,6 +133,6 @@ def cleaned_sitemap(type: Type) -> pd.DataFrame:
 
 def append_sitemap_changes(df: pd.DataFrame, latest_df: pd.DataFrame) -> pd.DataFrame:
     df["in_latest_sitemap"] = False
+    latest_df["in_latest_sitemap"] = True
     existing_changes = df["loc"].isin(latest_df["loc"])
-    df = pd.concat([df[~existing_changes], latest_df], ignore_index=True)
-    return df
+    return pd.concat([df[~existing_changes], latest_df], ignore_index=True)

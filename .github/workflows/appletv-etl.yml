@@ -72,13 +72,12 @@ jobs:
         run: |
           import pandas as pd
 
-          df = pd.read_feather("sitemap.arrow")
-          df["in_latest_sitemap"] = False
+          from appletv_etl import append_sitemap_changes
+
+          df1 = pd.read_feather("sitemap.arrow")
           df2 = pd.read_feather("sitemap_changes.arrow")
-          df2["in_latest_sitemap"] = True
-          existing_changes = df["loc"].isin(df2["loc"])
-          df = pd.concat([df[~existing_changes], df2], ignore_index=True)
-          df.to_feather("sitemap.arrow")
+          df3 = append_sitemap_changes(df1, df2)
+          df3.to_feather("sitemap.arrow")
 
       - name: Print stats
         run: |
