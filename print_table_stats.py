@@ -1,11 +1,18 @@
 # pyright: basic
 
+
+import os
 import sys
 import time
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.feather as feather
+
+STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
+
+txt_out = sys.stdout
+md_out = open(STEP_SUMMARY, "w")
 
 filename = sys.argv[1]
 
@@ -16,6 +23,10 @@ count = len(table)
 
 df = pd.read_feather(filename)
 
+print("**schema:**", file=md_out)
+print("|name|pyarrow|pandas|", file=md_out)
+print("|---|---|---|", file=md_out)
+
 for column_name in table.column_names:
     col = table[column_name]
     ary = col.combine_chunks()
@@ -25,32 +36,36 @@ for column_name in table.column_names:
     else:
         pd_dtype = df[column_name].dtype
 
-    print(f"{column_name}: {col.type}[pyarrow] / {pd_dtype}[pandas]")
+    print(f"{column_name}: {col.type}[pyarrow] / {pd_dtype}[pandas]", file=txt_out)
+    print(f"|{column_name}|{col.type}|{pd_dtype}|", file=md_out)
     if col.type == pa.bool_():
-        print(f"|   true: {ary.true_count:,} ({ary.true_count/count:.2%})")
-        print(f"|  false: {ary.false_count:,} ({ary.false_count/count:.2%})")
+        print(
+            f"|   true: {ary.true_count:,} ({ary.true_count/count:.2%})",
+            file=txt_out,
+        )
+        print(
+            f"|  false: {ary.false_count:,} ({ary.false_count/count:.2%})",
+            file=txt_out,
+        )
 
     if ary.null_count:
-        print(f"|   null: {ary.null_count:,} ({ary.null_count/count:.2%})")
+        print(
+            f"|   null: {ary.null_count:,} ({ary.null_count/count:.2%})",
+            file=txt_out,
+        )
 
-print(f"total: {count:,}")
-print(f" load: {elapsed:0.2}s")
+print(f"total: {count:,}", file=txt_out)
+print(f" load: {elapsed:0.2}s", file=txt_out)
+
+print("\n**stats:**", file=md_out)
+print(f"total: {count:,} rows", file=md_out)
+print(f"load: {elapsed:0.2}s", file=md_out)
 
 kb = pa.total_allocated_bytes() >> 10
 mb = pa.total_allocated_bytes() >> 20
 if mb > 2:
-    print(f"  rss: {mb:,}MB")
+    print(f"  rss: {mb:,}MB", file=txt_out)
+    print(f"rss: {mb:,}MB", file=md_out)
 else:
-    print(f"  rss: {kb:,}KB")
-
-# if table.schema.metadata:
-#     print("-- schema metadata --")
-#     sys.stdout.flush()
-#     for key, value in table.schema.metadata.items():
-#         sys.stdout.buffer.write(key)
-#         sys.stdout.write(": ")
-#         try:
-#             json.dump(json.loads(value), sys.stdout, indent=2)
-#             sys.stdout.write("\n")
-#         except json.JSONDecodeError:
-#             sys.stdout.buffer.write(value)
+    print(f"  rss: {kb:,}KB", file=txt_out)
+    print(f"rss: {kb:,}KB", file=md_out)
