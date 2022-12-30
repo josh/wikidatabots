@@ -4,7 +4,6 @@ import csv
 import html
 import json
 import re
-import zlib
 from collections.abc import Iterator
 from datetime import date
 from typing import Any, Literal, NewType, TypedDict
@@ -213,33 +212,6 @@ def extract_itunes_id(soup: BeautifulSoup) -> itunes.ID | None:
                             return int(m.group(1))
 
     return None
-
-
-def fetch_sitemap_index_url(url: str) -> set[str]:
-    r = session.get(url)
-    r.raise_for_status()
-
-    soup = BeautifulSoup(r.content, "xml")
-
-    urls: set[str] = set()
-    for loc in soup.find_all("loc"):
-        urls.add(loc.text)
-    return urls
-
-
-def fetch_sitemap_index(url: str) -> set[str]:
-    r = session.get(url)
-    r.raise_for_status()
-
-    xml = zlib.decompress(r.content, 16 + zlib.MAX_WBITS)
-    soup = BeautifulSoup(xml, "xml")
-
-    urls: set[str] = set()
-    for loc in soup.find_all("loc"):
-        urls.add(loc.text)
-    for link in soup.find_all("xhtml:link"):
-        urls.add(link["href"])
-    return urls
 
 
 def fetch_new_sitemap_urls() -> Iterator[str]:
