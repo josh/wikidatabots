@@ -93,7 +93,8 @@ jobs:
 
       - name: Print diff
         run: |
-          python print_table_diff.py sitemap.arrow~ sitemap.arrow loc
+          echo "**sitemap.arrow differences**" >>"$GITHUB_STEP_SUMMARY"
+          python print_table_diff.py sitemap.arrow~ sitemap.arrow loc | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
