@@ -1,6 +1,7 @@
 # pyright: basic
 
 import atexit
+import sys
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
@@ -13,6 +14,8 @@ from tqdm import tqdm
 
 import appletv
 from pandas_utils import df_upsert
+
+tqdm.pandas()
 
 PACIFIC_TZ = tz.gettz("America/Los_Angeles")
 
@@ -49,6 +52,25 @@ SITEINDEX_DTYPE: dict[str, Dtype] = {
 Type = Literal["episode", "movie", "show"]
 
 
+class LogGroup:
+    def __init__(self, title: str):
+        self.title = title
+
+    def __enter__(self):
+        print(f"::group::{self.title}", file=sys.stderr)
+
+    def __exit__(self, type, value, traceback):
+        print("::endgroup::", file=sys.stderr)
+
+    def __call__(self, func):
+        def wrapper(*args, **kwargs):
+            with self:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+
+@LogGroup(title="Fetching siteindex")
 def siteindex(type: Type) -> pd.DataFrame:
     url = f"https://tv.apple.com/sitemaps_tv_index_{type}_1.xml"
     with fsspec.open(url) as f:
@@ -70,14 +92,16 @@ SITEMAP_DTYPE: dict[str, Dtype] = {
 }
 
 
+@LogGroup(title="Fetching sitemap")
 def sitemap(type: Type) -> pd.DataFrame:
     index_df = siteindex(type)
 
-    tqdm.pandas(desc=f"Fetching {type} sitemaps")
-    ofs = index_df["loc"].progress_apply(cached_fs.open)
+    with LogGroup("Fetching sitemap"):
+        ofs = index_df["loc"].progress_apply(cached_fs.open)
 
-    tqdm.pandas(desc=f"Parsing {type} sitemaps")
-    dfs = ofs.progress_apply(lambda f: pd.read_xml(f, dtype=SITEMAP_DTYPE))
+    with LogGroup("Parsing sitemap"):
+        dfs = ofs.progress_apply(lambda f: pd.read_xml(f, dtype=SITEMAP_DTYPE))
+
     ofs.apply(lambda f: f.close())
 
     df = pd.concat(dfs.to_list(), ignore_index=True)
@@ -92,6 +116,7 @@ def sitemap(type: Type) -> pd.DataFrame:
     return df
 
 
+@LogGroup(title="Clean Sitemap")
 def clean_sitemap(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop(columns=["link"])
     loc_df = (
@@ -149,8 +174,8 @@ JSONLD_DTYPES = {
 }
 
 
+@LogGroup(title="Fetching JSON-LD")
 def fetch_jsonld_df(urls: pd.Series) -> pd.DataFrame:
-    tqdm.pandas(desc="Fetching JSON-LD")
     records = urls.progress_apply(appletv.fetch_jsonld)
     df = pd.DataFrame.from_records(records)
     df = df.rename(columns={"success": "jsonld_success"})
