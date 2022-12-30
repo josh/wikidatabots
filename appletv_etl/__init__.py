@@ -11,6 +11,7 @@ from dateutil import tz
 from pandas._typing import Dtype
 from tqdm import tqdm
 
+import appletv
 from pandas_utils import df_upsert
 
 PACIFIC_TZ = tz.gettz("America/Los_Angeles")
@@ -137,3 +138,21 @@ def append_sitemap_changes(df: pd.DataFrame, latest_df: pd.DataFrame) -> pd.Data
     df["in_latest_sitemap"] = False
     latest_df["in_latest_sitemap"] = True
     return df_upsert(df, latest_df, on="loc")
+
+
+JSONLD_DTYPES = {
+    "jsonld_success": "boolean",
+    "title": "string",
+    "published_at": "object",
+    "director": "string",
+    "retrieved_at": "datetime64[ns]",
+}
+
+
+def fetch_jsonld_df(urls: pd.Series) -> pd.DataFrame:
+    tqdm.pandas(desc="Fetching JSON-LD")
+    records = urls.progress_apply(appletv.fetch_jsonld)
+    df = pd.DataFrame.from_records(records)
+    df = df.rename(columns={"success": "jsonld_success"})
+    df["retrieved_at"] = pd.Timestamp.now().floor("s")
+    return df.astype(JSONLD_DTYPES)

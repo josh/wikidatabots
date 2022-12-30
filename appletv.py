@@ -1,11 +1,13 @@
 # pyright: strict
 
 import csv
+import html
 import json
 import re
 import zlib
 from collections.abc import Iterator
-from typing import Any, Literal, NewType
+from datetime import date
+from typing import Any, Literal, NewType, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
@@ -119,6 +121,57 @@ def extract_shoebox(soup: BeautifulSoup) -> list[Any]:
         return []
 
     return json.loads(script.text).values()
+
+
+def extract_jsonld(soup: BeautifulSoup) -> dict[str, Any] | None:
+    scripts = soup.find_all("script", {"type": "application/ld+json"})
+
+    for script in scripts:
+        data = json.loads(script.text)
+        assert "@context" in data, script.text
+        assert "@type" in data, script.text
+        return data
+
+    return None
+
+
+class LinkedData(TypedDict):
+    success: bool
+    title: str | None
+    published_at: date | None
+    director: str | None
+
+
+def fetch_jsonld(url: str) -> LinkedData:
+    data: LinkedData = {
+        "success": False,
+        "title": None,
+        "published_at": None,
+        "director": None,
+    }
+
+    soup = fetch(url)
+    if not soup:
+        return data
+
+    jsonld = extract_jsonld(soup)
+    if not jsonld:
+        return data
+
+    data["success"] = True
+
+    if isinstance(jsonld.get("name"), str):
+        data["title"] = html.unescape(jsonld["name"])
+
+    if isinstance(jsonld.get("datePublished"), str):
+        data["published_at"] = date.fromisoformat(jsonld["datePublished"][0:10])
+
+    for person in jsonld.get("director", []):
+        if isinstance(person.get("name"), str):
+            data["director"] = html.unescape(person["name"])
+            break
+
+    return data
 
 
 def extract_itunes_id(soup: BeautifulSoup) -> itunes.ID | None:
