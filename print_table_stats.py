@@ -23,7 +23,7 @@ count = len(table)
 
 df = pd.read_feather(filename)
 
-print("**schema:**", file=md_out)
+print(f"## {filename}", file=md_out)
 print("|name|pyarrow|pandas|", file=md_out)
 print("|---|---|---|", file=md_out)
 
@@ -57,7 +57,6 @@ for column_name in table.column_names:
 print(f"total: {count:,}", file=txt_out)
 print(f" load: {elapsed:0.2}s", file=txt_out)
 
-print("\n**stats:**", file=md_out)
 print(f"total: {count:,} rows", file=md_out)
 print(f"load: {elapsed:0.2}s", file=md_out)
 
