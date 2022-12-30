@@ -110,7 +110,7 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "export.arrow" "s3://$BUCKET_NAME/tmdb/$TYPE/export.arrow"
+          aws s3 cp "export.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/export.arrow"
         env:
           BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
@@ -152,7 +152,7 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
+          aws s3 cp "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow" "changes.arrow"
           cp changes.arrow changes.arrow~
         env:
           BUCKET_NAME: wikidatabots
@@ -165,7 +165,7 @@ jobs:
             for N in $(seq 0 6); do
               START_DATE=$(date --date="today -$N day" +%Y-%m-%d)
               END_DATE=$(date --date="today -$N day +1 day" +%Y-%m-%d)
-              URL="https://api.themoviedb.org/3/$TYPE/changes?api_key=$TMDB_API_KEY&start_date=$START_DATE&end_date=$END_DATE"
+              URL="https://api.themoviedb.org/3/${TYPE}/changes?api_key=$TMDB_API_KEY&start_date=$START_DATE&end_date=$END_DATE"
               echo "url = \"$URL\""
               echo "output = \"$RUNNER_TEMP/changes/$START_DATE.json\""
             done
@@ -242,8 +242,8 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
-          aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/external_ids.arrow" "external_ids.arrow"
+          aws s3 cp "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow" "changes.arrow"
+          aws s3 cp "s3://$BUCKET_NAME/tmdb/${TYPE}/external_ids.arrow" "external_ids.arrow"
           cp external_ids.arrow external_ids.arrow~
         env:
           BUCKET_NAME: wikidatabots
@@ -265,7 +265,7 @@ jobs:
         run: |
           curl_config() {
             while read -r ID; do
-              URL="https://api.themoviedb.org/3/$TYPE/$ID/external_ids?api_key=$TMDB_API_KEY"
+              URL="https://api.themoviedb.org/3/${TYPE}/$ID/external_ids?api_key=$TMDB_API_KEY"
               echo "url = \"$URL\""
               echo "output = \"$RUNNER_TEMP/external_ids/$ID.json\""
             done
@@ -293,7 +293,7 @@ jobs:
         run: |
           curl_config() {
             while read -r ID; do
-              URL="https://api.themoviedb.org/3/$TYPE/$ID/external_ids?api_key=$TMDB_API_KEY"
+              URL="https://api.themoviedb.org/3/${TYPE}/$ID/external_ids?api_key=$TMDB_API_KEY"
               echo "url = \"$URL\""
               echo "output = \"$RUNNER_TEMP/external_ids/$ID.json\""
             done
