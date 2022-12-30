@@ -172,12 +172,13 @@ def fetch_jsonld_df(urls: pd.Series) -> pd.DataFrame:
 def append_jsonld_changes(
     sitemap_df: pd.DataFrame,
     jsonld_df: pd.DataFrame,
+    limit: int = 1000,
 ) -> pd.DataFrame:
     sitemap_df = sitemap_df.merge(jsonld_df, on="loc", how="left")
     urls = (
         sitemap_df[sitemap_df["jsonld_success"].isna()]
         .sort_values("priority", ascending=False)
-        .head(100)["loc"]
+        .head(limit)["loc"]
     )
 
     jsonld_new_df = fetch_jsonld_df(urls)
