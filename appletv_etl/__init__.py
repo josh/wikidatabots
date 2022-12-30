@@ -27,7 +27,7 @@ def seconds_until_sitemap_updated() -> int:
     return round((next_sitemap_updated_at() - now).total_seconds())
 
 
-fs = fsspec.filesystem(
+cached_fs = fsspec.filesystem(
     "filecache",
     target_protocol="http",
     cache_storage=".cache/appletv_etl/",
@@ -37,7 +37,7 @@ fs = fsspec.filesystem(
 )
 
 
-atexit.register(fs.clear_expired_cache)
+atexit.register(cached_fs.clear_expired_cache)
 
 
 SITEINDEX_DTYPE: dict[str, Dtype] = {
@@ -73,7 +73,7 @@ def sitemap(type: Type) -> pd.DataFrame:
     index_df = siteindex(type)
 
     tqdm.pandas(desc=f"Fetching {type} sitemaps")
-    ofs = index_df["loc"].progress_apply(fs.open)
+    ofs = index_df["loc"].progress_apply(cached_fs.open)
 
     tqdm.pandas(desc=f"Parsing {type} sitemaps")
     dfs = ofs.progress_apply(lambda f: pd.read_xml(f, dtype=SITEMAP_DTYPE))
