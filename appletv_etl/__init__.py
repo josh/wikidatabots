@@ -174,6 +174,8 @@ def append_jsonld_changes(
     jsonld_df: pd.DataFrame,
     limit: int = 1000,
 ) -> pd.DataFrame:
+    # FIXME: Restrict to US for now
+    sitemap_df = sitemap_df[sitemap_df["country"] == "us"]
     sitemap_df = sitemap_df.merge(jsonld_df, on="loc", how="left")
     urls = (
         sitemap_df[sitemap_df["jsonld_success"].isna()]
