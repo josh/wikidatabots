@@ -163,7 +163,7 @@ jobs:
 
           sitemap_df = pd.read_feather("sitemap.arrow")
           jsonld_df = pd.read_feather("jsonld.arrow")
-          jsonld_df = append_jsonld_changes(sitemap_df, jsonld_df)
+          jsonld_df = append_jsonld_changes(sitemap_df, jsonld_df, limit=5000)
           jsonld_df.to_feather("jsonld.arrow")
 
       - name: Print stats
