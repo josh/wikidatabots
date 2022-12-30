@@ -44,6 +44,14 @@ jobs:
         run: |
           echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
+      - name: Load cache
+        uses: actions/cache@v3
+        with:
+          path: .cache/
+          key: cache-${{ github.job }}-${{ matrix.type }}-${{ github.run_id }}
+          restore-keys: |
+            cache-${{ github.job }}-${{ matrix.type }}-
+
       - name: Fetch sitemaps
         shell: python
         run: |
