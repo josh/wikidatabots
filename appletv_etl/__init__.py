@@ -49,7 +49,13 @@ Type = Literal["episode", "movie", "show"]
 def siteindex(type: Type) -> pd.DataFrame:
     url = f"https://tv.apple.com/sitemaps_tv_index_{type}_1.xml"
     with fs.open(url) as f:
-        return pd.read_xml(f, dtype=SITEINDEX_DTYPE)
+        df = pd.read_xml(f, dtype=SITEINDEX_DTYPE)
+
+    assert df.columns.tolist() == ["loc", "lastmod"]
+    assert df["loc"].dtype == "string"
+    assert df["lastmod"].dtype == "datetime64[ns]"
+
+    return df
 
 
 SITEMAP_DTYPE: dict[str, Dtype] = {
@@ -63,12 +69,24 @@ SITEMAP_DTYPE: dict[str, Dtype] = {
 
 def sitemap(type: Type) -> pd.DataFrame:
     index_df = siteindex(type)
+
     tqdm.pandas(desc=f"Fetching {type} sitemaps")
     ofs = index_df["loc"].progress_apply(fs.open)
+
     tqdm.pandas(desc=f"Parsing {type} sitemaps")
     dfs = ofs.progress_apply(lambda f: pd.read_xml(f, dtype=SITEMAP_DTYPE))
     ofs.apply(lambda f: f.close())
-    return pd.concat(dfs.to_list(), ignore_index=True)
+
+    df = pd.concat(dfs.to_list(), ignore_index=True)
+
+    assert df.columns.tolist() == ["loc", "lastmod", "changefreq", "priority", "link"]
+    assert df["loc"].dtype == "string"
+    assert df["lastmod"].dtype == "datetime64[ns]"
+    assert df["changefreq"].dtype == "category"
+    assert df["priority"].dtype == "float16"
+    assert df["link"].dtype == "string"
+
+    return df
 
 
 def clean_sitemap(df: pd.DataFrame) -> pd.DataFrame:
@@ -86,8 +104,31 @@ def clean_sitemap(df: pd.DataFrame) -> pd.DataFrame:
     )
     loc_df["slug"] = loc_df["slug"].apply(urllib.parse.unquote).astype("string")
     df = pd.concat([df, loc_df], axis=1)
-    df["in_latest_sitemap"] = True
+
+    assert df.columns.tolist() == [
+        "loc",
+        "lastmod",
+        "changefreq",
+        "priority",
+        "country",
+        "type",
+        "slug",
+        "id",
+    ]
+    assert df["loc"].dtype == "string"
+    assert df["lastmod"].dtype == "datetime64[ns]"
+    assert df["changefreq"].dtype == "category"
+    assert df["priority"].dtype == "float16"
+    assert df["country"].dtype == "category"
+    assert df["type"].dtype == "category"
+    assert df["slug"].dtype == "string"
+    assert df["id"].dtype == "string"
+
     return df
+
+
+def cleaned_sitemap(type: Type) -> pd.DataFrame:
+    return clean_sitemap(sitemap(type))
 
 
 def append_sitemap_changes(df: pd.DataFrame, latest_df: pd.DataFrame) -> pd.DataFrame:

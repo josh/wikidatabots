@@ -1,6 +1,6 @@
 # pyright: basic
 
-from . import siteindex, sitemap
+from . import cleaned_sitemap, siteindex, sitemap
 
 
 def test_siteindex():
@@ -13,3 +13,9 @@ def test_sitemap():
     # sitemap(type="episode")
     # sitemap(type="movie")
     sitemap(type="show")
+
+
+def test_cleaned_sitemap():
+    # cleaned_sitemap(type="episode")
+    # cleaned_sitemap(type="movie")
+    cleaned_sitemap(type="show")

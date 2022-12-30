@@ -49,15 +49,11 @@ jobs:
         run: |
           import os
 
-          from appletv_etl import clean_sitemap, sitemap
+          from appletv_etl import cleaned_sitemap
 
-          (
-              sitemap(type=os.environ["SITEMAP_TYPE"])
-              .pipe(clean_sitemap)
-              .to_feather("sitemap_changes.arrow")
-          )
+          cleaned_sitemap(type=os.environ["TYPE"]).to_feather("sitemap_changes.arrow")
         env:
-          SITEMAP_TYPE: ${{ matrix.type }}
+          TYPE: ${{ matrix.type }}
 
       - name: Print stats
         run: |
@@ -79,6 +75,7 @@ jobs:
           df = pd.read_feather("sitemap.arrow")
           df["in_latest_sitemap"] = False
           df2 = pd.read_feather("sitemap_changes.arrow")
+          df2["in_latest_sitemap"] = True
           existing_changes = df["loc"].isin(df2["loc"])
           df = pd.concat([df[~existing_changes], df2], ignore_index=True)
           df.to_feather("sitemap.arrow")
