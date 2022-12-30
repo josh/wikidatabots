@@ -69,7 +69,7 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://$BUCKET_NAME/appletv/$TYPE/sitemap.arrow" "sitemap.arrow"
+          aws s3 cp "s3://$BUCKET_NAME/appletv/${TYPE}/sitemap.arrow" "sitemap.arrow"
           cp sitemap.arrow sitemap.arrow~
         env:
           BUCKET_NAME: wikidatabots
@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "sitemap.arrow" "s3://$BUCKET_NAME/appletv/$TYPE/sitemap.arrow"
+          aws s3 cp "sitemap.arrow" "s3://$BUCKET_NAME/appletv/${TYPE}/sitemap.arrow"
         env:
           BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
@@ -148,7 +148,44 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://$BUCKET_NAME/appletv/$TYPE/sitemap.arrow" "sitemap.arrow"
+          aws s3 cp "s3://$BUCKET_NAME/appletv/${TYPE}/sitemap.arrow" "sitemap.arrow"
+          aws s3 cp "s3://$BUCKET_NAME/appletv/${TYPE}/jsonld.arrow" "jsonld.arrow"
+          cp jsonld.arrow jsonld.arrow~
+        env:
+          BUCKET_NAME: wikidatabots
+          TYPE: ${{ matrix.type }}
+
+      - name: Run script
+        shell: python
+        run: |
+          import pandas as pd
+
+          from appletv_etl import append_jsonld_changes
+
+          sitemap_df = pd.read_feather("sitemap.arrow")
+          jsonld_df = pd.read_feather("jsonld.arrow")
+          jsonld_df = append_jsonld_changes(sitemap_df, jsonld_df)
+          jsonld_df.to_feather("jsonld.arrow")
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py jsonld.arrow
+
+      - name: Print diff
+        run: |
+          python print_table_diff.py jsonld.arrow~ jsonld.arrow loc
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.type }}-jsonld
+          path: |
+            *.arrow
+          retention-days: 30
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "jsonld.arrow" "s3://$BUCKET_NAME/appletv/${TYPE}/jsonld.arrow"
         env:
           BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
