@@ -1,29 +1,35 @@
 # pyright: strict
 
-import inspect
-import logging
 import os
+import sys
 import uuid
-from typing import Callable, Iterable
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="::%(levelname)s file=%(pathname)s,line=%(lineno)s::%(message)s",
-    datefmt="%Y-%m-%d %H:%M",
-)
-
-logging.addLevelName(logging.ERROR, "error")
-logging.addLevelName(logging.DEBUG, "debug")
-logging.addLevelName(logging.WARNING, "warning")
-logging.addLevelName(logging.INFO, "notice")
+from typing import Any, Iterable
 
 DEBUG = os.environ.get("RUNNER_DEBUG", "") != ""
 OUTPUT_FILENAME = os.environ.get("GITHUB_OUTPUT", "/dev/stdout")
 OUTPUT_DELIMITER = f"ghadelimiter-{uuid.uuid4()}"
 
 
-def get_input(name: str) -> str:
-    return os.environ[f"INPUT_{name}"]
+class LogGroup:
+    def __init__(self, title: str):
+        self.title = title
+
+    def __enter__(self):
+        print(f"::group::{self.title}", file=sys.stderr)
+
+    def __exit__(self, type, value, traceback):  # type: ignore
+        print("::endgroup::", file=sys.stderr)
+
+    def __call__(self, func):  # type: ignore
+        def wrapper(*args, **kwargs) -> Any:  # type: ignore
+            with self:
+                return func(*args, **kwargs)  # type: ignore
+
+        return wrapper  # type: ignore
+
+
+def log_group(title: str) -> LogGroup:
+    return LogGroup(title)
 
 
 def set_output(key: str, value: str) -> None:
@@ -41,13 +47,3 @@ def set_outputs(outputs: Iterable[tuple[str, str]]) -> None:
             f.write("\n")
             f.write(OUTPUT_DELIMITER)
             f.write("\n")
-
-
-def run_step(func: Callable[..., dict[str, str] | None]) -> None:
-    kwargs: dict[str, str] = {}
-    sig = inspect.signature(func)
-    for parameter in sig.parameters:
-        kwargs[parameter] = get_input(parameter)
-    result = func(**kwargs)
-    if result:
-        set_outputs(result.items())
