@@ -19,7 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - type: "episode"
           - type: "movie"
           - type: "show"
 
@@ -120,7 +119,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - type: "episode"
           - type: "movie"
           - type: "show"
 

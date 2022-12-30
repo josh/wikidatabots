@@ -6,13 +6,11 @@ from . import cleaned_sitemap, fetch_jsonld_df, siteindex
 
 
 def test_siteindex():
-    # siteindex(type="episode")
     siteindex(type="movie")
     # siteindex(type="show")
 
 
 def test_sitemap():
-    # cleaned_sitemap(type="episode")
     # cleaned_sitemap(type="movie")
     cleaned_sitemap(type="show")
 
