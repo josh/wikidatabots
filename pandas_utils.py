@@ -6,11 +6,6 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.feather as feather
 
-try:
-    import fsspec
-except ImportError:
-    pass
-
 
 def df_diff(
     df1: pd.DataFrame,
@@ -42,21 +37,18 @@ def df_upsert(
 
 
 def update_feather(
-    urlpath: str,
+    path: str,
     handle: Callable[[pd.DataFrame], pd.DataFrame],
 ) -> None:
-    with fsspec.open(urlpath, mode="rb") as f:
-        df = pd.read_feather(f)  # type: ignore
+    df = pd.read_feather(path)
     df = handle(df)
-    with fsspec.open(urlpath, mode="wb") as f:
-        df.to_feather(f)  # type: ignore
+    df.to_feather(path)
 
 
-def write_feather_with_index(df: pd.DataFrame, urlpath: str) -> None:
+def write_feather_with_index(df: pd.DataFrame, path: str) -> None:
     table = pa.Table.from_pandas(df, preserve_index=None)
 
     for field in table.schema:
         assert not field.name.startswith("__index_level_"), field.name
 
-    with fsspec.open(urlpath, mode="wb") as f:
-        feather.write_feather(table, f)
+    feather.write_feather(table, path)
