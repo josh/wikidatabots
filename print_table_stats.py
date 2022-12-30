@@ -44,14 +44,14 @@ if mb > 2:
 else:
     print(f"  rss: {kb:,}KB")
 
-if table.schema.metadata:
-    print("-- schema metadata --")
-    sys.stdout.flush()
-    for key, value in table.schema.metadata.items():
-        sys.stdout.buffer.write(key)
-        sys.stdout.write(": ")
-        try:
-            json.dump(json.loads(value), sys.stdout, indent=2)
-            sys.stdout.write("\n")
-        except json.JSONDecodeError:
-            sys.stdout.buffer.write(value)
+# if table.schema.metadata:
+#     print("-- schema metadata --")
+#     sys.stdout.flush()
+#     for key, value in table.schema.metadata.items():
+#         sys.stdout.buffer.write(key)
+#         sys.stdout.write(": ")
+#         try:
+#             json.dump(json.loads(value), sys.stdout, indent=2)
+#             sys.stdout.write("\n")
+#         except json.JSONDecodeError:
+#             sys.stdout.buffer.write(value)
