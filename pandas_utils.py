@@ -34,9 +34,9 @@ def df_diff(
 def df_upsert(
     df: pd.DataFrame,
     df2: pd.DataFrame,
-    key: str,
+    on: str,
 ) -> pd.DataFrame:
-    indices = df[key].isin(df2[key])
+    indices = df[on].isin(df2[on])
     df3 = df[~indices]
     return pd.concat([df3, df2], ignore_index=True)
 

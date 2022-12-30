@@ -11,6 +11,8 @@ from dateutil import tz
 from pandas._typing import Dtype
 from tqdm import tqdm
 
+from pandas_utils import df_upsert
+
 PACIFIC_TZ = tz.gettz("America/Los_Angeles")
 
 
@@ -134,5 +136,4 @@ def cleaned_sitemap(type: Type) -> pd.DataFrame:
 def append_sitemap_changes(df: pd.DataFrame, latest_df: pd.DataFrame) -> pd.DataFrame:
     df["in_latest_sitemap"] = False
     latest_df["in_latest_sitemap"] = True
-    existing_changes = df["loc"].isin(latest_df["loc"])
-    return pd.concat([df[~existing_changes], latest_df], ignore_index=True)
+    return df_upsert(df, latest_df, on="loc")

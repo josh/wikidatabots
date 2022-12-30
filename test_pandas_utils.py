@@ -45,7 +45,7 @@ def test_df_diff():
 def test_df_upsert():
     df1 = pd.DataFrame({"a": [1, 2, 3]})
     df2 = pd.DataFrame({"a": [2, 3, 4]})
-    df3 = df_upsert(df1, df2, key="a")
+    df3 = df_upsert(df1, df2, on="a")
     assert df3["a"].tolist() == [1, 2, 3, 4]
 
 
