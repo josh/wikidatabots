@@ -26,9 +26,3 @@ def test_appletv_to_itunes():
         appletv.id("umc.cmc.459n4f98t82t8ommdoa7ebnny")
     )
     assert itunes_id == 282875479
-
-
-def test_fetch_new_sitemap_urls():
-    urls = list(appletv.fetch_new_sitemap_urls())
-    for url in urls:
-        assert url.startswith("https://tv.apple.com")
