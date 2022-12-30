@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from datetime import date
 from typing import Any, Literal, NewType, TypedDict
 
+import backoff
 import requests
 from bs4 import BeautifulSoup
 
@@ -72,6 +73,7 @@ request_headers = {
 }
 
 
+@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
 def fetch(url: str) -> BeautifulSoup | None:
     r = session.get(url, headers=request_headers)
     r.raise_for_status()
