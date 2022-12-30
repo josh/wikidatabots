@@ -44,6 +44,10 @@ jobs:
         run: |
           pip install -r <(grep -E 'pandas|pyarrow' requirements.txt)
 
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
+
       - name: Generate export filename
         id: export_filename
         run: |
@@ -142,6 +146,10 @@ jobs:
         run: |
           pip install -r <(grep -E 'fsspec|pandas|pyarrow' requirements.txt)
 
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
+
       - name: Download from S3
         run: |
           aws s3 cp "s3://$BUCKET_NAME/tmdb/$TYPE/changes.arrow" "changes.arrow"
@@ -227,6 +235,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
       - name: Download from S3
         run: |
