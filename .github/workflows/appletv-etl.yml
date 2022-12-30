@@ -49,23 +49,15 @@ jobs:
         run: |
           import os
 
-          import appletv_etl
+          from appletv_etl import clean_sitemap, sitemap
 
-          df = appletv_etl.sitemap(type=os.environ["SITEMAP_TYPE"])
-          df.to_feather("sitemap_changes.arrow")
+          (
+              sitemap(type=os.environ["SITEMAP_TYPE"])
+              .pipe(clean_sitemap)
+              .to_feather("sitemap_changes.arrow")
+          )
         env:
           SITEMAP_TYPE: ${{ matrix.type }}
-
-      - name: Clean up sitemap
-        shell: python
-        run: |
-          import pandas as pd
-
-          import appletv_etl
-
-          df = pd.read_feather("sitemap_changes.arrow")
-          df = appletv_etl.clean_sitemap(df)
-          df.to_feather("sitemap_changes.arrow")
 
       - name: Print stats
         run: |
