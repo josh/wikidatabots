@@ -61,6 +61,7 @@ def siteindex(type: Type) -> pd.DataFrame:
     assert df.columns.tolist() == ["loc", "lastmod"]
     assert df["loc"].dtype == "string"
     assert df["lastmod"].dtype == "datetime64[ns]"
+    assert df["loc"].is_unique
 
     return df
 
@@ -94,6 +95,7 @@ def sitemap(type: Type) -> pd.DataFrame:
     assert df["changefreq"].dtype == "category"
     assert df["priority"].dtype == "float16"
     assert df["link"].dtype == "string"
+    assert df["loc"].is_unique
 
     return df
 
