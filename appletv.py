@@ -136,6 +136,7 @@ def extract_jsonld(soup: BeautifulSoup) -> dict[str, Any] | None:
 
 
 class LinkedData(TypedDict):
+    url: str
     success: bool
     title: str | None
     published_at: date | None
@@ -144,6 +145,7 @@ class LinkedData(TypedDict):
 
 def fetch_jsonld(url: str) -> LinkedData:
     data: LinkedData = {
+        "url": url,
         "success": False,
         "title": None,
         "published_at": None,
