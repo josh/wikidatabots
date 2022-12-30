@@ -57,6 +57,7 @@ for column_name in table.column_names:
 print(f"total: {count:,}", file=txt_out)
 print(f" load: {elapsed:0.2}s", file=txt_out)
 
+print("", file=md_out)
 print(f"total: {count:,} rows", file=md_out)
 print(f"load: {elapsed:0.2}s", file=md_out)
 
