@@ -215,18 +215,6 @@ def extract_itunes_id(soup: BeautifulSoup) -> itunes.ID | None:
     return None
 
 
-def fetch_sitemap_index_urls() -> Iterator[str]:
-    # yield from fetch_sitemap_index_url(
-    #     "http://tv.apple.com/sitemaps_tv_index_episode_1.xml"
-    # )
-    yield from fetch_sitemap_index_url(
-        "http://tv.apple.com/sitemaps_tv_index_movie_1.xml"
-    )
-    yield from fetch_sitemap_index_url(
-        "http://tv.apple.com/sitemaps_tv_index_show_1.xml"
-    )
-
-
 def fetch_sitemap_index_url(url: str) -> set[str]:
     r = session.get(url)
     r.raise_for_status()

@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from typing import Any, TypedDict
 
 import backoff
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
@@ -142,6 +143,12 @@ def main():
     limit = 500
     skip_ids = matched_appletv_ids()
 
+    sitemap_df = pd.read_feather(
+        "s3://wikidatabots/appletv/movie/sitemap.arrow",
+        columns=["loc", "country", "id"],
+    )
+    sitemap_df = sitemap_df[sitemap_df["country"] == "us"]
+
     def candiate_urls():
         for url in shuffled(appletv.fetch_new_sitemap_urls())[0:250]:
             id = appletv.parse_movie_url(url)
@@ -149,12 +156,13 @@ def main():
                 continue
             yield (url, id)
 
-        for index_url in shuffled(appletv.fetch_sitemap_index_urls())[0:250]:
-            for url in shuffled(appletv.fetch_sitemap_index(index_url)):
-                id = appletv.parse_movie_url(url)
-                if not id or id in skip_ids:
-                    continue
-                yield (url, id)
+        for row in sitemap_df.sample(250).itertuples():  # type: ignore
+            url, id = row.loc, row.id  # type: ignore
+            assert isinstance(url, str)
+            assert isinstance(id, str)
+            if id in skip_ids:
+                continue
+            yield (url, id)
 
     print("qid,P9586")
     for (url, id) in iter_until_deadline(itertools.islice(candiate_urls(), limit)):
