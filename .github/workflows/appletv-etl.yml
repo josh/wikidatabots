@@ -3,6 +3,7 @@ name: Apple TV ETL
 on:
   schedule:
     - cron: "0 16 * * 1"
+    - cron: "0 0,8,16 * * *"
   workflow_dispatch:
 
 permissions:
@@ -12,6 +13,7 @@ permissions:
 jobs:
   sitemap:
     runs-on: ubuntu-latest
+    if: github.event.schedule == "0 16 * * 1"
 
     strategy:
       fail-fast: false
@@ -112,7 +114,7 @@ jobs:
 
   jsonld:
     runs-on: ubuntu-latest
-    needs: sitemap
+    if: github.event.schedule == "0 0,8,16 * * *"
 
     strategy:
       fail-fast: false
