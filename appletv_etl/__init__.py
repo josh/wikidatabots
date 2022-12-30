@@ -173,8 +173,12 @@ def append_jsonld_changes(
     sitemap_df: pd.DataFrame,
     jsonld_df: pd.DataFrame,
 ) -> pd.DataFrame:
-    # TODO: Get urls without any jsonld
-    urls = sitemap_df.sample(n=10)["loc"]
+    sitemap_df = sitemap_df.merge(jsonld_df, on="loc", how="left")
+    urls = (
+        sitemap_df[sitemap_df["jsonld_success"].isna()]
+        .sort_values("priority", ascending=False)
+        .head(100)["loc"]
+    )
 
     jsonld_new_df = fetch_jsonld_df(urls)
     jsonld_df = df_upsert(jsonld_df, jsonld_new_df, on="loc")
