@@ -1,4 +1,4 @@
-# pyright: strict
+# pyright: basic
 
 import html
 import itertools
