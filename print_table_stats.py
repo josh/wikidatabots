@@ -37,7 +37,7 @@ for column_name in table.column_names:
         pd_dtype = df[column_name].dtype
 
     print(f"{column_name}: {col.type}[pyarrow] / {pd_dtype}[pandas]", file=txt_out)
-    print(f"|{column_name}|{col.type}|{pd_dtype}|", file=md_out)
+    print(f"|{column_name}|`{col.type}`|`{pd_dtype}`|", file=md_out)
     if col.type == pa.bool_():
         print(
             f"|   true: {ary.true_count:,} ({ary.true_count/count:.2%})",
