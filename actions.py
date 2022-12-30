@@ -5,6 +5,7 @@ import sys
 import uuid
 from typing import Any, Iterable
 
+GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS", "") == "true"
 DEBUG = os.environ.get("RUNNER_DEBUG", "") != ""
 OUTPUT_FILENAME = os.environ.get("GITHUB_OUTPUT", "/dev/stdout")
 OUTPUT_DELIMITER = f"ghadelimiter-{uuid.uuid4()}"
@@ -15,10 +16,12 @@ class LogGroup:
         self.title = title
 
     def __enter__(self):
-        print(f"::group::{self.title}", file=sys.stderr)
+        if GITHUB_ACTIONS:
+            print(f"::group::{self.title}", file=sys.stderr)
 
     def __exit__(self, type, value, traceback):  # type: ignore
-        print("::endgroup::", file=sys.stderr)
+        if GITHUB_ACTIONS:
+            print("::endgroup::", file=sys.stderr)
 
     def __call__(self, func):  # type: ignore
         def wrapper(*args, **kwargs) -> Any:  # type: ignore
