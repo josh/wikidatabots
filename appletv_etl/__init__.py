@@ -50,8 +50,8 @@ Type = Literal["episode", "movie", "show"]
 
 def siteindex(type: Type) -> pd.DataFrame:
     url = f"https://tv.apple.com/sitemaps_tv_index_{type}_1.xml"
-    with fs.open(url) as f:
-        df = pd.read_xml(f, dtype=SITEINDEX_DTYPE)
+    with fsspec.open(url) as f:
+        df = pd.read_xml(f, dtype=SITEINDEX_DTYPE)  # type: ignore
 
     assert df.columns.tolist() == ["loc", "lastmod"]
     assert df["loc"].dtype == "string"
