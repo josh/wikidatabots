@@ -13,7 +13,7 @@ permissions:
 jobs:
   sitemap:
     runs-on: ubuntu-latest
-    if: ${{ github.event.schedule == '0 16 * * 1' || github.event_name == 'workflow_dispatch' }}
+    if: github.event.schedule == '0 16 * * 1' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -113,7 +113,7 @@ jobs:
 
   jsonld:
     runs-on: ubuntu-latest
-    if: ${{ github.event.schedule == '0 0,8,16 * * *' || github.event_name == 'workflow_dispatch' }}
+    if: github.event.schedule == '0 0,8,16 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
