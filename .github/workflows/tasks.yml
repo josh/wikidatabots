@@ -2,8 +2,14 @@ name: Tasks
 
 on:
   schedule:
-    - cron: "15 7,14,21 * * *"
+    - cron: "15 7 * * *"
+    - cron: "15 14,21 * * *"
+    - cron: "0 16 * * 1"
   workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
@@ -12,6 +18,7 @@ env:
 jobs:
   tmdb:
     runs-on: ubuntu-latest
+    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -57,6 +64,7 @@ jobs:
 
   itunes:
     runs-on: ubuntu-latest
+    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -101,6 +109,7 @@ jobs:
 
   appletv:
     runs-on: ubuntu-latest
+    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -145,6 +154,7 @@ jobs:
 
   pywikibot:
     runs-on: ubuntu-latest
+    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -190,6 +200,7 @@ jobs:
   rdf_patch:
     runs-on: ubuntu-latest
     concurrency: rdf_patch_${{ matrix.property }}
+    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -228,6 +239,87 @@ jobs:
         env:
           PROPERTY_ID: ${{ matrix.property }}
 
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: rdf_patch_${{ matrix.property }}_ttl
+          path: |
+            *.ttl
+          retention-days: 7
+
+  not_found_tmdb:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 16 * * 1' || github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tmdb_type: "movie"
+          - tmdb_type: "tv"
+          - tmdb_type: "person"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run script
+        shell: bash
+        run: |
+          python not_found_tmdb.py "$TMDB_TYPE" | tee not_found_tmdb.ttl
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TMDB_TYPE: ${{ matrix.tmdb_type }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: not_found_tmdb_${{ matrix.tmdb_type }}_ttl
+          path: |
+            *.ttl
+          retention-days: 7
+
+  upload_rdf_patch:
+    needs: [rdf_patch, not_found_tmdb]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Combine artifacts
+        run: find artifacts/ -name '*.ttl' -exec cat {} \; | tee patch.ttl
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Login
         env:
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
@@ -236,4 +328,4 @@ jobs:
 
       - name: Process RDF statements
         run: |
-          python rdf_patch.py <output.ttl
+          python rdf_patch.py <patch.ttl
