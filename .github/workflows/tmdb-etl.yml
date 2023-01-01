@@ -253,10 +253,6 @@ jobs:
           BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
 
-      - name: Print stats
-        run: |
-          python print_table_stats.py external_ids.arrow
-
       - name: Get changed IDs
         id: tmdb_external_ids_outdated
         run: |
