@@ -298,6 +298,7 @@ jobs:
   upload_rdf_patch:
     needs: [rdf_patch, not_found_tmdb]
     runs-on: ubuntu-latest
+    if: ${{ always() }}
 
     steps:
       - uses: actions/checkout@v3
