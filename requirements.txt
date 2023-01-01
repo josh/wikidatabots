@@ -1,7 +1,7 @@
 backoff==2.2.1
 beautifulsoup4==4.11.1
 fsspec==2022.11.0
-lxml==4.9.1
+lxml==4.9.2
 numpy==1.23.5
 pandas-stubs==1.5.2.221213
 pandas==1.5.2
