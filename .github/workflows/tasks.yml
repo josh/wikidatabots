@@ -154,7 +154,7 @@ jobs:
 
   pywikibot:
     runs-on: ubuntu-latest
-    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
+    if: github.event.schedule == '15 7 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
