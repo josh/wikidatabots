@@ -3,12 +3,12 @@
 import atexit
 import logging
 import os
-from collections.abc import Iterable
-from typing import Any, Literal, TypedDict
+from typing import Any, Iterable, Iterator, Literal, TypedDict
 
 import backoff
 import requests
 import requests_cache
+from tqdm import tqdm
 
 import imdb
 
@@ -144,6 +144,27 @@ def find(
         return results[0]
     else:
         return None
+
+
+def find_ids(
+    ids: Iterable[str | int],
+    source: FindSource,
+    type: FindType,
+    api_key: str | None = TMDB_API_KEY,
+    progress: bool = False,
+) -> Iterator[int | None]:
+    assert source in find_sources
+    assert type in find_types
+
+    desc = f"Find TMDB {type} ids by {source}"
+    for source_id in tqdm(ids, desc=desc, disable=not progress, unit="id"):
+        result = find(id=f"{source_id}", source=source, type=type, api_key=api_key)
+        if result:
+            tmdb_id = result["id"]
+            assert isinstance(tmdb_id, int)
+            yield tmdb_id
+        else:
+            yield None
 
 
 class ExternalIDs(TypedDict):
