@@ -45,6 +45,7 @@ print(changed_df, file=sys.stderr)
 df = pd.concat([df[~df.index.isin(changed_df.index)], changed_df])
 df = df.sort_index().reset_index(names=["id"])
 df["id"] = df["id"].astype("UInt32")
+df = df.replace(to_replace="", value=pd.NA)
 
 assert (
     df.columns.tolist() == input_df.columns.tolist()
