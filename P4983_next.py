@@ -1,5 +1,6 @@
 # pyright: basic
 
+import logging
 from typing import Any, Literal
 
 import pandas as pd
@@ -7,8 +8,6 @@ import pandas as pd
 import tmdb
 from constants import TMDB_TV_SERIES_ID_PID
 from sparql import sparql_csv
-
-import logging
 
 
 def load_tmdb_external_ids_df(
