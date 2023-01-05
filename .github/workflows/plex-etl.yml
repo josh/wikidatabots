@@ -56,7 +56,7 @@ jobs:
 
           df = pd.read_feather("plex.arrow")
           df_wd = wd_plex_guids()
-          df = df_append_new(df, df_wd, on="guid").sort_values("guid")
+          df = df_append_new(df, df_wd, on="guid").sort_values("guid").reset_index(drop=True)
           df.to_feather("plex.arrow")
 
       - name: Print stats
