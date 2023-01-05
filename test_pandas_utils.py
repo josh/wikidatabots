@@ -2,7 +2,13 @@
 
 import pandas as pd
 
-from pandas_utils import df_diff, df_upsert, update_feather, write_feather_with_index
+from pandas_utils import (
+    df_append_new,
+    df_diff,
+    df_upsert,
+    update_feather,
+    write_feather_with_index,
+)
 
 
 def test_df_diff():
@@ -47,6 +53,14 @@ def test_df_upsert():
     df2 = pd.DataFrame({"a": [2, 3, 4]})
     df3 = df_upsert(df1, df2, on="a")
     assert df3["a"].tolist() == [1, 2, 3, 4]
+
+
+def test_df_append_new():
+    df1 = pd.DataFrame({"a": [1, 2, 3], "b": [1, 1, 1]})
+    df2 = pd.DataFrame({"a": [2, 3, 4], "b": [2, 2, 2]})
+    df3 = df_append_new(df1, df2, on="a")
+    assert df3["a"].tolist() == [1, 2, 3, 4]
+    assert df3["b"].tolist() == [1, 1, 1, 2]
 
 
 def test_update_feather():

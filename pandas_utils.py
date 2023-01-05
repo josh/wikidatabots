@@ -36,6 +36,16 @@ def df_upsert(
     return pd.concat([df3, df2], ignore_index=True)
 
 
+def df_append_new(
+    df: pd.DataFrame,
+    df_new: pd.DataFrame,
+    on: str,
+) -> pd.DataFrame:
+    existing_indices = df_new[on].isin(df[on])
+    new_df = df_new[~existing_indices]
+    return pd.concat([df, new_df], ignore_index=True)
+
+
 def update_feather(
     path: str,
     handle: Callable[[pd.DataFrame], pd.DataFrame],
