@@ -12,5 +12,6 @@ def wd_plex_guids() -> pd.DataFrame:
     data = sparql_csv(query)
     df = pd.read_csv(data, dtype={"guid": "string"})
     df2 = decode_plex_guids(df["guid"])
-    df = pd.concat([df, df2], axis=1).dropna().sort_values("key").reset_index(drop=True)
+    df = pd.concat([df, df2], axis=1)
+    df = df.dropna().sort_values("key").reset_index(drop=True)
     return df

@@ -23,5 +23,5 @@ def plex_library_guids():
     guids = pd.Series([item.guid for item in plex.library.all()])
     df = decode_plex_guids(guids)
     df["guid"] = pd.Series(guids, dtype="string")
-    df = df.dropna()
+    df = df.dropna().sort_values("key").reset_index(drop=True)
     return df[["guid", "type", "key"]]
