@@ -1,6 +1,6 @@
 # pyright: basic
 
-from .plex_etl import wd_plex_guids
+from .wikidata import wd_plex_guids
 
 
 def test_wd_plex_guids():
