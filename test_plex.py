@@ -2,12 +2,23 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 
-from .utils import (
+from plex import (
     decode_plex_guids,
     encode_plex_guids,
     pack_plex_keys,
     unpack_plex_keys,
+    wikidata_plex_guids,
 )
+
+
+def test_wikidata_plex_guids():
+    df = wikidata_plex_guids()
+    assert len(df) > 0
+    assert df.dtypes["guid"] == "string"
+    assert df.dtypes["type"] == "category"
+    assert df.dtypes["key"] == "binary[pyarrow]"
+    assert df["guid"].is_unique
+    assert df["key"].is_unique
 
 
 def test_decode_plex_guids():

@@ -36,9 +36,9 @@ jobs:
       - name: Fetch Wikidata Plex GUIDs
         shell: python
         run: |
-          from plex_etl import wd_plex_guids
+          from plex import wikidata_plex_guids
 
-          wd_plex_guids().to_feather("plex_wikidata.arrow")
+          wikidata_plex_guids().to_feather("plex_wikidata.arrow")
 
       - name: Print stats
         run: |
@@ -75,7 +75,7 @@ jobs:
       - name: Fetch Plex library GUIDs
         shell: python
         run: |
-          from plex_etl import plex_library_guids
+          from plex import plex_library_guids
 
           plex_library_guids().to_feather("plex_library.arrow")
         env:
