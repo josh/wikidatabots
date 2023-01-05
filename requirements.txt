@@ -5,6 +5,7 @@ lxml==4.9.2
 numpy==1.24.1
 pandas-stubs==1.5.2.221213
 pandas==1.5.2
+PlexAPI==4.13.2
 pyarrow===10.0.1
 pytest==7.2.0
 pywikibot==7.7.2
