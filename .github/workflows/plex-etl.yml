@@ -38,11 +38,11 @@ jobs:
         run: |
           from plex_etl import wd_plex_guids
 
-          wd_plex_guids().to_feather("wikidata_plex.arrow")
+          wd_plex_guids().to_feather("plex_wikidata.arrow")
 
       - name: Print stats
         run: |
-          python print_table_stats.py wikidata_plex.arrow
+          python print_table_stats.py plex_wikidata.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -52,8 +52,52 @@ jobs:
             *.arrow
           retention-days: 7
 
-  append_changes:
-    needs: [wikidata]
+  library:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
+
+      - name: Fetch Plex library GUIDs
+        shell: python
+        run: |
+          from plex_etl import plex_library_guids
+
+          plex_library_guids().to_feather("plex_library.arrow")
+        env:
+          PLEX_USERNAME: ${{ secrets.PLEX_USERNAME }}
+          PLEX_PASSWORD: ${{ secrets.PLEX_PASSWORD }}
+          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
+          PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py plex_library.arrow
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: library
+          path: |
+            *.arrow
+          retention-days: 7
+
+  append_guids:
+    needs: [library, wikidata]
     runs-on: ubuntu-latest
     concurrency: plex
 
