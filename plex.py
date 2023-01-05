@@ -1,7 +1,21 @@
+from typing import Iterable
+
 import pandas as pd
 import requests
 
 from sparql import sparql_csv
+
+GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
+EXTERNAL_GUID_RE = (
+    r"imdb://tt(?P<imdb_numeric_id>[0-9]+)|"
+    r"tmdb://(?P<tmdb_id>[0-9]+)|"
+    r"tvdb://(?P<tvdb_id>[0-9]+)"
+)
+EXTERNAL_GUID_RE_DTYPES = {
+    "imdb_numeric_id": "UInt32",
+    "tmdb_id": "UInt32",
+    "tvdb_id": "UInt32",
+}
 
 
 def plex_server(name: str, token: str) -> pd.Series:
@@ -45,7 +59,22 @@ def wikidata_plex_guids() -> pd.DataFrame:
     return df
 
 
-GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
+def _plex_metadata(key: bytes, token: str) -> pd.DataFrame:
+    url = f"https://metadata.provider.plex.tv/library/metadata/{key.hex()}"
+    headers = {"X-Plex-Token": token}
+    df = pd.read_xml(
+        url,
+        xpath="/MediaContainer/Video/Guid",
+        storage_options=headers,
+    )
+    df = df["id"].str.extract(EXTERNAL_GUID_RE).astype(EXTERNAL_GUID_RE_DTYPES)
+    df = df.backfill()[0:1]
+    df["key"] = key
+    return df.set_index("key")
+
+
+def plex_metadata(keys: Iterable[bytes], token: str) -> pd.DataFrame:
+    return pd.concat([_plex_metadata(key, token) for key in keys])
 
 
 def decode_plex_guids(guids: pd.Series) -> pd.DataFrame:
