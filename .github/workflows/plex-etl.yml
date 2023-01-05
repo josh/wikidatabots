@@ -15,8 +15,47 @@ env:
 jobs:
   wikidata:
     runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
+
+      - name: Fetch Wikidata Plex GUIDs
+        shell: python
+        run: |
+          from plex_etl import wd_plex_guids
+
+          wd_plex_guids().to_feather("wikidata_plex.arrow")
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py wikidata_plex.arrow
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wikidata
+          path: |
+            *.arrow
+          retention-days: 7
+
+  append_changes:
+    needs: [wikidata]
+    runs-on: ubuntu-latest
     concurrency: plex
-    if: github.event.schedule == '0 15 * * *' || github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v3
@@ -41,22 +80,30 @@ jobs:
         run: |
           echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
+      - uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/plex.arrow" "plex.arrow"
           cp plex.arrow plex.arrow~
 
-      - name: Fetch Wikidata Plex GUIDs
+      - name: Merge artifacts
         shell: python
         run: |
+          from glob import glob
+
           import pandas as pd
 
           from pandas_utils import df_append_new
-          from plex_etl import wd_plex_guids
 
           df = pd.read_feather("plex.arrow")
-          df_wd = wd_plex_guids()
-          df = df_append_new(df, df_wd, on="guid").sort_values("guid").reset_index(drop=True)
+
+          for fn in glob("artifacts/**/*.arrow", recursive=True):
+            df = df_append_new(df, pd.read_feather(fn), on="guid")
+
+          df = df.sort_values("guid").reset_index(drop=True)
           df.to_feather("plex.arrow")
 
       - name: Print stats
@@ -66,14 +113,6 @@ jobs:
       - name: Print diff
         run: |
           python print_table_diff.py plex.arrow~ plex.arrow guid
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: plex
-          path: |
-            *.arrow
-          retention-days: 7
 
       - name: Upload to S3
         run: |
