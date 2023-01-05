@@ -101,7 +101,7 @@ jobs:
           df = pd.read_feather("plex.arrow")
 
           for fn in glob("artifacts/**/*.arrow", recursive=True):
-            df = df_append_new(df, pd.read_feather(fn), on="guid")
+              df = df_append_new(df, pd.read_feather(fn), on="guid")
 
           df = df.sort_values("guid").reset_index(drop=True)
           df.to_feather("plex.arrow")
