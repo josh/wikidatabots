@@ -1,10 +1,14 @@
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pytest
 
 from plex import (
+    PLEX_TOKEN,
     decode_plex_guids,
     encode_plex_guids,
+    fetch_metadata_guids,
+    fetch_plex_guids_df,
     pack_plex_keys,
     unpack_plex_keys,
     wikidata_plex_guids,
@@ -111,3 +115,44 @@ def test_arrow_compat():
     assert df.dtypes["key"] == df2.dtypes["key"]
     assert df["type"].tolist() == df2["type"].tolist()
     assert df["key"].tolist() == df2["key"].tolist()
+
+
+@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
+def test_fetch_metadata_guids():
+    key = bytes.fromhex("5d776be17a53e9001e732ab9")
+    guids = fetch_metadata_guids(key, token=PLEX_TOKEN)
+    assert guids["imdb_numeric_id"] == 1745960
+    assert guids["tmdb_id"] == 361743
+    assert guids["tvdb_id"] == 16721
+
+    key = bytes.fromhex("5d776824103a2d001f5639b0")
+    guids = fetch_metadata_guids(key, token=PLEX_TOKEN)
+    assert guids["imdb_numeric_id"] == 119116
+    assert guids["tmdb_id"] == 18
+    assert guids["tvdb_id"] == 305
+
+    key = bytes.fromhex("5d9c0874ffd9ef001e99607a")
+    guids = fetch_metadata_guids(key, token=PLEX_TOKEN)
+    assert guids["imdb_numeric_id"] is None
+    assert guids["tmdb_id"] is None
+    assert guids["tvdb_id"] is None
+
+
+@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
+def test_fetch_plex_guids_df():
+    keys = [
+        bytes.fromhex("5d776be17a53e9001e732ab9"),
+        bytes.fromhex("5d776824103a2d001f5639b0"),
+        bytes.fromhex("5d9c0874ffd9ef001e99607a"),
+        bytes.fromhex("5d776825961905001eb90a22"),
+    ]
+    df = fetch_plex_guids_df(keys, token=PLEX_TOKEN)
+
+    assert df.dtypes["imdb_numeric_id"] == "UInt32"
+    assert df.dtypes["tmdb_id"] == "UInt32"
+    assert df.dtypes["tvdb_id"] == "UInt32"
+
+    assert df.iloc[0]["tmdb_id"] == 361743
+    assert df.iloc[1]["tmdb_id"] == 18
+    assert df.iloc[2]["tmdb_id"] is pd.NA
+    assert df.iloc[3]["tmdb_id"] is pd.NA
