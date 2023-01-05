@@ -62,6 +62,12 @@ def test_df_append_new():
     assert df3["a"].tolist() == [1, 2, 3, 4]
     assert df3["b"].tolist() == [1, 1, 1, 2]
 
+    df1 = df1.astype({"b": "Int64"})
+    df2 = pd.DataFrame({"a": [2, 3, 4]})
+    df3 = df_append_new(df1, df2, on="a")
+    assert df3["a"].tolist() == [1, 2, 3, 4]
+    assert df3["b"].tolist() == [1, 1, 1, pd.NA]
+
 
 def test_update_feather():
     path = "/tmp/test.feather"
