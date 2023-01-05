@@ -1,5 +1,3 @@
-# pyright: basic
-
 import pandas as pd
 
 from sparql import sparql_csv

@@ -1,5 +1,3 @@
-# pyright: basic
-
 import logging
 from typing import Any, Literal
 

@@ -1,5 +1,3 @@
-# pyright: basic
-
 import pandas as pd
 
 from . import cleaned_sitemap, fetch_jsonld_df, siteindex

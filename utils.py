@@ -1,5 +1,3 @@
-# pyright: basic
-
 import logging
 import random
 from collections.abc import Iterable, Iterator, Sequence

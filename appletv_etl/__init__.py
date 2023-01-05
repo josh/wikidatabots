@@ -1,5 +1,3 @@
-# pyright: basic
-
 import atexit
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone

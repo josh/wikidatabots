@@ -1,5 +1,3 @@
-# pyright: basic
-
 import sys
 
 import pandas as pd

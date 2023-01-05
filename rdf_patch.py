@@ -1,5 +1,3 @@
-# pyright: basic
-
 import datetime
 import logging
 from collections import defaultdict

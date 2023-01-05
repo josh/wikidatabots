@@ -1,5 +1,3 @@
-# pyright: basic
-
 from .wikidata import wd_plex_guids
 
 

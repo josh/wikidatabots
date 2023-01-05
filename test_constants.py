@@ -1,5 +1,3 @@
-# pyright: basic
-
 import pywikibot
 
 import constants

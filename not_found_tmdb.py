@@ -1,5 +1,3 @@
-# pyright: basic
-
 import logging
 import sys
 
