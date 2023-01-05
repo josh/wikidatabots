@@ -75,12 +75,17 @@ jobs:
       - name: Fetch Plex library GUIDs
         shell: python
         run: |
-          from plex import plex_library_guids
+          import os
 
-          plex_library_guids().to_feather("plex_library.arrow")
+          from plex import plex_library_guids, plex_server
+
+          server = plex_server(
+              name=os.environ["PLEX_SERVER"],
+              token=os.environ["PLEX_TOKEN"],
+          )
+          df = plex_library_guids(server["uri"], server["accessToken"])
+          df.to_feather("plex_library.arrow")
         env:
-          PLEX_USERNAME: ${{ secrets.PLEX_USERNAME }}
-          PLEX_PASSWORD: ${{ secrets.PLEX_PASSWORD }}
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
           PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
 

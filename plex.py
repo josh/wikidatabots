@@ -1,28 +1,38 @@
-import os
-
 import pandas as pd
-from plexapi.myplex import MyPlexAccount
+import requests
 
 from sparql import sparql_csv
 
 
-def plex_connect():
-    account = MyPlexAccount(
-        username=os.environ["PLEX_USERNAME"],
-        password=os.environ["PLEX_PASSWORD"],
-        token=os.environ["PLEX_TOKEN"],
-    )
-    resource = account.resource(os.environ["PLEX_SERVER"])
-    return resource.connect()
+def plex_server(name: str, token: str) -> pd.Series:
+    url = "https://plex.tv/api/resources"
+    headers = {"X-Plex-Token": token}
+    r = requests.get(url, headers=headers)
+    r.raise_for_status()
+
+    device_xpath = f"/MediaContainer/Device[@name='{name}']"
+    devices_df = pd.read_xml(r.text, xpath=device_xpath, attrs_only=True)
+    conns_df = pd.read_xml(r.text, xpath=f"{device_xpath}/Connection[@local=0]")
+
+    device = devices_df.iloc[0]
+    conn = conns_df.iloc[0]
+    return pd.concat([device, conn])
 
 
-def plex_library_guids() -> pd.DataFrame:
-    plex = plex_connect()
-    guids = pd.Series([item.guid for item in plex.library.all()])
-    df = decode_plex_guids(guids)
-    df["guid"] = pd.Series(guids, dtype="string")
+def plex_library_guids(baseuri: str, token: str) -> pd.DataFrame:
+    dfs = [plex_library_section_guids(baseuri, token, s) for s in [1, 2]]
+    df = pd.concat(dfs, ignore_index=True)
+    df2 = decode_plex_guids(df["guid"])
+    df = pd.concat([df, df2], axis=1)
     df = df.dropna().sort_values("key").reset_index(drop=True)
-    return df[["guid", "type", "key"]]
+    return df
+
+
+def plex_library_section_guids(baseuri: str, token: str, section: int) -> pd.DataFrame:
+    url = f"{baseuri}/library/sections/{section}/all"
+    headers = {"X-Plex-Token": token}
+    df = pd.read_xml(url, storage_options=headers)
+    return df[["guid"]].astype("string")
 
 
 def wikidata_plex_guids() -> pd.DataFrame:
