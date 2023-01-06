@@ -1,12 +1,14 @@
 import logging
 import os
 import re
-from typing import Iterable, TypedDict
+import xml.etree.ElementTree as ET
+from typing import TypedDict
 
 import pandas as pd
 import requests
 from tqdm import tqdm
 
+from pandas_utils import df_upsert
 from sparql import sparql_csv
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
@@ -15,6 +17,7 @@ PLEX_SERVER_TOKEN = os.environ.get("PLEX_SERVER_TOKEN")
 
 
 class GUIDs(TypedDict):
+    success: bool
     imdb_numeric_id: int | None
     tmdb_id: int | None
     tvdb_id: int | None
@@ -29,6 +32,8 @@ EXTERNAL_GUID_RE = (
 )
 
 EXTERNAL_GUID_DTYPES = {
+    "success": "boolean",
+    "retrieved_at": "datetime64[ns]",
     "imdb_numeric_id": "UInt32",
     "tmdb_id": "UInt32",
     "tvdb_id": "UInt32",
@@ -60,7 +65,7 @@ def plex_library_guids(
     df = pd.concat(dfs, ignore_index=True)
     df2 = decode_plex_guids(df["guid"])
     df = pd.concat([df, df2], axis=1)
-    df = df.dropna().sort_values("key").reset_index(drop=True)
+    df = df.dropna().sort_values("key", ignore_index=True)
     return df
 
 
@@ -81,7 +86,7 @@ def wikidata_plex_guids() -> pd.DataFrame:
     df = pd.read_csv(data, dtype={"guid": "string"})
     df2 = decode_plex_guids(df["guid"])
     df = pd.concat([df, df2], axis=1)
-    df = df.dropna().sort_values("key").reset_index(drop=True)
+    df = df.sort_values("key", ignore_index=True)
     return df
 
 
@@ -90,6 +95,7 @@ def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
     assert token, "Missing Plex token"
 
     result: GUIDs = {
+        "success": False,
         "imdb_numeric_id": None,
         "tmdb_id": None,
         "tvdb_id": None,
@@ -97,9 +103,8 @@ def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
 
     url = f"https://metadata.provider.plex.tv/library/metadata/{key.hex()}"
     headers = {"X-Plex-Token": token}
-    xpath = "/MediaContainer/Video/Guid"
-
     r = requests.get(url, headers=headers)
+
     if r.status_code == 200:
         pass
     elif r.status_code == 404:
@@ -108,12 +113,11 @@ def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
         r.raise_for_status()
         return result
 
-    try:
-        df = pd.read_xml(r.text, xpath=xpath)
-    except ValueError:
-        return result
+    result["success"] = True
 
-    for guid in df["id"]:
+    root = ET.fromstring(r.content)
+    for guid in root.findall("./Video/Guid"):
+        guid = guid.attrib["id"]
         m = re.match(EXTERNAL_GUID_RE, guid)
         if not m:
             logging.warning(f"Unhandled GUID: {guid}")
@@ -130,16 +134,25 @@ def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
 
 
 def fetch_plex_guids_df(
-    keys: Iterable[bytes],
-    token: str | None = PLEX_TOKEN,
-    progress: bool = False,
+    keys: pd.Series, token: str | None = PLEX_TOKEN
 ) -> pd.DataFrame:
-    def records():
-        desc = "Fetch Plex metdata"
-        for key in tqdm(keys, desc=desc, disable=not progress, unit="key"):
-            yield fetch_metadata_guids(key, token=token)
+    tqdm.pandas(desc="Fetch Plex metdata")
+    records = keys.progress_apply(fetch_metadata_guids, token=token)
+    df = pd.DataFrame.from_records(list(records))
+    df["retrieved_at"] = pd.Timestamp.now().floor("s")
+    df = df.astype(EXTERNAL_GUID_DTYPES)
+    return df
 
-    return pd.DataFrame.from_records(records()).astype(EXTERNAL_GUID_DTYPES)
+
+def backfill_missing_metadata(df: pd.DataFrame, limit: int = 100) -> pd.DataFrame:
+    df_missing_metadata = (
+        df[df["retrieved_at"].isna()][["guid", "type", "key"]]
+        .head(limit)
+        .reset_index(drop=True)
+    )
+    metadata_df = fetch_plex_guids_df(df_missing_metadata["key"])
+    df_changes = pd.concat([df_missing_metadata, metadata_df], axis=1)
+    return df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
 
 
 def decode_plex_guids(guids: pd.Series) -> pd.DataFrame:
