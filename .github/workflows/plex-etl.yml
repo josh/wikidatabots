@@ -208,6 +208,8 @@ jobs:
           from plex import backfill_missing_metadata
 
           pd.read_feather("plex.arrow").pipe(backfill_missing_metadata).to_feather("plex.arrow")
+        env:
+          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
 
       - name: Print stats
         run: |
