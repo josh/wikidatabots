@@ -90,6 +90,31 @@ def wikidata_plex_guids() -> pd.DataFrame:
     return df
 
 
+def plex_search(query: str, token: str | None = PLEX_TOKEN):
+    assert token, "Missing Plex token"
+    url = "https://metadata.provider.plex.tv/library/search"
+    params = {
+        "query": query,
+        "limit": "100",
+        "searchTypes": "movie,tv",
+        "includeMetadata": "1",
+    }
+    headers = {"Accept": "application/json", "X-Plex-Token": token}
+    r = requests.get(url, headers=headers, params=params)
+    return r
+
+
+def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFrame:
+    r = plex_search(query, token)
+    r.raise_for_status()
+    guids = [m[0] for m in re.finditer(GUID_RE, r.text)]
+    df = pd.DataFrame(guids, columns=["guid"], dtype="string").drop_duplicates()
+    df2 = decode_plex_guids(df["guid"])
+    df = pd.concat([df, df2], axis=1)
+    df = df.dropna().sort_values("key", ignore_index=True)
+    return df
+
+
 def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
     assert len(key) == 12
     assert token, "Missing Plex token"

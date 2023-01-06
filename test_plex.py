@@ -10,6 +10,7 @@ from plex import (
     fetch_metadata_guids,
     fetch_plex_guids_df,
     pack_plex_keys,
+    plex_search_guids,
     unpack_plex_keys,
     wikidata_plex_guids,
 )
@@ -17,6 +18,17 @@ from plex import (
 
 def test_wikidata_plex_guids():
     df = wikidata_plex_guids()
+    assert len(df) > 0
+    assert df.dtypes["guid"] == "string"
+    assert df.dtypes["type"] == "category"
+    assert df.dtypes["key"] == "binary[pyarrow]"
+    assert df["guid"].is_unique
+    assert df["key"].is_unique
+
+
+@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
+def test_plex_search_guids():
+    df = plex_search_guids(query="Top Gun", token=PLEX_TOKEN)
     assert len(df) > 0
     assert df.dtypes["guid"] == "string"
     assert df.dtypes["type"] == "category"
@@ -154,7 +166,6 @@ def test_fetch_plex_guids_df():
     )
     df = fetch_plex_guids_df(keys, token=PLEX_TOKEN)
 
-    assert df.dtypes["key"] == "binary[pyarrow]"
     assert df.dtypes["retrieved_at"] == "datetime64[ns]"
     assert df.dtypes["imdb_numeric_id"] == "UInt32"
     assert df.dtypes["tmdb_id"] == "UInt32"
