@@ -168,7 +168,7 @@ jobs:
           aws s3 cp "plex.arrow" "s3://wikidatabots/plex.arrow"
 
   metadata:
-    depends: [append_guids]
+    needs: [append_guids]
     runs-on: ubuntu-latest
     concurrency: plex
 
