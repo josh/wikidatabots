@@ -144,7 +144,7 @@ def fetch_plex_guids_df(
     return df
 
 
-def backfill_missing_metadata(df: pd.DataFrame, limit: int = 100) -> pd.DataFrame:
+def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFrame:
     df_missing_metadata = (
         df[df["retrieved_at"].isna()][["guid", "type", "key"]]
         .head(limit)
