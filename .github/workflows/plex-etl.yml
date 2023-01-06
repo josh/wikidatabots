@@ -166,3 +166,57 @@ jobs:
       - name: Upload to S3
         run: |
           aws s3 cp "plex.arrow" "s3://wikidatabots/plex.arrow"
+
+  metadata:
+    depends: [append_guids]
+    runs-on: ubuntu-latest
+    concurrency: plex
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
+
+      - name: Download from S3
+        run: |
+          aws s3 cp "s3://wikidatabots/plex.arrow" "plex.arrow"
+          cp plex.arrow plex.arrow~
+
+      - name: Backfill missing metadata
+        shell: python
+        run: |
+          import pandas as pd
+
+          from plex import backfill_missing_metadata
+
+          pd.read_feather("plex.arrow").pipe(backfill_missing_metadata).to_feather("plex.arrow")
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py plex.arrow
+
+      - name: Print diff
+        run: |
+          python print_table_diff.py plex.arrow~ plex.arrow guid
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "plex.arrow" "s3://wikidatabots/plex.arrow"
