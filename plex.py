@@ -163,7 +163,8 @@ def fetch_plex_guids_df(
 ) -> pd.DataFrame:
     tqdm.pandas(desc="Fetch Plex metdata")
     records = keys.progress_apply(fetch_metadata_guids, token=token)
-    df = pd.DataFrame.from_records(list(records))
+    columns = ["success", "imdb_numeric_id", "tmdb_id", "tvdb_id"]
+    df = pd.DataFrame.from_records(list(records), columns=columns)
     df["retrieved_at"] = pd.Timestamp.now().floor("s")
     df = df.astype(EXTERNAL_GUID_DTYPES)
     return df
