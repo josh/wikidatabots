@@ -13,45 +13,6 @@ env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  wikidata:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
-      - name: Fetch Wikidata Plex GUIDs
-        shell: python
-        run: |
-          from plex import wikidata_plex_guids
-
-          wikidata_plex_guids().to_feather("plex_wikidata.arrow")
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py plex_wikidata.arrow
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: wikidata
-          path: |
-            *.arrow
-          retention-days: 7
-
   library:
     runs-on: ubuntu-latest
 
@@ -101,8 +62,95 @@ jobs:
             *.arrow
           retention-days: 7
 
+  similar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
+
+      - name: Fetch Plex similar GUIDs
+        shell: python
+        run: |
+          import os
+
+          import pandas as pd
+
+          from plex import plex_similar
+
+          df = pd.read_feather("s3://wikidatabots/plex.arrow", columns=["key"])
+          keys_sample = df["key"].sample(n=100)
+
+          keys_sample.pipe(plex_similar, progress=True).to_feather("plex_similar.arrow")
+        env:
+          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py plex_library.arrow
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: library
+          path: |
+            *.arrow
+          retention-days: 7
+
+  wikidata:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Set Python path
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
+
+      - name: Fetch Wikidata Plex GUIDs
+        shell: python
+        run: |
+          from plex import wikidata_plex_guids
+
+          wikidata_plex_guids().to_feather("plex_wikidata.arrow")
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py plex_wikidata.arrow
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wikidata
+          path: |
+            *.arrow
+          retention-days: 7
+
   append_guids:
-    needs: [library, wikidata]
+    needs: [library, similar, wikidata]
     runs-on: ubuntu-latest
     concurrency: plex
 
