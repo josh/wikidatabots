@@ -192,7 +192,7 @@ jobs:
           import pandas as pd
 
           from pandas_utils import df_append_new
-          from plex import GUID_COMPONENT_DTYPES, GUID_TYPE_DYPE
+          from plex import GUID_TYPE_DYPE
 
           df = pd.read_feather("plex.arrow")
 
