@@ -90,7 +90,7 @@ jobs:
           from plex import plex_similar
 
           df = pd.read_feather("s3://wikidatabots/plex.arrow", columns=["key"])
-          keys_sample = df["key"].sample(n=100)
+          keys_sample = df["key"].sample(n=500)
 
           keys_sample.pipe(plex_similar, progress=True).to_feather("plex_similar.arrow")
         env:
