@@ -85,8 +85,6 @@ jobs:
       - name: Fetch Plex similar GUIDs
         shell: python
         run: |
-          import os
-
           import pandas as pd
 
           from plex import plex_similar
