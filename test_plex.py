@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pytest
@@ -7,6 +6,7 @@ from plex import (
     PLEX_TOKEN,
     decode_plex_guids,
     encode_plex_guids,
+    extract_guids,
     fetch_metadata_guids,
     fetch_plex_guids_df,
     pack_plex_keys,
@@ -38,6 +38,7 @@ def test_plex_search_guids():
 
 
 def test_decode_plex_guids():
+    index = ["a", "b", "c", "d", "e", "f"]
     guids = pd.Series(
         [
             "plex://episode/5d9c11154eefaa001f6364e0",
@@ -46,9 +47,13 @@ def test_decode_plex_guids():
             "plex://show/5d9c08544eefaa001f5daa50",
             "plex://movie/000000000000000000000000",
             "plex://invalid/111111111111111111111111",
-        ]
+        ],
+        dtype="string",
+        index=index,
     )
     df = decode_plex_guids(guids)
+
+    assert df.index.tolist() == index
 
     assert df.dtypes["type"] == "category"
     assert df["type"].tolist() == [
@@ -57,7 +62,7 @@ def test_decode_plex_guids():
         "season",
         "show",
         "movie",
-        np.nan,
+        pd.NA,
     ]
 
     assert df.dtypes["key"] == "binary[pyarrow]"
@@ -71,21 +76,29 @@ def test_decode_plex_guids():
         pd.NA,
     ]
 
+    guids = pd.Series([], dtype="string")
+    df = decode_plex_guids(guids)
+    assert len(df) == 0
+    assert df.dtypes["type"] == "category"
+    assert df.dtypes["key"] == "binary[pyarrow]"
+
 
 def test_encode_plex_guids():
-    types = pd.Series(["episode", "movie", "season", "show"])
-    keys = pd.Series(
-        [
-            b"]\x9c\x11\x15N\xef\xaa\x00\x1fcd\xe0",
-            b"]whhoE!\x00\x1e\xaa\\\xac",
-            b"]\x9c\t\xbd<?\x87\x00\x1f6\x13D",
-            b"]\x9c\x08TN\xef\xaa\x00\x1f]\xaaP",
-        ]
-    )
-    df = pd.DataFrame({"type": types, "key": keys})
+    index = ["a", "b", "c", "d"]
+    types = ["episode", "movie", "season", "show"]
+    keys = [
+        b"]\x9c\x11\x15N\xef\xaa\x00\x1fcd\xe0",
+        b"]whhoE!\x00\x1e\xaa\\\xac",
+        b"]\x9c\t\xbd<?\x87\x00\x1f6\x13D",
+        b"]\x9c\x08TN\xef\xaa\x00\x1f]\xaaP",
+    ]
+
+    df = pd.DataFrame({"type": types, "key": keys}, index=index)
+    df = df.astype({"type": "category", "key": "binary[pyarrow]"})
     guids = encode_plex_guids(df)
 
     assert guids.dtype == "string"
+    assert guids.index.tolist() == ["a", "b", "c", "d"]
     assert guids.tolist() == [
         "plex://episode/5d9c11154eefaa001f6364e0",
         "plex://movie/5d7768686f4521001eaa5cac",
@@ -95,19 +108,48 @@ def test_encode_plex_guids():
 
 
 def test_pack_plex_keys():
-    hex_keys = pd.Series(["1" * 24, "2" * 24, "a" * 24])
+    index = ["a", "b", "c"]
+    hex_keys = pd.Series(["1" * 24, "2" * 24, "a" * 24], index=index, dtype="string")
     bin_keys = pack_plex_keys(hex_keys)
     assert isinstance(bin_keys[0], bytes)
+    assert bin_keys.index.tolist() == ["a", "b", "c"]
     assert bin_keys.dtype == "binary[pyarrow]"
     assert bin_keys.tolist() == [b"\x11" * 12, b"\x22" * 12, b"\xaa" * 12]
 
 
 def test_unpack_plex_keys():
-    bin_keys = pd.Series([b"\x11" * 12, b"\x22" * 12, b"\xaa" * 12])
+    index = ["a", "b", "c"]
+    bin_keys = pd.Series([b"\x11" * 12, b"\x22" * 12, b"\xaa" * 12], index=index)
     hex_keys = unpack_plex_keys(bin_keys)
     assert isinstance(hex_keys[0], str)
     assert hex_keys.dtype == "string"
+    assert hex_keys.index.tolist() == ["a", "b", "c"]
     assert hex_keys.tolist() == ["1" * 24, "2" * 24, "a" * 24]
+
+
+def test_extract_guids():
+    text = """
+    1. plex://episode/5d9c11154eefaa001f6364e0
+    "plex://movie/5d7768686f4521001eaa5cac"
+    link='plex://season/5d9c09bd3c3f87001f361344'
+    <plex://show/5d9c08544eefaa001f5daa50>
+    plex://movie/5d7768686f4521001eaa5cac
+    plex://invalid/111111111111111111111111
+    """
+    df = extract_guids(text)
+    assert len(df) == 4
+    assert df.index.tolist() == [0, 1, 2, 3]
+    assert df.dtypes["guid"] == "string"
+    assert df["guid"].tolist() == [
+        "plex://movie/5d7768686f4521001eaa5cac",
+        "plex://show/5d9c08544eefaa001f5daa50",
+        "plex://season/5d9c09bd3c3f87001f361344",
+        "plex://episode/5d9c11154eefaa001f6364e0",
+    ]
+
+    df = extract_guids("")
+    assert len(df) == 0
+    assert df.dtypes["guid"] == "string"
 
 
 def test_arrow_compat():
@@ -118,15 +160,16 @@ def test_arrow_compat():
             "plex://season/5d9c09bd3c3f87001f361344",
             "plex://show/5d9c08544eefaa001f5daa50",
             "plex://invalid/111111111111111111111111",
-        ]
+        ],
+        dtype="string",
     )
     df = decode_plex_guids(guids)
     table = pa.Table.from_pandas(df)
     df2 = table.to_pandas()
-    assert df.dtypes["type"] == df2.dtypes["type"]
+    assert str(df.dtypes["type"]) == str(df2.dtypes["type"])
     assert df.dtypes["key"] == df2.dtypes["key"]
-    assert df["type"].tolist() == df2["type"].tolist()
-    assert df["key"].tolist() == df2["key"].tolist()
+    assert (df["type"].astype("string") == df2["type"].astype("string")).all()
+    assert (df["key"] == df2["key"]).all()
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
@@ -163,6 +206,7 @@ def test_fetch_plex_guids_df():
             bytes.fromhex("5d776825961905001eb90a22"),
         ],
         dtype="binary[pyarrow]",
+        index=["a", "b", "c", "d"],
     )
     df = fetch_plex_guids_df(keys, token=PLEX_TOKEN)
 
@@ -170,6 +214,8 @@ def test_fetch_plex_guids_df():
     assert df.dtypes["imdb_numeric_id"] == "UInt32"
     assert df.dtypes["tmdb_id"] == "UInt32"
     assert df.dtypes["tvdb_id"] == "UInt32"
+
+    assert df.index.tolist() == ["a", "b", "c", "d"]
 
     assert df.iloc[0]["success"]
     assert df.iloc[1]["success"]

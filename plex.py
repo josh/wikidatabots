@@ -2,7 +2,7 @@ import logging
 import os
 import re
 import xml.etree.ElementTree as ET
-from typing import TypedDict
+from typing import Iterable, Iterator, TypedDict
 
 import pandas as pd
 import requests
@@ -39,6 +39,8 @@ EXTERNAL_GUID_DTYPES = {
     "tvdb_id": "UInt32",
 }
 
+session = requests.Session()
+
 
 def plex_server(name: str, token: str | None = PLEX_TOKEN) -> pd.Series:
     assert token, "Missing Plex token"
@@ -64,6 +66,7 @@ def plex_library_guids(
     dfs = [plex_library_section_guids(baseuri, s, token) for s in [1, 2]]
     df = pd.concat(dfs, ignore_index=True)
     df2 = decode_plex_guids(df["guid"])
+    # TODO: Review this concat/sort
     df = pd.concat([df, df2], axis=1)
     df = df.dropna().sort_values("key", ignore_index=True)
     return df
@@ -85,6 +88,7 @@ def wikidata_plex_guids() -> pd.DataFrame:
     data = sparql_csv(query)
     df = pd.read_csv(data, dtype={"guid": "string"})
     df2 = decode_plex_guids(df["guid"])
+    # TODO: Review this concat/sort
     df = pd.concat([df, df2], axis=1)
     df = df.sort_values("key", ignore_index=True)
     return df
@@ -100,19 +104,56 @@ def plex_search(query: str, token: str | None = PLEX_TOKEN):
         "includeMetadata": "1",
     }
     headers = {"Accept": "application/json", "X-Plex-Token": token}
-    r = requests.get(url, headers=headers, params=params)
+    r = session.get(url, headers=headers, params=params)
     return r
+
+
+def plex_similar(
+    keys: pd.Series,
+    token: str | None = PLEX_TOKEN,
+    progress: bool = False,
+) -> pd.DataFrame:
+    assert keys.dtype == "object" or keys.dtype == "binary[pyarrow]"
+
+    def map_key(key: bytes):
+        r = request_metdata(key, token)
+        return extract_guids(r.text)
+
+    tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
+    dfs: list[pd.DataFrame] = keys.progress_apply(map_key).tolist()
+    # TODO: Review this concat/sort
+    return pd.concat(dfs, ignore_index=True).sort_values("key", ignore_index=True)
 
 
 def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFrame:
     r = plex_search(query, token)
-    r.raise_for_status()
-    guids = [m[0] for m in re.finditer(GUID_RE, r.text)]
-    df = pd.DataFrame(guids, columns=["guid"], dtype="string").drop_duplicates()
-    df2 = decode_plex_guids(df["guid"])
-    df = pd.concat([df, df2], axis=1)
-    df = df.dropna().sort_values("key", ignore_index=True)
-    return df
+    return extract_guids(r.text)
+
+
+def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFrame:
+    df_missing_metadata = (
+        df[df["retrieved_at"].isna()][["guid", "type", "key"]]
+        .head(limit)
+        .reset_index(drop=True)
+    )
+    metadata_df = fetch_plex_guids_df(df_missing_metadata["key"], progress=True)
+    # TODO: Review this concat/sort
+    df_changes = pd.concat([df_missing_metadata, metadata_df], axis=1)
+    return df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
+
+
+def fetch_plex_guids_df(
+    keys: pd.Series,
+    token: str | None = PLEX_TOKEN,
+    progress: bool = False,
+) -> pd.DataFrame:
+    assert keys.dtype == "object" or keys.dtype == "binary[pyarrow]"
+    tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
+    records: pd.Series = keys.progress_apply(fetch_metadata_guids, token=token)
+    columns = ["success", "imdb_numeric_id", "tmdb_id", "tvdb_id"]
+    df = pd.DataFrame.from_records(list(records), columns=columns, index=keys.index)
+    df["retrieved_at"] = pd.Timestamp.now().floor("s")
+    return df.astype(EXTERNAL_GUID_DTYPES)
 
 
 def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
@@ -126,10 +167,7 @@ def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
         "tvdb_id": None,
     }
 
-    url = f"https://metadata.provider.plex.tv/library/metadata/{key.hex()}"
-    headers = {"X-Plex-Token": token}
-    r = requests.get(url, headers=headers)
-
+    r = request_metdata(key=key, token=token)
     if r.status_code == 200:
         pass
     elif r.status_code == 404:
@@ -158,42 +196,52 @@ def fetch_metadata_guids(key: bytes, token: str | None = PLEX_TOKEN) -> GUIDs:
     return result
 
 
-def fetch_plex_guids_df(
-    keys: pd.Series, token: str | None = PLEX_TOKEN
-) -> pd.DataFrame:
-    tqdm.pandas(desc="Fetch Plex metdata")
-    records = keys.progress_apply(fetch_metadata_guids, token=token)
-    columns = ["success", "imdb_numeric_id", "tmdb_id", "tvdb_id"]
-    df = pd.DataFrame.from_records(list(records), columns=columns)
-    df["retrieved_at"] = pd.Timestamp.now().floor("s")
-    df = df.astype(EXTERNAL_GUID_DTYPES)
-    return df
+def request_metdata(key: bytes, token: str | None = PLEX_TOKEN) -> requests.Response:
+    assert len(key) == 12
+    assert token, "Missing Plex token"
+
+    url = f"https://metadata.provider.plex.tv/library/metadata/{key.hex()}"
+    headers = {"X-Plex-Token": token}
+    r = session.get(url, headers=headers)
+    return r
 
 
-def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFrame:
-    df_missing_metadata = (
-        df[df["retrieved_at"].isna()][["guid", "type", "key"]]
-        .head(limit)
-        .reset_index(drop=True)
-    )
-    metadata_df = fetch_plex_guids_df(df_missing_metadata["key"])
-    df_changes = pd.concat([df_missing_metadata, metadata_df], axis=1)
-    return df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
+def extract_guids(text: str | Iterable[str]):
+    guids = re_finditer(GUID_RE, text)
+    df1 = pd.DataFrame(guids, columns=["guid"], dtype="string").drop_duplicates()
+    df2 = decode_plex_guids(df1["guid"])
+    return pd.concat([df1, df2], axis=1).sort_values("key", ignore_index=True)
+
+
+def re_finditer(pattern: str, string: str | Iterable[str]) -> Iterator[str]:
+    if isinstance(string, str):
+        for m in re.finditer(pattern, string):
+            yield m[0]
+    elif isinstance(string, Iterable):
+        for s in string:
+            for m in re.finditer(pattern, s):
+                yield m[0]
+    else:
+        raise TypeError()
 
 
 def decode_plex_guids(guids: pd.Series) -> pd.DataFrame:
+    assert guids.dtype == "string"
     df = guids.str.extract(GUID_RE).astype({"type": "category", "key": "string"})
-    df["key"] = pack_plex_keys(df["key"])
-    return df
+    return df.assign(key=pack_plex_keys(df["key"]))
 
 
 def encode_plex_guids(df: pd.DataFrame) -> pd.Series:
-    return "plex://" + df["type"] + "/" + df["key"].pipe(unpack_plex_keys)
+    assert df["type"].dtype == "category" or df["type"].dtype == "string"
+    assert df["key"].dtype == "object" or df["key"].dtype == "binary[pyarrow]"
+    return "plex://" + df["type"].astype("string") + "/" + unpack_plex_keys(df["key"])
 
 
 def pack_plex_keys(keys: pd.Series) -> pd.Series:
+    assert keys.dtype == "string"
     return keys.map(bytes.fromhex, na_action="ignore").astype("binary[pyarrow]")
 
 
 def unpack_plex_keys(keys: pd.Series) -> pd.Series:
+    assert keys.dtype == "object" or keys.dtype == "binary[pyarrow]"
     return keys.apply(bytes.hex).astype("string")
