@@ -76,7 +76,8 @@ def plex_library_section_guids(
     url = f"{baseuri}/library/sections/{section}/all"
     headers = {"X-Plex-Token": token}
     df = pd.read_xml(url, storage_options=headers)
-    return decode_plex_guids(df["guid"].astype("string")).dropna()
+    df = decode_plex_guids(df["guid"].astype("string"))
+    return df.dropna().reset_index(drop=True)
 
 
 def wikidata_plex_guids() -> pd.DataFrame:
