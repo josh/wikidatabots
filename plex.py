@@ -33,12 +33,6 @@ EXTERNAL_GUID_RE = (
     r"tvdb://(?P<tvdb_id>[0-9]+)"
 )
 
-GUID_COMPONENT_DTYPES = {
-    "guid": "string",
-    "type": GUID_TYPE_DYPE,
-    "key": "binary[pyarrow]",
-}
-
 EXTERNAL_GUID_DTYPES = {
     "success": "boolean",
     "retrieved_at": "datetime64[ns]",
@@ -140,7 +134,7 @@ def plex_similar(
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
     dfs = keys.progress_apply(map_key)
 
-    df = safe_row_concat(dfs).astype(GUID_COMPONENT_DTYPES)
+    df = safe_row_concat(dfs)
 
     # TODO: Clean up post conditions after things are working
     assert df.dtypes["guid"] == "string"
