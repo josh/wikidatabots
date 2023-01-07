@@ -216,7 +216,7 @@ def re_finditer(pattern: str, string: str | Iterable[str]) -> Iterator[str]:
 def decode_plex_guids(guids: pd.Series) -> pd.DataFrame:
     assert guids.dtype == "string"
     df = guids.str.extract(GUID_RE).astype({"type": GUID_TYPE_DYPE, "key": "string"})
-    return df.assign(key=pack_plex_keys(df["key"]))
+    return df.assign(key=pack_plex_keys(df["key"]))[["key", "type"]]
 
 
 def encode_plex_guids(df: pd.DataFrame) -> pd.Series:
