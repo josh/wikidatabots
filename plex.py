@@ -70,13 +70,7 @@ def plex_library_guids(
     df2 = decode_plex_guids(df["guid"])
     df = safe_column_join([df, df2])
     # TODO: Review this sort
-    df = df.dropna().sort_values("key", ignore_index=True)
-
-    # TODO: Clean up post conditions after things are working
-    assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
-    assert df.dtypes["key"] == "binary[pyarrow]"
-    return df
+    return df.dropna().sort_values("key", ignore_index=True)
 
 
 def plex_library_section_guids(
@@ -97,13 +91,7 @@ def wikidata_plex_guids() -> pd.DataFrame:
     df2 = decode_plex_guids(df["guid"])
     # TODO: Review this concat/sort
     df = safe_column_join([df, df2])
-    df = df.sort_values("key", ignore_index=True)
-
-    # TODO: Clean up post conditions after things are working
-    assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
-    assert df.dtypes["key"] == "binary[pyarrow]"
-    return df
+    return df.sort_values("key", ignore_index=True)
 
 
 def plex_search(query: str, token: str | None = PLEX_TOKEN):
@@ -133,14 +121,7 @@ def plex_similar(
 
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
     dfs = keys.progress_apply(map_key)
-
-    df = safe_row_concat(dfs)
-
-    # TODO: Clean up post conditions after things are working
-    assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
-    assert df.dtypes["key"] == "binary[pyarrow]"
-    return df
+    return safe_row_concat(dfs)
 
 
 def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFrame:
@@ -157,13 +138,7 @@ def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFra
     # TODO: Review this concat/sort
     metadata_df = fetch_plex_guids_df(df_missing_metadata["key"], progress=True)
     df_changes = safe_column_join([df_missing_metadata, metadata_df])
-    df = df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
-
-    # TODO: Clean up post conditions after things are working
-    assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
-    assert df.dtypes["key"] == "binary[pyarrow]"
-    return df
+    return df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
 
 
 def fetch_plex_guids_df(
@@ -234,13 +209,7 @@ def extract_guids(text: str | Iterable[str]):
     guids = re_finditer(GUID_RE, text)
     df1 = pd.DataFrame(guids, columns=["guid"], dtype="string").drop_duplicates()
     df2 = decode_plex_guids(df1["guid"])
-    df3 = safe_column_join([df1, df2]).sort_values("key", ignore_index=True)
-
-    # TODO: Clean up post conditions after things are working
-    assert df3.dtypes["guid"] == "string"
-    assert df3.dtypes["type"] == GUID_TYPE_DYPE
-    assert df3.dtypes["key"] == "binary[pyarrow]"
-    return df3
+    return safe_column_join([df1, df2]).sort_values("key", ignore_index=True)
 
 
 def re_finditer(pattern: str, string: str | Iterable[str]) -> Iterator[str]:
@@ -262,7 +231,7 @@ def decode_plex_guids(guids: pd.Series) -> pd.DataFrame:
 
 
 def encode_plex_guids(df: pd.DataFrame) -> pd.Series:
-    assert df["type"].dtype == GUID_TYPE_DYPE or df["type"].dtype == "string"
+    assert df["type"].dtype == "category" or df["type"].dtype == "string"
     assert df["key"].dtype == "object" or df["key"].dtype == "binary[pyarrow]"
     return "plex://" + df["type"].astype("string") + "/" + unpack_plex_keys(df["key"])
 

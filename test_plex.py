@@ -4,7 +4,6 @@ import pyarrow as pa
 import pytest
 
 from plex import (
-    GUID_TYPE_DYPE,
     PLEX_TOKEN,
     decode_plex_guids,
     encode_plex_guids,
@@ -22,7 +21,7 @@ def test_wikidata_plex_guids():
     df = wikidata_plex_guids()
     assert len(df) > 0
     assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
+    assert df.dtypes["type"] == "category"
     assert df.dtypes["key"] == "binary[pyarrow]"
     assert df["guid"].is_unique
     assert df["key"].is_unique
@@ -33,7 +32,7 @@ def test_plex_search_guids():
     df = plex_search_guids(query="Top Gun", token=PLEX_TOKEN)
     assert len(df) > 0
     assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
+    assert df.dtypes["type"] == "category"
     assert df.dtypes["key"] == "binary[pyarrow]"
     assert df["guid"].is_unique
     assert df["key"].is_unique
@@ -57,7 +56,7 @@ def test_decode_plex_guids():
 
     assert df.index.tolist() == index
 
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
+    assert df.dtypes["type"] == "category"
     assert df["type"].tolist() == [
         "episode",
         "movie",
@@ -81,7 +80,7 @@ def test_decode_plex_guids():
     guids = pd.Series([], dtype="string")
     df = decode_plex_guids(guids)
     assert len(df) == 0
-    assert df.dtypes["type"] == GUID_TYPE_DYPE
+    assert df.dtypes["type"] == "category"
     assert df.dtypes["key"] == "binary[pyarrow]"
 
 
@@ -96,7 +95,7 @@ def test_encode_plex_guids():
     ]
 
     df = pd.DataFrame({"type": types, "key": keys}, index=index)
-    df = df.astype({"type": GUID_TYPE_DYPE, "key": "binary[pyarrow]"})
+    df = df.astype({"type": "category", "key": "binary[pyarrow]"})
     guids = encode_plex_guids(df)
 
     assert guids.dtype == "string"

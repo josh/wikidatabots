@@ -192,7 +192,6 @@ jobs:
           import pandas as pd
 
           from pandas_utils import df_append_new
-          from plex import GUID_TYPE_DYPE
 
           df = pd.read_feather("plex.arrow")
 
@@ -201,11 +200,6 @@ jobs:
 
           # TODO: Review this sort
           df = df.sort_values("guid").reset_index(drop=True)
-
-          # TODO: Clean up post conditions after things are working
-          assert df.dtypes["guid"] == "string"
-          assert df.dtypes["type"] == GUID_TYPE_DYPE
-          assert df.dtypes["key"] == "binary[pyarrow]"
 
           df.to_feather("plex.arrow")
 
