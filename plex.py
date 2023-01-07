@@ -64,13 +64,8 @@ def plex_library_guids(
     baseuri: str,
     token: str | None = PLEX_SERVER_TOKEN,
 ) -> pd.DataFrame:
-    assert token, "Missing Plex server token"
     dfs = [plex_library_section_guids(baseuri, s, token) for s in [1, 2]]
-    df = safe_row_concat(dfs)
-    df2 = decode_plex_guids(df["guid"])
-    df = safe_column_join([df, df2])
-    # TODO: Review this sort
-    return df.dropna().sort_values("key", ignore_index=True)
+    return safe_row_concat(dfs)
 
 
 def plex_library_section_guids(
@@ -81,17 +76,14 @@ def plex_library_section_guids(
     url = f"{baseuri}/library/sections/{section}/all"
     headers = {"X-Plex-Token": token}
     df = pd.read_xml(url, storage_options=headers)
-    return df[["guid"]].astype("string")
+    return decode_plex_guids(df["guid"].astype("string")).dropna()
 
 
 def wikidata_plex_guids() -> pd.DataFrame:
     query = "SELECT DISTINCT ?guid WHERE { ?item ps:P11460 ?guid. }"
     data = sparql_csv(query)
     df = pd.read_csv(data, dtype={"guid": "string"})
-    df2 = decode_plex_guids(df["guid"])
-    # TODO: Review this concat/sort
-    df = safe_column_join([df, df2])
-    return df.sort_values("key", ignore_index=True)
+    return decode_plex_guids(df["guid"])
 
 
 def plex_search(query: str, token: str | None = PLEX_TOKEN):
@@ -121,7 +113,7 @@ def plex_similar(
 
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
     dfs = keys.progress_apply(map_key)
-    return safe_row_concat(dfs)
+    return safe_row_concat(dfs).drop_duplicates()
 
 
 def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFrame:
@@ -131,7 +123,7 @@ def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFram
 
 def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFrame:
     df_missing_metadata = (
-        df[df["retrieved_at"].isna()][["guid", "type", "key"]]
+        df[df["retrieved_at"].isna()][["key", "type"]]
         .head(limit)
         .reset_index(drop=True)
     )
@@ -206,10 +198,8 @@ def request_metdata(key: bytes, token: str | None = PLEX_TOKEN) -> requests.Resp
 
 
 def extract_guids(text: str | Iterable[str]):
-    guids = re_finditer(GUID_RE, text)
-    df1 = pd.DataFrame(guids, columns=["guid"], dtype="string").drop_duplicates()
-    df2 = decode_plex_guids(df1["guid"])
-    return safe_column_join([df1, df2]).sort_values("key", ignore_index=True)
+    guids = pd.Series(re_finditer(GUID_RE, text), dtype="string").drop_duplicates()
+    return decode_plex_guids(guids).sort_values("key", ignore_index=True)
 
 
 def re_finditer(pattern: str, string: str | Iterable[str]) -> Iterator[str]:

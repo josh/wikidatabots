@@ -209,7 +209,7 @@ jobs:
 
       - name: Print diff
         run: |
-          python print_table_diff.py plex.arrow~ plex.arrow guid
+          python print_table_diff.py plex.arrow~ plex.arrow key
 
       - name: Upload to S3
         run: |
@@ -265,7 +265,7 @@ jobs:
 
       - name: Print diff
         run: |
-          python print_table_diff.py plex.arrow~ plex.arrow guid
+          python print_table_diff.py plex.arrow~ plex.arrow key
 
       - name: Upload to S3
         run: |
