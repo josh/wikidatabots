@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import xml.etree.ElementTree as ET
+from codecs import ignore_errors
 from typing import Iterable, Iterator, TypedDict
 
 import pandas as pd
@@ -114,7 +115,7 @@ def plex_similar(
 
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
     dfs = keys.progress_apply(map_key)
-    return safe_row_concat(dfs).drop_duplicates()
+    return safe_row_concat(dfs).drop_duplicates(ignore_index=True)
 
 
 def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFrame:
