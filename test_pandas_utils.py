@@ -1,9 +1,11 @@
 import pandas as pd
+import pytest
 
 from pandas_utils import (
     df_append_new,
     df_diff,
     df_upsert,
+    safe_row_concat,
     update_feather,
     write_feather_with_index,
 )
@@ -104,3 +106,25 @@ def test_write_feather_with_index():
     assert df.columns.tolist() == ["a", "b"]
     assert df["a"].dtype == "int64"
     assert df["b"].dtype == "int64"
+
+
+def test_safe_row_concat():
+    df1 = pd.DataFrame({"a": [1, 2, 3]})
+    df2 = pd.DataFrame({"a": [4, 5, 6]})
+
+    dfx = safe_row_concat([df1, df2])
+    assert dfx.dtypes["a"] == "int64"
+    assert dfx.index.tolist() == [0, 1, 2, 3, 4, 5]
+    assert dfx["a"].tolist() == [1, 2, 3, 4, 5, 6]
+
+    df2 = pd.DataFrame({"b": [7, 8, 9]})
+    with pytest.raises(AssertionError):
+        safe_row_concat([df1, df2])
+
+    df2 = pd.DataFrame({"a": [4, 5, 6]}, index=["a", "b", "c"])
+    with pytest.raises(AssertionError):
+        safe_row_concat([df1, df2])
+
+    df2 = pd.DataFrame({"a": [4, 5, pd.NA]})
+    with pytest.raises(AssertionError):
+        safe_row_concat([df1, df2])

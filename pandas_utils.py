@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Iterable
 
 import pandas as pd
 import pyarrow as pa
@@ -60,3 +60,28 @@ def write_feather_with_index(df: pd.DataFrame, path: str) -> None:
         assert not field.name.startswith("__index_level_"), field.name
 
     feather.write_feather(table, path)
+
+
+def safe_row_concat(dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
+    dfs = list(dfs)
+
+    if len(dfs) == 0:
+        return pd.DataFrame()
+
+    expected_dtype = dfs[0].dtypes
+
+    for i, df in enumerate(dfs):
+        assert isinstance(
+            df.index, pd.RangeIndex
+        ), "only RangeIndex can be concatenated"
+
+        assert df.dtypes.equals(
+            expected_dtype
+        ), f"expected:\n{expected_dtype}\nbut at index {i} got:\n{df.dtypes}"
+
+    df = pd.concat(dfs, ignore_index=True, verify_integrity=True)
+
+    assert isinstance(df.index, pd.RangeIndex)
+    assert df.dtypes.equals(expected_dtype)
+
+    return df

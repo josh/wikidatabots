@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
-from pandas_utils import df_upsert
+from pandas_utils import df_upsert, safe_row_concat
 from sparql import sparql_csv
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
@@ -70,7 +70,7 @@ def plex_library_guids(
 ) -> pd.DataFrame:
     assert token, "Missing Plex server token"
     dfs = [plex_library_section_guids(baseuri, s, token) for s in [1, 2]]
-    df = pd.concat(dfs, ignore_index=True)
+    df = safe_row_concat(dfs)
     df2 = decode_plex_guids(df["guid"])
     # TODO: Review this concat/sort
     df = pd.concat([df, df2], axis=1)
@@ -136,9 +136,8 @@ def plex_similar(
         return extract_guids(r.text)
 
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
-    dfs: list[pd.DataFrame] = keys.progress_apply(map_key).tolist()
-
-    df = pd.concat(dfs, ignore_index=True).astype(GUID_COMPONENT_DTYPES)
+    dfs = keys.progress_apply(map_key)
+    df = safe_row_concat(dfs).astype(GUID_COMPONENT_DTYPES)
 
     # TODO: Clean up post conditions after things are working
     assert df.dtypes["guid"] == "string"

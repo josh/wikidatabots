@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import appletv
 from actions import log_group
-from pandas_utils import df_upsert
+from pandas_utils import df_upsert, safe_row_concat
 
 tqdm.pandas()
 
@@ -85,7 +85,7 @@ def sitemap(type: Type) -> pd.DataFrame:
 
     ofs.apply(lambda f: f.close())
 
-    df = pd.concat(dfs.to_list(), ignore_index=True)
+    df = safe_row_concat(dfs)
 
     assert df.columns.tolist() == ["loc", "lastmod", "changefreq", "priority", "link"]
     assert df["loc"].dtype == "string"
