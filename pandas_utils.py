@@ -85,3 +85,26 @@ def safe_row_concat(dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
     assert df.dtypes.equals(expected_dtype)
 
     return df
+
+
+def safe_column_join(dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
+    dfs = list(dfs)
+
+    row_count = None
+
+    columns = set()
+    for i, df in enumerate(dfs):
+        if not row_count:
+            row_count = len(df)
+        else:
+            assert (
+                len(df) == row_count
+            ), f"expected {row_count} rows but got {len(df)} at index {i}"
+
+        for column in df.columns:
+            assert column not in columns, f"duplicate column {column} at index {i}"
+            columns.add(column)
+
+    df = pd.concat(dfs, axis=1)
+
+    return df

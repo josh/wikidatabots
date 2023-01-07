@@ -5,6 +5,7 @@ from pandas_utils import (
     df_append_new,
     df_diff,
     df_upsert,
+    safe_column_join,
     safe_row_concat,
     update_feather,
     write_feather_with_index,
@@ -128,3 +129,22 @@ def test_safe_row_concat():
     df2 = pd.DataFrame({"a": [4, 5, pd.NA]})
     with pytest.raises(AssertionError):
         safe_row_concat([df1, df2])
+
+
+def test_safe_column_join():
+    df1 = pd.DataFrame({"a": [1, 2, 3]})
+    df2 = pd.DataFrame({"b": [4, 5, 6]})
+
+    dfx = safe_column_join([df1, df2])
+    assert dfx.dtypes["a"] == "int64"
+    assert dfx.dtypes["b"] == "int64"
+    assert dfx.index.tolist() == [0, 1, 2]
+    assert dfx["a"].tolist() == [1, 2, 3]
+    assert dfx["b"].tolist() == [4, 5, 6]
+
+    with pytest.raises(AssertionError):
+        safe_column_join([df1, df1])
+
+    df2 = pd.DataFrame({"b": [4, 5]})
+    with pytest.raises(AssertionError):
+        safe_column_join([df1, df2])

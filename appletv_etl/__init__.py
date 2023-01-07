@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import appletv
 from actions import log_group
-from pandas_utils import df_upsert, safe_row_concat
+from pandas_utils import df_upsert, safe_row_concat, safe_column_join
 
 tqdm.pandas()
 
@@ -113,7 +113,7 @@ def clean_sitemap(df: pd.DataFrame) -> pd.DataFrame:
         .astype({"country": "category", "type": "category"})
     )
     loc_df["slug"] = loc_df["slug"].apply(urllib.parse.unquote).astype("string")
-    df = pd.concat([df, loc_df], axis=1)
+    df = safe_column_join([df, loc_df])
 
     assert df.columns.tolist() == [
         "loc",

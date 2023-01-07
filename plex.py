@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
-from pandas_utils import df_upsert, safe_row_concat
+from pandas_utils import df_upsert, safe_row_concat, safe_column_join
 from sparql import sparql_csv
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
@@ -72,8 +72,8 @@ def plex_library_guids(
     dfs = [plex_library_section_guids(baseuri, s, token) for s in [1, 2]]
     df = safe_row_concat(dfs)
     df2 = decode_plex_guids(df["guid"])
-    # TODO: Review this concat/sort
-    df = pd.concat([df, df2], axis=1)
+    df = safe_column_join([df, df2])
+    # TODO: Review this sort
     df = df.dropna().sort_values("key", ignore_index=True)
 
     # TODO: Clean up post conditions after things are working
@@ -100,7 +100,7 @@ def wikidata_plex_guids() -> pd.DataFrame:
     df = pd.read_csv(data, dtype={"guid": "string"})
     df2 = decode_plex_guids(df["guid"])
     # TODO: Review this concat/sort
-    df = pd.concat([df, df2], axis=1)
+    df = safe_column_join([df, df2])
     df = df.sort_values("key", ignore_index=True)
 
     # TODO: Clean up post conditions after things are working
@@ -157,9 +157,9 @@ def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFra
         .head(limit)
         .reset_index(drop=True)
     )
-    metadata_df = fetch_plex_guids_df(df_missing_metadata["key"], progress=True)
     # TODO: Review this concat/sort
-    df_changes = pd.concat([df_missing_metadata, metadata_df], axis=1)
+    metadata_df = fetch_plex_guids_df(df_missing_metadata["key"], progress=True)
+    df_changes = safe_column_join([df_missing_metadata, metadata_df])
     df = df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
 
     # TODO: Clean up post conditions after things are working
@@ -237,7 +237,7 @@ def extract_guids(text: str | Iterable[str]):
     guids = re_finditer(GUID_RE, text)
     df1 = pd.DataFrame(guids, columns=["guid"], dtype="string").drop_duplicates()
     df2 = decode_plex_guids(df1["guid"])
-    df3 = pd.concat([df1, df2], axis=1).sort_values("key", ignore_index=True)
+    df3 = safe_column_join([df1, df2]).sort_values("key", ignore_index=True)
 
     # TODO: Clean up post conditions after things are working
     assert df3.dtypes["guid"] == "string"
