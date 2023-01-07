@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 import appletv
 from actions import log_group
-from pandas_utils import df_upsert, safe_row_concat, safe_column_join
+from pandas_utils import df_upsert, safe_column_join, safe_row_concat
 
 tqdm.pandas()
 

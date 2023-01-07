@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
-from pandas_utils import df_upsert, safe_row_concat, safe_column_join
+from pandas_utils import df_upsert, safe_column_join, safe_row_concat
 from sparql import sparql_csv
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
