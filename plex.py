@@ -23,7 +23,9 @@ class GUIDs(TypedDict):
     tvdb_id: int | None
 
 
-GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
+GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
+
+GUID_TYPE_DYPE = pd.CategoricalDtype(categories=["movie", "show", "season", "episode"])
 
 EXTERNAL_GUID_RE = (
     r"imdb://(?:tt|nm)(?P<imdb_numeric_id>[0-9]+)|"
@@ -33,7 +35,7 @@ EXTERNAL_GUID_RE = (
 
 GUID_COMPONENT_DTYPES = {
     "guid": "string",
-    "type": "category",
+    "type": GUID_TYPE_DYPE,
     "key": "binary[pyarrow]",
 }
 
@@ -78,7 +80,7 @@ def plex_library_guids(
 
     # TODO: Clean up post conditions after things are working
     assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == "category"
+    assert df.dtypes["type"] == GUID_TYPE_DYPE
     assert df.dtypes["key"] == "binary[pyarrow]"
     return df
 
@@ -105,7 +107,7 @@ def wikidata_plex_guids() -> pd.DataFrame:
 
     # TODO: Clean up post conditions after things are working
     assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == "category"
+    assert df.dtypes["type"] == GUID_TYPE_DYPE
     assert df.dtypes["key"] == "binary[pyarrow]"
     return df
 
@@ -137,11 +139,12 @@ def plex_similar(
 
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
     dfs = keys.progress_apply(map_key)
+
     df = safe_row_concat(dfs).astype(GUID_COMPONENT_DTYPES)
 
     # TODO: Clean up post conditions after things are working
     assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == "category"
+    assert df.dtypes["type"] == GUID_TYPE_DYPE
     assert df.dtypes["key"] == "binary[pyarrow]"
     return df
 
@@ -164,7 +167,7 @@ def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFra
 
     # TODO: Clean up post conditions after things are working
     assert df.dtypes["guid"] == "string"
-    assert df.dtypes["type"] == "category"
+    assert df.dtypes["type"] == GUID_TYPE_DYPE
     assert df.dtypes["key"] == "binary[pyarrow]"
     return df
 
@@ -241,7 +244,7 @@ def extract_guids(text: str | Iterable[str]):
 
     # TODO: Clean up post conditions after things are working
     assert df3.dtypes["guid"] == "string"
-    assert df3.dtypes["type"] == "category"
+    assert df3.dtypes["type"] == GUID_TYPE_DYPE
     assert df3.dtypes["key"] == "binary[pyarrow]"
     return df3
 
@@ -260,12 +263,12 @@ def re_finditer(pattern: str, string: str | Iterable[str]) -> Iterator[str]:
 
 def decode_plex_guids(guids: pd.Series) -> pd.DataFrame:
     assert guids.dtype == "string"
-    df = guids.str.extract(GUID_RE).astype({"type": "category", "key": "string"})
+    df = guids.str.extract(GUID_RE).astype({"type": GUID_TYPE_DYPE, "key": "string"})
     return df.assign(key=pack_plex_keys(df["key"]))
 
 
 def encode_plex_guids(df: pd.DataFrame) -> pd.Series:
-    assert df["type"].dtype == "category" or df["type"].dtype == "string"
+    assert df["type"].dtype == GUID_TYPE_DYPE or df["type"].dtype == "string"
     assert df["key"].dtype == "object" or df["key"].dtype == "binary[pyarrow]"
     return "plex://" + df["type"].astype("string") + "/" + unpack_plex_keys(df["key"])
 
