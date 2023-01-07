@@ -98,7 +98,7 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py plex_library.arrow
+          python print_table_stats.py plex_similar.arrow
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
