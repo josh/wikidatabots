@@ -192,17 +192,18 @@ jobs:
           import pandas as pd
 
           from pandas_utils import df_append_new
+          from plex import GUID_COMPONENT_DTYPES
 
           df = pd.read_feather("plex.arrow")
-
-          # TMP
-          df["type"] = df["type"].astype("category")
 
           for fn in glob("artifacts/**/*.arrow", recursive=True):
               df = df_append_new(df, pd.read_feather(fn), on="guid")
 
           # TODO: Review this sort
           df = df.sort_values("guid").reset_index(drop=True)
+
+          # TODO: Work around bad merge
+          df = df.astype(GUID_COMPONENT_DTYPES)
 
           # TODO: Clean up post conditions after things are working
           assert df.dtypes["guid"] == "string"
