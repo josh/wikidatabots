@@ -61,7 +61,7 @@ def plex_server(name: str, token: str | None = PLEX_TOKEN) -> pd.Series:
 
     device = devices_df.iloc[0]
     conn = conns_df.iloc[0]
-    return pd.concat([device, conn])
+    return pd.concat([device, conn], verify_integrity=True)
 
 
 def plex_library_guids(
