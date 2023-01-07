@@ -108,13 +108,11 @@ def plex_similar(
 ) -> pd.DataFrame:
     assert keys.dtype == "object" or keys.dtype == "binary[pyarrow]"
 
-    def map_key(key: bytes):
-        r = request_metdata(key, token)
-        return extract_guids(r.text)
+    def metadata_text(key: bytes) -> str:
+        return request_metdata(key, token).text
 
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
-    dfs = keys.progress_apply(map_key)
-    return safe_row_concat(dfs).drop_duplicates(ignore_index=True)
+    return keys.progress_apply(metadata_text).pipe(extract_guids)
 
 
 def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFrame:
@@ -198,7 +196,7 @@ def request_metdata(key: bytes, token: str | None = PLEX_TOKEN) -> requests.Resp
     return r
 
 
-def extract_guids(text: str | Iterable[str]):
+def extract_guids(text: str | Iterable[str]) -> pd.DataFrame:
     guids = pd.Series(re_finditer(GUID_RE, text), dtype="string").drop_duplicates()
     return decode_plex_guids(guids).sort_values("key", ignore_index=True)
 
