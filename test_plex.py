@@ -20,10 +20,8 @@ from plex import (
 def test_wikidata_plex_guids():
     df = wikidata_plex_guids()
     assert len(df) > 0
-    assert df.dtypes["guid"] == "string"
     assert df.dtypes["type"] == "category"
     assert df.dtypes["key"] == "binary[pyarrow]"
-    assert df["guid"].is_unique
     assert df["key"].is_unique
 
 
@@ -31,10 +29,8 @@ def test_wikidata_plex_guids():
 def test_plex_search_guids():
     df = plex_search_guids(query="Top Gun", token=PLEX_TOKEN)
     assert len(df) > 0
-    assert df.dtypes["guid"] == "string"
     assert df.dtypes["type"] == "category"
     assert df.dtypes["key"] == "binary[pyarrow]"
-    assert df["guid"].is_unique
     assert df["key"].is_unique
 
 
@@ -140,17 +136,17 @@ def test_extract_guids():
     df = extract_guids(text)
     assert len(df) == 4
     assert df.index.tolist() == [0, 1, 2, 3]
-    assert df.dtypes["guid"] == "string"
-    assert df["guid"].tolist() == [
-        "plex://movie/5d7768686f4521001eaa5cac",
-        "plex://show/5d9c08544eefaa001f5daa50",
-        "plex://season/5d9c09bd3c3f87001f361344",
-        "plex://episode/5d9c11154eefaa001f6364e0",
+    assert df.dtypes["key"] == "binary[pyarrow]"
+    assert df["key"].tolist() == [
+        bytes.fromhex("5d7768686f4521001eaa5cac"),
+        bytes.fromhex("5d9c08544eefaa001f5daa50"),
+        bytes.fromhex("5d9c09bd3c3f87001f361344"),
+        bytes.fromhex("5d9c11154eefaa001f6364e0"),
     ]
 
     df = extract_guids("")
     assert len(df) == 0
-    assert df.dtypes["guid"] == "string"
+    assert df.dtypes["key"] == "binary[pyarrow]"
 
 
 def test_arrow_compat():
