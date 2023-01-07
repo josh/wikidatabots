@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import xml.etree.ElementTree as ET
-from codecs import ignore_errors
 from typing import Iterable, Iterator, TypedDict
 
 import pandas as pd
