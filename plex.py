@@ -69,6 +69,11 @@ def plex_library_guids(
     # TODO: Review this concat/sort
     df = pd.concat([df, df2], axis=1)
     df = df.dropna().sort_values("key", ignore_index=True)
+
+    # TODO: Clean up post conditions after things are working
+    assert df.dtypes["guid"] == "string"
+    assert df.dtypes["type"] == "category"
+    assert df.dtypes["key"] == "binary[pyarrow]"
     return df
 
 
@@ -91,6 +96,11 @@ def wikidata_plex_guids() -> pd.DataFrame:
     # TODO: Review this concat/sort
     df = pd.concat([df, df2], axis=1)
     df = df.sort_values("key", ignore_index=True)
+
+    # TODO: Clean up post conditions after things are working
+    assert df.dtypes["guid"] == "string"
+    assert df.dtypes["type"] == "category"
+    assert df.dtypes["key"] == "binary[pyarrow]"
     return df
 
 
@@ -122,7 +132,13 @@ def plex_similar(
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
     dfs: list[pd.DataFrame] = keys.progress_apply(map_key).tolist()
     # TODO: Review this concat/sort
-    return pd.concat(dfs, ignore_index=True).sort_values("key", ignore_index=True)
+    df = pd.concat(dfs, ignore_index=True).sort_values("key", ignore_index=True)
+
+    # TODO: Clean up post conditions after things are working
+    assert df.dtypes["guid"] == "string"
+    assert df.dtypes["type"] == "category"
+    assert df.dtypes["key"] == "binary[pyarrow]"
+    return df
 
 
 def plex_search_guids(query: str, token: str | None = PLEX_TOKEN) -> pd.DataFrame:
@@ -210,7 +226,13 @@ def extract_guids(text: str | Iterable[str]):
     guids = re_finditer(GUID_RE, text)
     df1 = pd.DataFrame(guids, columns=["guid"], dtype="string").drop_duplicates()
     df2 = decode_plex_guids(df1["guid"])
-    return pd.concat([df1, df2], axis=1).sort_values("key", ignore_index=True)
+    df3 = pd.concat([df1, df2], axis=1).sort_values("key", ignore_index=True)
+
+    # TODO: Clean up post conditions after things are working
+    assert df3.dtypes["guid"] == "string"
+    assert df3.dtypes["type"] == "category"
+    assert df3.dtypes["key"] == "binary[pyarrow]"
+    return df3
 
 
 def re_finditer(pattern: str, string: str | Iterable[str]) -> Iterator[str]:
