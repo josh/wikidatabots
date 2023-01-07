@@ -155,7 +155,14 @@ def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFra
     metadata_df = fetch_plex_guids_df(df_missing_metadata["key"], progress=True)
     # TODO: Review this concat/sort
     df_changes = pd.concat([df_missing_metadata, metadata_df], axis=1)
-    return df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
+    df = df_upsert(df, df_changes, on="key").sort_values("key", ignore_index=True)
+
+    # TODO: Clean up post conditions after things are working
+    assert df.dtypes["guid"] == "string"
+    assert df.dtypes["type"] == "category"
+    assert df.dtypes["key"] == "binary[pyarrow]"
+    return df
+
 
 
 def fetch_plex_guids_df(
