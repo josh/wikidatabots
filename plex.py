@@ -31,6 +31,12 @@ EXTERNAL_GUID_RE = (
     r"tvdb://(?P<tvdb_id>[0-9]+)"
 )
 
+GUID_COMPONENT_DTYPES = {
+    "guid": "string",
+    "type": "category",
+    "key": "binary[pyarrow]",
+}
+
 EXTERNAL_GUID_DTYPES = {
     "success": "boolean",
     "retrieved_at": "datetime64[ns]",
@@ -131,8 +137,8 @@ def plex_similar(
 
     tqdm.pandas(desc="Fetch Plex metdata", disable=not progress)
     dfs: list[pd.DataFrame] = keys.progress_apply(map_key).tolist()
-    # TODO: Review this concat/sort
-    df = pd.concat(dfs, ignore_index=True).sort_values("key", ignore_index=True)
+
+    df = pd.concat(dfs, ignore_index=True).astype(GUID_COMPONENT_DTYPES)
 
     # TODO: Clean up post conditions after things are working
     assert df.dtypes["guid"] == "string"
@@ -162,7 +168,6 @@ def backfill_missing_metadata(df: pd.DataFrame, limit: int = 1000) -> pd.DataFra
     assert df.dtypes["type"] == "category"
     assert df.dtypes["key"] == "binary[pyarrow]"
     return df
-
 
 
 def fetch_plex_guids_df(
