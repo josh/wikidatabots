@@ -202,9 +202,6 @@ jobs:
           # TODO: Review this sort
           df = df.sort_values("guid").reset_index(drop=True)
 
-          # TODO: Work around bad merge
-          df = df.astype(GUID_COMPONENT_DTYPES)
-
           # TODO: Clean up post conditions after things are working
           assert df.dtypes["guid"] == "string"
           assert df.dtypes["type"] == GUID_TYPE_DYPE
