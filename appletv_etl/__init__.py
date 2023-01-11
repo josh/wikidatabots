@@ -178,7 +178,7 @@ def append_jsonld_changes(
 
     # FIXME: Restrict to US for now
     us_sitemap_df = sitemap_df[sitemap_df["country"] == "us"]
-    if len(us_sitemap_df) > 10:
+    if len(us_sitemap_df) > 0:
         sitemap_df = us_sitemap_df
 
     urls = sitemap_df.sort_values("priority", ascending=False).head(limit)["loc"]
