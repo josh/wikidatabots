@@ -159,6 +159,7 @@ JSONLD_DTYPES = {
 
 @log_group(title="Fetching JSON-LD")
 def fetch_jsonld_df(urls: pd.Series) -> pd.DataFrame:
+    # TODO: Handle empty urls
     records = urls.progress_apply(appletv.fetch_jsonld)
     df = pd.DataFrame.from_records(list(records))
     df = df.rename(columns={"url": "loc", "success": "jsonld_success"})
@@ -181,8 +182,9 @@ def append_jsonld_changes(
         .head(limit)["loc"]
     )
 
-    jsonld_new_df = fetch_jsonld_df(urls)
-    jsonld_df = df_upsert(jsonld_df, jsonld_new_df, on="loc")
-    jsonld_df = jsonld_df.sort_values("loc", ignore_index=True)
+    if len(urls) > 0:
+        jsonld_new_df = fetch_jsonld_df(urls)
+        jsonld_df = df_upsert(jsonld_df, jsonld_new_df, on="loc")
+        jsonld_df = jsonld_df.sort_values("loc", ignore_index=True)
 
     return jsonld_df
