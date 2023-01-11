@@ -5,3 +5,4 @@ __pycache__/
 pywikibot.lwp
 throttle.ctrl
 user-password.py
+*.arrow
