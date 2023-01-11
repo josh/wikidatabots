@@ -175,7 +175,7 @@ def append_jsonld_changes(
 ) -> pd.DataFrame:
     # FIXME: Restrict to US for now
     us_sitemap_df = sitemap_df[sitemap_df["country"] == "us"]
-    if len(us_sitemap_df) > 0:
+    if len(us_sitemap_df) > 10:
         sitemap_df = us_sitemap_df
 
     sitemap_df = sitemap_df.merge(jsonld_df, on="loc", how="left")
