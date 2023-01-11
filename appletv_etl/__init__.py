@@ -173,17 +173,15 @@ def append_jsonld_changes(
     jsonld_df: pd.DataFrame,
     limit: int = 1000,
 ) -> pd.DataFrame:
+    sitemap_df = sitemap_df.merge(jsonld_df, on="loc", how="left")
+    sitemap_df = sitemap_df[sitemap_df["jsonld_success"].isna()]
+
     # FIXME: Restrict to US for now
     us_sitemap_df = sitemap_df[sitemap_df["country"] == "us"]
     if len(us_sitemap_df) > 10:
         sitemap_df = us_sitemap_df
 
-    sitemap_df = sitemap_df.merge(jsonld_df, on="loc", how="left")
-    urls = (
-        sitemap_df[sitemap_df["jsonld_success"].isna()]
-        .sort_values("priority", ascending=False)
-        .head(limit)["loc"]
-    )
+    urls = sitemap_df.sort_values("priority", ascending=False).head(limit)["loc"]
 
     if len(urls) > 0:
         jsonld_new_df = fetch_jsonld_df(urls)
