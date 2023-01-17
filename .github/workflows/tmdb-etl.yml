@@ -86,14 +86,6 @@ jobs:
         run: |
           python print_table_diff.py changes.arrow~ changes.arrow
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.type }}-changes-export
-          path: |
-            *.arrow
-          retention-days: 7
-
       - name: Upload to S3
         run: |
           aws s3 cp "changes.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow"
@@ -216,14 +208,6 @@ jobs:
       - name: Print diff
         run: |
           python print_table_diff.py external_ids.arrow~ external_ids.arrow id
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.type }}-external_ids-export
-          path: |
-            *.arrow
-          retention-days: 7
 
       - name: Upload to S3
         run: |
