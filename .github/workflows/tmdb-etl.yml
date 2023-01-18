@@ -50,7 +50,7 @@ jobs:
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/changes.arrow" "changes.arrow"
           # aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
           cp changes.arrow changes.arrow~
-          cp latest_changes.arrow latest_changes.arrow~
+          # cp latest_changes.arrow latest_changes.arrow~
         env:
           TYPE: ${{ matrix.type }}
 
