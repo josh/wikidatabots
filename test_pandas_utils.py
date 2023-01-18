@@ -8,6 +8,7 @@ from pandas_utils import (
     df_diff,
     df_upsert,
     is_dtype_pyarrow_lossless,
+    read_json_series,
     safe_column_join,
     safe_row_concat,
     update_feather,
@@ -245,3 +246,17 @@ def test_compact_dtypes():
     assert df.dtypes["a"] == "uint8"
     assert df.dtypes["b"] == "uint16"
     assert df.dtypes["c"] == "object"
+
+
+def test_read_json_series():
+    text = '[{"a": 1}, {"a": 2}, {"a": 3}]'
+    s = pd.Series(['{"a": 1}', '{"a": 2}', '{"a": 3}'], dtype="string")
+    df1 = pd.read_json(text)
+    df2 = read_json_series(s)
+    assert df1.equals(df2)
+
+    text = '[{"a": 1}, {"a": 2}, {"a": 3}]'
+    s = pd.Series(['{"a": 1}', '{"a": 2}', '{"a": 3}'])
+    df1 = pd.read_json(text, dtype={"a": "int8"})  # type: ignore
+    df2 = read_json_series(s, dtype={"a": "int8"})
+    assert df1.equals(df2)

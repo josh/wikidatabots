@@ -159,3 +159,7 @@ def compact_dtype(s: pd.Series) -> pd.Series:
 
 def compact_dtypes(df: pd.DataFrame) -> pd.DataFrame:
     return df.apply(compact_dtype)
+
+
+def read_json_series(s: pd.Series, **kwargs) -> pd.DataFrame:
+    return pd.read_json(s.str.cat(sep="\n"), lines=True, **kwargs)
