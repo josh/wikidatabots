@@ -7,7 +7,7 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
-from pandas_utils import safe_row_concat
+from pandas_utils import compact_dtypes, safe_row_concat
 
 
 def check_tmdb_changes_schema(df: pd.DataFrame) -> None:
@@ -32,13 +32,8 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     r = requests.get(url, params=params)
     data = r.json()["results"]
 
-    df = pd.DataFrame(data)
-    assert df.dtypes["id"] == "int64"
-    assert df.dtypes["adult"] == "object"
-    assert df["id"].max() <= 0xFFFFFFFF
-
+    df = pd.DataFrame(data).pipe(compact_dtypes)
     df["date"] = date
-    df = df.astype({"id": "uint32", "adult": "boolean"})
     df = df[["date", "id", "adult"]]
 
     logging.debug(f"{len(df)} changes on {date}")
