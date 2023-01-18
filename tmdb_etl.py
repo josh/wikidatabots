@@ -118,7 +118,7 @@ def tmdb_external_ids_need_backfill(external_ids_df: pd.DataFrame) -> pd.Series:
     assert external_ids_df.index.name == "id", "set index to id"
     df = external_ids_df
     df = df[df["success"].isna()].reset_index()
-    return df["id"].head(5000)
+    return df["id"].head(10_000)
 
 
 EXTERNAL_IDS_DTYPES = {
