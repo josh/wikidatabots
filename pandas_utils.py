@@ -118,6 +118,7 @@ def safe_column_join(dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
 
 
 def reindex_as_range(df: pd.DataFrame) -> pd.DataFrame:
+    assert df.index.min() >= 0
     stop = df.index.max() + 1
     index = pd.RangeIndex(0, stop, name=df.index.name)
     return df.reindex(index)

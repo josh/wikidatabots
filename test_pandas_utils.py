@@ -170,16 +170,20 @@ def test_safe_column_join():
 
 
 def test_reindex_as_range():
-    index = pd.Index([1, 2, 4], name="id", dtype="uint8")
+    index = pd.Index([1, 4, 2], name="id", dtype="uint8")
     df1 = pd.DataFrame({"a": [1, 2, 3]}, index=index)
     df2 = reindex_as_range(df1)
     assert len(df2) == 5
     assert isinstance(df2.index, pd.RangeIndex)
     assert df2.index.name == "id"
     assert df2.index.dtype == "int64"
-    assert df2.loc[1, "a"] == df1.loc[1, "a"]
-    assert df2.loc[2, "a"] == df1.loc[2, "a"]
-    assert df2.loc[4, "a"] == df1.loc[4, "a"]
+    assert df2.loc[1, "a"] == 1
+    assert df2.loc[2, "a"] == 3
+    assert df2.loc[4, "a"] == 2
+
+    df1 = pd.DataFrame({"a": [1, 2, 3]}, index=[-1, 2, 4])
+    with pytest.raises(AssertionError):
+        reindex_as_range(df1)
 
 
 def test_series_compact_dtype():
