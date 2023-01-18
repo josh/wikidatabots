@@ -145,7 +145,7 @@ jobs:
               tmdb_type=tmdb_type,
               tmdb_ids=tmdb_ids,
           )
-          external_ids_df.reset_index().to_feather("changes.arrow")
+          external_ids_df.reset_index().to_feather("external_ids.arrow")
         env:
           TYPE: ${{ matrix.type }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -167,7 +167,7 @@ jobs:
               tmdb_type=tmdb_type,
               tmdb_ids=tmdb_ids,
           )
-          external_ids_df.reset_index().to_feather("changes.arrow")
+          external_ids_df.reset_index().to_feather("external_ids.arrow")
         env:
           TYPE: ${{ matrix.type }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
