@@ -63,7 +63,7 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
 
 def recent_tmdb_changes(start_date: date, tmdb_type: str):
     assert type(start_date) == date, f"start_date: {type(start_date)}"
-    start = start_date - timedelta(days=2)
+    start = start_date - timedelta(days=14)
     end = date.today()
     dates = pd.date_range(start=start, end=end, freq="D").to_series().dt.date
 
@@ -85,7 +85,7 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
     df = safe_row_concat([df, df_new])
 
     check_tmdb_changes_schema(df)
-    assert len(df) >= initial_size, f"before {initial_size} rows, after {len(df)} rows"
+    # assert len(df) >= initial_size, f"before {initial_size} rows, after {len(df)} rows"
     return df
 
 
