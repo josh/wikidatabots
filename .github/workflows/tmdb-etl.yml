@@ -124,66 +124,52 @@ jobs:
         env:
           TYPE: ${{ matrix.type }}
 
-      - name: Get changed IDs
-        id: tmdb_external_ids_outdated
+      - name: Run ETL outdated script
+        shell: python
         run: |
-          python tmdb_external_ids_outdated.py external_ids.arrow changes.arrow >"$RUNNER_TEMP/changed_ids.txt"
-          count=$(wc -l <"$RUNNER_TEMP/changed_ids.txt")
-          echo "count=$count" | tee --append "$GITHUB_OUTPUT"
+          import os
 
-      - name: Generate changed curl config
-        shell: bash
-        run: |
-          curl_config() {
-            while read -r ID; do
-              URL="https://api.themoviedb.org/3/${TYPE}/$ID/external_ids?api_key=$TMDB_API_KEY"
-              echo "url = \"$URL\""
-              echo "output = \"$RUNNER_TEMP/external_ids/$ID.json\""
-            done
-          }
-          mkdir -p "$RUNNER_TEMP/external_ids/"
-          curl_config <"$RUNNER_TEMP/changed_ids.txt" | tee "$RUNNER_TEMP/curl_config.txt"
+          import pandas as pd
+
+          from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
+
+          tmdb_type = os.environ["TYPE"]
+          changes_df = pd.read_feather("changes.arrow")
+          external_ids_df = pd.read_feather("external_ids.arrow").set_index("id")
+          tmdb_ids = tmdb_outdated_external_ids(
+              changes_df=changes_df,
+              external_ids_df=external_ids_df,
+          )
+          external_ids_df = insert_tmdb_external_ids(
+              external_ids_df,
+              tmdb_type=tmdb_type,
+              tmdb_ids=tmdb_ids,
+          )
+          external_ids_df.reset_index().to_feather("changes.arrow")
         env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
-
-      - name: Fetch changed TMDB external IDs
-        if: steps.tmdb_external_ids_outdated.outputs.count > 0
-        run: |
-          curl --no-progress-meter --config "$RUNNER_TEMP/curl_config.txt"
-
-      - name: Get backfill IDs
-        id: tmdb_external_ids_backfill
-        run: |
-          python tmdb_external_ids_backfill.py external_ids.arrow >"$RUNNER_TEMP/backfill_ids.txt"
-          count=$(wc -l <"$RUNNER_TEMP/backfill_ids.txt")
-          echo "count=$count" | tee --append "$GITHUB_OUTPUT"
-
-      - name: Generate changed curl config
-        shell: bash
-        run: |
-          curl_config() {
-            while read -r ID; do
-              URL="https://api.themoviedb.org/3/${TYPE}/$ID/external_ids?api_key=$TMDB_API_KEY"
-              echo "url = \"$URL\""
-              echo "output = \"$RUNNER_TEMP/external_ids/$ID.json\""
-            done
-          }
-          mkdir -p "$RUNNER_TEMP/external_ids/"
-          curl_config <"$RUNNER_TEMP/backfill_ids.txt" | tee "$RUNNER_TEMP/curl_config.txt"
-        env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          TYPE: ${{ matrix.type }}
 
-      - name: Fetch changed TMDB external IDs
-        if: steps.tmdb_external_ids_backfill.outputs.count > 0
+      - name: Run ETL backfill script
+        shell: python
         run: |
-          curl --no-progress-meter --config "$RUNNER_TEMP/curl_config.txt"
+          import os
 
-      - name: Run script
-        run: |
-          python tmdb_update_external_ids.py "external_ids.arrow" "$RUNNER_TEMP/external_ids"
+          import pandas as pd
+
+          from tmdb_etl import insert_tmdb_external_ids, tmdb_external_ids_need_backfill
+
+          tmdb_type = os.environ["TYPE"]
+          external_ids_df = pd.read_feather("external_ids.arrow").set_index("id")
+          tmdb_ids = tmdb_external_ids_need_backfill(external_ids_df=external_ids_df)
+          external_ids_df = insert_tmdb_external_ids(
+              external_ids_df,
+              tmdb_type=tmdb_type,
+              tmdb_ids=tmdb_ids,
+          )
+          external_ids_df.reset_index().to_feather("changes.arrow")
         env:
+          TYPE: ${{ matrix.type }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
       - name: Print stats
