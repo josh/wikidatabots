@@ -9,6 +9,8 @@ from tqdm import tqdm
 
 from pandas_utils import compact_dtypes, read_json_series, safe_row_concat
 
+session = requests.Session()
+
 
 def check_tmdb_changes_schema(df: pd.DataFrame) -> None:
     assert df.columns.to_list() == ["date", "id", "adult"], f"columns are {df.columns}"
@@ -40,6 +42,8 @@ def check_tmdb_external_ids_schema(df: pd.DataFrame) -> None:
     assert len(df) > 0, "empty dataframe"
 
 
+
+
 def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     start_date = date
     end_date = start_date + timedelta(days=1)
@@ -53,7 +57,7 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
     }
-    r = requests.get(url, params=params)
+    r = session.get(url, params=params)
     data = r.json()["results"]
 
     df = pd.DataFrame(data).pipe(compact_dtypes)
@@ -148,7 +152,7 @@ def fetch_tmdb_external_ids(tmdb_ids: pd.Series, tmdb_type: str) -> pd.DataFrame
     params = {"api_key": api_key}
 
     def fetch(url: str):
-        r = requests.get(url, params=params)
+        r = session.get(url, params=params)
         return r.text
 
     tqdm.pandas(desc="Fetch TMDB external IDs")
