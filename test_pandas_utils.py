@@ -260,3 +260,13 @@ def test_read_json_series():
     df1 = pd.read_json(text, dtype={"a": "int8"})  # type: ignore
     df2 = read_json_series(s, dtype={"a": "int8"})
     assert df1.equals(df2)
+
+    s = pd.Series(
+        ['{"a": 1}', '{"a": 2}', '{"a": 3}'],
+        index=["a", "b", "c"],
+        dtype="string",
+    )
+    df = read_json_series(s)
+    assert df.loc["a", "a"] == 1
+    assert df.loc["b", "a"] == 2
+    assert df.loc["c", "a"] == 3

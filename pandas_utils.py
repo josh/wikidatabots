@@ -162,4 +162,7 @@ def compact_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_json_series(s: pd.Series, **kwargs) -> pd.DataFrame:
-    return pd.read_json(s.str.cat(sep="\n"), lines=True, **kwargs)
+    df = pd.read_json(s.str.cat(sep="\n"), lines=True, **kwargs)
+    assert len(df) == len(s), f"expected {len(s)} json records but got {len(df)}"
+    df.index = s.index
+    return df
