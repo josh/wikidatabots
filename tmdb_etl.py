@@ -48,7 +48,11 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     assert type(end_date) == datetime.date, f"end_date: {type(end_date)}"
 
     url = f"https://api.themoviedb.org/3/{tmdb_type}/changes"
-    params = {"api_key": api_key, "start_date": start_date, "end_date": end_date}
+    params = {
+        "api_key": api_key,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+    }
     r = requests.get(url, params=params)
     data = r.json()["results"]
 
@@ -63,7 +67,7 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
 
 def recent_tmdb_changes(start_date: date, tmdb_type: str):
     assert type(start_date) == date, f"start_date: {type(start_date)}"
-    start = start_date - timedelta(days=2)
+    start = start_date - timedelta(days=30)
     end = date.today()
     dates = pd.date_range(start=start, end=end, freq="D").to_series().dt.date
 
