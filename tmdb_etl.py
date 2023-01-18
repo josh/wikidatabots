@@ -69,7 +69,7 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
 
 def recent_tmdb_changes(start_date: date, tmdb_type: str):
     assert type(start_date) == date, f"start_date: {type(start_date)}"
-    start = start_date - timedelta(days=30)
+    start = start_date - timedelta(days=3)
     end = date.today()
     dates = pd.date_range(start=start, end=end, freq="D").to_series().dt.date
 
