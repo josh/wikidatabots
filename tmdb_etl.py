@@ -9,6 +9,15 @@ from tqdm import tqdm
 from pandas_utils import safe_row_concat
 
 
+def check_tmdb_changes_schema(df: pd.DataFrame) -> None:
+    assert df.columns.to_list() == ["date", "id", "adult"]
+    assert isinstance(df.index, pd.RangeIndex)
+    assert df.dtypes["date"] == "object"
+    assert df.dtypes["id"] == "uint32"
+    assert df.dtypes["adult"] == "boolean"
+    assert len(df) > 0
+
+
 def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     start_date = date
     end_date = start_date + timedelta(days=1)
@@ -26,13 +35,7 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     df = df.astype({"id": "uint32", "adult": "boolean"})
     df = df[["date", "id", "adult"]]
 
-    assert df.columns.to_list() == ["date", "id", "adult"]
-    assert isinstance(df.index, pd.RangeIndex)
-    assert df.dtypes["date"] == "object"
-    assert df.dtypes["id"] == "uint32"
-    assert df.dtypes["adult"] == "boolean"
-    assert len(df) > 0
-
+    check_tmdb_changes_schema(df)
     return df
 
 
@@ -41,14 +44,7 @@ def recent_tmdb_changes(tmdb_type: str):
     dates = pd.date_range(end=date.today(), periods=7, freq="D").to_series().dt.date
     dfs = dates.progress_apply(tmdb_changes, tmdb_type=tmdb_type)  # type: ignore
     df = safe_row_concat(dfs)
-
-    assert df.columns.to_list() == ["date", "id", "adult"]
-    assert isinstance(df.index, pd.RangeIndex)
-    assert df.dtypes["date"] == "object"
-    assert df.dtypes["id"] == "uint32"
-    assert df.dtypes["adult"] == "boolean"
-    assert len(df) > 0
-
+    check_tmdb_changes_schema(df)
     return df
 
 
@@ -62,11 +58,6 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
     df = safe_row_concat([df, df_new])
     df = df.sort_values(by=["date"], kind="stable", ignore_index=True)
 
-    assert df.columns.to_list() == ["date", "id", "adult"]
-    assert isinstance(df.index, pd.RangeIndex)
-    assert df.dtypes["date"] == "object"
-    assert df.dtypes["id"] == "uint32"
-    assert df.dtypes["adult"] == "boolean"
+    check_tmdb_changes_schema(df)
     assert len(df) >= len(df_orig)
-
     return df
