@@ -65,5 +65,5 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
     df = safe_row_concat([df, df_new])
 
     check_tmdb_changes_schema(df)
-    assert len(df) >= initial_size
+    assert len(df) >= initial_size, f"before {initial_size} rows, after {len(df)} rows"
     return df
