@@ -1,8 +1,7 @@
-# pyright: strict
-
 import os
 import sys
 import uuid
+import warnings
 from typing import Any, Iterable
 
 GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS", "") == "true"
@@ -50,3 +49,15 @@ def set_outputs(outputs: Iterable[tuple[str, str]]) -> None:
             f.write("\n")
             f.write(OUTPUT_DELIMITER)
             f.write("\n")
+
+
+def formatwarning(message, category, filename, lineno, line=None) -> str:
+    return (
+        "::warning "
+        f"file={filename},line={lineno},title={category.__name__}::"
+        f"{str(message)}\n"
+    )
+
+
+def install_warnings_hook():
+    warnings.formatwarning = formatwarning

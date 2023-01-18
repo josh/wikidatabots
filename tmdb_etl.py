@@ -8,7 +8,10 @@ import pandas as pd
 import requests
 from tqdm import tqdm
 
+import actions
 from pandas_utils import compact_dtypes, read_json_series, safe_row_concat
+
+actions.install_warnings_hook()
 
 session = requests.Session()
 
@@ -95,6 +98,9 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
     if len(df) < initial_size:
         warnings.warn(f"before {initial_size}, after {len(df)}")
     return df
+
+
+# echo "::warning file=app.js,line=1,col=5,endColumn=7::Missing semicolon"
 
 
 def tmdb_outdated_external_ids(
