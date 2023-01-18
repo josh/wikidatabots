@@ -2,8 +2,7 @@ name: TMDB ETL
 
 on:
   schedule:
-    - cron: "0 8 * * *"
-    - cron: "0 16 * * *"
+    - cron: "0 8,16 * * *"
   workflow_dispatch:
 
 permissions:
@@ -14,7 +13,6 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     concurrency: tmdb_changes_${{ matrix.type }}
-    if: github.event.schedule == '0 8 * * *' || github.event.schedule == '0 16 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -86,7 +84,6 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     concurrency: tmdb_external_ids_${{ matrix.type }}
-    if: github.event.schedule == '0 8 * * *' || github.event.schedule == '0 16 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
