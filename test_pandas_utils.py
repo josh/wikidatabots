@@ -2,6 +2,8 @@ import pandas as pd
 import pytest
 
 from pandas_utils import (
+    compact_dtype,
+    compact_dtypes,
     df_append_new,
     df_diff,
     df_upsert,
@@ -148,3 +150,83 @@ def test_safe_column_join():
     df2 = pd.DataFrame({"b": [4, 5]})
     with pytest.raises(AssertionError):
         safe_column_join([df1, df2])
+
+
+def test_series_compact_dtype():
+    s1 = pd.Series([1, 2, 3])
+    assert s1.dtype == "int64"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "uint8", f"dtype was {s2.dtype}"
+    assert s1.to_list() == s2.to_list()
+
+    s1 = pd.Series([10_000])
+    assert s1.dtype == "int64"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "uint16", f"dtype was {s2.dtype}"
+    assert s1.to_list() == s2.to_list()
+
+    s1 = pd.Series([1_000_000])
+    assert s1.dtype == "int64"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "uint32", f"dtype was {s2.dtype}"
+    assert s1.to_list() == s2.to_list()
+
+    s1 = pd.Series([1_000_000_000, -1])
+    assert s1.dtype == "int64"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "int32", f"dtype was {s2.dtype}"
+    assert s1.to_list() == s2.to_list()
+
+    s1 = pd.Series([10_000, None], dtype="Int64")
+    assert s1.dtype == "Int64"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "UInt16", f"dtype was {s2.dtype}"
+    assert s1.to_list() == s2.to_list()
+
+    s1 = pd.Series([1.0, 2.1, 3.0], dtype="Float64")
+    assert s1.dtype == "Float64"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "float32", f"dtype was {s2.dtype}"
+
+    s1 = pd.Series([1.0, 2.1, None])
+    assert s1.dtype == "float64"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "Float32", f"dtype was {s2.dtype}"
+
+    s1 = pd.Series([True, False])
+    assert s1.dtype == "bool"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "bool", f"dtype was {s2.dtype}"
+
+    s1 = pd.Series([True, False, None])
+    assert s1.dtype == "object"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "boolean", f"dtype was {s2.dtype}"
+
+    s1 = pd.Series(["foo", "bar"])
+    assert s1.dtype == "object"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "string", f"dtype was {s2.dtype}"
+
+    s1 = pd.Series(["foo", "bar", None])
+    assert s1.dtype == "object"
+    s2 = compact_dtype(s1)
+    assert s2.dtype == "string", f"dtype was {s2.dtype}"
+
+
+def test_compact_dtypes():
+    df = pd.DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b": [10_000, 20_000, 30_000],
+            "c": [{"a": 1}, {"a": 2}, {"a": 3}],
+        }
+    )
+    assert df.dtypes["a"] == "int64"
+    assert df.dtypes["b"] == "int64"
+    assert df.dtypes["c"] == "object"
+
+    df = compact_dtypes(df)
+    assert df.dtypes["a"] == "uint8"
+    assert df.dtypes["b"] == "uint16"
+    assert df.dtypes["c"] == "object"

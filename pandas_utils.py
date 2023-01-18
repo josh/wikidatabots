@@ -1,3 +1,4 @@
+from tkinter import E
 from typing import Callable, Iterable
 
 import pandas as pd
@@ -108,3 +109,47 @@ def safe_column_join(dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
     df = pd.concat(dfs, axis=1)
 
     return df
+
+
+NULLABLE_DTYPES = {
+    "int8": "Int8",
+    "int16": "Int16",
+    "int32": "Int32",
+    "int64": "Int64",
+    "uint8": "UInt8",
+    "uint16": "UInt16",
+    "uint32": "UInt32",
+    "uint64": "UInt64",
+    "float32": "Float32",
+    "float64": "Float64",
+    "bool": "boolean",
+}
+
+NON_NULLABLE_DTYPES = {v: k for k, v in NULLABLE_DTYPES.items()}
+
+
+def compact_dtype(s: pd.Series) -> pd.Series:
+    inferred_dtype = pd.api.types.infer_dtype(s, skipna=True)
+
+    if inferred_dtype == "string":
+        s = s.astype("string")
+    elif inferred_dtype == "floating":
+        s = pd.to_numeric(s, downcast="float")
+    elif inferred_dtype == "integer":
+        if s.min() >= 0:
+            s = pd.to_numeric(s, downcast="unsigned")
+        else:
+            s = pd.to_numeric(s, downcast="signed")
+    elif inferred_dtype == "boolean":
+        s = s.astype("boolean")
+
+    if s.hasnans and s.dtype.name in NULLABLE_DTYPES:
+        s = s.astype(NULLABLE_DTYPES[s.dtype.name])
+    elif not s.hasnans and s.dtype.name in NON_NULLABLE_DTYPES:
+        s = s.astype(NON_NULLABLE_DTYPES[s.dtype.name])
+
+    return s
+
+
+def compact_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    return df.apply(compact_dtype)
