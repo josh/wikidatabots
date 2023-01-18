@@ -23,8 +23,8 @@ PROPERTY_MAP: dict[tmdb.ObjectType, str] = {
 def main(tmdb_type: tmdb.ObjectType):
     changes_df = pd.read_feather(
         f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow",
-        columns=["id", "adult", "has_changes"],
-    ).set_index("id")
+        columns=["adult", "has_changes"],
+    )
 
     query = """
     SELECT ?statement ?value WHERE {
