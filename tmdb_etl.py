@@ -13,8 +13,8 @@ from pandas_utils import (
     compact_dtypes,
     df_diff,
     read_json_series,
-    safe_row_concat,
     reindex_as_range,
+    safe_row_concat,
 )
 
 actions.install_warnings_hook()
