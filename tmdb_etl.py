@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 from datetime import date, timedelta
 
@@ -10,12 +11,13 @@ from pandas_utils import safe_row_concat
 
 
 def check_tmdb_changes_schema(df: pd.DataFrame) -> None:
-    assert df.columns.to_list() == ["date", "id", "adult"]
-    assert isinstance(df.index, pd.RangeIndex)
-    assert df.dtypes["date"] == "object"
-    assert df.dtypes["id"] == "uint32"
-    assert df.dtypes["adult"] == "boolean"
-    assert len(df) > 0
+    assert df.columns.to_list() == ["date", "id", "adult"], f"columns are {df.columns}"
+    assert isinstance(df.index, pd.RangeIndex), f"index is {type(df.index)}"
+    assert df.dtypes["date"] == "object", f"id date is {df.dtypes['date']}"
+    assert df.dtypes["id"] == "uint32", f"id dtype is {df.dtypes['id']}"
+    assert df.dtypes["adult"] == "boolean", f"adult dtype is {df.dtypes['adult']}"
+    assert len(df) > 0, "empty dataframe"
+    assert df["date"].is_monotonic_increasing, "dates are not sorted"
 
 
 def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
@@ -31,33 +33,42 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     data = r.json()["results"]
 
     df = pd.DataFrame(data)
+    assert df.dtypes["id"] == "int64"
+    assert df.dtypes["adult"] == "object"
+    assert df["id"].max() <= 0xFFFFFFFF
+
     df["date"] = date
     df = df.astype({"id": "uint32", "adult": "boolean"})
     df = df[["date", "id", "adult"]]
 
+    logging.debug(f"{len(df)} changes on {date}")
     check_tmdb_changes_schema(df)
     return df
 
 
-def recent_tmdb_changes(tmdb_type: str):
+def recent_tmdb_changes(start_date: date, tmdb_type: str):
+    assert type(start_date) == date, f"start_date: {type(start_date)}"
+    start = start_date - timedelta(days=2)
+    end = date.today()
+    dates = pd.date_range(start=start, end=end, freq="D").to_series().dt.date
+
     tqdm.pandas(desc="Fetch TMDB changes")
-    dates = pd.date_range(end=date.today(), periods=7, freq="D").to_series().dt.date
     dfs = dates.progress_apply(tmdb_changes, tmdb_type=tmdb_type)  # type: ignore
     df = safe_row_concat(dfs)
+
     check_tmdb_changes_schema(df)
     return df
 
 
 def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
-    df_orig = df
-    df_new = recent_tmdb_changes(tmdb_type=tmdb_type)
+    initial_size = len(df)
+    df_new = recent_tmdb_changes(start_date=df["date"].max(), tmdb_type=tmdb_type)
 
     existing_indices = df["date"].isin(df_new["date"])
     df = df[~existing_indices].reset_index(drop=True)
 
     df = safe_row_concat([df, df_new])
-    df = df.sort_values(by=["date"], kind="stable", ignore_index=True)
 
     check_tmdb_changes_schema(df)
-    assert len(df) >= len(df_orig)
+    assert len(df) >= initial_size
     return df
