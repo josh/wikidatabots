@@ -9,7 +9,13 @@ import requests
 from tqdm import tqdm
 
 import actions
-from pandas_utils import compact_dtypes, df_diff, read_json_series, safe_row_concat
+from pandas_utils import (
+    compact_dtypes,
+    df_diff,
+    read_json_series,
+    safe_row_concat,
+    reindex_as_range,
+)
 
 actions.install_warnings_hook()
 
@@ -125,6 +131,14 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
 
     check_tmdb_changes_schema(df)
 
+    return df
+
+
+def tmdb_latest_changes(pd: pd.DataFrame) -> pd.DataFrame:
+    df = pd.drop_duplicates(subset=["id"], keep="last")
+    df = df.set_index("id").pipe(reindex_as_range).sort_index()
+    df = df.reset_index().astype({"id": "uint32"})
+    df = df[["id", "date", "adult"]]
     return df
 
 

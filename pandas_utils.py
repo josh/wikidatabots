@@ -117,6 +117,12 @@ def safe_column_join(dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
     return df
 
 
+def reindex_as_range(df: pd.DataFrame) -> pd.DataFrame:
+    stop = df.index.max() + 1
+    index = pd.RangeIndex(0, stop, name=df.index.name)
+    return df.reindex(index)
+
+
 NULLABLE_DTYPES = {
     "int8": "Int8",
     "int16": "Int16",

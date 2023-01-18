@@ -48,11 +48,13 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/changes.arrow" "changes.arrow"
+          # aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
           cp changes.arrow changes.arrow~
+          cp latest_changes.arrow latest_changes.arrow~
         env:
           TYPE: ${{ matrix.type }}
 
-      - name: Run ETL script
+      - name: Run ETL changes script
         shell: python
         run: |
           import os
@@ -66,17 +68,33 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
 
+      - name: Run ETL latest changes script
+        shell: python
+        run: |
+          import os
+
+          import pandas as pd
+
+          from tmdb_etl import tmdb_latest_changes
+
+          df = pd.read_feather("changes.arrow")
+          df = tmdb_latest_changes(df)
+          df.to_feather("latest_changes.arrow")
+
       - name: Print stats
         run: |
           python print_table_stats.py changes.arrow
+          python print_table_stats.py latest_changes.arrow
 
       - name: Print diff
         run: |
           python print_table_diff.py changes.arrow~ changes.arrow
+          # python print_table_diff.py latest_changes.arrow~ latest_changes.arrow
 
       - name: Upload to S3
         run: |
           aws s3 cp "changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/changes.arrow"
+          aws s3 cp "latest_changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow"
         env:
           TYPE: ${{ matrix.type }}
 

@@ -9,6 +9,7 @@ from pandas_utils import (
     df_upsert,
     is_dtype_pyarrow_lossless,
     read_json_series,
+    reindex_as_range,
     safe_column_join,
     safe_row_concat,
     update_feather,
@@ -166,6 +167,19 @@ def test_safe_column_join():
     df2 = pd.DataFrame({"b": [4, 5]})
     with pytest.raises(AssertionError):
         safe_column_join([df1, df2])
+
+
+def test_reindex_as_range():
+    index = pd.Index([1, 2, 4], name="id", dtype="uint8")
+    df1 = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+    df2 = reindex_as_range(df1)
+    assert len(df2) == 5
+    assert isinstance(df2.index, pd.RangeIndex)
+    assert df2.index.name == "id"
+    assert df2.index.dtype == "int64"
+    assert df2.loc[1, "a"] == df1.loc[1, "a"]
+    assert df2.loc[2, "a"] == df1.loc[2, "a"]
+    assert df2.loc[4, "a"] == df1.loc[4, "a"]
 
 
 def test_series_compact_dtype():
