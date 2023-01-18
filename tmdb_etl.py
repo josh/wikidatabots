@@ -134,6 +134,7 @@ EXTERNAL_IDS_DTYPES = {
 
 
 def fetch_tmdb_external_ids(tmdb_ids: pd.Series, tmdb_type: str) -> pd.DataFrame:
+    assert len(tmdb_ids) > 0, "no ids"
     assert isinstance(tmdb_ids.index, pd.RangeIndex), f"index is {type(tmdb_ids.index)}"
 
     api_key = os.environ["TMDB_API_KEY"]
@@ -177,6 +178,8 @@ def fetch_tmdb_external_ids(tmdb_ids: pd.Series, tmdb_type: str) -> pd.DataFrame
 def insert_tmdb_external_ids(
     df: pd.DataFrame, tmdb_type: str, tmdb_ids: pd.Series
 ) -> pd.DataFrame:
+    if len(tmdb_ids) == 0:
+        return df
     df_orig = df.copy()
     df_updated_rows = fetch_tmdb_external_ids(tmdb_type=tmdb_type, tmdb_ids=tmdb_ids)
     assert df_updated_rows.index.isin(df.index).all()
