@@ -62,6 +62,13 @@ def write_feather_with_index(df: pd.DataFrame, path: str) -> None:
     feather.write_feather(table, path)
 
 
+def is_dtype_pyarrow_lossless(df: pd.DataFrame) -> bool:
+    table = pa.Table.from_pandas(df)
+    table = table.replace_schema_metadata()
+    df2 = table.to_pandas()
+    return df.dtypes.equals(df2.dtypes)
+
+
 def safe_row_concat(dfs: Iterable[pd.DataFrame]) -> pd.DataFrame:
     dfs = list(dfs)
 

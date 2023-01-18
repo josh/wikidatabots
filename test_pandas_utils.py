@@ -7,6 +7,7 @@ from pandas_utils import (
     df_append_new,
     df_diff,
     df_upsert,
+    is_dtype_pyarrow_lossless,
     safe_column_join,
     safe_row_concat,
     update_feather,
@@ -109,6 +110,20 @@ def test_write_feather_with_index():
     assert df.columns.tolist() == ["a", "b"]
     assert df["a"].dtype == "int64"
     assert df["b"].dtype == "int64"
+
+
+def test_is_dtype_pyarrow_lossless():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    assert is_dtype_pyarrow_lossless(df)
+
+    df = pd.DataFrame({"a": [1, 2, 3]}, dtype="Int32")
+    assert not is_dtype_pyarrow_lossless(df)
+
+    df = pd.DataFrame({"a": ["a", "b", "c"]})
+    assert is_dtype_pyarrow_lossless(df)
+
+    df = pd.DataFrame({"a": ["a", "b", "c"]}, dtype="string")
+    assert not is_dtype_pyarrow_lossless(df)
 
 
 def test_safe_row_concat():
