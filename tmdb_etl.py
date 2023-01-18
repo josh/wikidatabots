@@ -136,7 +136,7 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
 
 def tmdb_latest_changes(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop_duplicates(subset=["id"], keep="last")
-    df = df.set_index("id").pipe(reindex_as_range).sort_index()
+    df = df.set_index("id").pipe(reindex_as_range)
     df = df.reset_index().astype({"id": "uint32"})
     df = df.assign(has_changes=df["date"].notna())
     df = df[["id", "has_changes", "date", "adult"]]
