@@ -42,8 +42,6 @@ def check_tmdb_external_ids_schema(df: pd.DataFrame) -> None:
     assert len(df) > 0, "empty dataframe"
 
 
-
-
 def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     start_date = date
     end_date = start_date + timedelta(days=1)
@@ -167,10 +165,11 @@ def fetch_tmdb_external_ids(tmdb_ids: pd.Series, tmdb_type: str) -> pd.DataFrame
         df["success"] = True
     df["success"] = df["success"].fillna(True).astype("boolean")
 
-    df["imdb_numeric_id"] = pd.to_numeric(
-        df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm"),
-        errors="coerce",
-    ).astype("UInt32")
+    if "imdb_id" in df:
+        df["imdb_numeric_id"] = pd.to_numeric(
+            df["imdb_id"].str.removeprefix("tt").str.removeprefix("nm"),
+            errors="coerce",
+        ).astype("UInt32")
 
     df["retrieved_at"] = pd.Timestamp.now().floor("s")
 
@@ -187,7 +186,8 @@ def insert_tmdb_external_ids(
     df_orig = df.copy()
     df_updated_rows = fetch_tmdb_external_ids(tmdb_type=tmdb_type, tmdb_ids=tmdb_ids)
     assert df_updated_rows.index.isin(df.index).all()
-    df.loc[df_updated_rows.index] = df_updated_rows[df.columns]  # type: ignore
+    shared_columns = df_orig.columns.intersection(df_updated_rows.columns)
+    df.loc[df_updated_rows.index, shared_columns] = df_updated_rows[shared_columns]
     assert len(df) == len(df_orig)
     assert df.columns.equals(df_orig.columns)
     return df
