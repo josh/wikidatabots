@@ -156,7 +156,7 @@ jobs:
           from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
 
           tmdb_type = os.environ["TYPE"]
-          latest_changes_df = pd.read_feather("latest_changes.arrow")
+          latest_changes_df = pd.read_feather("latest_changes.arrow").set_index("id")
           external_ids_df = pd.read_feather("external_ids.arrow").set_index("id")
           tmdb_ids = tmdb_outdated_external_ids(
               latest_changes_df=latest_changes_df,
