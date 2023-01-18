@@ -1,4 +1,3 @@
-from tkinter import E
 from typing import Callable, Iterable
 
 import pandas as pd
