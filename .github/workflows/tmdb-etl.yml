@@ -27,12 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
@@ -41,7 +35,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r <(grep -E 'fsspec|pandas|pyarrow' requirements.txt)
+          pip install -r requirements.txt
 
       - name: Set Python path
         run: |
@@ -49,34 +43,24 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow" "changes.arrow"
+          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/changes.arrow" "changes.arrow"
           cp changes.arrow changes.arrow~
         env:
-          BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
 
-      - name: Fetch recent TMDB changes
-        shell: bash
+      - name: Run ETL script
+        shell: python
         run: |
-          curl_config() {
-            for N in $(seq 0 6); do
-              START_DATE=$(date --date="today -$N day" +%Y-%m-%d)
-              END_DATE=$(date --date="today -$N day +1 day" +%Y-%m-%d)
-              URL="https://api.themoviedb.org/3/${TYPE}/changes?api_key=$TMDB_API_KEY&start_date=$START_DATE&end_date=$END_DATE"
-              echo "url = \"$URL\""
-              echo "output = \"$RUNNER_TEMP/changes/$START_DATE.json\""
-            done
-          }
-          mkdir -p "$RUNNER_TEMP/changes/"
-          curl_config | tee "$RUNNER_TEMP/curl_config.txt"
-          curl --fail --no-progress-meter --config "$RUNNER_TEMP/curl_config.txt"
+          import os
+
+          from pandas_utils import update_feather
+          from tmdb_etl import insert_tmdb_changes
+
+          tmdb_type = os.environ["TYPE"]
+          update_feather("changes.arrow", lambda df: insert_tmdb_changes(df, tmdb_type=tmdb_type))
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
-
-      - name: Append TMDB changes
-        run: |
-          python tmdb_append_changes.py changes.arrow "$RUNNER_TEMP/changes"
 
       - name: Print stats
         run: |
@@ -86,11 +70,16 @@ jobs:
         run: |
           python print_table_diff.py changes.arrow~ changes.arrow
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
       - name: Upload to S3
         run: |
-          aws s3 cp "changes.arrow" "s3://$BUCKET_NAME/tmdb/${TYPE}/changes.arrow"
+          aws s3 cp "changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/changes.arrow"
         env:
-          BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
 
   external_ids:
