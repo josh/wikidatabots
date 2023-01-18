@@ -71,8 +71,6 @@ jobs:
       - name: Run ETL latest changes script
         shell: python
         run: |
-          import os
-
           import pandas as pd
 
           from tmdb_etl import tmdb_latest_changes
