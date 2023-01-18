@@ -100,9 +100,6 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
     return df
 
 
-# echo "::warning file=app.js,line=1,col=5,endColumn=7::Missing semicolon"
-
-
 def tmdb_outdated_external_ids(
     changes_df: pd.DataFrame,
     external_ids_df: pd.DataFrame,
