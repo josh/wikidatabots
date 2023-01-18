@@ -144,15 +144,10 @@ def tmdb_latest_changes(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def tmdb_outdated_external_ids(
-    changes_df: pd.DataFrame,
+    latest_changes_df: pd.DataFrame,
     external_ids_df: pd.DataFrame,
 ) -> pd.Series:
-    latest_changes_df = (
-        changes_df.drop_duplicates(subset=["id"], keep="last")
-        .set_index("id")
-        .sort_index()
-    )
-
+    assert latest_changes_df.index.name == "id", "set index to id"
     assert external_ids_df.index.name == "id", "set index to id"
 
     df = external_ids_df.join(latest_changes_df, how="left")

@@ -48,9 +48,9 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/changes.arrow" "changes.arrow"
-          # aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
+          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
           cp changes.arrow changes.arrow~
-          # cp latest_changes.arrow latest_changes.arrow~
+          cp latest_changes.arrow latest_changes.arrow~
         env:
           TYPE: ${{ matrix.type }}
 
@@ -82,12 +82,18 @@ jobs:
       - name: Print stats
         run: |
           python print_table_stats.py changes.arrow
+
+      - name: Print stats
+        run: |
           python print_table_stats.py latest_changes.arrow
 
       - name: Print diff
         run: |
           python print_table_diff.py changes.arrow~ changes.arrow
-          # python print_table_diff.py latest_changes.arrow~ latest_changes.arrow
+
+      - name: Print diff
+        run: |
+          python print_table_diff.py latest_changes.arrow~ latest_changes.arrow
 
       - name: Upload to S3
         run: |
@@ -134,7 +140,7 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/changes.arrow" "changes.arrow"
+          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow" "external_ids.arrow"
           cp external_ids.arrow external_ids.arrow~
         env:
@@ -150,10 +156,10 @@ jobs:
           from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
 
           tmdb_type = os.environ["TYPE"]
-          changes_df = pd.read_feather("changes.arrow")
+          latest_changes_df = pd.read_feather("latest_changes.arrow")
           external_ids_df = pd.read_feather("external_ids.arrow").set_index("id")
           tmdb_ids = tmdb_outdated_external_ids(
-              changes_df=changes_df,
+              latest_changes_df=latest_changes_df,
               external_ids_df=external_ids_df,
           )
           external_ids_df = insert_tmdb_external_ids(

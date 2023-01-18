@@ -21,15 +21,10 @@ PROPERTY_MAP: dict[tmdb.ObjectType, str] = {
 
 
 def main(tmdb_type: tmdb.ObjectType):
-    # TODO: Precompute latest changes
-    changes_uri = f"s3://wikidatabots/tmdb/{tmdb_type}/changes.arrow"
-    changes_df = (
-        pd.read_feather(changes_uri, columns=["id", "adult"])
-        .drop_duplicates(subset=["id"], keep="last")
-        .set_index("id")
-        .sort_index()
-    )
-    changes_df["has_changes"] = True
+    changes_df = pd.read_feather(
+        f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow",
+        columns=["id", "adult", "has_changes"],
+    ).set_index("id")
 
     query = """
     SELECT ?statement ?value WHERE {
