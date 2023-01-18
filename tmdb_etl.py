@@ -99,7 +99,7 @@ def tmdb_outdated_external_ids(
         .sort_index()
     )
 
-    external_ids_df = external_ids_df.set_index("id")
+    assert external_ids_df.index.name == "id", "set index to id"
 
     df = external_ids_df.join(latest_changes_df, how="left")
     is_missing = df["retrieved_at"].isna()
@@ -109,7 +109,8 @@ def tmdb_outdated_external_ids(
 
 
 def tmdb_external_ids_need_backfill(external_ids_df: pd.DataFrame) -> pd.Series:
-    df = external_ids_df.set_index("id")
+    assert external_ids_df.index.name == "id", "set index to id"
+    df = external_ids_df
     df = df[df["success"].isna()].reset_index()
     return df["id"].head(5000)
 
