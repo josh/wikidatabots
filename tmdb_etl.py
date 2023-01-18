@@ -80,7 +80,7 @@ def recent_tmdb_changes(start_date: date, tmdb_type: str):
 
 
 def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
-    # initial_size = len(df)
+    initial_size = len(df)
     df_new = recent_tmdb_changes(start_date=df["date"].max(), tmdb_type=tmdb_type)
 
     existing_indices = df["date"].isin(df_new["date"])
@@ -89,7 +89,7 @@ def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
     df = safe_row_concat([df, df_new])
 
     check_tmdb_changes_schema(df)
-    # assert len(df) >= initial_size, f"before {initial_size}, after {len(df)}"
+    assert len(df) >= initial_size, f"before {initial_size}, after {len(df)}"
     return df
 
 
