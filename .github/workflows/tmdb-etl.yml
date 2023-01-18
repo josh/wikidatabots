@@ -41,6 +41,12 @@ jobs:
         run: |
           echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/changes.arrow" "changes.arrow"
@@ -69,12 +75,6 @@ jobs:
       - name: Print diff
         run: |
           python print_table_diff.py changes.arrow~ changes.arrow
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
 
       - name: Upload to S3
         run: |
