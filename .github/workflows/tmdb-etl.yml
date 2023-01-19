@@ -153,7 +153,12 @@ jobs:
 
           import pandas as pd
 
-          from tmdb_etl import insert_tmdb_external_ids, set_id_index, tmdb_outdated_external_ids
+          from tmdb_etl import (
+              insert_tmdb_external_ids,
+              set_id_index,
+              tmdb_outdated_external_ids,
+              unset_id_index,
+          )
 
           tmdb_type = os.environ["TYPE"]
           latest_changes_df = pd.read_feather("latest_changes.arrow").pipe(set_id_index)
@@ -167,7 +172,7 @@ jobs:
               tmdb_type=tmdb_type,
               tmdb_ids=tmdb_ids,
           )
-          external_ids_df.reset_index().to_feather("external_ids.arrow")
+          external_ids_df.pipe(unset_id_index).to_feather("external_ids.arrow")
         env:
           TYPE: ${{ matrix.type }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -183,6 +188,7 @@ jobs:
               insert_tmdb_external_ids,
               set_id_index,
               tmdb_external_ids_need_backfill,
+              unset_id_index,
           )
 
           tmdb_type = os.environ["TYPE"]
@@ -193,7 +199,7 @@ jobs:
               tmdb_type=tmdb_type,
               tmdb_ids=tmdb_ids,
           )
-          external_ids_df.reset_index().to_feather("external_ids.arrow")
+          external_ids_df.pipe(unset_id_index).to_feather("external_ids.arrow")
         env:
           TYPE: ${{ matrix.type }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
