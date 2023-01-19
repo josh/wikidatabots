@@ -180,9 +180,9 @@ jobs:
           import pandas as pd
 
           from tmdb_etl import (
-            insert_tmdb_external_ids,
-            set_id_index,
-            tmdb_external_ids_need_backfill,
+              insert_tmdb_external_ids,
+              set_id_index,
+              tmdb_external_ids_need_backfill,
           )
 
           tmdb_type = os.environ["TYPE"]
