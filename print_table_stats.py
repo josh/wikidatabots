@@ -19,13 +19,16 @@ count = len(df)
 schema_df = pd.DataFrame({"name": table.column_names}, index=table.column_names)
 schema_df["pyarrow"] = schema_df.name.apply(lambda n: table[n].type)
 schema_df["pandas"] = df.dtypes
-bool_cols = df.select_dtypes(include="bool")
+
+bool_colnames = [n for n in table.column_names if table[n].type == pa.bool_()]
+bool_cols = df[bool_colnames]
 if bool_cols.empty:
     schema_df["true_count"] = 0
     schema_df["false_count"] = 0
 else:
     schema_df["true_count"] = bool_cols.where(df == 1).notna().sum()
     schema_df["false_count"] = bool_cols.where(df == 0).notna().sum()
+
 schema_df["null_count"] = df.isna().sum()
 schema_df["true_percent"] = schema_df.true_count / count
 schema_df["false_percent"] = schema_df.false_count / count
