@@ -1,5 +1,5 @@
-from typing import Callable, Iterable
 import warnings
+from typing import Callable, Iterable
 
 import pandas as pd
 import pyarrow as pa
