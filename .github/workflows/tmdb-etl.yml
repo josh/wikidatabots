@@ -56,7 +56,6 @@ jobs:
 
       - name: Run ETL changes script
         shell: python
-        if: false
         run: |
           import os
 
@@ -67,7 +66,7 @@ jobs:
           tmdb_type = os.environ["TYPE"]
           df = pl.read_ipc("changes.arrow", memory_map=False)
           df = insert_tmdb_changes(df, tmdb_type)
-          df.write_ipc("changes.arrow", compression="lz4")
+          df.write_ipc("changes_next.arrow", compression="lz4")
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
@@ -85,7 +84,7 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py changes.arrow
+          python print_table_stats.py changes_next.arrow
 
       - name: Print stats
         run: |
@@ -93,7 +92,7 @@ jobs:
 
       - name: Print diff
         run: |
-          python print_table_diff.py changes.arrow~ changes.arrow
+          python print_table_diff.py changes.arrow~ changes_next.arrow
 
       - name: Print diff
         run: |
