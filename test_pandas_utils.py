@@ -6,7 +6,6 @@ from pandas_utils import (
     compact_dtypes,
     df_append_new,
     df_assign_or_append,
-    df_diff,
     df_upsert,
     is_dtype_pyarrow_lossless,
     read_json_series,
@@ -16,43 +15,6 @@ from pandas_utils import (
     update_feather,
     write_feather_with_index,
 )
-
-
-def test_df_diff():
-    df1 = pd.DataFrame({"a": [1, 2, 3]})
-    df2 = pd.DataFrame({"a": [2, 3, 4]})
-    added, removed, updated = df_diff(df1, df2)
-    assert added == 1
-    assert removed == 1
-    assert updated == 0
-
-    df1 = pd.DataFrame({"a": [1]})
-    df2 = pd.DataFrame({"a": [1, 2, 3, 4]})
-    added, removed, updated = df_diff(df1, df2)
-    assert added == 3
-    assert removed == 0
-    assert updated == 0
-
-    df1 = pd.DataFrame({"a": [1, 2, 3, 4]})
-    df2 = pd.DataFrame({"a": [1]})
-    added, removed, updated = df_diff(df1, df2)
-    assert added == 0
-    assert removed == 3
-    assert updated == 0
-
-    df1 = pd.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
-    df2 = pd.DataFrame({"a": [2, 3, 4], "b": [True, False, False]})
-    added, removed, updated = df_diff(df1, df2, on="a")
-    assert added == 1
-    assert removed == 1
-    assert updated == 1
-
-    df1 = pd.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
-    df2 = pd.DataFrame({"a": [1, 2, 3], "b": [True, True, False]})
-    added, removed, updated = df_diff(df1, df2, on="a")
-    assert added == 0
-    assert removed == 0
-    assert updated == 2
 
 
 def test_df_upsert():
