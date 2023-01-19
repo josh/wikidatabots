@@ -21,16 +21,6 @@ actions.install_warnings_hook()
 session = requests.Session()
 
 
-def check_tmdb_changes_schema(df: pd.DataFrame) -> None:
-    assert df.columns.to_list() == ["date", "id", "adult"], f"columns are {df.columns}"
-    assert isinstance(df.index, pd.RangeIndex), f"index is {type(df.index)}"
-    assert df.dtypes["date"] == "object", f"id date is {df.dtypes['date']}"
-    assert df.dtypes["id"] == "uint32", f"id dtype is {df.dtypes['id']}"
-    assert df.dtypes["adult"] == "boolean", f"adult dtype is {df.dtypes['adult']}"
-    assert len(df) > 0, "empty dataframe"
-    assert df["date"].is_monotonic_increasing, "dates are not sorted"
-
-
 def check_tmdb_external_ids_schema(df: pd.DataFrame) -> None:
     assert df.index.name == "id", f"index name was {df.index.name}"
     assert df.index.dtype == "uint64", f"id index dtype is {df.index.dtype}"
