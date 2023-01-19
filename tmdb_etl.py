@@ -22,30 +22,6 @@ actions.install_warnings_hook()
 session = requests.Session()
 
 
-def check_tmdb_external_ids_schema(df: pd.DataFrame) -> None:
-    assert df.index.name == "id", f"index name was {df.index.name}"
-    assert df.index.dtype == "uint64", f"id index dtype is {df.index.dtype}"
-    assert df.index.is_monotonic_increasing, "index is not sorted"
-    assert df.index.is_unique, "index is not unique"
-
-    assert df.dtypes["imdb_id"] == "string", f"imdb_id dtype is {df.dtypes['imdb_id']}"
-
-    assert (
-        df.dtypes["imdb_numeric_id"] == "UInt32"
-    ), f"imdb_numeric_id dtype is {df.dtypes['imdb_numeric_id']}"
-
-    assert (
-        df.dtypes["wikidata_id"] == "string"
-    ), f"wikidata_id dtype is {df.dtypes['wikidata_id']}"
-
-    if "tvdb_id" in df.columns:
-        assert (
-            df.dtypes["tvdb_id"] == "UInt32"
-        ), f"tvdb_id dtype is {df.dtypes['tvdb_id']}"
-
-    assert len(df) > 0, "empty dataframe"
-
-
 def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
     start_date = date
     end_date = start_date + timedelta(days=7)
