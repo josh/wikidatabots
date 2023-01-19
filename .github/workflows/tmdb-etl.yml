@@ -65,7 +65,7 @@ jobs:
           from tmdb_etl import insert_tmdb_changes
 
           tmdb_type = os.environ["TYPE"]
-          df = pl.read_ipc("changes.arrow")
+          df = pl.read_ipc("changes.arrow", memory_map=False)
           df = insert_tmdb_changes(df, tmdb_type)
           df.write_ipc("changes.arrow", compression="lz4")
         env:
