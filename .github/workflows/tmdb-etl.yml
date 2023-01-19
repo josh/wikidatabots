@@ -71,29 +71,28 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
 
-      - name: Run ETL latest changes script
-        shell: python
-        run: |
-          import pandas as pd
-
-          from tmdb_etl import tmdb_latest_changes
-
-          df = pd.read_feather("changes.arrow")
-          df = df.astype({"id": "uint32", "adult": "boolean"})
-          df = tmdb_latest_changes(df)
-          df.to_feather("latest_changes.arrow")
-
       - name: Print stats
         run: |
           python print_table_stats.py changes.arrow
 
-      - name: Print stats
-        run: |
-          python print_table_stats.py latest_changes.arrow
-
       - name: Print diff
         run: |
           python print_table_diff.py changes.arrow~ changes.arrow
+
+      - name: Run ETL latest changes script
+        shell: python
+        run: |
+          import polars as pl
+
+          from tmdb_etl import tmdb_latest_changes
+
+          df = pl.read_ipc("changes.arrow", memory_map=False)
+          df = tmdb_latest_changes(df)
+          df.write_ipc("latest_changes.arrow", compression="lz4")
+
+      - name: Print stats
+        run: |
+          python print_table_stats.py latest_changes.arrow
 
       - name: Print diff
         run: |

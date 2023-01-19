@@ -15,6 +15,7 @@ from pandas_utils import (
     read_json_series,
     reindex_as_range,
 )
+from polars_utils import reindex_as_range as reindex_as_range_pl
 
 actions.install_warnings_hook()
 
@@ -83,13 +84,13 @@ def insert_tmdb_changes(df: pl.DataFrame, tmdb_type: str) -> pl.DataFrame:
     return df_old.extend(df_new).sort("date")
 
 
-def tmdb_latest_changes(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.drop_duplicates(subset=["id"], keep="last")
-    df = df.set_index("id").pipe(reindex_as_range)
-    df = unset_id_index(df)
-    df = df.assign(has_changes=df["date"].notna())
-    df = df[["id", "has_changes", "date", "adult"]]
-    return df
+def tmdb_latest_changes(df: pl.DataFrame) -> pl.DataFrame:
+    return (
+        df.unique(subset=["id"], keep="last")
+        .pipe(reindex_as_range_pl, name="id")
+        .with_column(pl.col("date").is_not_null().alias("has_changes"))
+        .select(["id", "has_changes", "date", "adult"])
+    )
 
 
 def tmdb_outdated_external_ids(
