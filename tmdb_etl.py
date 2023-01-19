@@ -98,46 +98,12 @@ def recent_tmdb_changes(start_date: date, tmdb_type: str):
     return df
 
 
-def xinsert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
-    initial_size = len(df)
+def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
     df_new = recent_tmdb_changes(start_date=df["date"].max(), tmdb_type=tmdb_type)
-
     existing_indices = df["date"].isin(df_new["date"])
     df = df[~existing_indices].reset_index(drop=True)
-
     df = safe_row_concat([df, df_new])
-
     check_tmdb_changes_schema(df)
-    if len(df) < initial_size:
-        warnings.warn(f"before {initial_size}, after {len(df)}")
-    return df
-
-
-def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
-    start_date = df["date"].max()
-    assert type(start_date) == datetime.date
-
-    start = start_date - timedelta(days=7)
-    end = datetime.date.today()
-    dates = pd.date_range(start=start, end=end, freq="D").to_series().dt.date
-
-    for d in dates:
-        df_prev = df.copy()
-        df_new = tmdb_changes(d, tmdb_type=tmdb_type)
-
-        existing_indices = df["date"] == d
-        df_existing = df[existing_indices]
-        df = df[~existing_indices].reset_index(drop=True)
-
-        if len(df_new) < len(df_existing):
-            warnings.warn(f"{d}: before {len(df_existing)}, after {len(df_new)}")
-
-        df = safe_row_concat([df, df_new])
-        (added, removed, _) = df_diff(df_prev, df)
-        print(f"{d}: +{added:,} -{removed:,}")
-
-    check_tmdb_changes_schema(df)
-
     return df
 
 
