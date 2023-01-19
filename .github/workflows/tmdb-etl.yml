@@ -56,6 +56,7 @@ jobs:
 
       - name: Run ETL changes script
         shell: python
+        if: false
         run: |
           import os
 
