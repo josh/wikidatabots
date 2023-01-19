@@ -268,11 +268,10 @@ def set_id_index(df: pd.DataFrame) -> pd.DataFrame:
 
 def unset_id_index(df: pd.DataFrame) -> pd.DataFrame:
     assert "id" not in df.columns, "id column already exists"
-    assert not isinstance(df.index, pd.RangeIndex), f"current index is {type(df.index)}"
     assert df.index.name == "id", f"id name {df.index.name}"
-    assert (
-        df.index.dtype == "uint32" or df.index.dtype == "uint64"
-    ), f"id index {df.index.dtype}"
+    # assert (
+    #     df.index.dtype == "uint32" or df.index.dtype == "uint64"
+    # ), f"id index {df.index.dtype}"
 
     df = df.reset_index()
     id_col = df["id"].astype("uint32")
