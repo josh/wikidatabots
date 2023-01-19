@@ -250,6 +250,9 @@ def insert_tmdb_external_ids(
 
 def set_id_index(df: pd.DataFrame) -> pd.DataFrame:
     assert "id" in df.columns, "missing id column"
+    if df["id"].dtype == "int64":
+        warnings.warn("casting id column int64->uint32")
+        df["id"] = df["id"].astype("uint32")
     if df["id"].dtype == "UInt32":
         assert not df["id"].hasnans, "id column has NaNs"
         warnings.warn("casting id column UInt32->uint32")
