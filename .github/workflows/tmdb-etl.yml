@@ -166,7 +166,7 @@ jobs:
           tmdb_ids = tmdb_outdated_external_ids(
               latest_changes_df=latest_changes_df,
               external_ids_df=external_ids_df,
-          ).head(1_000)
+          ).head(2_000)
           external_ids_df = insert_tmdb_external_ids(
               external_ids_df,
               tmdb_type=tmdb_type,
@@ -193,7 +193,7 @@ jobs:
 
           tmdb_type = os.environ["TYPE"]
           external_ids_df = pd.read_feather("external_ids.arrow").pipe(set_id_index)
-          tmdb_ids = tmdb_external_ids_need_backfill(external_ids_df).head(1_000)
+          tmdb_ids = tmdb_external_ids_need_backfill(external_ids_df).head(2_000)
           external_ids_df = insert_tmdb_external_ids(
               external_ids_df,
               tmdb_type=tmdb_type,
