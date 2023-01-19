@@ -11,6 +11,7 @@ from tqdm import tqdm
 import actions
 from pandas_utils import (
     compact_dtypes,
+    df_assign_or_append,
     df_diff,
     read_json_series,
     reindex_as_range,
@@ -33,7 +34,11 @@ def check_tmdb_changes_schema(df: pd.DataFrame) -> None:
 
 
 def check_tmdb_external_ids_schema(df: pd.DataFrame) -> None:
-    assert df.dtypes["id"] == "uint32", f"id dtype is {df.dtypes['id']}"
+    assert df.index.name == "id", f"index name was {df.index.name}"
+    assert df.index.dtype == "uint64", f"id index dtype is {df.index.dtype}"
+    assert df.index.is_monotonic_increasing, "index is not sorted"
+    assert df.index.is_unique, "index is not unique"
+
     assert df.dtypes["imdb_id"] == "string", f"imdb_id dtype is {df.dtypes['imdb_id']}"
 
     assert (
@@ -150,18 +155,19 @@ def tmdb_outdated_external_ids(
     assert latest_changes_df.index.name == "id", "set index to id"
     assert external_ids_df.index.name == "id", "set index to id"
 
-    df = external_ids_df.join(latest_changes_df, how="left")
+    df = latest_changes_df.join(external_ids_df, how="left")
     is_missing = df["retrieved_at"].isna()
     is_outdated = df["date"] >= df["retrieved_at"].dt.floor(freq="D")
-    df = df[is_missing | is_outdated].reset_index()
-    return df["id"]
+    df = df[is_missing | is_outdated]
+    return df.index.to_series().astype("uint32")
 
 
 def tmdb_external_ids_need_backfill(external_ids_df: pd.DataFrame) -> pd.Series:
-    assert external_ids_df.index.name == "id", "set index to id"
     df = external_ids_df
-    df = df[df["success"].isna()].reset_index()
-    return df["id"].head(10_000)
+    assert df.index.name == "id", "set index to id"
+    return (
+        df[df["success"].isna()].head(100).index.to_series().astype("uint32")
+    )  # TODO: Bump to 10_000
 
 
 EXTERNAL_IDS_DTYPES = {
@@ -180,7 +186,9 @@ EXTERNAL_IDS_DTYPES = {
 
 def fetch_tmdb_external_ids(tmdb_ids: pd.Series, tmdb_type: str) -> pd.DataFrame:
     assert len(tmdb_ids) > 0, "no ids"
-    assert isinstance(tmdb_ids.index, pd.RangeIndex), f"index is {type(tmdb_ids.index)}"
+    assert tmdb_ids.index.name == "id"
+    assert tmdb_ids.index.dtype == "uint64"
+    # assert tmdb_ids.equals(tmdb_ids.index.to_series())
 
     api_key = os.environ["TMDB_API_KEY"]
     urls = (
@@ -201,9 +209,6 @@ def fetch_tmdb_external_ids(tmdb_ids: pd.Series, tmdb_type: str) -> pd.DataFrame
 
     df = read_json_series(jsonl, dtype=EXTERNAL_IDS_DTYPES)
 
-    df["id"] = tmdb_ids
-    df = df.set_index("id")
-
     if "success" not in df:
         df["success"] = True
     df["success"] = df["success"].fillna(True).astype("boolean")
@@ -218,19 +223,62 @@ def fetch_tmdb_external_ids(tmdb_ids: pd.Series, tmdb_type: str) -> pd.DataFrame
 
     df = df.replace(to_replace="", value=pd.NA)
 
+    assert df.index.name == "id"
+    assert df.index.dtype == "uint64"
+    assert df.index.equals(tmdb_ids.index)
     return df
 
 
 def insert_tmdb_external_ids(
-    df: pd.DataFrame, tmdb_type: str, tmdb_ids: pd.Series
+    df: pd.DataFrame,
+    tmdb_type: str,
+    tmdb_ids: pd.Series,
 ) -> pd.DataFrame:
     if len(tmdb_ids) == 0:
         return df
+    assert tmdb_ids.index.name == "id"
+    assert tmdb_ids.index.dtype == "uint64"
     df_orig = df.copy()
     df_updated_rows = fetch_tmdb_external_ids(tmdb_type=tmdb_type, tmdb_ids=tmdb_ids)
-    assert df_updated_rows.index.isin(df.index).all()
     shared_columns = df_orig.columns.intersection(df_updated_rows.columns)
-    df.loc[df_updated_rows.index, shared_columns] = df_updated_rows[shared_columns]
-    assert len(df) == len(df_orig)
+    df = df_assign_or_append(df, df_updated_rows, shared_columns)
+    df = reindex_as_range(df)
+    assert len(df) >= len(df_orig)
     assert df.columns.equals(df_orig.columns)
+    return df
+
+
+def set_id_index(df: pd.DataFrame) -> pd.DataFrame:
+    assert "id" in df.columns, "missing id column"
+    if df["id"].dtype == "UInt32":
+        assert not df["id"].hasnans, "id column has NaNs"
+        warnings.warn("casting id column UInt32->uint32")
+        df["id"] = df["id"].astype("uint32")
+    assert df["id"].dtype == "uint32", f"id column {df['id'].dtype}"
+    assert isinstance(df.index, pd.RangeIndex), f"current index is {type(df.index)}"
+
+    df = df.set_index("id")
+
+    assert df.index.name == "id"
+    assert df.index.dtype == "uint64"
+
+    return df
+
+
+def unset_id_index(df: pd.DataFrame) -> pd.DataFrame:
+    assert "id" not in df.columns, "id column already exists"
+    assert not isinstance(df.index, pd.RangeIndex), f"current index is {type(df.index)}"
+    assert df.index.name == "id", f"id name {df.index.name}"
+    assert (
+        df.index.dtype == "uint32" or df.index.dtype == "uint64"
+    ), f"id index {df.index.dtype}"
+
+    df = df.reset_index()
+    id_col = df["id"].astype("uint32")
+    df = df.drop(columns=["id"])
+    df.insert(0, "id", id_col)
+
+    assert isinstance(df.index, pd.RangeIndex)
+    assert df["id"].dtype == "uint32"
+
     return df

@@ -153,11 +153,11 @@ jobs:
 
           import pandas as pd
 
-          from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
+          from tmdb_etl import insert_tmdb_external_ids, set_id_index, tmdb_outdated_external_ids
 
           tmdb_type = os.environ["TYPE"]
-          latest_changes_df = pd.read_feather("latest_changes.arrow").set_index("id")
-          external_ids_df = pd.read_feather("external_ids.arrow").set_index("id")
+          latest_changes_df = pd.read_feather("latest_changes.arrow").pipe(set_id_index)
+          external_ids_df = pd.read_feather("external_ids.arrow").pipe(set_id_index)
           tmdb_ids = tmdb_outdated_external_ids(
               latest_changes_df=latest_changes_df,
               external_ids_df=external_ids_df,
@@ -179,10 +179,14 @@ jobs:
 
           import pandas as pd
 
-          from tmdb_etl import insert_tmdb_external_ids, tmdb_external_ids_need_backfill
+          from tmdb_etl import (
+            insert_tmdb_external_ids,
+            set_id_index,
+            tmdb_external_ids_need_backfill,
+          )
 
           tmdb_type = os.environ["TYPE"]
-          external_ids_df = pd.read_feather("external_ids.arrow").set_index("id")
+          external_ids_df = pd.read_feather("external_ids.arrow").pipe(set_id_index)
           tmdb_ids = tmdb_external_ids_need_backfill(external_ids_df=external_ids_df)
           external_ids_df = insert_tmdb_external_ids(
               external_ids_df,
