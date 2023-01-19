@@ -5,6 +5,7 @@ from pandas_utils import (
     compact_dtype,
     compact_dtypes,
     df_append_new,
+    df_assign_or_append,
     df_diff,
     df_upsert,
     is_dtype_pyarrow_lossless,
@@ -73,6 +74,37 @@ def test_df_append_new():
     df3 = df_append_new(df1, df2, on="a")
     assert df3["a"].tolist() == [1, 2, 3, 4]
     assert df3["b"].tolist() == [1, 1, 1, pd.NA]
+
+
+def test_df_assign_or_append():
+    df1 = pd.DataFrame({"a": ["1", "2", "3"]}, index=[1, 2, 3])
+    df2 = pd.DataFrame({"a": ["2", "3", "4"]}, index=[2, 3, 4])
+    df3 = df_assign_or_append(df1, df2, ["a"])
+    assert len(df3) == 4
+    assert df3.index.to_list() == [1, 2, 3, 4]
+    assert df3.at[1, "a"] == "1"
+    assert df3.at[2, "a"] == "2"
+    assert df3.at[3, "a"] == "3"
+    assert df3.at[4, "a"] == "4"
+
+    index1 = pd.Index([1, 2, 3], name="id", dtype="uint8")
+    index2 = pd.Index([2, 3, 4], name="id", dtype="uint8")
+    df1 = pd.DataFrame({"a": ["1", "2", "3"], "b": True}, index=index1)
+    df2 = pd.DataFrame({"a": ["2", "3", "4"]}, index=index2)
+    df3 = df_assign_or_append(df1, df2, ["a"])
+    assert len(df3) == 4
+    assert df3.index.to_list() == [1, 2, 3, 4]
+    assert df3.at[1, "a"] == "1"
+    assert df3.at[2, "a"] == "2"
+    assert df3.at[3, "a"] == "3"
+    assert df3.at[4, "a"] == "4"
+    assert df3.at[1, "b"] is True
+    assert df3.at[2, "b"] is True
+    assert df3.at[3, "b"] is True
+    assert pd.isna(df3.at[4, "b"])
+
+    with pytest.raises(KeyError):
+        df_assign_or_append(df1, df2, ["missing"])
 
 
 def test_update_feather():

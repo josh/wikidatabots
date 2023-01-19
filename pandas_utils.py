@@ -44,6 +44,24 @@ def df_append_new(
     return pd.concat([df, new_df], ignore_index=True)
 
 
+def df_assign_or_append(df, df_new, columns) -> pd.DataFrame:
+    assert df.index.is_unique, "df index must be unique"
+    assert df_new.index.is_unique, "df_new index must be unique"
+    assert (
+        df.index.dtype == df_new.index.dtype
+    ), "df and df_new must have same index dtype"
+
+    orig_df = df
+    new_index = df.index.union(df_new.index)
+    df = df.reindex(new_index)
+    df.loc[df_new.index, columns] = df_new.loc[:, columns]
+
+    assert len(df) >= len(orig_df)
+    assert df.index.name == orig_df.index.name
+    assert df.index.dtype == orig_df.index.dtype
+    return df
+
+
 def update_feather(
     path: str,
     handle: Callable[[pd.DataFrame], pd.DataFrame],
