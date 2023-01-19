@@ -1,7 +1,6 @@
 import datetime
 import logging
 import os
-import warnings
 from datetime import date, timedelta
 
 import pandas as pd
@@ -11,7 +10,6 @@ from tqdm import tqdm
 import actions
 from pandas_utils import (
     df_assign_or_append,
-    df_diff,
     ensure_astype,
     ensure_astypes,
     read_json_series,
