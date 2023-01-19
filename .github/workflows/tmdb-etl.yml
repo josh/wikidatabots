@@ -93,7 +93,7 @@ jobs:
 
       - name: Print diff
         run: |
-          python print_table_diff.py latest_changes.arrow~ latest_changes.arrow
+          python print_table_diff.py latest_changes.arrow~ latest_changes.arrow id
 
       - name: Upload to S3
         run: |
