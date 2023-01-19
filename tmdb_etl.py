@@ -10,7 +10,6 @@ from tqdm import tqdm
 
 import actions
 from pandas_utils import (
-    compact_dtypes,
     df_assign_or_append,
     df_diff,
     read_json_series,
@@ -73,7 +72,8 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     r = session.get(url, params=params)
     data = r.json()["results"]
 
-    df = pd.DataFrame(data).pipe(compact_dtypes)
+    df = pd.DataFrame(data)
+    df = df.astype({"id": "uint32", "adult": "boolean"})
     df["date"] = date
     df = df[["date", "id", "adult"]]
 
