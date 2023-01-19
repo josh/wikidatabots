@@ -1,9 +1,9 @@
 import datetime
-import logging
 import os
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pandas as pd
+import polars as pl
 import requests
 from tqdm import tqdm
 
@@ -14,7 +14,6 @@ from pandas_utils import (
     ensure_astypes,
     read_json_series,
     reindex_as_range,
-    safe_row_concat,
 )
 
 actions.install_warnings_hook()
@@ -56,12 +55,10 @@ def check_tmdb_external_ids_schema(df: pd.DataFrame) -> None:
     assert len(df) > 0, "empty dataframe"
 
 
-def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
+def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
     start_date = date
-    end_date = start_date + timedelta(days=1)
+    end_date = start_date + timedelta(days=7)
     api_key = os.environ["TMDB_API_KEY"]
-    assert type(start_date) == datetime.date, f"start_date: {type(start_date)}"
-    assert type(end_date) == datetime.date, f"end_date: {type(end_date)}"
 
     url = f"https://api.themoviedb.org/3/{tmdb_type}/changes"
     params = {
@@ -72,37 +69,28 @@ def tmdb_changes(date: date, tmdb_type: str) -> pd.DataFrame:
     r = session.get(url, params=params)
     data = r.json()["results"]
 
-    df = pd.DataFrame(data)
-    df = df.astype({"id": "uint32", "adult": "boolean"})
-    df["date"] = date
-    df = df[["date", "id", "adult"]]
-
-    logging.debug(f"{len(df)} changes on {date}")
-    check_tmdb_changes_schema(df)
-    return df
+    return (
+        pl.from_dicts(data, schema={"id": pl.UInt32(), "adult": pl.Boolean()})
+        .with_column(pl.lit(date).alias("date"))
+        .select(["date", "id", "adult"])
+    )
 
 
-def recent_tmdb_changes(start_date: date, tmdb_type: str):
-    assert type(start_date) == date, f"start_date: {type(start_date)}"
-    start = start_date - timedelta(days=7)
-    end = date.today()
-    dates = pd.date_range(start=start, end=end, freq="D").to_series().dt.date
+def insert_tmdb_changes(df: pl.DataFrame, tmdb_type: str) -> pl.DataFrame:
+    start_date = df["date"].max()
+    assert isinstance(start_date, datetime.date)
+    dates = pl.date_range(
+        low=start_date - datetime.timedelta(days=3),
+        high=datetime.date.today(),
+        interval=datetime.timedelta(days=1),
+        name="date",
+    )
 
-    tqdm.pandas(desc="Fetch TMDB changes")
-    dfs = dates.progress_apply(tmdb_changes, tmdb_type=tmdb_type)  # type: ignore
-    df = safe_row_concat(dfs)
+    pbar = tqdm(dates, desc="Fetch TMDB changes")
+    df_new = pl.concat([tmdb_changes(d, tmdb_type) for d in pbar])
 
-    check_tmdb_changes_schema(df)
-    return df
-
-
-def insert_tmdb_changes(df: pd.DataFrame, tmdb_type: str):
-    df_new = recent_tmdb_changes(start_date=df["date"].max(), tmdb_type=tmdb_type)
-    existing_indices = df["date"].isin(df_new["date"])
-    df = df[~existing_indices].reset_index(drop=True)
-    df = safe_row_concat([df, df_new])
-    check_tmdb_changes_schema(df)
-    return df
+    df_old = df.filter(pl.col("date").is_in(dates).is_not())
+    return df_old.extend(df_new).sort("date")
 
 
 def tmdb_latest_changes(df: pd.DataFrame) -> pd.DataFrame:

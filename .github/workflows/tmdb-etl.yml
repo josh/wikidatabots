@@ -59,11 +59,14 @@ jobs:
         run: |
           import os
 
-          from pandas_utils import update_feather
+          import polars as pl
+
           from tmdb_etl import insert_tmdb_changes
 
           tmdb_type = os.environ["TYPE"]
-          update_feather("changes.arrow", lambda df: insert_tmdb_changes(df, tmdb_type=tmdb_type))
+          df = pl.read_ipc("changes.arrow")
+          df = insert_tmdb_changes(df, tmdb_type)
+          df.write_ipc("changes.arrow", compression="lz4")
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
