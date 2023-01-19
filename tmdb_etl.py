@@ -165,9 +165,7 @@ def tmdb_outdated_external_ids(
 def tmdb_external_ids_need_backfill(external_ids_df: pd.DataFrame) -> pd.Series:
     df = external_ids_df
     assert df.index.name == "id", "set index to id"
-    return (
-        df[df["success"].isna()].head(100).index.to_series().astype("uint32")
-    )  # TODO: Bump to 10_000
+    return df[df["success"].isna()].index.to_series().astype("uint32")
 
 
 EXTERNAL_IDS_DTYPES = {
