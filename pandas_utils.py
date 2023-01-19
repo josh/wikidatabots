@@ -1,8 +1,28 @@
 from typing import Callable, Iterable
+import warnings
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.feather as feather
+
+import actions
+
+actions.install_warnings_hook()
+
+
+def ensure_astype(s: pd.Series, dtype: str) -> pd.Series:
+    if s.dtype != dtype:
+        warnings.warn(f"casting {s.dtype}->{dtype}")
+    return s.astype(dtype)
+
+
+def ensure_astypes(df: pd.DataFrame, dtypes: dict[str, str]) -> pd.DataFrame:
+    for column_name in dtypes:
+        actual_dtype = df[column_name].dtype
+        expected_dtype = dtypes[column_name]
+        if actual_dtype != actual_dtype:
+            warnings.warn(f"casting {column_name} {actual_dtype}->{expected_dtype}")
+    return df.astype(dtypes)
 
 
 def df_diff(

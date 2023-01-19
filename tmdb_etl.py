@@ -12,6 +12,8 @@ import actions
 from pandas_utils import (
     df_assign_or_append,
     df_diff,
+    ensure_astype,
+    ensure_astypes,
     read_json_series,
     reindex_as_range,
     safe_row_concat,
@@ -159,13 +161,13 @@ def tmdb_outdated_external_ids(
     is_missing = df["retrieved_at"].isna()
     is_outdated = df["date"] >= df["retrieved_at"].dt.floor(freq="D")
     df = df[is_missing | is_outdated]
-    return df.index.to_series().astype("uint32")
+    return ensure_astype(df.index.to_series(), dtype="uint32")
 
 
 def tmdb_external_ids_need_backfill(external_ids_df: pd.DataFrame) -> pd.Series:
     df = external_ids_df
     assert df.index.name == "id", "set index to id"
-    return df[df["success"].isna()].index.to_series().astype("uint32")
+    return ensure_astype(df[df["success"].isna()].index.to_series(), dtype="uint32")
 
 
 EXTERNAL_IDS_DTYPES = {
@@ -248,11 +250,7 @@ def insert_tmdb_external_ids(
 
 def set_id_index(df: pd.DataFrame) -> pd.DataFrame:
     assert "id" in df.columns, "missing id column"
-    if df["id"].dtype != "uint32":
-        assert not df["id"].hasnans, "id column has NaNs"
-        warnings.warn(f"casting id column {df['id'].dtype}->uint32")
-        df["id"] = df["id"].astype("uint32")
-    assert df["id"].dtype == "uint32", f"id column {df['id'].dtype}"
+    df = ensure_astypes(df, dtypes={"id": "uint32"})
     assert isinstance(df.index, pd.RangeIndex), f"current index is {type(df.index)}"
 
     df = df.set_index("id")
@@ -271,7 +269,7 @@ def unset_id_index(df: pd.DataFrame) -> pd.DataFrame:
     # ), f"id index {df.index.dtype}"
 
     df = df.reset_index()
-    id_col = df["id"].astype("uint32")
+    id_col = ensure_astype(df["id"], dtype="uint32")
     df = df.drop(columns=["id"])
     df.insert(0, "id", id_col)
 
