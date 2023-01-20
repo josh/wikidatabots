@@ -47,9 +47,7 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/changes.arrow" "changes.arrow"
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
-          cp changes.arrow changes.arrow~
           cp latest_changes.arrow latest_changes.arrow~
         env:
           TYPE: ${{ matrix.type }}
@@ -61,34 +59,15 @@ jobs:
 
           import polars as pl
 
-          from tmdb_etl import insert_tmdb_changes
+          from tmdb_etl import insert_tmdb_latest_changes
 
           tmdb_type = os.environ["TYPE"]
-          df = pl.read_ipc("changes.arrow", memory_map=False)
-          df = insert_tmdb_changes(df, tmdb_type)
-          df.write_ipc("changes.arrow", compression="lz4")
+          df = pl.read_ipc("latest_changes.arrow", memory_map=False)
+          df = insert_tmdb_latest_changes(df, tmdb_type)
+          df.write_ipc("latest_changes.arrow", compression="lz4")
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py changes.arrow
-
-      - name: Print diff
-        run: |
-          python print_table_diff.py changes.arrow~ changes.arrow
-
-      - name: Run ETL latest changes script
-        shell: python
-        run: |
-          import polars as pl
-
-          from tmdb_etl import tmdb_latest_changes
-
-          df = pl.read_ipc("changes.arrow", memory_map=False)
-          df = tmdb_latest_changes(df)
-          df.write_ipc("latest_changes.arrow", compression="lz4")
 
       - name: Print stats
         run: |
@@ -100,7 +79,6 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/changes.arrow"
           aws s3 cp "latest_changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow"
         env:
           TYPE: ${{ matrix.type }}

@@ -1,6 +1,5 @@
 import datetime
 import os
-from datetime import timedelta
 
 import polars as pl
 import requests
@@ -10,10 +9,12 @@ from polars_utils import reindex_as_range
 
 session = requests.Session()
 
+ONE_DAY = datetime.timedelta(days=1)
+
 
 def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
     start_date = date
-    end_date = start_date + timedelta(days=1)
+    end_date = start_date + ONE_DAY
     api_key = os.environ["TMDB_API_KEY"]
 
     url = f"https://api.themoviedb.org/3/{tmdb_type}/changes"
@@ -27,37 +28,34 @@ def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
 
     return (
         pl.from_dicts(data, schema={"id": pl.UInt32(), "adult": pl.Boolean()})
+        .unique(subset="id", keep="first")
+        .with_column(pl.lit(True).alias("has_changes"))
         .with_column(pl.lit(date).alias("date"))
-        .select(["date", "id", "adult"])
+        .select(["id", "has_changes", "date", "adult"])
     )
 
 
-def insert_tmdb_changes(
+def insert_tmdb_latest_changes(
     df: pl.DataFrame,
     tmdb_type: str,
-    days: int = 7,
+    days: int = 14,
 ) -> pl.DataFrame:
     start_date = df["date"].max()
     assert isinstance(start_date, datetime.date)
+
     dates = pl.date_range(
         low=start_date - datetime.timedelta(days=days),
         high=datetime.date.today(),
-        interval=datetime.timedelta(days=1),
+        interval=ONE_DAY,
         name="date",
     )
 
     pbar = tqdm(dates, desc="Fetch TMDB changes")
-    df_new = pl.concat([tmdb_changes(d, tmdb_type) for d in pbar])
-
-    df_old = df.filter(pl.col("date").is_in(dates).is_not())
-    return df_old.extend(df_new).sort("date")
-
-
-def tmdb_latest_changes(df: pl.DataFrame) -> pl.DataFrame:
     return (
-        df.unique(subset=["id"], keep="last")
+        pl.concat([df] + [tmdb_changes(d, tmdb_type) for d in pbar])
+        .unique(subset="id", keep="last")
         .pipe(reindex_as_range, name="id")
-        .with_column(pl.col("date").is_not_null().alias("has_changes"))
+        .with_columns(pl.col("date").is_not_null().alias("has_changes"))
         .select(["id", "has_changes", "date", "adult"])
     )
 
