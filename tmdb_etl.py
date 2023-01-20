@@ -38,7 +38,7 @@ def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
 def insert_tmdb_latest_changes(
     df: pl.DataFrame,
     tmdb_type: str,
-    days: int = 14,
+    days: int = 3,
 ) -> pl.DataFrame:
     start_date = df["date"].max()
     assert isinstance(start_date, datetime.date)
