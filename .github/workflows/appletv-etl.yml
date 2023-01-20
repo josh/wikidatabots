@@ -93,7 +93,6 @@ jobs:
           python print_table_stats.py sitemap.arrow
 
       - name: Print diff
-        continue-on-error: true # TODO: Remove this
         run: |
           python print_table_diff.py sitemap.arrow~ sitemap.arrow loc
 
@@ -172,7 +171,6 @@ jobs:
           python print_table_stats.py jsonld.arrow
 
       - name: Print diff
-        continue-on-error: true # TODO: Remove this
         run: |
           python print_table_diff.py jsonld.arrow~ jsonld.arrow loc
 
