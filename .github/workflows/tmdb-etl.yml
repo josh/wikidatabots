@@ -200,6 +200,7 @@ jobs:
           python print_table_stats.py external_ids.arrow
 
       - name: Print diff
+        continue-on-error: true # FIXME
         run: |
           python print_table_diff.py external_ids.arrow~ external_ids.arrow id
 
