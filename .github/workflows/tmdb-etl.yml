@@ -154,8 +154,6 @@ jobs:
         run: |
           import os
 
-          import polars as pl
-
           from polars_utils import read_ipc
           from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
 
@@ -180,8 +178,6 @@ jobs:
         shell: python
         run: |
           import os
-
-          import polars as pl
 
           from polars_utils import read_ipc
           from tmdb_etl import insert_tmdb_external_ids, tmdb_external_ids_need_backfill
