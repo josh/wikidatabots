@@ -208,6 +208,7 @@ jobs:
           python print_table_stats.py plex.arrow
 
       - name: Print diff
+        continue-on-error: true # TODO: Remove this
         run: |
           python print_table_diff.py plex.arrow~ plex.arrow key
 
@@ -264,6 +265,7 @@ jobs:
           python print_table_stats.py plex.arrow
 
       - name: Print diff
+        continue-on-error: true # TODO: Remove this
         run: |
           python print_table_diff.py plex.arrow~ plex.arrow key
 

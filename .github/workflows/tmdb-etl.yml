@@ -76,6 +76,7 @@ jobs:
           python print_table_stats.py changes.arrow
 
       - name: Print diff
+        continue-on-error: true # TODO: Remove this
         run: |
           python print_table_diff.py changes.arrow~ changes.arrow
 
@@ -95,6 +96,7 @@ jobs:
           python print_table_stats.py latest_changes.arrow
 
       - name: Print diff
+        continue-on-error: true # TODO: Remove this
         run: |
           python print_table_diff.py latest_changes.arrow~ latest_changes.arrow id
 
@@ -212,6 +214,7 @@ jobs:
           python print_table_stats.py external_ids.arrow
 
       - name: Print diff
+        continue-on-error: true # TODO: Remove this
         run: |
           python print_table_diff.py external_ids.arrow~ external_ids.arrow id
 
