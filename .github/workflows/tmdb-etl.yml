@@ -154,28 +154,23 @@ jobs:
         run: |
           import os
 
-          import pandas as pd
+          import polars as pl
 
-          from tmdb_etl import (
-              insert_tmdb_external_ids,
-              set_id_index,
-              tmdb_outdated_external_ids,
-              unset_id_index,
-          )
+          from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
 
           tmdb_type = os.environ["TYPE"]
-          latest_changes_df = pd.read_feather("latest_changes.arrow").pipe(set_id_index)
-          external_ids_df = pd.read_feather("external_ids.arrow").pipe(set_id_index)
+          latest_changes_df = pl.read_ipc("latest_changes.arrow", memory_map=False)
+          external_ids_df = pl.read_ipc("external_ids.arrow", memory_map=False)
           tmdb_ids = tmdb_outdated_external_ids(
               latest_changes_df=latest_changes_df,
               external_ids_df=external_ids_df,
-          ).head(5_000)
+          )
           external_ids_df = insert_tmdb_external_ids(
               external_ids_df,
               tmdb_type=tmdb_type,
               tmdb_ids=tmdb_ids,
           )
-          external_ids_df.pipe(unset_id_index).to_feather("external_ids.arrow")
+          external_ids_df.write_ipc("external_ids.arrow", compression="lz4")
         env:
           TYPE: ${{ matrix.type }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -185,24 +180,19 @@ jobs:
         run: |
           import os
 
-          import pandas as pd
+          import polars as pl
 
-          from tmdb_etl import (
-              insert_tmdb_external_ids,
-              set_id_index,
-              tmdb_external_ids_need_backfill,
-              unset_id_index,
-          )
+          from tmdb_etl import insert_tmdb_external_ids, tmdb_external_ids_need_backfill
 
           tmdb_type = os.environ["TYPE"]
-          external_ids_df = pd.read_feather("external_ids.arrow").pipe(set_id_index)
-          tmdb_ids = tmdb_external_ids_need_backfill(external_ids_df).head(5_000)
+          external_ids_df = pl.read_ipc("external_ids.arrow", memory_map=False)
+          tmdb_ids = tmdb_external_ids_need_backfill(external_ids_df)
           external_ids_df = insert_tmdb_external_ids(
               external_ids_df,
               tmdb_type=tmdb_type,
               tmdb_ids=tmdb_ids,
           )
-          external_ids_df.pipe(unset_id_index).to_feather("external_ids.arrow")
+          external_ids_df.write_ipc("external_ids.arrow", compression="lz4")
         env:
           TYPE: ${{ matrix.type }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
