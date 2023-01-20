@@ -1,11 +1,10 @@
 import os
 import sys
-import warnings
 
 import polars as pl
 
 import actions
-from polars_utils import row_differences, unique_row_differences
+from polars_utils import read_ipc, row_differences, unique_row_differences
 
 actions.install_warnings_hook()
 
@@ -15,13 +14,8 @@ txt_out = sys.stdout
 md_out = open(STEP_SUMMARY, "w")
 
 with pl.StringCache():
-    try:
-        df_a = pl.read_ipc(sys.argv[1], memory_map=False)
-        df_b = pl.read_ipc(sys.argv[2], memory_map=False)
-    except:  # noqa: E722
-        warnings.warn("Falling back to pyarrow")
-        df_a = pl.read_ipc(sys.argv[1], use_pyarrow=True, memory_map=False)
-        df_b = pl.read_ipc(sys.argv[2], use_pyarrow=True, memory_map=False)
+    df_a = read_ipc(sys.argv[1])
+    df_b = read_ipc(sys.argv[2])
 
 if len(sys.argv) > 3:
     key = sys.argv[3]

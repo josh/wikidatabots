@@ -1,6 +1,20 @@
 # pyright: strict
 
+import warnings
+
 import polars as pl
+
+import actions
+
+actions.install_warnings_hook()
+
+
+def read_ipc(filename: str):
+    try:
+        return pl.read_ipc(filename, memory_map=False)
+    except:  # noqa: E722
+        warnings.warn("arrow2 reader failed, falling back to pyarrow")
+        return pl.read_ipc(filename, use_pyarrow=True, memory_map=False)
 
 
 def reindex_as_range(df: pl.DataFrame, name: str) -> pl.DataFrame:
