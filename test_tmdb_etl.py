@@ -26,7 +26,7 @@ def test_insert_tmdb_latest_changes():
             "adult": pl.Boolean,
         },
     )
-    df2 = insert_tmdb_latest_changes(df1, tmdb_type="movie", days=0)
+    df2 = insert_tmdb_latest_changes(df1, tmdb_type="movie")
     assert len(df2) > 0
 
 

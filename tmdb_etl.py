@@ -35,16 +35,12 @@ def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
     )
 
 
-def insert_tmdb_latest_changes(
-    df: pl.DataFrame,
-    tmdb_type: str,
-    days: int = 3,
-) -> pl.DataFrame:
+def insert_tmdb_latest_changes(df: pl.DataFrame, tmdb_type: str) -> pl.DataFrame:
     start_date = df["date"].max()
     assert isinstance(start_date, datetime.date)
 
     dates = pl.date_range(
-        low=start_date - datetime.timedelta(days=days),
+        low=start_date - datetime.timedelta(days=3),
         high=datetime.date.today(),
         interval=ONE_DAY,
         name="date",
