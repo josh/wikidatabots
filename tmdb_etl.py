@@ -126,6 +126,10 @@ def insert_tmdb_external_ids(
     tmdb_type: str,
     tmdb_ids: pl.Series,
 ) -> pl.DataFrame:
+    # FIXME
+    if len(tmdb_ids) == 0:
+        return df
+
     if "tvdb_id" not in df.columns:
         df = df.with_column(pl.lit(None, dtype=pl.UInt32).alias("tvdb_id"))
     df = df.select(
