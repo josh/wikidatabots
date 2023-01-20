@@ -13,7 +13,7 @@ session = requests.Session()
 
 def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
     start_date = date
-    end_date = start_date + timedelta(days=7)
+    end_date = start_date + timedelta(days=1)
     api_key = os.environ["TMDB_API_KEY"]
 
     url = f"https://api.themoviedb.org/3/{tmdb_type}/changes"
