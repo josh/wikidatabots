@@ -29,13 +29,17 @@ def reindex_as_range(df: pl.DataFrame, name: str) -> pl.DataFrame:
 
 def row_differences(df1: pl.DataFrame, df2: pl.DataFrame) -> tuple[int, int]:
     lf1, lf2 = df1.lazy(), df2.lazy()
-    [removed, added] = pl.collect_all(
+    [removed, added, unique1, unique2] = pl.collect_all(
         [
             lf1.join(lf2, on=df2.columns, how="anti"),
             lf2.join(lf1, on=df1.columns, how="anti"),
+            lf1.unique(),
+            lf2.unique(),
         ]
     )
-    assert df1.height - removed.height + added.height == df2.height
+    # TODO: duplicate values aren't handled correctly
+    assert unique1.height == df1.height, "df1 rows must be unique"
+    assert unique2.height == df2.height, "df2 rows must be unique"
     return added.height, removed.height
 
 
