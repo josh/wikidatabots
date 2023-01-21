@@ -1,3 +1,5 @@
+# pyright: strict
+
 import datetime
 import os
 
@@ -88,16 +90,15 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.Series, tmdb_type: str) -> pl.DataFrame
         url = f"https://api.themoviedb.org/3/{tmdb_type}/{tmdb_id}/external_ids"
         r = session.get(url, params={"api_key": api_key})
         data = r.json()
-        records.append(
-            {
-                "id": tmdb_id,
-                "success": data.get("success", True),
-                "retrieved_at": datetime.datetime.now(),
-                "imdb_id": data.get("imdb_id"),
-                "tvdb_id": data.get("tvdb_id"),
-                "wikidata_id": data.get("wikidata_id"),
-            }
-        )
+        record = {
+            "id": tmdb_id,
+            "success": data.get("success", True),
+            "retrieved_at": datetime.datetime.now(),
+            "imdb_id": data.get("imdb_id"),
+            "tvdb_id": data.get("tvdb_id"),
+            "wikidata_id": data.get("wikidata_id"),
+        }
+        records.append(record)  # type: ignore
 
     schema = {
         "id": pl.UInt32(),

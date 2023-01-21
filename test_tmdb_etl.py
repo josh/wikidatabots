@@ -1,3 +1,5 @@
+# pyright: strict
+
 import datetime
 
 import polars as pl
