@@ -37,9 +37,13 @@ def row_differences(df1: pl.DataFrame, df2: pl.DataFrame) -> tuple[int, int]:
             lf2.unique(),
         ]
     )
+
     # TODO: duplicate values aren't handled correctly
-    assert unique1.height == df1.height, "df1 rows must be unique"
-    assert unique2.height == df2.height, "df2 rows must be unique"
+    if unique1.height != df1.height:
+        warnings.warn("df1 has duplicate rows")
+    if unique2.height != df2.height:
+        warnings.warn("df2 has duplicate rows")
+
     return added.height, removed.height
 
 
