@@ -1,8 +1,9 @@
 __pycache__/
 /.cache/
+/.hypothesis/
 /.venv/
 /apicache-py3/
+*.arrow
 pywikibot.lwp
 throttle.ctrl
 user-password.py
-*.arrow
