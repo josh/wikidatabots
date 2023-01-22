@@ -2,7 +2,6 @@
 
 import datetime
 import os
-from hashlib import new
 
 import polars as pl
 import requests
@@ -78,12 +77,25 @@ def tmdb_outdated_external_ids(
     )
 
 
-ExtractIMDbNumericIDExpr = (
+EXTRACT_IMDB_TITLE_NUMERIC_ID = (
     pl.col("imdb_id")
-    .str.extract(r"(tt|nm)(\d+)", 2)
+    .str.extract(r"tt(\d+)", 1)
     .cast(pl.UInt32)
     .alias("imdb_numeric_id")
 )
+
+EXTRACT_IMDB_NAME_NUMERIC_ID = (
+    pl.col("imdb_id")
+    .str.extract(r"nm(\d+)", 1)
+    .cast(pl.UInt32)
+    .alias("imdb_numeric_id")
+)
+
+EXTRACT_IMDB_NUMERIC_ID = {
+    "movie": EXTRACT_IMDB_TITLE_NUMERIC_ID,
+    "tv": EXTRACT_IMDB_TITLE_NUMERIC_ID,
+    "person": EXTRACT_IMDB_NAME_NUMERIC_ID,
+}
 
 
 def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
@@ -120,7 +132,7 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
         .with_columns(
             [
                 pl.col("retrieved_at").dt.round("1s"),
-                ExtractIMDbNumericIDExpr,
+                EXTRACT_IMDB_NUMERIC_ID[tmdb_type],
             ]
         )
     )
