@@ -127,20 +127,6 @@ def insert_tmdb_external_ids(
     if len(tmdb_ids) == 0:
         return df
 
-    if "tvdb_id" not in df.columns:
-        df = df.with_column(pl.lit(None, dtype=pl.UInt32).alias("tvdb_id"))
-    df = df.select(
-        [
-            "id",
-            "success",
-            "retrieved_at",
-            "imdb_id",
-            "tvdb_id",
-            "wikidata_id",
-            "imdb_numeric_id",
-        ]
-    )
-
     df_updated_rows = fetch_tmdb_external_ids(tmdb_type=tmdb_type, tmdb_ids=tmdb_ids)
     return (
         df.extend(df_updated_rows)
