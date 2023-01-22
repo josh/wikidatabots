@@ -44,45 +44,43 @@ def test_reindex_as_range():
 
 
 def test_row_differences():
-    df1 = pl.DataFrame({"a": [1, 2, 3]})
-    df2 = pl.DataFrame({"a": [2, 3, 4]})
+    df1 = pl.DataFrame({"a": [1, 2, 3]}).lazy()
+    df2 = pl.DataFrame({"a": [2, 3, 4]}).lazy()
     added, removed = row_differences(df1, df2)
     assert added == 1
     assert removed == 1
 
-    df1 = pl.DataFrame({"a": [1]})
-    df2 = pl.DataFrame({"a": [1, 2, 3, 4]})
+    df1 = pl.DataFrame({"a": [1]}).lazy()
+    df2 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy()
     added, removed = row_differences(df1, df2)
     assert added == 3
     assert removed == 0
 
-    df1 = pl.DataFrame({"a": [1, 2, 3, 4]})
-    df2 = pl.DataFrame({"a": [1]})
+    df1 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy()
+    df2 = pl.DataFrame({"a": [1]}).lazy()
     added, removed = row_differences(df1, df2)
     assert added == 0
     assert removed == 3
 
-    # df1 = pl.DataFrame({"a": [1]})
-    # df2 = pl.DataFrame({"a": [1, 1]})
-    # added, removed = row_differences(df1, df2)
-    # assert added == 1
-    # assert removed == 0
+    df1 = pl.DataFrame({"a": [1]}).lazy()
+    df2 = pl.DataFrame({"a": [1, 1]}).lazy()
+    added, removed = row_differences(df1, df2)
+    assert added == 1
+    assert removed == 0
 
-    # df1 = pl.DataFrame({"a": [1, 1]})
-    # df2 = pl.DataFrame({"a": [1]})
-    # added, removed = row_differences(df1, df2)
-    # assert added == 0
-    # assert removed == 1
+    df1 = pl.DataFrame({"a": [1, 1]}).lazy()
+    df2 = pl.DataFrame({"a": [1]}).lazy()
+    added, removed = row_differences(df1, df2)
+    assert added == 0
+    assert removed == 1
 
 
-df_st = dataframes(
-    cols=[column("a", dtype=pl.Int64, unique=True), column("b", dtype=pl.Boolean)]
-)
+df_st = dataframes(cols=[column("a", dtype=pl.Int64), column("b", dtype=pl.Boolean)])
 
 
 @given(df1=df_st, df2=df_st)
 def test_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
-    added, removed = row_differences(df1, df2)
+    added, removed = row_differences(df1.lazy(), df2.lazy())
     assert added >= 0, "added should be >= 0"
     assert added <= len(df2), "added should be <= len(df2)"
     assert removed >= 0, "removed should be >= 0"

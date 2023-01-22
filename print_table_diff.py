@@ -26,7 +26,7 @@ if len(sys.argv) > 3:
     print(f"+{added:,} -{removed:,} ~{updated:,}", file=md_out)
 
 else:
-    added, removed = row_differences(df_a, df_b)
+    added, removed = row_differences(df_a.lazy(), df_b.lazy())
     print(f"+{added:,} -{removed:,}", file=txt_out)
 
     print(f"## {sys.argv[1]} vs {sys.argv[2]}", file=md_out)
