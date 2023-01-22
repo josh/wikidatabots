@@ -90,16 +90,34 @@ def test_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> Non
 
 
 def test_unique_row_differences():
-    df1 = pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
-    df2 = pl.DataFrame({"a": [2, 3, 4], "b": [True, False, False]})
+    df1 = pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]}).lazy()
+    df2 = pl.DataFrame({"a": [2, 3, 4], "b": [True, False, False]}).lazy()
     added, removed, updated = unique_row_differences(df1, df2, on="a")
     assert added == 1
     assert removed == 1
     assert updated == 1
 
-    df1 = pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
-    df2 = pl.DataFrame({"a": [1, 2, 3], "b": [True, True, False]})
+    df1 = pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]}).lazy()
+    df2 = pl.DataFrame({"a": [1, 2, 3], "b": [True, True, False]}).lazy()
     added, removed, updated = unique_row_differences(df1, df2, on="a")
     assert added == 0
     assert removed == 0
     assert updated == 2
+
+
+df_st = dataframes(
+    cols=[column("a", dtype=pl.Int64, unique=True), column("b", dtype=pl.Boolean)]
+)
+
+
+@given(df1=df_st, df2=df_st)
+def test_unique_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame):
+    added, removed, updated = unique_row_differences(df1.lazy(), df2.lazy(), on="a")
+    assert added >= 0, "added should be >= 0"
+    assert added <= len(df2), "added should be <= len(df2)"
+    assert removed >= 0, "removed should be >= 0"
+    assert removed <= len(df1), "removed should be <= len(df1)"
+    assert updated >= 0, "updated should be >= 0"
+    assert updated <= len(df1), "updated should be <= len(df1)"
+    assert df1.height - removed + added == df2.height, "df1 - removed + added == df2"
+    assert df2.height - added + removed == df1.height, "df2 - added + removed == df1"
