@@ -9,7 +9,7 @@ import actions
 actions.install_warnings_hook()
 
 
-def read_ipc(filename: str):
+def read_ipc(filename: str) -> pl.DataFrame:
     try:
         return pl.read_ipc(filename, memory_map=False)
     except:  # noqa: E722
