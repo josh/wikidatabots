@@ -1,8 +1,8 @@
 # pyright: strict
 
 import datetime
-from hashlib import new
 import os
+from hashlib import new
 
 import polars as pl
 import requests
@@ -60,19 +60,22 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame
     )
 
 
+OUTDATED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
+NEVER_FETCHED = pl.col("retrieved_at").is_null()
+MISSING_STATUS = pl.col("success").is_null()
+
+
 def tmdb_outdated_external_ids(
-    latest_changes_df: pl.DataFrame,
-    external_ids_df: pl.DataFrame,
-) -> pl.Series:
-    df = latest_changes_df.join(external_ids_df, on="id", how="left")
-    is_missing = pl.col("retrieved_at").is_null()
-    is_outdated = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
-    return df.filter(is_missing | is_outdated)["id"].head(1_000)
-
-
-def tmdb_external_ids_need_backfill(external_ids_df: pl.DataFrame) -> pl.Series:
-    df = external_ids_df
-    return df.filter(df["success"].is_null())["id"].head(1_000)
+    latest_changes_df: pl.LazyFrame,
+    external_ids_df: pl.LazyFrame,
+) -> pl.LazyFrame:
+    return (
+        latest_changes_df.join(external_ids_df, on="id", how="left")
+        .sort(pl.col("retrieved_at"), reverse=True)
+        .filter(OUTDATED | NEVER_FETCHED | MISSING_STATUS)
+        .head(3_000)
+        .select(["id"])
+    )
 
 
 ExtractIMDbNumericIDExpr = (
@@ -83,11 +86,12 @@ ExtractIMDbNumericIDExpr = (
 )
 
 
-def fetch_tmdb_external_ids(tmdb_ids: pl.Series, tmdb_type: str) -> pl.DataFrame:
+def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     api_key = os.environ["TMDB_API_KEY"]
 
     records = []
-    pbar = tqdm(tmdb_ids, desc="Fetch TMDB external IDs")
+    # TODO: Avoid collect
+    pbar = tqdm(tmdb_ids.collect()["id"], desc="Fetch TMDB external IDs")
     for tmdb_id in pbar:
         url = f"https://api.themoviedb.org/3/{tmdb_type}/{tmdb_id}/external_ids"
         r = session.get(url, params={"api_key": api_key})
@@ -110,28 +114,25 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.Series, tmdb_type: str) -> pl.DataFrame
         "tvdb_id": pl.UInt32(),
         "wikidata_id": pl.Utf8(),
     }
-    return pl.from_dicts(records, schema=schema).with_columns(
-        [
-            pl.col("retrieved_at").dt.round("1s"),
-            ExtractIMDbNumericIDExpr,
-        ]
+    return (
+        pl.from_dicts(records, schema=schema)
+        .lazy()
+        .with_columns(
+            [
+                pl.col("retrieved_at").dt.round("1s"),
+                ExtractIMDbNumericIDExpr,
+            ]
+        )
     )
 
 
 def insert_tmdb_external_ids(
-    df: pl.DataFrame,
+    df: pl.LazyFrame,
     tmdb_type: str,
-    tmdb_ids: pl.Series,
-) -> pl.DataFrame:
-    # FIXME
-    if len(tmdb_ids) == 0:
-        return df
-
-    df_updated_rows = fetch_tmdb_external_ids(tmdb_type=tmdb_type, tmdb_ids=tmdb_ids)
+    tmdb_ids: pl.LazyFrame,
+) -> pl.LazyFrame:
     return (
-        df.extend(df_updated_rows)
+        pl.concat([df, fetch_tmdb_external_ids(tmdb_ids, tmdb_type)])
         .unique(subset=["id"], keep="last")
-        .lazy()
         .pipe(reindex_as_range, name="id")
-        .collect()
     )

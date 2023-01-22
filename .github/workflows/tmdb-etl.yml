@@ -127,7 +127,7 @@ jobs:
         env:
           TYPE: ${{ matrix.type }}
 
-      - name: Run ETL outdated script
+      - name: Run ETL script
         shell: python
         run: |
           import os
@@ -136,8 +136,8 @@ jobs:
           from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
 
           tmdb_type = os.environ["TYPE"]
-          latest_changes_df = read_ipc("latest_changes.arrow")
-          external_ids_df = read_ipc("external_ids.arrow")
+          latest_changes_df = read_ipc("latest_changes.arrow").lazy()
+          external_ids_df = read_ipc("external_ids.arrow").lazy()
           tmdb_ids = tmdb_outdated_external_ids(
               latest_changes_df=latest_changes_df,
               external_ids_df=external_ids_df,
@@ -146,28 +146,7 @@ jobs:
               external_ids_df,
               tmdb_type=tmdb_type,
               tmdb_ids=tmdb_ids,
-          )
-          external_ids_df.write_ipc("external_ids.arrow", compression="lz4")
-        env:
-          TYPE: ${{ matrix.type }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-
-      - name: Run ETL backfill script
-        shell: python
-        run: |
-          import os
-
-          from polars_utils import read_ipc
-          from tmdb_etl import insert_tmdb_external_ids, tmdb_external_ids_need_backfill
-
-          tmdb_type = os.environ["TYPE"]
-          external_ids_df = read_ipc("external_ids.arrow")
-          tmdb_ids = tmdb_external_ids_need_backfill(external_ids_df)
-          external_ids_df = insert_tmdb_external_ids(
-              external_ids_df,
-              tmdb_type=tmdb_type,
-              tmdb_ids=tmdb_ids,
-          )
+          ).collect()
           external_ids_df.write_ipc("external_ids.arrow", compression="lz4")
         env:
           TYPE: ${{ matrix.type }}

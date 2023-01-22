@@ -33,7 +33,7 @@ def test_insert_tmdb_latest_changes():
 
 
 def test_fetch_tmdb_external_ids():
-    ids = pl.Series([1, 2, 3, 4])
+    ids = pl.DataFrame({"id": [1, 2, 3, 4]}).lazy()
     df = fetch_tmdb_external_ids(ids, "movie").select(["id", "success", "imdb_id"])
     df2 = pl.DataFrame(
         {
@@ -41,5 +41,5 @@ def test_fetch_tmdb_external_ids():
             "success": [False, True, True, False],
             "imdb_id": [None, "tt0094675", "tt0092149", None],
         }
-    )
+    ).lazy()
     assert_frame_equal(df, df2)
