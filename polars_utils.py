@@ -9,12 +9,13 @@ import actions
 actions.install_warnings_hook()
 
 
-def read_ipc(filename: str) -> pl.DataFrame:
+def read_ipc(filename: str) -> pl.LazyFrame:
     try:
-        return pl.read_ipc(filename, memory_map=False)
+        # TODO: Use scan_ipc
+        return pl.read_ipc(filename, memory_map=False).lazy()
     except:  # noqa: E722
         warnings.warn("arrow2 reader failed, falling back to pyarrow")
-        return pl.read_ipc(filename, use_pyarrow=True, memory_map=False)
+        return pl.read_ipc(filename, use_pyarrow=True, memory_map=False).lazy()
 
 
 def reindex_as_range(df: pl.LazyFrame, name: str) -> pl.LazyFrame:

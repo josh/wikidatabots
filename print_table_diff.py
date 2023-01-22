@@ -15,8 +15,8 @@ md_out = open(STEP_SUMMARY, "w")
 
 with pl.StringCache():
     # TODO: Use scan_ipc
-    df_a = read_ipc(sys.argv[1]).lazy()
-    df_b = read_ipc(sys.argv[2]).lazy()
+    df_a = read_ipc(sys.argv[1])
+    df_b = read_ipc(sys.argv[2])
 
 if len(sys.argv) > 3:
     key = sys.argv[3]

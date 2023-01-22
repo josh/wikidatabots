@@ -57,14 +57,13 @@ jobs:
         run: |
           import os
 
-          import polars as pl
-
+          from polars_utils import read_ipc
           from tmdb_etl import insert_tmdb_latest_changes
 
           tmdb_type = os.environ["TYPE"]
-          df = pl.read_ipc("latest_changes.arrow", memory_map=False)
-          df = insert_tmdb_latest_changes(df.lazy(), tmdb_type).collect()
-          df.write_ipc("latest_changes.arrow", compression="lz4")
+          df = read_ipc("latest_changes.arrow")
+          df = insert_tmdb_latest_changes(df, tmdb_type)
+          df.collect().write_ipc("latest_changes.arrow", compression="lz4")
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
@@ -136,8 +135,8 @@ jobs:
           from tmdb_etl import insert_tmdb_external_ids, tmdb_outdated_external_ids
 
           tmdb_type = os.environ["TYPE"]
-          latest_changes_df = read_ipc("latest_changes.arrow").lazy()
-          external_ids_df = read_ipc("external_ids.arrow").lazy()
+          latest_changes_df = read_ipc("latest_changes.arrow")
+          external_ids_df = read_ipc("external_ids.arrow")
           tmdb_ids = tmdb_outdated_external_ids(
               latest_changes_df=latest_changes_df,
               external_ids_df=external_ids_df,
