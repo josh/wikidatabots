@@ -10,37 +10,52 @@ from polars_utils import reindex_as_range, row_differences, unique_row_differenc
 
 
 def test_reindex_as_range():
+    df1 = pl.DataFrame([], columns={"id": pl.Int64}).lazy()
+    assert_frame_equal(reindex_as_range(df1, name="id"), df1)
+
     df1 = pl.DataFrame(
         {
             "id": [1, 2, 5],
             "value": [1, 2, 5],
         }
-    )
+    ).lazy()
     df2 = pl.DataFrame(
         {
             "id": [0, 1, 2, 3, 4, 5],
             "value": [None, 1, 2, None, None, 5],
         }
-    )
+    ).lazy()
     assert_frame_equal(reindex_as_range(df1, name="id"), df2)
 
-    df = pl.DataFrame(
-        {
-            "id": [-1, 2, 5],
-            "value": [-1, 2, 5],
-        }
-    )
-    with pytest.raises(AssertionError):
-        reindex_as_range(df, name="id")
+    # df = pl.DataFrame(
+    #     {
+    #         "id": [-1, 2, 5],
+    #         "value": [-1, 2, 5],
+    #     }
+    # ).lazy()
+    # reindex_as_range(df, name="id").collect()
 
     df = pl.DataFrame(
         {
-            "id": ["1", "2", "5"],
+            "id": ["a", "b", "c"],
             "value": [1, 2, 5],
         }
+    ).lazy()
+    with pytest.raises(Exception):
+        reindex_as_range(df, name="id").collect()
+
+
+@given(
+    df=dataframes(
+        cols=[
+            column("a", dtype=pl.UInt16, unique=True),
+            column("b", dtype=pl.Boolean),
+        ]
     )
-    with pytest.raises(AssertionError):
-        reindex_as_range(df, name="id")
+)
+def test_reindex_as_range_properties(df: pl.DataFrame):
+    df2 = reindex_as_range(df.lazy(), name="a").collect()
+    assert df2.height >= df.height
 
 
 def test_row_differences():

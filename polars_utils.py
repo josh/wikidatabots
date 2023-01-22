@@ -17,14 +17,14 @@ def read_ipc(filename: str) -> pl.DataFrame:
         return pl.read_ipc(filename, use_pyarrow=True, memory_map=False)
 
 
-def reindex_as_range(df: pl.DataFrame, name: str) -> pl.DataFrame:
-    col = df[name]
-    lower, upper = col.min(), col.max()
-    assert isinstance(lower, int) and isinstance(upper, int)
-    assert lower >= 0
-    values = range(upper + 1)
-    index = pl.Series(name=name, values=values, dtype=col.dtype)
-    return index.to_frame().join(df, on=name, how="left")
+def reindex_as_range(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
+    return df.select(
+        pl.arange(
+            low=0,
+            high=pl.col(name).max().cast(pl.Int64).fill_null(-1) + 1,
+            dtype=df.schema[name],
+        ).alias(name)
+    ).join(df, on=name, how="left")
 
 
 def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:

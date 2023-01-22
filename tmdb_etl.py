@@ -52,7 +52,9 @@ def insert_tmdb_latest_changes(df: pl.DataFrame, tmdb_type: str) -> pl.DataFrame
     return (
         pl.concat([df] + [tmdb_changes(d, tmdb_type) for d in pbar])
         .unique(subset="id", keep="last")
+        .lazy()
         .pipe(reindex_as_range, name="id")
+        .collect()
         .with_columns(pl.col("date").is_not_null().alias("has_changes"))
         .select(["id", "has_changes", "date", "adult"])
     )
@@ -143,5 +145,7 @@ def insert_tmdb_external_ids(
     return (
         df.extend(df_updated_rows)
         .unique(subset=["id"], keep="last")
+        .lazy()
         .pipe(reindex_as_range, name="id")
+        .collect()
     )
