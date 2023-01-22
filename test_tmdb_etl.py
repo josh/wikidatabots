@@ -10,7 +10,7 @@ from tmdb_etl import fetch_tmdb_external_ids, insert_tmdb_latest_changes, tmdb_c
 
 def test_tmdb_changes():
     date = datetime.date(2023, 1, 1)
-    tmdb_changes(date=date, tmdb_type="movie")
+    tmdb_changes(date=date, tmdb_type="movie").collect()
 
 
 def test_insert_tmdb_latest_changes():
@@ -27,8 +27,8 @@ def test_insert_tmdb_latest_changes():
             "date": pl.Date,
             "adult": pl.Boolean,
         },
-    )
-    df2 = insert_tmdb_latest_changes(df1, tmdb_type="movie")
+    ).lazy()
+    df2 = insert_tmdb_latest_changes(df1, tmdb_type="movie").collect()
     assert len(df2) > 0
 
 

@@ -1,6 +1,7 @@
 # pyright: strict
 
 import datetime
+from hashlib import new
 import os
 
 import polars as pl
@@ -14,7 +15,7 @@ session = requests.Session()
 ONE_DAY = datetime.timedelta(days=1)
 
 
-def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
+def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.LazyFrame:
     start_date = date
     end_date = start_date + ONE_DAY
     api_key = os.environ["TMDB_API_KEY"]
@@ -30,6 +31,7 @@ def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
 
     return (
         pl.from_dicts(data, schema={"id": pl.UInt32(), "adult": pl.Boolean()})
+        .lazy()
         .unique(subset="id", keep="first")
         .with_column(pl.lit(True).alias("has_changes"))
         .with_column(pl.lit(date).alias("date"))
@@ -37,24 +39,22 @@ def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.DataFrame:
     )
 
 
-def insert_tmdb_latest_changes(df: pl.DataFrame, tmdb_type: str) -> pl.DataFrame:
-    start_date = df["date"].max()
-    assert isinstance(start_date, datetime.date)
-
+def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     dates = pl.date_range(
-        low=start_date - datetime.timedelta(days=3),
+        low=pl.col("date").max() - datetime.timedelta(days=3),
         high=datetime.date.today(),
         interval=ONE_DAY,
         name="date",
     )
 
-    pbar = tqdm(dates, desc="Fetch TMDB changes")
+    # TODO: Avoid collect
+    pbar = tqdm(df.select(dates).collect()["date"], desc="Fetch TMDB changes")
+    new_dfs = [tmdb_changes(d, tmdb_type) for d in pbar]
+
     return (
-        pl.concat([df] + [tmdb_changes(d, tmdb_type) for d in pbar])
+        pl.concat([df.lazy(), *new_dfs])
         .unique(subset="id", keep="last")
-        .lazy()
         .pipe(reindex_as_range, name="id")
-        .collect()
         .with_columns(pl.col("date").is_not_null().alias("has_changes"))
         .select(["id", "has_changes", "date", "adult"])
     )
