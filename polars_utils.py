@@ -1,8 +1,10 @@
 # pyright: strict
 
 import warnings
+from typing import Any, Callable
 
 import polars as pl
+from tqdm import tqdm
 
 import actions
 
@@ -67,3 +69,32 @@ def unique_row_differences(
     )
     updated = both_key.height - both_equal.height
     return added.height, removed.height, updated
+
+
+def apply_with_tqdm(
+    df: pl.DataFrame,
+    fn: Callable[[tuple[Any, ...]], Any],
+    return_dtype: pl.PolarsDataType | None = None,
+    inference_size: int = 256,
+) -> pl.DataFrame:
+    pbar = tqdm()
+    pbar.total = df.height
+
+    def wrapped_fn(row: tuple[Any, ...]) -> Any:
+        pbar.update(1)
+        return fn(row)
+
+    try:
+        return df.apply(
+            wrapped_fn, return_dtype=return_dtype, inference_size=inference_size
+        )
+    finally:
+        pbar.close()
+
+
+def lazy_apply_with_tqdm(
+    df: pl.LazyFrame,
+    fn: Callable[[tuple[Any, ...]], Any],
+    schema: dict[str, pl.PolarsDataType] | None = None,
+) -> pl.LazyFrame:
+    return df.map(lambda df: apply_with_tqdm(df, fn), schema=schema)
