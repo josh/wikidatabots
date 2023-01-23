@@ -54,13 +54,17 @@ def test_reindex_as_range():
 @given(
     df=dataframes(
         cols=[
-            column("a", dtype=pl.UInt16, unique=True),
-            column("b", dtype=pl.Boolean),
+            column("a", dtype=pl.UInt8, unique=True),
+            column("b", dtype=pl.UInt16, unique=True),
+            column("c", dtype=pl.Boolean),
         ]
     )
 )
 def test_reindex_as_range_properties(df: pl.DataFrame):
     df2 = reindex_as_range(df.lazy(), name="a").collect()
+    assert df2.height >= df.height
+
+    df2 = reindex_as_range(df.lazy(), name="b").collect()
     assert df2.height >= df.height
 
 
