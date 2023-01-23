@@ -21,13 +21,13 @@ def test_align_to_index():
 
     df1 = pl.DataFrame(
         {
-            "id": [1, 2, 5],
+            "id": pl.Series([1, 2, 5], dtype=pl.Int8),
             "value": [1, 2, 5],
         }
     ).lazy()
     df2 = pl.DataFrame(
         {
-            "id": [0, 1, 2, 3, 4, 5],
+            "id": pl.Series([0, 1, 2, 3, 4, 5], dtype=pl.Int8),
             "value": [None, 1, 2, None, None, 5],
         }
     ).lazy()
