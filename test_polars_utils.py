@@ -47,7 +47,7 @@ def test_reindex_as_range():
             "value": [1, 2, 5],
         }
     ).lazy()
-    with pytest.raises(Exception):
+    with pytest.raises(AssertionError):
         reindex_as_range(df, name="id").collect()
 
 

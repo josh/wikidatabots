@@ -20,7 +20,20 @@ def read_ipc(filename: str) -> pl.LazyFrame:
         return pl.read_ipc(filename, use_pyarrow=True, memory_map=False).lazy()
 
 
+PL_INTEGERS = {
+    pl.Int8,
+    pl.Int16,
+    pl.Int32,
+    pl.Int64,
+    pl.UInt8,
+    pl.UInt16,
+    pl.UInt32,
+    pl.UInt64,
+}
+
+
 def reindex_as_range(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
+    assert df.schema[name] in PL_INTEGERS
     return df.select(
         pl.arange(
             low=0,
