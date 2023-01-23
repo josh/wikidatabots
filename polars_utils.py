@@ -32,7 +32,7 @@ PL_INTEGERS = {
 }
 
 
-def reindex_as_range(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
+def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     assert df.schema[name] in PL_INTEGERS
     return df.select(
         pl.arange(

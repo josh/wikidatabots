@@ -7,17 +7,17 @@ from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes
 
 from polars_utils import (
+    align_to_index,
     apply_with_tqdm,
     lazy_apply_with_tqdm,
-    reindex_as_range,
     row_differences,
     unique_row_differences,
 )
 
 
-def test_reindex_as_range():
+def test_align_to_index():
     df1 = pl.DataFrame([], columns={"id": pl.Int64}).lazy()
-    assert_frame_equal(reindex_as_range(df1, name="id"), df1)
+    assert_frame_equal(align_to_index(df1, name="id"), df1)
 
     df1 = pl.DataFrame(
         {
@@ -31,7 +31,7 @@ def test_reindex_as_range():
             "value": [None, 1, 2, None, None, 5],
         }
     ).lazy()
-    assert_frame_equal(reindex_as_range(df1, name="id"), df2)
+    assert_frame_equal(align_to_index(df1, name="id"), df2)
 
     df1 = pl.DataFrame(
         {
@@ -39,7 +39,7 @@ def test_reindex_as_range():
             "value": [42],
         }
     ).lazy()
-    df2 = reindex_as_range(df1, name="id").collect()
+    df2 = align_to_index(df1, name="id").collect()
     assert df2.schema == {"id": pl.UInt8, "value": pl.Int64}
     assert df2.height == 256
 
@@ -49,7 +49,7 @@ def test_reindex_as_range():
     #         "value": [-1, 2, 5],
     #     }
     # ).lazy()
-    # reindex_as_range(df, name="id").collect()
+    # align_to_index(df, name="id").collect()
 
     df = pl.DataFrame(
         {
@@ -58,7 +58,7 @@ def test_reindex_as_range():
         }
     ).lazy()
     with pytest.raises(AssertionError):
-        reindex_as_range(df, name="id").collect()
+        align_to_index(df, name="id").collect()
 
 
 @given(
@@ -70,11 +70,11 @@ def test_reindex_as_range():
         ]
     )
 )
-def test_reindex_as_range_properties(df: pl.DataFrame):
-    df2 = reindex_as_range(df.lazy(), name="a").collect()
+def test_align_to_index_properties(df: pl.DataFrame):
+    df2 = align_to_index(df.lazy(), name="a").collect()
     assert df2.height >= df.height
 
-    df2 = reindex_as_range(df.lazy(), name="b").collect()
+    df2 = align_to_index(df.lazy(), name="b").collect()
     assert df2.height >= df.height
 
 

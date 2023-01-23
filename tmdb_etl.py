@@ -7,7 +7,7 @@ import polars as pl
 import requests
 from tqdm import tqdm
 
-from polars_utils import reindex_as_range
+from polars_utils import align_to_index
 
 session = requests.Session()
 
@@ -53,7 +53,7 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame
     return (
         pl.concat([df.lazy(), *new_dfs])
         .unique(subset="id", keep="last")
-        .pipe(reindex_as_range, name="id")
+        .pipe(align_to_index, name="id")
         .with_columns(pl.col("date").is_not_null().alias("has_changes"))
         .select(["id", "has_changes", "date", "adult"])
     )
@@ -146,5 +146,5 @@ def insert_tmdb_external_ids(
     return (
         pl.concat([df, fetch_tmdb_external_ids(tmdb_ids, tmdb_type)])
         .unique(subset=["id"], keep="last")
-        .pipe(reindex_as_range, name="id")
+        .pipe(align_to_index, name="id")
     )
