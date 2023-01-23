@@ -37,7 +37,7 @@ def reindex_as_range(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     return df.select(
         pl.arange(
             low=0,
-            high=pl.col(name).max().cast(pl.Int64).fill_null(-1) + 1,
+            high=pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
             dtype=df.schema[name],
         ).alias(name)
     ).join(df, on=name, how="left")
