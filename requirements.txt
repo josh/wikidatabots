@@ -8,7 +8,7 @@ pandas-stubs==1.5.2.221213
 pandas==1.5.2
 polars==0.15.15
 pyarrow===10.0.1
-pytest==7.2.0
+pytest==7.2.1
 pywikibot==7.7.2
 rdflib===6.2.0
 requests-cache===0.9.7
