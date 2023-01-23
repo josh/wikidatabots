@@ -33,6 +33,16 @@ def test_reindex_as_range():
     ).lazy()
     assert_frame_equal(reindex_as_range(df1, name="id"), df2)
 
+    df1 = pl.DataFrame(
+        {
+            "id": pl.Series([255], dtype=pl.UInt8),
+            "value": [42],
+        }
+    ).lazy()
+    df2 = reindex_as_range(df1, name="id").collect()
+    assert df2.schema == {"id": pl.UInt8, "value": pl.Int64}
+    assert df2.height == 256
+
     # df = pl.DataFrame(
     #     {
     #         "id": [-1, 2, 5],
