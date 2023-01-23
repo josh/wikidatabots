@@ -66,7 +66,7 @@ def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:
         .collect()
     )
 
-    return stats["removed"][0], stats["added"][0]
+    return stats[0, "removed"], stats[0, "added"]
 
 
 def unique_row_differences(
