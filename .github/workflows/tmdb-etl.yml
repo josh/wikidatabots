@@ -40,7 +40,7 @@ jobs:
           echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v1.6.1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
@@ -113,7 +113,7 @@ jobs:
           echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v1.6.1
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
