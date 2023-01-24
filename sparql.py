@@ -188,7 +188,9 @@ def fetch_statements(
     query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
     query += "}"
 
-    Result = TypedDict("Result", statement=URIRef, item=QID, property=PID, value=str)
+    Result = TypedDict(
+        "Result", {"statement": URIRef, "item": QID, "property": PID, "value": str}
+    )
     results: list[Result] = sparql(query)
 
     items: dict[QID, dict[PID, list[tuple[URIRef, str]]]] = {}
@@ -217,7 +219,7 @@ def type_constraints(property: PID) -> set[QID]:
       ?subclass wdt:P279* ?class.
     }
     """
-    Result = TypedDict("Result", subclass=QID)
+    Result = TypedDict("Result", {"subclass": QID})
     results: list[Result] = sparql(query)
 
     return set([result["subclass"] for result in results])
@@ -284,7 +286,7 @@ def sample_items(
     query = query.replace("?property", property)
     query = query.replace("?limit", str(limit))
 
-    Result = TypedDict("Result", item=QID)
+    Result = TypedDict("Result", {"item": QID})
     results: list[Result] = sparql(query)
 
     return set([result["item"] for result in results])

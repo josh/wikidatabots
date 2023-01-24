@@ -117,7 +117,7 @@ def wikidata_search(
 
     query += "\n} LIMIT 2"
 
-    Result = TypedDict("Result", item=wikidata.QID, appletv=str)
+    Result = TypedDict("Result", {"item": wikidata.QID, "appletv": str})
     results: list[Result] = sparql(query)
 
     if len(results) == 1:

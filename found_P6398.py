@@ -24,7 +24,7 @@ def main():
     FILTER(?rank = wikibase:DeprecatedRank)
     }
     """
-    Result = TypedDict("Result", item=str)
+    Result = TypedDict("Result", {"item": str})
     results: list[Result] = sparql.sparql(query)
 
     qids: set[wikidata.QID] = set()

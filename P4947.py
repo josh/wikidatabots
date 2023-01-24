@@ -37,7 +37,7 @@ def main():
     ORDER BY ?random
     LIMIT 10000
     """
-    Result = TypedDict("Result", item=str, imdb=str)
+    Result = TypedDict("Result", {"item": str, "imdb": str})
     results: list[Result] = sparql(query)
 
     print(f"qid,{TMDB_MOVIE_ID_PID}")

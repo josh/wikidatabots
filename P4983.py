@@ -55,7 +55,7 @@ def main():
     }
     ORDER BY DESC (?id)
     """
-    Result = TypedDict("Result", item=QID, imdb=str | None, tvdb=str | None)
+    Result = TypedDict("Result", {"item": QID, "imdb": str | None, "tvdb": str | None})
     results: list[Result] = sparql(query)
     results = position_weighted_shuffled(results)
 
