@@ -9,6 +9,7 @@ from polars.testing.parametric import column, dataframes
 from polars_utils import (
     align_to_index,
     parse_json,
+    request_text,
     row_differences,
     unique_row_differences,
 )
@@ -171,3 +172,25 @@ def test_parse_json():
     expected = pl.Series(name="data", values=[[1, 2], [3, 4], [5, 6]], dtype=dtype)
     actual = parse_json(jsons, dtype=dtype)
     assert_series_equal(actual, expected)
+
+
+def test_request_text():
+    urls = pl.Series(
+        name="urls",
+        values=[
+            "http://httpbin.org/get?foo=1",
+            "http://httpbin.org/get?foo=2",
+            "http://httpbin.org/get?foo=3",
+        ],
+    )
+    texts = request_text(urls)
+    assert texts.dtype == pl.Utf8
+    assert len(texts) == 3
+
+    data = parse_json(texts)
+    args = pl.Series(
+        name="args",
+        values=[{"foo": "1"}, {"foo": "2"}, {"foo": "3"}],
+        dtype=pl.Struct([pl.Field("foo", pl.Utf8)]),
+    )
+    assert_series_equal(data.struct.field("args"), args)

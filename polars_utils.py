@@ -5,6 +5,7 @@ import warnings
 from typing import Any, Callable
 
 import polars as pl
+import requests
 from tqdm import tqdm
 
 import actions
@@ -110,3 +111,12 @@ def apply_with_tqdm(
 def parse_json(texts: pl.Series, dtype: pl.PolarsDataType | None = None) -> pl.Series:
     assert texts.dtype == pl.Utf8, "series must be strings"
     return apply_with_tqdm(texts, json.loads, return_dtype=dtype, desc="Parsing JSON")
+
+
+def request_text(urls: pl.Series) -> pl.Series:
+    assert urls.dtype == pl.Utf8, "series must be strings"
+
+    def get_text(url: str) -> str:
+        return requests.get(url).text
+
+    return apply_with_tqdm(urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs")
