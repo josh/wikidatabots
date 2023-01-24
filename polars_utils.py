@@ -1,5 +1,6 @@
 # pyright: strict
 
+import json
 import warnings
 from typing import Any, Callable
 
@@ -85,29 +86,27 @@ def unique_row_differences(
 
 
 def apply_with_tqdm(
-    df: pl.DataFrame,
-    fn: Callable[[tuple[Any, ...]], Any],
+    s: pl.Series,
+    func: Callable[[Any], Any],
     return_dtype: pl.PolarsDataType | None = None,
-    inference_size: int = 256,
-) -> pl.DataFrame:
+    skip_nulls: bool = True,
+    desc: str | None = None,
+) -> pl.Series:
     pbar = tqdm()
-    pbar.total = df.height
+    pbar.desc = desc
+    pbar.total = len(s)
+    pbar.unit = "rows"
 
-    def wrapped_fn(row: tuple[Any, ...]) -> Any:
+    def wrapped_func(item: Any) -> Any:
         pbar.update(1)
-        return fn(row)
+        return func(item)
 
     try:
-        return df.apply(
-            wrapped_fn, return_dtype=return_dtype, inference_size=inference_size
-        )
+        return s.apply(wrapped_func, return_dtype=return_dtype, skip_nulls=skip_nulls)
     finally:
         pbar.close()
 
 
-def lazy_apply_with_tqdm(
-    df: pl.LazyFrame,
-    fn: Callable[[tuple[Any, ...]], Any],
-    schema: dict[str, pl.PolarsDataType] | None = None,
-) -> pl.LazyFrame:
-    return df.map(lambda df: apply_with_tqdm(df, fn), schema=schema)
+def parse_json(texts: pl.Series, dtype: pl.PolarsDataType | None = None) -> pl.Series:
+    assert texts.dtype == pl.Utf8, "series must be strings"
+    return apply_with_tqdm(texts, json.loads, return_dtype=dtype, desc="Parsing JSON")
