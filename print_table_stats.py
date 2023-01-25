@@ -58,7 +58,7 @@ for row in schema_df.itertuples():
 
 print(f"## {filename}", file=md_out)
 print("|name|pyarrow|pandas|null|true|false|unique|", file=md_out)
-print("|---|---|---|---|---|---|", file=md_out)
+print("|---|---|---|---|---|---|---|", file=md_out)
 for row in schema_df.itertuples():
     print(f"|{row.name}|{row.pyarrow}|{row.pandas}", file=md_out, end="|")
     if row.null_count > 0:
