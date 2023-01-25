@@ -116,7 +116,9 @@ def parse_json(texts: pl.Series, dtype: pl.PolarsDataType | None = None) -> pl.S
 def request_text(urls: pl.Series) -> pl.Series:
     assert urls.dtype == pl.Utf8, "series must be strings"
 
+    session = requests.Session()
+
     def get_text(url: str) -> str:
-        return requests.get(url).text
+        return session.get(url).text
 
     return apply_with_tqdm(urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs")
