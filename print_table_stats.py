@@ -33,6 +33,7 @@ schema_df["null_count"] = df.isna().sum()
 schema_df["true_percent"] = schema_df.true_count / count
 schema_df["false_percent"] = schema_df.false_count / count
 schema_df["null_percent"] = schema_df.null_count / count
+schema_df["is_unique"] = df.nunique(dropna=True) == (count - schema_df.null_count)
 
 for row in schema_df.itertuples():
     print(f"{row.Index}: {row.pyarrow}[pyarrow] / {row.pandas}[pandas]", file=txt_out)
@@ -42,7 +43,7 @@ for row in schema_df.itertuples():
             file=txt_out,
         )
         print(
-            f"|  false: {row.false_count:,} ({row.false_percent:.2%})",
+            f"|   false: {row.false_count:,} ({row.false_percent:.2%})",
             file=txt_out,
         )
 
@@ -52,8 +53,11 @@ for row in schema_df.itertuples():
             file=txt_out,
         )
 
+    if row.is_unique:
+        print("|   unique", file=txt_out)
+
 print(f"## {filename}", file=md_out)
-print("|name|pyarrow|pandas|null|true|false|", file=md_out)
+print("|name|pyarrow|pandas|null|true|false|unique|", file=md_out)
 print("|---|---|---|---|---|---|", file=md_out)
 for row in schema_df.itertuples():
     print(f"|{row.name}|{row.pyarrow}|{row.pandas}", file=md_out, end="|")
@@ -66,6 +70,10 @@ for row in schema_df.itertuples():
         print(f"{row.false_count:,} ({row.false_percent:.2%})", file=md_out, end="|")
     else:
         print("||", file=md_out, end="")
+    if row.is_unique:
+        print("true", file=md_out, end="|")
+    else:
+        print("", file=md_out, end="|")
     print("", file=md_out)
 
 print(f"total: {count:,}", file=txt_out)
