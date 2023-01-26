@@ -35,6 +35,7 @@ PL_INTEGERS = {
 
 
 def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
+    df = df.cache()
     assert df.schema[name] in PL_INTEGERS
     return df.select(
         pl.arange(
