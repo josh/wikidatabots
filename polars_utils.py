@@ -75,6 +75,8 @@ def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:
 def unique_row_differences(
     df1: pl.LazyFrame, df2: pl.LazyFrame, on: str
 ) -> tuple[int, int, int]:
+    # .cache() doesn't seem to work here
+    df1, df2 = df1.collect().lazy(), df2.collect().lazy()
     [removed, added, both_key, both_equal] = pl.collect_all(
         [
             df1.join(df2, on=on, how="anti"),

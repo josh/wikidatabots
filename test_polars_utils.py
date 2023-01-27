@@ -111,32 +111,32 @@ def test_align_to_index_evaluates_df_once():
 
 
 def test_row_differences():
-    df1 = pl.DataFrame({"a": [1, 2, 3]}).lazy()
-    df2 = pl.DataFrame({"a": [2, 3, 4]}).lazy()
+    df1 = pl.DataFrame({"a": [1, 2, 3]}).lazy().map(assert_called_once())
+    df2 = pl.DataFrame({"a": [2, 3, 4]}).lazy().map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 1
     assert removed == 1
 
-    df1 = pl.DataFrame({"a": [1]}).lazy()
-    df2 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy()
+    df1 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
+    df2 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy().map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 3
     assert removed == 0
 
-    df1 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy()
-    df2 = pl.DataFrame({"a": [1]}).lazy()
+    df1 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy().map(assert_called_once())
+    df2 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 0
     assert removed == 3
 
-    df1 = pl.DataFrame({"a": [1]}).lazy()
-    df2 = pl.DataFrame({"a": [1, 1]}).lazy()
+    df1 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
+    df2 = pl.DataFrame({"a": [1, 1]}).lazy().map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 1
     assert removed == 0
 
-    df1 = pl.DataFrame({"a": [1, 1]}).lazy()
-    df2 = pl.DataFrame({"a": [1]}).lazy()
+    df1 = pl.DataFrame({"a": [1, 1]}).lazy().map(assert_called_once())
+    df2 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 0
     assert removed == 1
@@ -147,7 +147,10 @@ df_st = dataframes(cols=[column("a", dtype=pl.Int64), column("b", dtype=pl.Boole
 
 @given(df1=df_st, df2=df_st)
 def test_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
-    added, removed = row_differences(df1.lazy(), df2.lazy())
+    added, removed = row_differences(
+        df1.lazy().map(assert_called_once()),
+        df2.lazy().map(assert_called_once()),
+    )
     assert added >= 0, "added should be >= 0"
     assert added <= len(df2), "added should be <= len(df2)"
     assert removed >= 0, "removed should be >= 0"
@@ -157,15 +160,31 @@ def test_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> Non
 
 
 def test_unique_row_differences():
-    df1 = pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]}).lazy()
-    df2 = pl.DataFrame({"a": [2, 3, 4], "b": [True, False, False]}).lazy()
+    df1 = (
+        pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
+        .lazy()
+        .map(assert_called_once())
+    )
+    df2 = (
+        pl.DataFrame({"a": [2, 3, 4], "b": [True, False, False]})
+        .lazy()
+        .map(assert_called_once())
+    )
     added, removed, updated = unique_row_differences(df1, df2, on="a")
     assert added == 1
     assert removed == 1
     assert updated == 1
 
-    df1 = pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]}).lazy()
-    df2 = pl.DataFrame({"a": [1, 2, 3], "b": [True, True, False]}).lazy()
+    df1 = (
+        pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
+        .lazy()
+        .map(assert_called_once())
+    )
+    df2 = (
+        pl.DataFrame({"a": [1, 2, 3], "b": [True, True, False]})
+        .lazy()
+        .map(assert_called_once())
+    )
     added, removed, updated = unique_row_differences(df1, df2, on="a")
     assert added == 0
     assert removed == 0
@@ -179,7 +198,11 @@ df_st = dataframes(
 
 @given(df1=df_st, df2=df_st)
 def test_unique_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame):
-    added, removed, updated = unique_row_differences(df1.lazy(), df2.lazy(), on="a")
+    added, removed, updated = unique_row_differences(
+        df1.lazy().map(assert_called_once()),
+        df2.lazy().map(assert_called_once()),
+        on="a",
+    )
     assert added >= 0, "added should be >= 0"
     assert added <= len(df2), "added should be <= len(df2)"
     assert removed >= 0, "removed should be >= 0"
