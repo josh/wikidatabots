@@ -29,7 +29,13 @@ def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.LazyFrame:
     data = r.json()["results"]
 
     return (
-        pl.from_dicts(data, schema_overrides={"id": pl.UInt32(), "adult": pl.Boolean()})
+        pl.from_dicts(  # type: ignore
+            data,
+            schema_overrides={
+                "id": pl.UInt32(),
+                "adult": pl.Boolean(),
+            },
+        )
         .lazy()
         .unique(subset="id", keep="first")
         .with_column(pl.lit(True).alias("has_changes"))
@@ -127,7 +133,7 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
         "wikidata_id": pl.Utf8(),
     }
     return (
-        pl.from_dicts(records, schema_overrides=schema)
+        pl.from_dicts(records, schema_overrides=schema)  # type: ignore
         .lazy()
         .with_columns(
             [
