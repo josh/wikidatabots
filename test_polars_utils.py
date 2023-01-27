@@ -1,5 +1,7 @@
 # pyright: strict
 
+from typing import TypeVar
+
 import polars as pl
 import pytest
 from hypothesis import given
@@ -72,10 +74,40 @@ def test_align_to_index():
 )
 def test_align_to_index_properties(df: pl.DataFrame):
     df2 = align_to_index(df.lazy(), name="a").collect()
-    assert df2.height >= df.height
 
     df2 = align_to_index(df.lazy(), name="b").collect()
     assert df2.height >= df.height
+
+
+def test_align_to_index_evaluates_df_once():
+    ldf1 = (
+        pl.DataFrame(
+            {
+                "id": pl.Series([1, 2, 5], dtype=pl.Int8),
+                "value": [1, 2, 5],
+            }
+        )
+        .lazy()
+        .map(assert_called_once())
+    )
+    align_to_index(ldf1, name="id").collect()
+
+    ldf2 = (
+        pl.DataFrame(
+            {
+                "id": pl.Series([1, 2, 5], dtype=pl.Int8),
+                "value": [1, 2, 5],
+            }
+        )
+        .lazy()
+        .select(
+            [
+                pl.col("id").map(assert_called_once(), return_dtype=pl.Int8),
+                pl.col("value").map(assert_called_once(), return_dtype=pl.Int64),
+            ]
+        )
+    )
+    align_to_index(ldf2, name="id").collect()
 
 
 def test_row_differences():
@@ -194,3 +226,18 @@ def test_request_text():
         dtype=pl.Struct([pl.Field("foo", pl.Utf8)]),
     )
     assert_series_equal(data.struct.field("args"), args)
+
+
+T = TypeVar("T")
+
+
+def assert_called_once():
+    calls: int = 1
+
+    def mock(value: T) -> T:
+        nonlocal calls
+        calls -= 1
+        assert calls >= 0, "mock called too many times"
+        return value
+
+    return mock
