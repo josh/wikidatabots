@@ -6,7 +6,7 @@ lxml==4.9.2
 numpy==1.24.1
 pandas-stubs==1.5.2.230105
 pandas==1.5.3
-polars==0.15.17
+polars==0.15.18
 pyarrow===10.0.1
 pytest==7.2.1
 pywikibot==8.0.0
