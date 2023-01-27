@@ -21,7 +21,7 @@ def test_insert_tmdb_latest_changes():
             "date": [datetime.date.today()],
             "adult": [False],
         },
-        columns={
+        schema={
             "id": pl.UInt32,
             "has_changes": pl.Boolean,
             "date": pl.Date,

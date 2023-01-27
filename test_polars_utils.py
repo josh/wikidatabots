@@ -16,7 +16,7 @@ from polars_utils import (
 
 
 def test_align_to_index():
-    df1 = pl.DataFrame([], columns={"id": pl.Int64}).lazy()
+    df1 = pl.DataFrame([], schema={"id": pl.Int64}).lazy()
     assert_frame_equal(align_to_index(df1, name="id"), df1)
 
     df1 = pl.DataFrame(
