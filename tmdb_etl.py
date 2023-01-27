@@ -31,15 +31,15 @@ def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.LazyFrame:
     return (
         pl.from_dicts(  # type: ignore
             data,
-            schema_overrides={
-                "id": pl.UInt32(),
-                "adult": pl.Boolean(),
+            schema={
+                "id": pl.UInt32,
+                "adult": pl.Boolean,
             },
         )
         .lazy()
         .unique(subset="id", keep="first")
-        .with_column(pl.lit(True).alias("has_changes"))
-        .with_column(pl.lit(date).alias("date"))
+        .with_columns(pl.lit(True).alias("has_changes"))
+        .with_columns(pl.lit(date).alias("date"))
         .select(["id", "has_changes", "date", "adult"])
     )
 
@@ -125,15 +125,15 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
         records.append(record)  # type: ignore
 
     schema = {
-        "id": pl.UInt32(),
-        "success": pl.Boolean(),
+        "id": pl.UInt32,
+        "success": pl.Boolean,
         "retrieved_at": pl.Datetime(time_unit="ns"),
-        "imdb_id": pl.Utf8(),
-        "tvdb_id": pl.UInt32(),
-        "wikidata_id": pl.Utf8(),
+        "imdb_id": pl.Utf8,
+        "tvdb_id": pl.UInt32,
+        "wikidata_id": pl.Utf8,
     }
     return (
-        pl.from_dicts(records, schema_overrides=schema)  # type: ignore
+        pl.from_dicts(records, schema=schema)  # type: ignore
         .lazy()
         .with_columns(
             [
