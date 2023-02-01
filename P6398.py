@@ -39,7 +39,7 @@ def main():
         if instance_of.isdisjoint(allowed_classes):
             continue
 
-        for (_statement, value) in item.get(APPLE_TV_MOVIE_ID_PID, []):
+        for _statement, value in item.get(APPLE_TV_MOVIE_ID_PID, []):
             id = appletv.id(value)
             if itunes_id := appletv.appletv_to_itunes(id):
                 print(f'{qid},"""{itunes_id}"""')

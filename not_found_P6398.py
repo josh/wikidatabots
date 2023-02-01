@@ -28,7 +28,7 @@ def main():
 
     edit_summary = "Deprecate iTunes movie ID delisted from store"
 
-    for (id, obj) in iter_until_deadline(itunes.batch_lookup(itunes_ids.keys())):
+    for id, obj in iter_until_deadline(itunes.batch_lookup(itunes_ids.keys())):
         if not obj and itunes.all_not_found(id):
             statement = itunes_ids[id]
             print(
@@ -45,7 +45,7 @@ def extract_itunes_ids(
 ) -> dict[int, URIRef]:
     itunes_ids: dict[int, URIRef] = {}
     for item in statements.values():
-        for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
+        for statement, value in item.get(ITUNES_MOVIE_ID_PID, []):
             if id := tryint(value):
                 itunes_ids[id] = statement
     return itunes_ids

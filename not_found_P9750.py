@@ -22,7 +22,7 @@ def main():
     for qid in iter_until_deadline(results):
         item = results[qid]
 
-        for (statement, value) in item.get(pid, []):
+        for statement, value in item.get(pid, []):
             id = appletv.tryid(value)
             if not id:
                 continue

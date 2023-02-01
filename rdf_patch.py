@@ -106,7 +106,7 @@ def process_graph(
             item.claims[predicate_local_name].append(claim)
             mark_changed(item, claim)
 
-            for (predicate, object) in predicate_objects(graph, object):
+            for predicate, object in predicate_objects(graph, object):
                 visit_wds_subject(item, claim, predicate, object)
 
         elif predicate == WIKIDATABOTS.editSummary:
@@ -154,7 +154,7 @@ def process_graph(
 
             source = defaultdict(list)
 
-            for (predicate, object) in predicate_objects(graph, object):
+            for predicate, object in predicate_objects(graph, object):
                 predicate_prefix, predicate_local_name = compute_qname(predicate)
                 assert predicate_prefix == "pr"
                 property = get_property_page(predicate_local_name)
@@ -180,7 +180,7 @@ def process_graph(
         if prefix == "wd":
             assert isinstance(subject, URIRef)
             item: pywikibot.ItemPage = get_item_page(local_name)
-            for (predicate, object) in predicate_objects(graph, subject):
+            for predicate, object in predicate_objects(graph, subject):
                 visit_wd_subject(item, predicate, object)
 
         elif prefix == "wds":
@@ -188,7 +188,7 @@ def process_graph(
             claim: pywikibot.Claim = resolve_claim_guid(local_name)
             claim_item: pywikibot.ItemPage | None = claim.on_item
             assert claim_item
-            for (predicate, object) in predicate_objects(graph, subject):
+            for predicate, object in predicate_objects(graph, subject):
                 visit_wds_subject(claim_item, claim, predicate, object)
 
         else:
@@ -228,7 +228,7 @@ def subjects(graph: Graph) -> Iterator[AnySubject]:
 def predicate_objects(
     graph: Graph, subject: AnySubject
 ) -> Iterator[tuple[AnyPredicate, AnyObject]]:
-    for (predicate, object) in graph.predicate_objects(subject):
+    for predicate, object in graph.predicate_objects(subject):
         assert isinstance(predicate, URIRef)
         assert (
             isinstance(object, URIRef)
@@ -386,7 +386,7 @@ if __name__ == "__main__":
         input=sys.stdin,
     )
 
-    for (item, claims, summary) in edits:
+    for item, claims, summary in edits:
         if args.dry_run:
             continue
         item.editEntity({"claims": claims}, summary=summary)

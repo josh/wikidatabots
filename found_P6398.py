@@ -34,7 +34,7 @@ def main():
     statements = sparql.fetch_statements(qids, [ITUNES_MOVIE_ID_PID], deprecated=True)
     itunes_ids = extract_itunes_ids(statements)
 
-    for (id, obj) in itunes.batch_lookup(itunes_ids.keys()):
+    for id, obj in itunes.batch_lookup(itunes_ids.keys()):
         if obj:
             uri = itunes_ids[id]
             snak = "$".join(uri[41:].split("-", 1))
@@ -46,7 +46,7 @@ def extract_itunes_ids(
 ) -> dict[int, URIRef]:
     itunes_ids: dict[int, URIRef] = {}
     for item in statements.values():
-        for (statement, value) in item.get(ITUNES_MOVIE_ID_PID, []):
+        for statement, value in item.get(ITUNES_MOVIE_ID_PID, []):
             if id := tryint(value):
                 itunes_ids[id] = statement
     return itunes_ids

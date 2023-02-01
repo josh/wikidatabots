@@ -40,7 +40,7 @@ def main():
     for qid in results:
         item = results[qid]
 
-        for (statement, value) in item.get(IMDB_ID_PID, []):
+        for statement, value in item.get(IMDB_ID_PID, []):
             id = imdb.tryid(value)
             if not id:
                 logging.debug(f"{value} is invalid format")

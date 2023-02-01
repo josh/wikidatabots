@@ -163,7 +163,7 @@ def main():
             yield (url, id)
 
     print("qid,P9586")
-    for (url, id) in iter_until_deadline(itertools.islice(candiate_urls(), limit)):
+    for url, id in iter_until_deadline(itertools.islice(candiate_urls(), limit)):
         info = fetch_movie(url)
         if not info:
             continue

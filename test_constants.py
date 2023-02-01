@@ -6,7 +6,7 @@ import constants
 def test_pids():
     site = pywikibot.Site("wikidata", "wikidata")
 
-    for (name, value) in constants.__dict__.items():
+    for name, value in constants.__dict__.items():
         if name.endswith("_PID"):
             page = pywikibot.PropertyPage(site, value)
             assert page.get()
@@ -19,7 +19,7 @@ def test_pids():
 def test_qids():
     site = pywikibot.Site("wikidata", "wikidata")
 
-    for (name, value) in constants.__dict__.items():
+    for name, value in constants.__dict__.items():
         if name.endswith("_QID"):
             page = pywikibot.ItemPage(site, value)
             assert page.get()

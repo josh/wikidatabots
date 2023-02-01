@@ -52,7 +52,7 @@ def appletv_to_itunes(appletv_id: ID) -> itunes.ID | None:
     if not possible_itunes_id:
         return None
 
-    for (itunes_id, result) in itunes.batch_lookup([possible_itunes_id]):
+    for itunes_id, result in itunes.batch_lookup([possible_itunes_id]):
         if result:
             return itunes_id
 
@@ -224,6 +224,6 @@ def fetch_new_sitemap_urls() -> Iterator[str]:
             if line and line.startswith("+umc.cmc"):
                 yield line[1:]
 
-    for (_id, name, _desc, url, _type) in csv.reader(new_rows()):
+    for _id, name, _desc, url, _type in csv.reader(new_rows()):
         if name:
             yield url
