@@ -78,7 +78,7 @@ def tmdb_outdated_external_ids(
         latest_changes_df.join(external_ids_df, on="id", how="left")
         .sort(pl.col("retrieved_at"), reverse=True)
         .filter(OUTDATED | NEVER_FETCHED | MISSING_STATUS)
-        .head(5_000)
+        .head(10_000)
         .select(["id"])
     )
 
