@@ -4,7 +4,7 @@ fsspec==2023.1.0
 hypothesis==6.68.1
 lxml==4.9.2
 numpy==1.24.1
-pandas-stubs==1.5.2.230105
+pandas-stubs==1.5.3.230203
 pandas==1.5.3
 polars==0.16.1
 pyarrow===11.0.0
