@@ -41,8 +41,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     assert tmdb_type in ["movie", "tv", "person"]
 
     return (
-        df.inspect("dates: {}")
-        .with_columns(
+        df.with_columns(
             pl.format(
                 "https://api.themoviedb.org/3/{}/changes"
                 "?api_key={}&start_date={}&end_date={}",
@@ -66,7 +65,6 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
                 .alias("results"),
             ]
         )
-        .inspect("grouped changes: {}")
         .explode("results")
         .select(
             [
@@ -76,7 +74,6 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
                 pl.col("results").struct.field("adult").alias("adult"),
             ]
         )
-        .inspect("flattened changes: {}")
     )
 
 
@@ -100,7 +97,6 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame
         .unique(subset="id", keep="last")
         .pipe(align_to_index, name="id")
         .with_columns(pl.col("has_changes").fill_null(False))
-        .inspect("updated changes: {}")
     )
 
 
