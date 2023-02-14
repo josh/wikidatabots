@@ -138,6 +138,13 @@ EXTRACT_IMDB_NUMERIC_ID = {
     "person": EXTRACT_IMDB_NAME_NUMERIC_ID,
 }
 
+EXTRACT_WIKIDATA_NUMERIC_ID = (
+    pl.col("wikidata_id")
+    .str.extract(r"Q(\d+)", 1)
+    .cast(pl.UInt32)
+    .alias("wikidata_numeric_id")
+)
+
 
 def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     api_key = os.environ["TMDB_API_KEY"]
@@ -174,6 +181,7 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
             [
                 pl.col("retrieved_at").dt.round("1s"),
                 EXTRACT_IMDB_NUMERIC_ID[tmdb_type],
+                EXTRACT_WIKIDATA_NUMERIC_ID,
             ]
         )
     )
