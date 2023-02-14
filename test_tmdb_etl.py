@@ -6,10 +6,10 @@ import polars as pl
 from polars.testing import assert_frame_equal
 
 from tmdb_etl import (
+    CHANGES_SCHEMA,
     fetch_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
-    CHANGES_SCHEMA,
 )
 
 
