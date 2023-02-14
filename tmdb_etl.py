@@ -184,6 +184,7 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
                 EXTRACT_WIKIDATA_NUMERIC_ID,
             ]
         )
+        .drop(["wikidata_id"])
     )
 
 
