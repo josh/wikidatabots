@@ -7,61 +7,100 @@ import polars as pl
 import requests
 from tqdm import tqdm
 
-from polars_utils import align_to_index
+from polars_utils import align_to_index, parse_json, request_text
 
 session = requests.Session()
 
 ONE_DAY = datetime.timedelta(days=1)
 
+CHANGES_RESULT_DTYPE = pl.Struct(
+    [
+        pl.Field("id", pl.Int64),
+        pl.Field("adult", pl.Boolean),
+    ]
+)
+CHANGES_RESPONSE_DTYPE = pl.Struct(
+    [
+        pl.Field("page", pl.Int64),
+        pl.Field("results", pl.List(CHANGES_RESULT_DTYPE)),
+        pl.Field("total_pages", pl.Int64),
+        pl.Field("total_results", pl.Int64),
+    ]
+)
 
-def tmdb_changes(date: datetime.date, tmdb_type: str) -> pl.LazyFrame:
-    start_date = date
-    end_date = start_date + ONE_DAY
-    api_key = os.environ["TMDB_API_KEY"]
+CHANGES_SCHEMA = {
+    "id": pl.UInt32,
+    "has_changes": pl.Boolean,
+    "date": pl.Date,
+    "adult": pl.Boolean,
+}
 
-    url = f"https://api.themoviedb.org/3/{tmdb_type}/changes"
-    params = {
-        "api_key": api_key,
-        "start_date": start_date.isoformat(),
-        "end_date": end_date.isoformat(),
-    }
-    r = session.get(url, params=params)
-    data = r.json()["results"]
+
+def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
+    assert df.schema == {"date": pl.Date}
+    assert tmdb_type in ["movie", "tv", "person"]
 
     return (
-        pl.from_dicts(  # type: ignore
-            data,
-            schema={
-                "id": pl.UInt32,
-                "adult": pl.Boolean,
-            },
+        df.inspect("dates: {}")
+        .with_columns(
+            pl.format(
+                "https://api.themoviedb.org/3/{}/changes"
+                "?api_key={}&start_date={}&end_date={}",
+                pl.lit(tmdb_type),
+                pl.lit(os.environ["TMDB_API_KEY"]),
+                pl.col("date"),
+                (pl.col("date") + ONE_DAY),
+            ).alias("url")
         )
-        .lazy()
-        .unique(subset="id", keep="first")
-        .with_columns(pl.lit(True).alias("has_changes"))
-        .with_columns(pl.lit(date).alias("date"))
-        .select(["id", "has_changes", "date", "adult"])
+        .select(
+            [
+                pl.col("date"),
+                pl.col("url")
+                .map(request_text, return_dtype=pl.Utf8)
+                .map(
+                    parse_json,
+                    return_dtype=CHANGES_RESPONSE_DTYPE,
+                )
+                .struct.field("results")
+                .arr.reverse()
+                .alias("results"),
+            ]
+        )
+        .inspect("grouped changes: {}")
+        .explode("results")
+        .select(
+            [
+                pl.col("results").struct.field("id").alias("id").cast(pl.UInt32),
+                pl.lit(True).alias("has_changes"),
+                pl.col("date"),
+                pl.col("results").struct.field("adult").alias("adult"),
+            ]
+        )
+        .inspect("flattened changes: {}")
     )
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
-    dates = pl.date_range(
-        low=pl.col("date").max() - datetime.timedelta(days=3),
-        high=datetime.date.today(),
-        interval=ONE_DAY,
-        name="date",
+    assert df.schema == CHANGES_SCHEMA
+    assert tmdb_type in ["movie", "tv", "person"]
+
+    df = df.cache()
+    dates_df = df.select(
+        [
+            pl.date_range(
+                low=pl.col("date").max().alias("start_date") - ONE_DAY,
+                high=datetime.date.today(),
+                interval="1d",
+            ).alias("date")
+        ]
     )
 
-    # TODO: Avoid collect
-    pbar = tqdm(df.select(dates).collect()["date"], desc="Fetch TMDB changes")
-    new_dfs = [tmdb_changes(d, tmdb_type) for d in pbar]
-
     return (
-        pl.concat([df.lazy(), *new_dfs])
+        pl.concat([df, tmdb_changes(dates_df, tmdb_type=tmdb_type)])
         .unique(subset="id", keep="last")
         .pipe(align_to_index, name="id")
-        .with_columns(pl.col("date").is_not_null().alias("has_changes"))
-        .select(["id", "has_changes", "date", "adult"])
+        .with_columns(pl.col("has_changes").fill_null(False))
+        .inspect("updated changes: {}")
     )
 
 

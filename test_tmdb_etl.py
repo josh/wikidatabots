@@ -5,12 +5,22 @@ import datetime
 import polars as pl
 from polars.testing import assert_frame_equal
 
-from tmdb_etl import fetch_tmdb_external_ids, insert_tmdb_latest_changes, tmdb_changes
+from tmdb_etl import (
+    fetch_tmdb_external_ids,
+    insert_tmdb_latest_changes,
+    tmdb_changes,
+    CHANGES_SCHEMA,
+)
 
 
 def test_tmdb_changes():
-    date = datetime.date(2023, 1, 1)
-    tmdb_changes(date=date, tmdb_type="movie").collect()
+    dates_df = pl.DataFrame(
+        {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
+    ).lazy()
+
+    ldf = tmdb_changes(dates_df, tmdb_type="movie")
+    assert ldf.schema == CHANGES_SCHEMA
+    ldf.collect()
 
 
 def test_insert_tmdb_latest_changes():
@@ -21,14 +31,11 @@ def test_insert_tmdb_latest_changes():
             "date": [datetime.date.today()],
             "adult": [False],
         },
-        schema={
-            "id": pl.UInt32,
-            "has_changes": pl.Boolean,
-            "date": pl.Date,
-            "adult": pl.Boolean,
-        },
+        schema=CHANGES_SCHEMA,
     ).lazy()
-    df2 = insert_tmdb_latest_changes(df1, tmdb_type="movie").collect()
+    ldf = insert_tmdb_latest_changes(df1, tmdb_type="movie")
+    assert ldf.schema == CHANGES_SCHEMA
+    df2 = ldf.collect()
     assert len(df2) > 0
 
 
