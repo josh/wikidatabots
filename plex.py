@@ -84,7 +84,7 @@ def wikidata_plex_guids() -> pd.DataFrame:
     query = "SELECT DISTINCT ?guid WHERE { ?item ps:P11460 ?guid. }"
     data = sparql_csv(query)
     df = pd.read_csv(data, dtype={"guid": "string"})
-    return decode_plex_guids(df["guid"])
+    return decode_plex_guids(df["guid"]).dropna()
 
 
 def plex_search(query: str, token: str | None = PLEX_TOKEN):
