@@ -13,6 +13,7 @@ import platform
 from collections.abc import Iterable
 from io import BytesIO
 from typing import Any, Literal, TypedDict
+import polars as pl
 
 import backoff
 import requests
@@ -165,6 +166,25 @@ def sparql_csv(query: str) -> BytesIO:
     logging.info(f"sparql: {duration} ms")
 
     return BytesIO(r.content)
+
+
+def sparql_df(query: str, dtypes: dict[str, pl.PolarsDataType]) -> pl.LazyFrame:
+    def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
+        return pl.read_csv(sparql_csv(query), dtypes=dtypes)
+
+    return pl.DataFrame().lazy().map(sparql_df_inner, schema=dtypes)
+
+
+def extract_qid(name: str = "item") -> pl.Expr:
+    return pl.col(name).str.extract(r"^http://www.wikidata.org/entity/(Q\d+)$", 1)
+
+
+def extract_numeric_qid(name: str = "item") -> pl.Expr:
+    return (
+        pl.col(name)
+        .str.extract(r"^http://www.wikidata.org/entity/Q(\d+)$", 1)
+        .cast(pl.UInt32)
+    )
 
 
 def fetch_statements(

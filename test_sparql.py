@@ -1,10 +1,18 @@
 # pyright: strict
 
+import polars as pl
 from rdflib import URIRef
 
 import wikidata
 from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
-from sparql import fetch_statements, sample_items, sparql, type_constraints
+from sparql import (
+    extract_qid,
+    fetch_statements,
+    sample_items,
+    sparql,
+    sparql_df,
+    type_constraints,
+)
 
 
 def test_sparql():
@@ -88,3 +96,21 @@ def test_sparql_some_value():
     assert result["gender"] == URIRef(
         "http://www.wikidata.org/.well-known/genid/804129ad66d7a442efd976927d7a6fb0"
     )
+
+
+def test_sparql_df():
+    lf = sparql_df(
+        """
+        SELECT ?item ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q146.
+          SERVICE wikibase:label {
+            bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
+          }
+        }
+        LIMIT 10
+        """,
+        dtypes={"item": pl.Utf8, "itemLabel": pl.Utf8},
+    ).with_columns(extract_qid("item").alias("qid"))
+    assert lf.schema == {"item": pl.Utf8, "itemLabel": pl.Utf8, "qid": pl.Utf8}
+    df = lf.collect()
+    assert len(df) == 10
