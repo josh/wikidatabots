@@ -23,13 +23,3 @@ def test_find():
 def test_external_ids():
     ids = tmdb.external_ids(id=278, type="movie")
     assert ids["imdb_id"] == "tt0111161"
-
-
-@pytest.mark.skipif(tmdb.TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
-def test_find_ids():
-    ids = tmdb.find_ids(
-        ids=["tt0111161", "tt0068646", "tt0468569"],
-        source="imdb_id",
-        type="movie",
-    )
-    assert list(ids) == [278, 238, 155]

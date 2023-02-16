@@ -146,27 +146,6 @@ def find(
         return None
 
 
-def find_ids(
-    ids: Iterable[str | int],
-    source: FindSource,
-    type: FindType,
-    api_key: str | None = TMDB_API_KEY,
-    progress: bool = False,
-) -> Iterator[int | None]:
-    assert source in find_sources
-    assert type in find_types
-
-    desc = f"Find TMDB {type} ids by {source}"
-    for source_id in tqdm(ids, desc=desc, disable=not progress, unit="id"):
-        result = find(id=f"{source_id}", source=source, type=type, api_key=api_key)
-        if result:
-            tmdb_id = result["id"]
-            assert isinstance(tmdb_id, int)
-            yield tmdb_id
-        else:
-            yield None
-
-
 class ExternalIDs(TypedDict):
     imdb_id: str | None
     tvdb_id: int | None
