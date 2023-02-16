@@ -1,6 +1,5 @@
 # pyright: strict
 
-import json
 import warnings
 from typing import Any, Callable
 
@@ -109,11 +108,6 @@ def apply_with_tqdm(
         return s.apply(wrapped_func, return_dtype=return_dtype, skip_nulls=skip_nulls)
     finally:
         pbar.close()
-
-
-def parse_json(texts: pl.Series, dtype: pl.PolarsDataType | None = None) -> pl.Series:
-    assert texts.dtype == pl.Utf8, "series must be strings"
-    return apply_with_tqdm(texts, json.loads, return_dtype=dtype, desc="Parsing JSON")
 
 
 def request_text(urls: pl.Series) -> pl.Series:

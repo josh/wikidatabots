@@ -10,7 +10,6 @@ from polars.testing.parametric import column, dataframes
 
 from polars_utils import (
     align_to_index,
-    parse_json,
     request_text,
     row_differences,
     unique_row_differences,
@@ -213,22 +212,6 @@ def test_unique_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame)
     assert df2.height - added + removed == df1.height, "df2 - added + removed == df1"
 
 
-def test_parse_json():
-    jsons = pl.Series(name="data", values=['{"a": 1}', '{"a": 2}', '{"b": 3}'])
-    dtype = pl.Struct([pl.Field("a", pl.Int64), pl.Field("b", pl.Int64)])
-    expected = pl.Series(
-        name="data", values=[{"a": 1}, {"a": 2}, {"b": 3}], dtype=dtype
-    )
-    actual = parse_json(jsons, dtype=dtype)
-    assert_series_equal(actual, expected)
-
-    jsons = pl.Series(name="data", values=["[1, 2]", "[3, 4]", "[5, 6]"])
-    dtype = pl.List(pl.Int64)
-    expected = pl.Series(name="data", values=[[1, 2], [3, 4], [5, 6]], dtype=dtype)
-    actual = parse_json(jsons, dtype=dtype)
-    assert_series_equal(actual, expected)
-
-
 def test_request_text():
     urls = pl.Series(
         name="urls",
@@ -242,7 +225,7 @@ def test_request_text():
     assert texts.dtype == pl.Utf8
     assert len(texts) == 3
 
-    data = parse_json(texts)
+    data = texts.str.json_extract()
     args = pl.Series(
         name="args",
         values=[{"foo": "1"}, {"foo": "2"}, {"foo": "3"}],

@@ -7,7 +7,7 @@ import polars as pl
 import requests
 from tqdm import tqdm
 
-from polars_utils import align_to_index, parse_json, request_text
+from polars_utils import align_to_index, request_text
 
 session = requests.Session()
 
@@ -19,14 +19,7 @@ CHANGES_RESULT_DTYPE = pl.Struct(
         pl.Field("adult", pl.Boolean),
     ]
 )
-CHANGES_RESPONSE_DTYPE = pl.Struct(
-    [
-        pl.Field("page", pl.Int64),
-        pl.Field("results", pl.List(CHANGES_RESULT_DTYPE)),
-        pl.Field("total_pages", pl.Int64),
-        pl.Field("total_results", pl.Int64),
-    ]
-)
+CHANGES_RESPONSE_DTYPE = pl.Struct([pl.Field("results", pl.List(CHANGES_RESULT_DTYPE))])
 
 CHANGES_SCHEMA = {
     "id": pl.UInt32,
@@ -56,10 +49,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
                 pl.col("date"),
                 pl.col("url")
                 .map(request_text, return_dtype=pl.Utf8)
-                .map(
-                    parse_json,
-                    return_dtype=CHANGES_RESPONSE_DTYPE,
-                )
+                .str.json_extract(dtype=CHANGES_RESPONSE_DTYPE)
                 .struct.field("results")
                 .arr.reverse()
                 .alias("results"),
@@ -200,6 +190,16 @@ def insert_tmdb_external_ids(
     )
 
 
+FIND_RESULT_DTYPE = pl.Struct([pl.Field("id", pl.Int64)])
+FIND_RESPONSE_DTYPE = pl.Struct(
+    [
+        pl.Field("movie_results", pl.List(FIND_RESULT_DTYPE)),
+        pl.Field("tv_results", pl.List(FIND_RESULT_DTYPE)),
+        pl.Field("person_results", pl.List(FIND_RESULT_DTYPE)),
+    ]
+)
+
+
 def tmdb_find_by_external_id(
     df: pl.LazyFrame,
     tmdb_type: str,
@@ -208,26 +208,17 @@ def tmdb_find_by_external_id(
     assert tmdb_type in ["movie", "tv", "person"]
     assert external_id_type in ["imdb_id", "tvdb_id"]
 
-    return (
-        df.with_columns(
-            pl.format(
-                "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
-                pl.col(external_id_type),
-                pl.lit(os.environ["TMDB_API_KEY"]),
-                pl.lit(external_id_type),
-            )
-            .map(request_text, return_dtype=pl.Utf8)
-            .map(parse_json)  # TODO: Add return_dtype
-            .alias("response"),
-        )
-        .collect()  # TODO: Avoid eager collect
-        .select(
+    return df.with_columns(
+        pl.format(
+            "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
             pl.col(external_id_type),
-            pl.col("response")
-            .struct.field(f"{tmdb_type}_results")
-            .arr.first()
-            .struct.field("id")
-            .alias("tmdb_id"),
+            pl.lit(os.environ["TMDB_API_KEY"]),
+            pl.lit(external_id_type),
         )
-        .lazy()
+        .map(request_text, return_dtype=pl.Utf8)
+        .str.json_extract(dtype=FIND_RESPONSE_DTYPE)
+        .struct.field(f"{tmdb_type}_results")
+        .arr.first()
+        .struct.field("id")
+        .alias("tmdb_id")
     )
