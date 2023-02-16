@@ -3,12 +3,11 @@
 import atexit
 import logging
 import os
-from typing import Any, Iterable, Iterator, Literal, TypedDict
+from typing import Any, Iterable, Literal, TypedDict
 
 import backoff
 import requests
 import requests_cache
-from tqdm import tqdm
 
 import imdb
 
