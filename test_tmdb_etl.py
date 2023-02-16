@@ -10,6 +10,7 @@ from tmdb_etl import (
     fetch_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
+    tmdb_find_by_external_id,
 )
 
 
@@ -50,3 +51,19 @@ def test_fetch_tmdb_external_ids():
         }
     ).lazy()
     assert_frame_equal(df, df2)
+
+
+def test_tmdb_find_by_external_id():
+    df = pl.DataFrame({"imdb_id": ["tt1630029", "tt14269590", "nm3718007"]}).lazy()
+
+    df2 = tmdb_find_by_external_id(df, tmdb_type="movie", external_id_type="imdb_id")
+    df3 = df.with_columns(pl.Series("tmdb_id", [76600, None, None]))
+    assert_frame_equal(df2, df3)
+
+    df2 = tmdb_find_by_external_id(df, tmdb_type="tv", external_id_type="imdb_id")
+    df3 = df.with_columns(pl.Series("tmdb_id", [None, 120998, None]))
+    assert_frame_equal(df2, df3)
+
+    df2 = tmdb_find_by_external_id(df, tmdb_type="person", external_id_type="imdb_id")
+    df3 = df.with_columns(pl.Series("tmdb_id", [None, None, 1674162]))
+    assert_frame_equal(df2, df3)

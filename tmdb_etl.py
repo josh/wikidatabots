@@ -198,3 +198,36 @@ def insert_tmdb_external_ids(
         .unique(subset=["id"], keep="last")
         .pipe(align_to_index, name="id")
     )
+
+
+def tmdb_find_by_external_id(
+    df: pl.LazyFrame,
+    tmdb_type: str,
+    external_id_type: str,
+) -> pl.LazyFrame:
+    assert tmdb_type in ["movie", "tv", "person"]
+    assert external_id_type in ["imdb_id", "tvdb_id"]
+
+    return (
+        df.with_columns(
+            pl.format(
+                "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
+                pl.col(external_id_type),
+                pl.lit(os.environ["TMDB_API_KEY"]),
+                pl.lit(external_id_type),
+            )
+            .map(request_text, return_dtype=pl.Utf8)
+            .map(parse_json)  # TODO: Add return_dtype
+            .alias("response"),
+        )
+        .collect()  # TODO: Avoid eager collect
+        .select(
+            pl.col(external_id_type),
+            pl.col("response")
+            .struct.field(f"{tmdb_type}_results")
+            .arr.first()
+            .struct.field("id")
+            .alias("tmdb_id"),
+        )
+        .lazy()
+    )
