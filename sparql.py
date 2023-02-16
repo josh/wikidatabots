@@ -168,7 +168,15 @@ def sparql_csv(query: str) -> BytesIO:
     return BytesIO(r.content)
 
 
-def sparql_df(query: str, dtypes: dict[str, pl.PolarsDataType]) -> pl.LazyFrame:
+def sparql_df(
+    query: str,
+    columns: list[str] | None = None,
+    dtypes: dict[str, pl.PolarsDataType] | None = None,
+) -> pl.LazyFrame:
+    if columns and not dtypes:
+        dtypes = {column: pl.Utf8 for column in columns}
+    assert dtypes, "missing dtypes"
+
     def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
         return pl.read_csv(sparql_csv(query), dtypes=dtypes)
 

@@ -109,7 +109,7 @@ def test_sparql_df():
         }
         LIMIT 10
         """,
-        dtypes={"item": pl.Utf8, "itemLabel": pl.Utf8},
+        columns=["item", "itemLabel"],
     ).with_columns(extract_qid("item").alias("qid"))
     assert lf.schema == {"item": pl.Utf8, "itemLabel": pl.Utf8, "qid": pl.Utf8}
     df = lf.collect()
