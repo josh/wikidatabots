@@ -199,15 +199,16 @@ jobs:
 
   rdf_patch:
     runs-on: ubuntu-latest
-    concurrency: rdf_patch_${{ matrix.property }}
+    concurrency: rdf_patch_${{ matrix.script }}
     if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
       matrix:
-        property:
+        script:
           - "not_found_P6398"
           - "not_found_P9586"
+          - "not_found_tmdb"
           - "P4983"
 
     steps:
@@ -234,16 +235,16 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .cache/
-          key: cache-${{ github.job }}-${{ matrix.property }}-${{ github.run_id }}
+          key: cache-${{ github.job }}-${{ matrix.script }}-${{ github.run_id }}
           restore-keys: |
-            cache-${{ github.job }}-${{ matrix.property }}-
+            cache-${{ github.job }}-${{ matrix.script }}-
 
       - name: Run script
         run: |
           set -o pipefail
-          python "$PROPERTY_ID.py" | tee output.ttl
+          python "$SCRIPT.py" | tee output.ttl
         env:
-          PROPERTY_ID: ${{ matrix.property }}
+          SCRIPT: ${{ matrix.script }}
 
       - name: Login
         env:
@@ -254,53 +255,3 @@ jobs:
       - name: Process RDF statements
         run: |
           python rdf_patch.py <output.ttl
-
-  not_found_tmdb:
-    runs-on: ubuntu-latest
-    if: github.event.schedule == '0 16 * * 1' || github.event_name == 'workflow_dispatch'
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - tmdb_type: "movie"
-          - tmdb_type: "tv"
-          - tmdb_type: "person"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run script
-        shell: bash
-        run: |
-          python not_found_tmdb.py "$TMDB_TYPE" | tee not_found_tmdb.ttl
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          TMDB_TYPE: ${{ matrix.tmdb_type }}
-
-      - name: Login
-        env:
-          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
-        run: |
-          python pwb.py login
-
-      - name: Process RDF statements
-        run: |
-          python rdf_patch.py <not_found_tmdb.ttl
