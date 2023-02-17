@@ -7,7 +7,7 @@ import polars as pl
 import requests
 from tqdm import tqdm
 
-from polars_utils import align_to_index, request_text
+from polars_utils import align_to_index, read_ipc, request_text
 
 session = requests.Session()
 
@@ -28,85 +28,9 @@ CHANGES_SCHEMA = {
     "adult": pl.Boolean,
 }
 
-
-def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
-    assert df.schema == {"date": pl.Date}
-    assert tmdb_type in ["movie", "tv", "person"]
-
-    return (
-        df.with_columns(
-            pl.format(
-                "https://api.themoviedb.org/3/{}/changes"
-                "?api_key={}&start_date={}&end_date={}",
-                pl.lit(tmdb_type),
-                pl.lit(os.environ["TMDB_API_KEY"]),
-                pl.col("date"),
-                (pl.col("date") + ONE_DAY),
-            ).alias("url")
-        )
-        .select(
-            [
-                pl.col("date"),
-                pl.col("url")
-                .map(request_text, return_dtype=pl.Utf8)
-                .str.json_extract(dtype=CHANGES_RESPONSE_DTYPE)
-                .struct.field("results")
-                .arr.reverse()
-                .alias("results"),
-            ]
-        )
-        .explode("results")
-        .select(
-            [
-                pl.col("results").struct.field("id").alias("id").cast(pl.UInt32),
-                pl.lit(True).alias("has_changes"),
-                pl.col("date"),
-                pl.col("results").struct.field("adult").alias("adult"),
-            ]
-        )
-    )
-
-
-def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
-    assert df.schema == CHANGES_SCHEMA
-    assert tmdb_type in ["movie", "tv", "person"]
-
-    df = df.cache()
-    dates_df = df.select(
-        [
-            pl.date_range(
-                low=pl.col("date").max().alias("start_date") - ONE_DAY,
-                high=datetime.date.today(),
-                interval="1d",
-            ).alias("date")
-        ]
-    )
-
-    return (
-        pl.concat([df, tmdb_changes(dates_df, tmdb_type=tmdb_type)])
-        .unique(subset="id", keep="last")
-        .pipe(align_to_index, name="id")
-        .with_columns(pl.col("has_changes").fill_null(False))
-    )
-
-
 OUTDATED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 NEVER_FETCHED = pl.col("retrieved_at").is_null()
 MISSING_STATUS = pl.col("success").is_null()
-
-
-def tmdb_outdated_external_ids(
-    latest_changes_df: pl.LazyFrame,
-    external_ids_df: pl.LazyFrame,
-) -> pl.LazyFrame:
-    return (
-        latest_changes_df.join(external_ids_df, on="id", how="left")
-        .sort(pl.col("retrieved_at"), reverse=True)
-        .filter(OUTDATED | NEVER_FETCHED | MISSING_STATUS)
-        .head(10_000)
-        .select(["id"])
-    )
-
 
 EXTRACT_IMDB_TITLE_NUMERIC_ID = (
     pl.col("imdb_id")
@@ -133,6 +57,16 @@ EXTRACT_WIKIDATA_NUMERIC_ID = (
     .str.extract(r"Q(\d+)", 1)
     .cast(pl.UInt32)
     .alias("wikidata_numeric_id")
+)
+
+
+FIND_RESULT_DTYPE = pl.Struct([pl.Field("id", pl.Int64)])
+FIND_RESPONSE_DTYPE = pl.Struct(
+    [
+        pl.Field("movie_results", pl.List(FIND_RESULT_DTYPE)),
+        pl.Field("tv_results", pl.List(FIND_RESULT_DTYPE)),
+        pl.Field("person_results", pl.List(FIND_RESULT_DTYPE)),
+    ]
 )
 
 
@@ -178,15 +112,64 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
     )
 
 
-def insert_tmdb_external_ids(
-    df: pl.LazyFrame,
-    tmdb_type: str,
-    tmdb_ids: pl.LazyFrame,
-) -> pl.LazyFrame:
+def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
+    assert df.schema == CHANGES_SCHEMA
+    assert tmdb_type in ["movie", "tv", "person"]
+
+    df = df.cache()
+    dates_df = df.select(
+        [
+            pl.date_range(
+                low=pl.col("date").max().alias("start_date") - ONE_DAY,
+                high=datetime.date.today(),
+                interval="1d",
+            ).alias("date")
+        ]
+    )
+
     return (
-        pl.concat([df, fetch_tmdb_external_ids(tmdb_ids, tmdb_type)])
-        .unique(subset=["id"], keep="last")
+        pl.concat([df, tmdb_changes(dates_df, tmdb_type=tmdb_type)])
+        .unique(subset="id", keep="last")
         .pipe(align_to_index, name="id")
+        .with_columns(pl.col("has_changes").fill_null(False))
+    )
+
+
+def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
+    assert df.schema == {"date": pl.Date}
+    assert tmdb_type in ["movie", "tv", "person"]
+
+    return (
+        df.with_columns(
+            pl.format(
+                "https://api.themoviedb.org/3/{}/changes"
+                "?api_key={}&start_date={}&end_date={}",
+                pl.lit(tmdb_type),
+                pl.lit(os.environ["TMDB_API_KEY"]),
+                pl.col("date"),
+                (pl.col("date") + ONE_DAY),
+            ).alias("url")
+        )
+        .select(
+            [
+                pl.col("date"),
+                pl.col("url")
+                .map(request_text, return_dtype=pl.Utf8)
+                .str.json_extract(dtype=CHANGES_RESPONSE_DTYPE)
+                .struct.field("results")
+                .arr.reverse()
+                .alias("results"),
+            ]
+        )
+        .explode("results")
+        .select(
+            [
+                pl.col("results").struct.field("id").alias("id").cast(pl.UInt32),
+                pl.lit(True).alias("has_changes"),
+                pl.col("date"),
+                pl.col("results").struct.field("adult").alias("adult"),
+            ]
+        )
     )
 
 
@@ -208,16 +191,6 @@ def tmdb_exists(tmdb_type: str) -> pl.Expr:
     )
 
 
-FIND_RESULT_DTYPE = pl.Struct([pl.Field("id", pl.Int64)])
-FIND_RESPONSE_DTYPE = pl.Struct(
-    [
-        pl.Field("movie_results", pl.List(FIND_RESULT_DTYPE)),
-        pl.Field("tv_results", pl.List(FIND_RESULT_DTYPE)),
-        pl.Field("person_results", pl.List(FIND_RESULT_DTYPE)),
-    ]
-)
-
-
 def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
     assert tmdb_type in ["movie", "tv", "person"]
     assert external_id_type in ["imdb_id", "tvdb_id"]
@@ -237,3 +210,52 @@ def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
         .cast(pl.UInt32)
         .alias("tmdb_id")
     )
+
+
+def tmdb_outdated_external_ids(
+    latest_changes_df: pl.LazyFrame,
+    external_ids_df: pl.LazyFrame,
+) -> pl.LazyFrame:
+    return (
+        latest_changes_df.join(external_ids_df, on="id", how="left")
+        .sort(pl.col("retrieved_at"), reverse=True)
+        .filter(OUTDATED | NEVER_FETCHED | MISSING_STATUS)
+        .head(10_000)
+        .select(["id"])
+    )
+
+
+def insert_tmdb_external_ids(
+    df: pl.LazyFrame,
+    tmdb_type: str,
+    tmdb_ids: pl.LazyFrame,
+) -> pl.LazyFrame:
+    return (
+        pl.concat([df, fetch_tmdb_external_ids(tmdb_ids, tmdb_type)])
+        .unique(subset=["id"], keep="last")
+        .pipe(align_to_index, name="id")
+    )
+
+
+def main_changes(tmdb_type: str):
+    df = read_ipc("latest_changes.arrow")
+    df = insert_tmdb_latest_changes(df, tmdb_type)
+    df.collect().write_ipc("latest_changes.arrow", compression="lz4")
+
+
+def main_external_ids(tmdb_type: str):
+    latest_changes_df = read_ipc("latest_changes.arrow")
+    external_ids_df = read_ipc("external_ids.arrow")
+
+    tmdb_ids = tmdb_outdated_external_ids(
+        latest_changes_df=latest_changes_df,
+        external_ids_df=external_ids_df,
+    )
+
+    external_ids_df = insert_tmdb_external_ids(
+        external_ids_df,
+        tmdb_type=tmdb_type,
+        tmdb_ids=tmdb_ids,
+    ).collect()
+
+    external_ids_df.write_ipc("external_ids.arrow", compression="lz4")

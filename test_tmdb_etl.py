@@ -15,14 +15,17 @@ from tmdb_etl import (
 )
 
 
-def test_tmdb_changes():
-    dates_df = pl.DataFrame(
-        {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
+def test_fetch_tmdb_external_ids():
+    ids = pl.DataFrame({"id": [1, 2, 3, 4]}).lazy()
+    df = fetch_tmdb_external_ids(ids, "movie").select(["id", "success", "imdb_id"])
+    df2 = pl.DataFrame(
+        {
+            "id": pl.Series([1, 2, 3, 4], dtype=pl.UInt32),
+            "success": [False, True, True, False],
+            "imdb_id": [None, "tt0094675", "tt0092149", None],
+        }
     ).lazy()
-
-    ldf = tmdb_changes(dates_df, tmdb_type="movie")
-    assert ldf.schema == CHANGES_SCHEMA
-    ldf.collect()
+    assert_frame_equal(df, df2)
 
 
 def test_insert_tmdb_latest_changes():
@@ -41,17 +44,14 @@ def test_insert_tmdb_latest_changes():
     assert len(df2) > 0
 
 
-def test_fetch_tmdb_external_ids():
-    ids = pl.DataFrame({"id": [1, 2, 3, 4]}).lazy()
-    df = fetch_tmdb_external_ids(ids, "movie").select(["id", "success", "imdb_id"])
-    df2 = pl.DataFrame(
-        {
-            "id": pl.Series([1, 2, 3, 4], dtype=pl.UInt32),
-            "success": [False, True, True, False],
-            "imdb_id": [None, "tt0094675", "tt0092149", None],
-        }
+def test_tmdb_changes():
+    dates_df = pl.DataFrame(
+        {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
     ).lazy()
-    assert_frame_equal(df, df2)
+
+    ldf = tmdb_changes(dates_df, tmdb_type="movie")
+    assert ldf.schema == CHANGES_SCHEMA
+    ldf.collect()
 
 
 def test_tmdb_exists():
