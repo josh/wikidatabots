@@ -2,8 +2,8 @@ import logging
 
 import polars as pl
 
-import tmdb_etl
 from sparql import sparql_df
+from tmdb_etl import tmdb_exists
 
 
 def main(tmdb_type: str):
@@ -32,7 +32,7 @@ def main(tmdb_type: str):
         df.join(changes_df, on="id", how="left")
         .filter(pl.col("adult").is_null() & pl.col("has_changes"))
         .rename({"id": "tmdb_id"})
-        .filter(tmdb_etl.tmdb_exists(tmdb_type).is_not())
+        .filter(tmdb_exists(tmdb_type).is_not())
         .select(rdf_statement)
     )
 
