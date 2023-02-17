@@ -3,7 +3,7 @@
 import atexit
 import logging
 import os
-from typing import Any, Iterable, Literal, TypedDict
+from typing import Any, Literal
 
 import backoff
 import requests
@@ -60,34 +60,6 @@ def api_request(
         return {}
 
 
-ObjectType = Literal["movie", "tv", "person"]
-object_types: set[ObjectType] = {"movie", "tv", "person"}
-
-ObjectResult = dict[str, Any]
-
-
-def object(
-    id: int,
-    type: ObjectType,
-    append: Iterable[str] = [],
-    api_key: str | None = TMDB_API_KEY,
-) -> ObjectResult | None:
-    assert type in object_types
-
-    params: dict[str, str] = {}
-    if append:
-        params["append_to_response"] = ",".join(append)
-
-    resp = api_request(
-        f"/{type}/{id}",
-        params=params,
-        api_key=api_key,
-    )
-    if resp.get("success") is False:
-        return None
-    return resp
-
-
 FindSource = Literal[
     "imdb_id",
     "freebase_mid",
@@ -115,12 +87,6 @@ find_types: set[FindType] = {"movie", "person", "tv", "tv_episode", "tv_season"}
 FindResult = dict[str, Any]
 
 
-@backoff.on_exception(
-    backoff.constant,
-    requests.exceptions.HTTPError,
-    interval=30,
-    max_tries=3,
-)
 def find(
     id: str | int,
     source: FindSource,
@@ -141,25 +107,6 @@ def find(
         return results[0]
     else:
         return None
-
-
-class ExternalIDs(TypedDict):
-    imdb_id: str | None
-    tvdb_id: int | None
-
-
-def external_ids(
-    id: int,
-    type: ObjectType,
-    api_key: str | None = TMDB_API_KEY,
-) -> ExternalIDs:
-    assert type in object_types
-    result: Any = {}
-    resp = api_request(f"/{type}/{id}/external_ids", api_key=api_key)
-    if resp.get("success") is False:
-        return result
-    result = resp
-    return result
 
 
 def log_cache_stats():
