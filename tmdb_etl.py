@@ -7,7 +7,7 @@ import polars as pl
 import requests
 from tqdm import tqdm
 
-from polars_utils import align_to_index, read_ipc, request_text
+from polars_utils import align_to_index, read_ipc, request_text, update_ipc
 
 session = requests.Session()
 
@@ -240,10 +240,11 @@ def insert_tmdb_external_ids(
     )
 
 
-def main_changes(tmdb_type: str):
-    df = read_ipc("latest_changes.arrow")
-    df = insert_tmdb_latest_changes(df, tmdb_type)
-    df.collect().write_ipc("latest_changes.arrow", compression="lz4")
+def main_changes(tmdb_type: str) -> None:
+    update_ipc(
+        "latest_changes.arrow",
+        lambda df: insert_tmdb_latest_changes(df, tmdb_type),
+    )
 
 
 def main_external_ids(tmdb_type: str):

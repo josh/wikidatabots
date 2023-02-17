@@ -13,7 +13,19 @@ from polars_utils import (
     request_text,
     row_differences,
     unique_row_differences,
+    update_ipc,
 )
+
+
+def test_update_ipc():
+    filename = "/tmp/test_polars_utils.arrow"
+    df = pl.DataFrame({"a": [1, 2, 3]}).write_ipc(filename)
+
+    update_ipc(filename, lambda df: df.with_columns(pl.col("a") * 2))
+
+    df = pl.read_ipc(filename)
+    df2 = pl.DataFrame({"a": [2, 4, 6]})
+    assert_frame_equal(df, df2)
 
 
 def test_align_to_index():

@@ -1,5 +1,7 @@
 # pyright: strict
 
+import os
+import random
 import warnings
 from typing import Any, Callable
 
@@ -19,6 +21,20 @@ def read_ipc(filename: str) -> pl.LazyFrame:
     except:  # noqa: E722
         warnings.warn("arrow2 reader failed, falling back to pyarrow")
         return pl.read_ipc(filename, use_pyarrow=True, memory_map=False).lazy()
+
+
+def update_ipc(
+    filename: str,
+    transform: Callable[[pl.LazyFrame], pl.LazyFrame],
+) -> None:
+    df = pl.scan_ipc(filename, memory_map=False)
+    df2 = transform(df)
+    assert df2.schema == df.schema, "schema changed"
+    tmpfile = f"{filename}.{random.randint(0, 2**32)}"
+    # sink_ipc not yet supported in standard engine
+    # df2.sink_ipc(tmpfile, compression="lz4")
+    df2.collect().write_ipc(tmpfile, compression="lz4")
+    os.rename(tmpfile, filename)
 
 
 PL_INTEGERS = {
