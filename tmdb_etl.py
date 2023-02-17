@@ -200,15 +200,11 @@ FIND_RESPONSE_DTYPE = pl.Struct(
 )
 
 
-def tmdb_find_by_external_id(
-    df: pl.LazyFrame,
-    tmdb_type: str,
-    external_id_type: str,
-) -> pl.LazyFrame:
+def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
     assert tmdb_type in ["movie", "tv", "person"]
     assert external_id_type in ["imdb_id", "tvdb_id"]
 
-    return df.with_columns(
+    return (
         pl.format(
             "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
             pl.col(external_id_type),
@@ -220,5 +216,6 @@ def tmdb_find_by_external_id(
         .struct.field(f"{tmdb_type}_results")
         .arr.first()
         .struct.field("id")
+        .cast(pl.UInt32)
         .alias("tmdb_id")
     )
