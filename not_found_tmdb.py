@@ -1,71 +1,48 @@
 import logging
-import sys
 
-import pandas as pd
+import polars as pl
 
-import tmdb
-from constants import (
-    REASON_FOR_DEPRECATED_RANK_PID,
-    TMDB_MOVIE_ID_PID,
-    TMDB_PERSON_ID_PID,
-    TMDB_TV_SERIES_ID_PID,
-    WITHDRAWN_IDENTIFIER_VALUE_QID,
-)
-from sparql import sparql_csv
-
-PROPERTY_MAP: dict[tmdb.ObjectType, str] = {
-    "movie": TMDB_MOVIE_ID_PID,
-    "tv": TMDB_TV_SERIES_ID_PID,
-    "person": TMDB_PERSON_ID_PID,
-}
+import tmdb_etl
+from sparql import sparql_df
 
 
-def main(tmdb_type: tmdb.ObjectType):
-    changes_df = pd.read_feather(
-        f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow",
-        columns=["adult", "has_changes"],
+def main(tmdb_type: str):
+    rdf_statement = pl.format(
+        "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
+        'wikidatabots:editSummary "{}" .',
+        pl.col("statement"),
+        pl.lit(f"Deprecate removed TMDB {tmdb_type} ID"),
     )
+
+    changes_df = pl.scan_ipc(f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow")
 
     query = """
-    SELECT ?statement ?value WHERE {
-      ?statement ps:P0000 ?value.
+    SELECT ?statement ?id WHERE {
+      ?statement ps:P0000 ?id.
       ?statement wikibase:rank ?rank.
       FILTER(?rank != wikibase:DeprecatedRank)
-      FILTER(xsd:integer(?value))
+      FILTER(xsd:integer(?id))
     }
     """
-    query = query.replace("P0000", PROPERTY_MAP[tmdb_type])
-    df = pd.read_csv(sparql_csv(query))
+    props = {"movie": "P4947", "tv": "P4983", "person": "P4985"}
+    query = query.replace("P0000", props[tmdb_type])
+    df = sparql_df(query, dtypes={"statement": pl.Utf8, "id": pl.UInt32})
 
-    df = df.join(changes_df, on="value", how="left", rsuffix="_changes")
-    df = df[df["adult"].isna() & df["has_changes"]]
-
-    if df.empty:
-        return
-
-    logging.info(f"Verifying {len(df)} {tmdb_type} IDs against API")
-    df["tmdb_exists"] = df["value"].apply(
-        lambda id: bool(tmdb.object(id, type=tmdb_type))
+    df = (
+        df.join(changes_df, on="id", how="left")
+        .filter(pl.col("adult").is_null() & pl.col("has_changes"))
+        .rename({"id": "tmdb_id"})
+        .filter(tmdb_etl.tmdb_exists(tmdb_type).is_not())
+        .select(rdf_statement)
     )
-    df = df[~df["tmdb_exists"]]
-    logging.info(f"{len(df)} {tmdb_type} IDs are not found in API")
 
-    if df.empty:
-        return
-
-    for statement in df["statement"]:
-        print(
-            f"<{statement}> "
-            f"wikibase:rank wikibase:DeprecatedRank ; "
-            f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
-            f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
-            f'wikidatabots:editSummary "Deprecate removed TMDB {tmdb_type} ID" . '
-        )
+    for (line,) in df.collect().iter_rows():
+        print(line)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    tmdb_type = sys.argv[1]
-    assert tmdb_type in PROPERTY_MAP
-    main(tmdb_type=tmdb_type)
+    main("movie")
+    main("tv")
+    main("person")
