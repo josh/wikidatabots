@@ -5,7 +5,6 @@ import warnings
 from typing import Any, Iterable
 
 GITHUB_ACTIONS = os.environ.get("GITHUB_ACTIONS", "") == "true"
-DEBUG = os.environ.get("RUNNER_DEBUG", "") != ""
 OUTPUT_FILENAME = os.environ.get("GITHUB_OUTPUT", "/dev/stdout")
 OUTPUT_DELIMITER = f"ghadelimiter-{uuid.uuid4()}"
 

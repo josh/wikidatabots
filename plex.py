@@ -12,7 +12,6 @@ from pandas_utils import df_upsert, safe_column_join, safe_row_concat
 from sparql import sparql_csv
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
-PLEX_SERVER_NAME = os.environ.get("PLEX_SERVER")
 PLEX_SERVER_TOKEN = os.environ.get("PLEX_SERVER_TOKEN")
 
 
