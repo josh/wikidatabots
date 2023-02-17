@@ -1,27 +1,32 @@
 # pyright: strict
 
 import logging
-from typing import TypedDict
 
-import tmdb
-from constants import TMDB_MOVIE_ID_PID
-from page import blocked_qids
-from sparql import sparql
-from timeout import iter_until_deadline
+import polars as pl
+
+from sparql import sparql_df
+from tmdb_etl import EXTRACT_IMDB_TITLE_NUMERIC_ID, tmdb_find
 
 
 def main():
-    """
-    Find Wikidata items that are missing a TMDb movie ID (P4947) but have a
-    IMDb ID (P345). Attempt to look up the movie by IMDb ID via the TMDb API.
-    If there's a match, create a new statement.
+    rdf_statement = pl.format(
+        '<{}> wdt:P4947 "{}" ; wikidatabots:editSummary "{}" .',
+        pl.col("item"),
+        pl.col("tmdb_id"),
+        pl.lit("Add TMDb movie ID claim via associated IMDb ID"),
+    )
 
-    Outputs QuickStatements CSV commands.
-    """
+    tmdb_df = (
+        pl.scan_ipc("s3://wikidatabots/tmdb/movie/external_ids.arrow")
+        .select(["id", "imdb_numeric_id"])
+        .rename({"id": "tmdb_id"})
+        .drop_nulls()
+        .unique(subset=["imdb_numeric_id"])
+    )
 
     query = """
-    SELECT DISTINCT ?item ?imdb ?random WHERE {
-      ?item wdt:P345 ?imdb.
+    SELECT ?item ?imdb_id WHERE {
+      ?item wdt:P345 ?imdb_id.
 
       VALUES ?classes {
         wd:Q11424
@@ -29,29 +34,29 @@ def main():
       }
       ?item (wdt:P31/(wdt:P279*)) ?classes.
 
-      OPTIONAL { ?item wdt:P4947 ?tmdb. }
-      FILTER(!(BOUND(?tmdb)))
-
-      BIND(MD5(CONCAT(STR(?item), STR(RAND()))) AS ?random)
+      OPTIONAL { ?item wdt:P4947 ?tmdb_id. }
+      FILTER(!(BOUND(?tmdb_id)))
     }
-    ORDER BY ?random
-    LIMIT 10000
     """
-    Result = TypedDict("Result", {"item": str, "imdb": str})
-    results: list[Result] = sparql(query)
 
-    print(f"qid,{TMDB_MOVIE_ID_PID}")
-    for result in iter_until_deadline(results):
-        qid = result["item"]
+    wd_df = (
+        sparql_df(query, columns=["item", "imdb_id"])
+        .with_columns(EXTRACT_IMDB_TITLE_NUMERIC_ID)
+        .drop_nulls()
+    )
 
-        if qid in blocked_qids():
-            logging.debug(f"{qid} is blocked")
-            continue
+    df = (
+        wd_df.join(tmdb_df, on="imdb_numeric_id", how="left")
+        .drop_nulls()
+        .select(["item", "imdb_id"])
+        .with_columns(tmdb_find(tmdb_type="movie", external_id_type="imdb_id"))
+        .select(["item", "tmdb_id"])
+        .drop_nulls()
+        .select(rdf_statement)
+    )
 
-        movie = tmdb.find(id=result["imdb"], source="imdb_id", type="movie")
-        if not movie:
-            continue
-        print(f'{qid},"""{movie["id"]}"""')
+    for (line,) in df.collect().iter_rows():
+        print(line)
 
 
 if __name__ == "__main__":

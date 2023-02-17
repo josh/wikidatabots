@@ -24,7 +24,6 @@ jobs:
       fail-fast: false
       matrix:
         property:
-          - "P4947"
           - "P4985"
 
     steps:
@@ -210,6 +209,7 @@ jobs:
           - "not_found_P6398"
           - "not_found_P9586"
           - "not_found_tmdb"
+          - "P4947"
           - "P4983"
 
     steps:
