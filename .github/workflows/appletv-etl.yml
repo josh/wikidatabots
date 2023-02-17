@@ -14,6 +14,7 @@ jobs:
   sitemap:
     runs-on: ubuntu-latest
     if: github.event.schedule == '0 16 * * 1' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
@@ -114,6 +115,7 @@ jobs:
   jsonld:
     runs-on: ubuntu-latest
     if: github.event.schedule == '0 1,9,17 * * *' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false

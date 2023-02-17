@@ -199,8 +199,9 @@ jobs:
 
   rdf_patch:
     runs-on: ubuntu-latest
-    concurrency: rdf_patch_${{ matrix.script }}
     if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
+    concurrency: rdf_patch_${{ matrix.script }}
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false

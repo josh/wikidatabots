@@ -13,6 +13,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     concurrency: tmdb_changes_${{ matrix.type }}
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
@@ -86,6 +87,7 @@ jobs:
     needs: changes
     runs-on: ubuntu-latest
     concurrency: tmdb_external_ids_${{ matrix.type }}
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
