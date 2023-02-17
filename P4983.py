@@ -1,107 +1,107 @@
-# pyright: strict
-
 import logging
-from typing import TypedDict
 
-import tmdb
-from constants import TMDB_TV_SERIES_ID_PID
-from page import blocked_qids
-from sparql import sparql
-from timeout import iter_until_deadline
-from utils import position_weighted_shuffled
-from wikidata import QID
+import polars as pl
+
+from sparql import sparql_df
+from tmdb_etl import EXTRACT_IMDB_TITLE_NUMERIC_ID, tmdb_find
 
 
-class Item(TypedDict):
-    imdb: set[str]
-    tvdb: set[str]
+def main_imdb():
+    rdf_statement = pl.format(
+        '<{}> wdt:P4983 "{}" ; wikidatabots:editSummary "{}" .',
+        pl.col("item"),
+        pl.col("tmdb_id"),
+        pl.lit("Add TMDb TV series ID claim via associated IMDb ID"),
+    )
 
-
-IMDB_ID_PROPERTY_NAME = "IMDb ID"
-TVDB_ID_PROPERTY_NAME = "TheTVDB.com series ID"
-
-
-def main():
-    """
-    Find Wikidata items that are missing a TMDb TV series ID (P4983) but have a
-    IMDb ID (P345) or TheTVDB.com series ID (P4835). Attempt to look up the
-    TV show via the TMDb API. If there's a match, create a new statement.
-
-    Outputs RDF statements.
-    """
+    tmdb_df = (
+        pl.scan_ipc("s3://wikidatabots/tmdb/tv/external_ids.arrow")
+        .select(["id", "imdb_numeric_id"])
+        .rename({"id": "tmdb_id"})
+        .drop_nulls()
+        .unique(subset=["imdb_numeric_id"])
+    )
 
     query = """
-    SELECT ?item ?imdb ?tvdb WHERE {
-      # Items with either IMDb or TVDB IDs
-      { ?item wdt:P4835 []. }
-      UNION
-      { ?item wdt:P345 []. }
-
-      VALUES ?classes {
-        wd:Q15416
-      }
-      ?item (wdt:P31/(wdt:P279*)) ?classes.
-
-      # Get IMDb and TVDB IDs
-      OPTIONAL { ?item wdt:P345 ?imdb. }
-      OPTIONAL { ?item wdt:P4835 ?tvdb. }
-
-      # Exclude items that already have a TMDB TV ID
-      OPTIONAL { ?item p:P4983 ?tmdb. }
-      FILTER(!(BOUND(?tmdb)))
-
-      # Generate sort id
-      BIND(xsd:integer(STRAFTER(STR(?item), "Q")) AS ?id)
+    SELECT ?item ?imdb_id WHERE {
+        ?item wdt:P345 ?imdb_id.
+        VALUES ?classes {
+            wd:Q15416
+        }
+        ?item (wdt:P31/(wdt:P279*)) ?classes.
+        OPTIONAL { ?item p:P4983 ?tmdb_id. }
+        FILTER(!(BOUND(?tmdb_id)))
     }
-    ORDER BY DESC (?id)
     """
-    Result = TypedDict("Result", {"item": QID, "imdb": str | None, "tvdb": str | None})
-    results: list[Result] = sparql(query)
-    results = position_weighted_shuffled(results)
 
-    items: dict[QID, Item] = {}
-    for result in results:
-        qid = result["item"]
+    wd_df = (
+        sparql_df(query, columns=["item", "imdb_id"])
+        .with_columns(EXTRACT_IMDB_TITLE_NUMERIC_ID)
+        .drop_nulls()
+    )
 
-        if qid in blocked_qids():
-            logging.debug(f"{qid} is blocked")
-            continue
+    df = (
+        wd_df.join(tmdb_df, on="imdb_numeric_id", how="left")
+        .drop_nulls()
+        .select(["item", "imdb_id"])
+        .with_columns(tmdb_find(tmdb_type="tv", external_id_type="imdb_id"))
+        .select(["item", "tmdb_id"])
+        .drop_nulls()
+        .select(rdf_statement)
+    )
 
-        if qid not in items:
-            items[qid] = {"imdb": set(), "tvdb": set()}
-        item = items[qid]
+    for (line,) in df.collect().iter_rows():
+        print(line)
 
-        if result["imdb"]:
-            item["imdb"].add(result["imdb"])
 
-        if result["tvdb"]:
-            item["tvdb"].add(result["tvdb"])
+def main_tvdb():
+    rdf_statement = pl.format(
+        '<{}> wdt:P4983 "{}" ; wikidatabots:editSummary "{}" .',
+        pl.col("item"),
+        pl.col("tmdb_id"),
+        pl.lit("Add TMDb TV series ID claim via associated TheTVDB.com series ID"),
+    )
 
-    for qid in iter_until_deadline(items):
-        item = items[qid]
-        tmdb_ids: set[int] = set()
-        tmdb_id_sources: dict[int, str] = {}
+    tmdb_df = (
+        pl.scan_ipc("s3://wikidatabots/tmdb/tv/external_ids.arrow")
+        .select(["id", "tvdb_id"])
+        .rename({"id": "tmdb_id"})
+        .drop_nulls()
+        .unique(subset=["tvdb_id"])
+    )
 
-        for imdb_id in item["imdb"]:
-            if tv := tmdb.find(id=imdb_id, source="imdb_id", type="tv"):
-                tmdb_ids.add(tv["id"])
-                tmdb_id_sources.setdefault(tv["id"], IMDB_ID_PROPERTY_NAME)
+    query = """
+    SELECT ?item ?tvdb_id WHERE {
+        ?item wdt:P4835 ?tvdb_id.
+        VALUES ?classes {
+            wd:Q15416
+        }
+        ?item (wdt:P31/(wdt:P279*)) ?classes.
+        FILTER(xsd:integer(?tvdb_id))
+        OPTIONAL { ?item p:P4983 ?tmdb_id. }
+        FILTER(!(BOUND(?tmdb_id)))
+    }
+    """
 
-        for tvdb_id in item["tvdb"]:
-            if tv := tmdb.find(id=tvdb_id, source="tvdb_id", type="tv"):
-                tmdb_ids.add(tv["id"])
-                tmdb_id_sources.setdefault(tv["id"], TVDB_ID_PROPERTY_NAME)
+    wd_df = sparql_df(
+        query, dtypes={"item": pl.Utf8, "tvdb_id": pl.UInt32}
+    ).drop_nulls()
 
-        for tmdb_id in tmdb_ids:
-            source = tmdb_id_sources[tmdb_id]
-            edit_summary = f"Add TMDb TV series ID claim via associated {source}"
-            print(
-                f"wd:{qid} "
-                f'wdt:{TMDB_TV_SERIES_ID_PID} "{tmdb_id}" ; '
-                f'wikidatabots:editSummary "{edit_summary}" .'
-            )
+    df = (
+        wd_df.join(tmdb_df, on="tvdb_id", how="left")
+        .drop_nulls()
+        .select(["item", "tvdb_id"])
+        .with_columns(tmdb_find(tmdb_type="tv", external_id_type="tvdb_id"))
+        .select(["item", "tmdb_id"])
+        .drop_nulls()
+        .select(rdf_statement)
+    )
+
+    for (line,) in df.collect().iter_rows():
+        print(line)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    main()
+    main_tvdb()
+    main_imdb()
