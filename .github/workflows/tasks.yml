@@ -245,13 +245,15 @@ jobs:
         env:
           PROPERTY_ID: ${{ matrix.property }}
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: rdf_patch_${{ matrix.property }}_ttl
-          path: |
-            *.ttl
-          retention-days: 7
+      - name: Login
+        env:
+          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
+        run: |
+          python pwb.py login
+
+      - name: Process RDF statements
+        run: |
+          python rdf_patch.py <output.ttl
 
   not_found_tmdb:
     runs-on: ubuntu-latest
@@ -293,40 +295,6 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TMDB_TYPE: ${{ matrix.tmdb_type }}
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: not_found_tmdb_${{ matrix.tmdb_type }}_ttl
-          path: |
-            *.ttl
-          retention-days: 7
-
-  upload_rdf_patch:
-    needs: [rdf_patch, not_found_tmdb]
-    runs-on: ubuntu-latest
-    if: ${{ always() }}
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-
-      - name: Combine artifacts
-        run: find artifacts/ -name '*.ttl' -exec cat {} \; | tee patch.ttl
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
       - name: Login
         env:
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
@@ -335,4 +303,4 @@ jobs:
 
       - name: Process RDF statements
         run: |
-          python rdf_patch.py <patch.ttl
+          python rdf_patch.py <not_found_tmdb.ttl
