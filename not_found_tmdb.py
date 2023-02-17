@@ -1,3 +1,5 @@
+# pyright: strict
+
 import logging
 
 import polars as pl
