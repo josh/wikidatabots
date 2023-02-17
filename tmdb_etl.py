@@ -190,6 +190,24 @@ def insert_tmdb_external_ids(
     )
 
 
+def tmdb_exists(tmdb_type: str) -> pl.Expr:
+    assert tmdb_type in ["movie", "tv", "person"]
+
+    return (
+        pl.format(
+            "https://api.themoviedb.org/3/{}/{}?api_key={}",
+            pl.lit(tmdb_type),
+            pl.col("tmdb_id"),
+            pl.lit(os.environ["TMDB_API_KEY"]),
+        )
+        .map(request_text, return_dtype=pl.Utf8)
+        .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.Int64)]))
+        .struct.field("id")
+        .is_not_null()
+        .alias("exists")
+    )
+
+
 FIND_RESULT_DTYPE = pl.Struct([pl.Field("id", pl.Int64)])
 FIND_RESPONSE_DTYPE = pl.Struct(
     [

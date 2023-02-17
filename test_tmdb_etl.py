@@ -10,6 +10,7 @@ from tmdb_etl import (
     fetch_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
+    tmdb_exists,
     tmdb_find,
 )
 
@@ -51,6 +52,14 @@ def test_fetch_tmdb_external_ids():
         }
     ).lazy()
     assert_frame_equal(df, df2)
+
+
+def test_tmdb_exists():
+    df = pl.DataFrame({"tmdb_id": [0, 2, 3, 4]}).lazy()
+
+    df2 = df.with_columns(tmdb_exists(tmdb_type="movie"))
+    df3 = df.with_columns(pl.Series("exists", [False, True, True, False]))
+    assert_frame_equal(df2, df3)
 
 
 def test_find_by_external_id():
