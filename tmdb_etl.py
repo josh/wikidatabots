@@ -212,6 +212,9 @@ def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
     )
 
 
+# Internal
+
+
 def tmdb_outdated_external_ids(
     latest_changes_df: pl.LazyFrame,
     external_ids_df: pl.LazyFrame,
