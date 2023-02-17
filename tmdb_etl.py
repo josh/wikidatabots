@@ -31,6 +31,9 @@ CHANGES_SCHEMA = {
 OUTDATED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 NEVER_FETCHED = pl.col("retrieved_at").is_null()
 MISSING_STATUS = pl.col("success").is_null()
+DUPLICATE_IMDB_IDS = (
+    pl.col("imdb_numeric_id").is_not_null() & pl.col("imdb_numeric_id").is_duplicated()
+)
 
 EXTRACT_IMDB_TITLE_NUMERIC_ID = (
     pl.col("imdb_id")
@@ -222,7 +225,7 @@ def tmdb_outdated_external_ids(
     return (
         latest_changes_df.join(external_ids_df, on="id", how="left")
         .sort(pl.col("retrieved_at"), reverse=True)
-        .filter(OUTDATED | NEVER_FETCHED | MISSING_STATUS)
+        .filter(OUTDATED | NEVER_FETCHED | MISSING_STATUS | DUPLICATE_IMDB_IDS)
         .head(10_000)
         .select(["id"])
     )
