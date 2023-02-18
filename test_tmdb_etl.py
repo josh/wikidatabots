@@ -17,15 +17,24 @@ from tmdb_etl import (
 
 def test_fetch_tmdb_external_ids():
     ids = pl.DataFrame({"id": [1, 2, 3, 4]}).lazy()
-    df = fetch_tmdb_external_ids(ids, "movie").select(["id", "success", "imdb_id"])
+    df = fetch_tmdb_external_ids(ids, "movie")
     df2 = pl.DataFrame(
         {
-            "id": pl.Series([1, 2, 3, 4], dtype=pl.UInt32),
+            "id": [1, 2, 3, 4],
             "success": [False, True, True, False],
             "imdb_id": [None, "tt0094675", "tt0092149", None],
         }
     ).lazy()
-    assert_frame_equal(df, df2)
+    assert df.schema == {
+        "id": pl.Int64,
+        "success": pl.Boolean,
+        "retrieved_at": pl.Datetime(time_unit="ns"),
+        "imdb_id": pl.Utf8,
+        "tvdb_id": pl.UInt32,
+        "imdb_numeric_id": pl.UInt32,
+        "wikidata_numeric_id": pl.UInt32,
+    }
+    assert_frame_equal(df.select(["id", "success", "imdb_id"]), df2)
 
 
 def test_insert_tmdb_latest_changes():

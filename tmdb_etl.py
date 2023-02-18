@@ -6,7 +6,6 @@ import os
 import backoff
 import polars as pl
 import requests
-from tqdm import tqdm
 
 from polars_utils import align_to_index, apply_with_tqdm, read_ipc, update_ipc
 
@@ -63,6 +62,16 @@ EXTRACT_WIKIDATA_NUMERIC_ID = (
     .alias("wikidata_numeric_id")
 )
 
+EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
+    [
+        pl.Field("success", pl.Boolean),
+        pl.Field("id", pl.Int64),
+        pl.Field("imdb_id", pl.Utf8),
+        pl.Field("tvdb_id", pl.UInt32),
+        pl.Field("wikidata_id", pl.Utf8),
+    ]
+)
+
 
 FIND_RESULT_DTYPE = pl.Struct([pl.Field("id", pl.Int64)])
 FIND_RESPONSE_DTYPE = pl.Struct(
@@ -73,50 +82,42 @@ FIND_RESPONSE_DTYPE = pl.Struct(
     ]
 )
 
+RETRIEVED_AT_NOW = (
+    pl.lit(datetime.datetime.now())
+    .dt.round("1s")
+    .cast(pl.Datetime(time_unit="ns"))
+    .alias("retrieved_at")
+)
+
 
 def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
-    api_key = os.environ["TMDB_API_KEY"]
-
-    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=10)
-    def session_get(url: str) -> requests.Response:
-        return session.get(url, params={"api_key": api_key}, timeout=5)
-
-    records = []
-    # TODO: Avoid collect
-    pbar = tqdm(tmdb_ids.collect()["id"], desc="Fetch TMDB external IDs")
-    for tmdb_id in pbar:
-        url = f"https://api.themoviedb.org/3/{tmdb_type}/{tmdb_id}/external_ids"
-        r = session_get(url)
-        data = r.json()
-        record = {
-            "id": tmdb_id,
-            "success": data.get("success", True),
-            "retrieved_at": datetime.datetime.now(),
-            "imdb_id": data.get("imdb_id"),
-            "tvdb_id": data.get("tvdb_id"),
-            "wikidata_id": data.get("wikidata_id"),
-        }
-        records.append(record)  # type: ignore
-
-    schema = {
-        "id": pl.UInt32,
-        "success": pl.Boolean,
-        "retrieved_at": pl.Datetime(time_unit="ns"),
-        "imdb_id": pl.Utf8,
-        "tvdb_id": pl.UInt32,
-        "wikidata_id": pl.Utf8,
-    }
     return (
-        pl.from_dicts(records, schema=schema)  # type: ignore
-        .lazy()
-        .with_columns(
-            [
-                pl.col("retrieved_at").dt.round("1s"),
-                EXTRACT_IMDB_NUMERIC_ID[tmdb_type],
-                EXTRACT_WIKIDATA_NUMERIC_ID,
-            ]
+        tmdb_ids.with_columns(
+            pl.format(
+                "https://api.themoviedb.org/3/{}/{}/external_ids?api_key={}",
+                pl.lit(tmdb_type),
+                pl.col("id"),
+                pl.lit(os.environ["TMDB_API_KEY"]),
+            )
+            .map(_request_text, return_dtype=pl.Utf8)
+            .str.json_extract(dtype=EXTERNAL_IDS_RESPONSE_DTYPE)
+            .alias("result")
         )
-        .drop(["wikidata_id"])
+        .with_columns(
+            pl.col("result").struct.field("success").alias("success"),
+            pl.col("result").struct.field("imdb_id").alias("imdb_id"),
+            pl.col("result").struct.field("tvdb_id").alias("tvdb_id"),
+            pl.col("result").struct.field("wikidata_id").alias("wikidata_id"),
+        )
+        .select(
+            pl.col("id"),
+            pl.col("success").fill_null(True),
+            RETRIEVED_AT_NOW,
+            pl.col("imdb_id"),
+            pl.col("tvdb_id"),
+            EXTRACT_IMDB_NUMERIC_ID[tmdb_type],
+            EXTRACT_WIKIDATA_NUMERIC_ID,
+        )
     )
 
 
@@ -162,7 +163,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
             [
                 pl.col("date"),
                 pl.col("url")
-                .map(request_text, return_dtype=pl.Utf8)
+                .map(_request_text, return_dtype=pl.Utf8)
                 .str.json_extract(dtype=CHANGES_RESPONSE_DTYPE)
                 .struct.field("results")
                 .arr.reverse()
@@ -191,7 +192,7 @@ def tmdb_exists(tmdb_type: str) -> pl.Expr:
             pl.col("tmdb_id"),
             pl.lit(os.environ["TMDB_API_KEY"]),
         )
-        .map(request_text, return_dtype=pl.Utf8)
+        .map(_request_text, return_dtype=pl.Utf8)
         .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.Int64)]))
         .struct.field("id")
         .is_not_null()
@@ -210,7 +211,7 @@ def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
             pl.lit(os.environ["TMDB_API_KEY"]),
             pl.lit(external_id_type),
         )
-        .map(request_text, return_dtype=pl.Utf8)
+        .map(_request_text, return_dtype=pl.Utf8)
         .str.json_extract(dtype=FIND_RESPONSE_DTYPE)
         .struct.field(f"{tmdb_type}_results")
         .arr.first()
@@ -223,7 +224,7 @@ def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
 # Internal
 
 
-def tmdb_outdated_external_ids(
+def _tmdb_outdated_external_ids(
     latest_changes_df: pl.LazyFrame,
     external_ids_df: pl.LazyFrame,
 ) -> pl.LazyFrame:
@@ -236,7 +237,7 @@ def tmdb_outdated_external_ids(
     )
 
 
-def insert_tmdb_external_ids(
+def _insert_tmdb_external_ids(
     df: pl.LazyFrame,
     tmdb_type: str,
     tmdb_ids: pl.LazyFrame,
@@ -248,7 +249,7 @@ def insert_tmdb_external_ids(
     )
 
 
-def request_text(urls: pl.Series) -> pl.Series:
+def _request_text(urls: pl.Series) -> pl.Series:
     session = requests.Session()
 
     @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=5)
@@ -269,12 +270,12 @@ def main_external_ids(tmdb_type: str):
     latest_changes_df = read_ipc("latest_changes.arrow")
     external_ids_df = read_ipc("external_ids.arrow")
 
-    tmdb_ids = tmdb_outdated_external_ids(
+    tmdb_ids = _tmdb_outdated_external_ids(
         latest_changes_df=latest_changes_df,
         external_ids_df=external_ids_df,
     )
 
-    external_ids_df = insert_tmdb_external_ids(
+    external_ids_df = _insert_tmdb_external_ids(
         external_ids_df,
         tmdb_type=tmdb_type,
         tmdb_ids=tmdb_ids,
