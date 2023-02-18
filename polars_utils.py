@@ -180,8 +180,10 @@ def _xml_element_field_iter(
         yield element.attrib[name]
 
     for child in element:
-        # key = child.tag.split("}", 1)[1]
-        if child.tag == name:
+        # strip xml namespace
+        tag = child.tag.split("}")[-1]
+
+        if tag == name:
             if isinstance(dtype, pl.Struct):
                 yield _xml_element_struct_field(child, dtype)
             elif child.text and child.text.strip():
