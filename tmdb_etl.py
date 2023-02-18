@@ -247,9 +247,7 @@ def insert_tmdb_external_ids(
 def request_text(urls: pl.Series) -> pl.Series:
     session = requests.Session()
 
-    @backoff.on_exception(
-        backoff.expo, requests.exceptions.ReadTimeout, max_tries=3
-    )
+    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=3)
     def get_text(url: str) -> str:
         return session.get(url, timeout=5).text
 
