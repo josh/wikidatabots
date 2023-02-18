@@ -97,14 +97,6 @@ jobs:
         run: |
           python print_table_diff.py sitemap.arrow~ sitemap.arrow loc
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.type }}-sitemap
-          path: |
-            *.arrow
-          retention-days: 30
-
       - name: Upload to S3
         run: |
           aws s3 cp "sitemap.arrow" "s3://$BUCKET_NAME/appletv/${TYPE}/sitemap.arrow"
@@ -175,14 +167,6 @@ jobs:
       - name: Print diff
         run: |
           python print_table_diff.py jsonld.arrow~ jsonld.arrow loc
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ matrix.type }}-jsonld
-          path: |
-            *.arrow
-          retention-days: 30
 
       - name: Upload to S3
         run: |
