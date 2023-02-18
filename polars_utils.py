@@ -42,7 +42,7 @@ def update_ipc(
 TIMESTAMP_EXPR = (
     pl.lit(0)
     .map(lambda _: datetime.now(), return_dtype=pl.Datetime)
-    .cast(pl.Datetime(time_unit="ms"))
+    .cast(pl.Datetime(time_unit="ns"))
     .dt.round("1s")
     .alias("timestamp")
 )
