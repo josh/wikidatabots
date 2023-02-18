@@ -77,12 +77,16 @@ FIND_RESPONSE_DTYPE = pl.Struct(
 def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     api_key = os.environ["TMDB_API_KEY"]
 
+    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=5)
+    def session_get(url: str) -> requests.Response:
+        return session.get(url, params={"api_key": api_key}, timeout=5)
+
     records = []
     # TODO: Avoid collect
     pbar = tqdm(tmdb_ids.collect()["id"], desc="Fetch TMDB external IDs")
     for tmdb_id in pbar:
         url = f"https://api.themoviedb.org/3/{tmdb_type}/{tmdb_id}/external_ids"
-        r = session.get(url, params={"api_key": api_key})
+        r = session_get(url)
         data = r.json()
         record = {
             "id": tmdb_id,
@@ -247,7 +251,7 @@ def insert_tmdb_external_ids(
 def request_text(urls: pl.Series) -> pl.Series:
     session = requests.Session()
 
-    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=3)
+    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=5)
     def get_text(url: str) -> str:
         return session.get(url, timeout=5).text
 
