@@ -3,7 +3,8 @@
 import os
 import random
 import warnings
-from typing import Any, Callable
+import xml.etree.ElementTree as ET
+from typing import Any, Callable, Iterator
 
 import polars as pl
 import requests
@@ -135,3 +136,53 @@ def request_text(urls: pl.Series) -> pl.Series:
         return session.get(url, timeout=5).text
 
     return apply_with_tqdm(urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs")
+
+
+def read_xml(
+    xml: str,
+    schema: dict[str, pl.PolarsDataType],
+    xpath: str = "./*",
+) -> pl.DataFrame:
+    tree = ET.fromstring(xml)
+    dtype = pl.Struct([pl.Field(k, schema[k]) for k in schema])
+    rows = [_xml_element_struct_field(row, dtype) for row in tree.findall(xpath)]
+    return pl.from_dicts(rows, schema_overrides=schema)
+
+
+XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | None
+
+
+def _xml_element_struct_field(
+    element: ET.Element,
+    dtype: pl.Struct,
+) -> dict[str, XMLValue]:
+    obj: dict[str, XMLValue] = {}
+    for field in dtype.fields:
+        if isinstance(field.dtype, pl.List):
+            inner_dtype = field.dtype.inner
+            assert inner_dtype
+            values = _xml_element_field_iter(element, field.name, inner_dtype)
+            obj[field.name] = list(values)
+        else:
+            values = _xml_element_field_iter(element, field.name, field.dtype)
+            obj[field.name] = next(values, None)
+    return obj
+
+
+def _xml_element_field_iter(
+    element: ET.Element,
+    name: str,
+    dtype: pl.PolarsDataType,
+) -> Iterator[dict[str, XMLValue] | str]:
+    assert not isinstance(dtype, pl.List)
+
+    if name in element.attrib:
+        yield element.attrib[name]
+
+    for child in element:
+        # key = child.tag.split("}", 1)[1]
+        if child.tag == name:
+            if isinstance(dtype, pl.Struct):
+                yield _xml_element_struct_field(child, dtype)
+            elif child.text and child.text.strip():
+                yield child.text

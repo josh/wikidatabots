@@ -10,6 +10,7 @@ from polars.testing.parametric import column, dataframes
 
 from polars_utils import (
     align_to_index,
+    read_xml,
     request_text,
     row_differences,
     unique_row_differences,
@@ -26,6 +27,101 @@ def test_update_ipc():
     df = pl.read_ipc(filename)
     df2 = pl.DataFrame({"a": [2, 4, 6]})
     assert_frame_equal(df, df2)
+
+
+XML_EXAMPLE = """
+<data>
+    <country name="Liechtenstein">
+        <rank>1</rank>
+        <year>2008</year>
+        <gdppc>141100</gdppc>
+        <neighbor name="Austria" direction="E"/>
+        <neighbor name="Switzerland" direction="W"/>
+    </country>
+    <country name="Singapore">
+        <rank>4</rank>
+        <year>2011</year>
+        <gdppc>59900</gdppc>
+        <neighbor name="Malaysia" direction="N"/>
+    </country>
+    <country name="Panama">
+        <rank>68</rank>
+        <year>2011</year>
+        <gdppc>13600</gdppc>
+        <neighbor name="Costa Rica" direction="W"/>
+        <neighbor name="Colombia" direction="E"/>
+    </country>
+</data>
+"""
+
+
+def test_read_xml():
+    schema: dict[str, pl.PolarsDataType] = {
+        "name": pl.Utf8,
+        "rank": pl.Int64,
+        "year": pl.Int64,
+        "gdppc": pl.Int64,
+        "neighbor": pl.List(
+            pl.Struct(
+                [
+                    pl.Field("name", pl.Utf8),
+                    pl.Field("direction", pl.Utf8),
+                ]
+            )
+        ),
+    }
+
+    df = pl.DataFrame(
+        {
+            "name": ["Liechtenstein", "Singapore", "Panama"],
+            "rank": [1, 4, 68],
+            "year": [2008, 2011, 2011],
+            "gdppc": [141100, 59900, 13600],
+            "neighbor": [
+                [
+                    {"name": "Austria", "direction": "E"},
+                    {"name": "Switzerland", "direction": "W"},
+                ],
+                [{"name": "Malaysia", "direction": "N"}],
+                [
+                    {"name": "Costa Rica", "direction": "W"},
+                    {"name": "Colombia", "direction": "E"},
+                ],
+            ],
+        },
+        schema=schema,
+    )
+
+    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
+
+
+def test_read_xml_with_overrides():
+    schema: dict[str, pl.PolarsDataType] = {
+        "name": pl.Utf8,
+        "rank": pl.Int64,
+        "neighbor": pl.List(pl.Struct([pl.Field("name", pl.Utf8)])),
+    }
+
+    df = pl.DataFrame(
+        {
+            "name": ["Liechtenstein", "Singapore", "Panama"],
+            "rank": [1, 4, 68],
+            "neighbor": [
+                [
+                    {"name": "Austria"},
+                    {"name": "Switzerland"},
+                ],
+                [{"name": "Malaysia"}],
+                [
+                    {"name": "Costa Rica"},
+                    {"name": "Colombia"},
+                ],
+            ],
+        },
+        schema=schema,
+    )
+
+    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
 
 
 def test_align_to_index():
