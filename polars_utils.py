@@ -4,6 +4,7 @@ import os
 import random
 import warnings
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from typing import Any, Callable, Iterator
 
 import polars as pl
@@ -36,6 +37,19 @@ def update_ipc(
     # df2.sink_ipc(tmpfile, compression="lz4")
     df2.collect().write_ipc(tmpfile, compression="lz4")
     os.rename(tmpfile, filename)
+
+
+TIMESTAMP_EXPR = (
+    pl.lit(0)
+    .map(lambda _: datetime.now(), return_dtype=pl.Datetime)
+    .cast(pl.Datetime(time_unit="ms"))
+    .dt.round("1s")
+    .alias("timestamp")
+)
+
+
+def timestamp() -> pl.Expr:
+    return TIMESTAMP_EXPR
 
 
 PL_INTEGERS = {

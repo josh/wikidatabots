@@ -7,7 +7,13 @@ import backoff
 import polars as pl
 import requests
 
-from polars_utils import align_to_index, apply_with_tqdm, read_ipc, update_ipc
+from polars_utils import (
+    align_to_index,
+    apply_with_tqdm,
+    read_ipc,
+    timestamp,
+    update_ipc,
+)
 
 session = requests.Session()
 
@@ -82,13 +88,6 @@ FIND_RESPONSE_DTYPE = pl.Struct(
     ]
 )
 
-RETRIEVED_AT_NOW = (
-    pl.lit(datetime.datetime.now())
-    .dt.round("1s")
-    .cast(pl.Datetime(time_unit="ns"))
-    .alias("retrieved_at")
-)
-
 
 def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     return (
@@ -112,7 +111,7 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
         .select(
             pl.col("id"),
             pl.col("success").fill_null(True),
-            RETRIEVED_AT_NOW,
+            timestamp().alias("retrieved_at"),
             pl.col("imdb_id"),
             pl.col("tvdb_id"),
             EXTRACT_IMDB_NUMERIC_ID[tmdb_type],
