@@ -1,19 +1,19 @@
 import pandas as pd
 
-from . import cleaned_sitemap, fetch_jsonld_df, siteindex
+from appletv_etl import cleaned_sitemap, fetch_jsonld_df, siteindex
 
 
-def test_siteindex():
+def test_siteindex() -> None:
     siteindex(type="movie")
     # siteindex(type="show")
 
 
-def test_sitemap():
+def test_sitemap() -> None:
     # cleaned_sitemap(type="movie")
     cleaned_sitemap(type="show")
 
 
-def test_fetch_info_df():
+def test_fetch_info_df() -> None:
     urls = pd.Series(
         [
             "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
