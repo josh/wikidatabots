@@ -71,10 +71,9 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://$BUCKET_NAME/appletv/${TYPE}/sitemap.arrow" "sitemap.arrow"
+          aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.arrow" "sitemap.arrow"
           cp sitemap.arrow sitemap.arrow~
         env:
-          BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
 
       - name: Join sitemap changes
@@ -99,9 +98,8 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "sitemap.arrow" "s3://$BUCKET_NAME/appletv/${TYPE}/sitemap.arrow"
+          aws s3 cp "sitemap.arrow" "s3://wikidatabots/appletv/${TYPE}/sitemap.arrow"
         env:
-          BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
 
   jsonld:
@@ -141,11 +139,10 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://$BUCKET_NAME/appletv/${TYPE}/sitemap.arrow" "sitemap.arrow"
-          aws s3 cp "s3://$BUCKET_NAME/appletv/${TYPE}/jsonld.arrow" "jsonld.arrow"
+          aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.arrow" "sitemap.arrow"
+          aws s3 cp "s3://wikidatabots/appletv/${TYPE}/jsonld.arrow" "jsonld.arrow"
           cp jsonld.arrow jsonld.arrow~
         env:
-          BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
 
       - name: Run script
@@ -170,7 +167,6 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "jsonld.arrow" "s3://$BUCKET_NAME/appletv/${TYPE}/jsonld.arrow"
+          aws s3 cp "jsonld.arrow" "s3://wikidatabots/appletv/${TYPE}/jsonld.arrow"
         env:
-          BUCKET_NAME: wikidatabots
           TYPE: ${{ matrix.type }}
