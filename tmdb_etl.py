@@ -3,11 +3,12 @@
 import datetime
 import os
 
+import backoff
 import polars as pl
 import requests
 from tqdm import tqdm
 
-from polars_utils import align_to_index, read_ipc, request_text, update_ipc
+from polars_utils import align_to_index, apply_with_tqdm, read_ipc, update_ipc
 
 session = requests.Session()
 
@@ -241,6 +242,18 @@ def insert_tmdb_external_ids(
         .unique(subset=["id"], keep="last")
         .pipe(align_to_index, name="id")
     )
+
+
+def request_text(urls: pl.Series) -> pl.Series:
+    session = requests.Session()
+
+    @backoff.on_exception(
+        backoff.expo, requests.exceptions.ConnectionError, max_tries=3
+    )
+    def get_text(url: str) -> str:
+        return session.get(url, timeout=5).text
+
+    return apply_with_tqdm(urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs")
 
 
 def main_changes(tmdb_type: str) -> None:
