@@ -77,7 +77,7 @@ FIND_RESPONSE_DTYPE = pl.Struct(
 def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     api_key = os.environ["TMDB_API_KEY"]
 
-    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=5)
+    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=10)
     def session_get(url: str) -> requests.Response:
         return session.get(url, params={"api_key": api_key}, timeout=5)
 
