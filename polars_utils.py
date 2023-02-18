@@ -132,6 +132,6 @@ def request_text(urls: pl.Series) -> pl.Series:
     session = requests.Session()
 
     def get_text(url: str) -> str:
-        return session.get(url).text
+        return session.get(url, timeout=5).text
 
     return apply_with_tqdm(urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs")
