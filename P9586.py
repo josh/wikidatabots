@@ -1,3 +1,5 @@
+# pyright: strict
+
 import html
 import itertools
 import json
@@ -5,7 +7,7 @@ from collections.abc import Iterable
 from typing import Any, TypedDict
 
 import backoff
-import pandas as pd
+import polars as pl
 import requests
 from bs4 import BeautifulSoup
 
@@ -141,11 +143,11 @@ def main():
     limit = 500
     skip_ids = matched_appletv_ids()
 
-    sitemap_df = pd.read_feather(
-        "s3://wikidatabots/appletv/movie/sitemap.arrow",
-        columns=["loc", "country", "id"],
+    sitemap_df = (
+        pl.scan_ipc("s3://wikidatabots/appletv/movie/sitemap.arrow")
+        .filter(pl.col("country") == "us")
+        .select(["loc", "id"])
     )
-    sitemap_df = sitemap_df[sitemap_df["country"] == "us"]
 
     def candiate_urls():
         for url in shuffled(appletv.fetch_new_sitemap_urls())[0:250]:
@@ -154,8 +156,7 @@ def main():
                 continue
             yield (url, id)
 
-        for row in sitemap_df.sample(250).itertuples():  # type: ignore
-            url, id = row.loc, row.id  # type: ignore
+        for url, id in sitemap_df.collect().sample(250).iter_rows():
             assert isinstance(url, str)
             assert isinstance(id, str)
             if id in skip_ids:
