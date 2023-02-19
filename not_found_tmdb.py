@@ -16,10 +16,7 @@ def main(tmdb_type: TMDB_TYPE):
         pl.lit(f"Deprecate removed TMDB {tmdb_type} ID"),
     )
 
-    changes_df = pl.scan_ipc(
-        f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow",
-        storage_options={"anon": True},
-    )
+    changes_df = pl.scan_ipc(f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow")
 
     query = """
     SELECT ?statement ?id WHERE {

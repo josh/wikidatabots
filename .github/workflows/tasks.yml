@@ -12,8 +12,9 @@ permissions:
   contents: read
 
 env:
-  WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
+  FSSPEC_S3_ANON: true
   TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+  WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
   itunes:
