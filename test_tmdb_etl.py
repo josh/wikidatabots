@@ -6,7 +6,6 @@ import polars as pl
 from polars.testing import assert_frame_equal
 
 from tmdb_etl import (
-    CHANGES_SCHEMA,
     fetch_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
@@ -35,6 +34,14 @@ def test_fetch_tmdb_external_ids():
         "wikidata_numeric_id": pl.UInt32,
     }
     assert_frame_equal(df.select(["id", "success", "imdb_id"]), df2)
+
+
+CHANGES_SCHEMA = {
+    "id": pl.UInt32,
+    "has_changes": pl.Boolean,
+    "date": pl.Date,
+    "adult": pl.Boolean,
+}
 
 
 def test_insert_tmdb_latest_changes():

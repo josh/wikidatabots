@@ -19,42 +19,18 @@ session = requests.Session()
 
 ONE_DAY = datetime.timedelta(days=1)
 
-CHANGES_RESULT_DTYPE = pl.Struct(
-    [
-        pl.Field("id", pl.Int64),
-        pl.Field("adult", pl.Boolean),
-    ]
-)
-CHANGES_RESPONSE_DTYPE = pl.Struct([pl.Field("results", pl.List(CHANGES_RESULT_DTYPE))])
-
-CHANGES_SCHEMA = {
-    "id": pl.UInt32,
-    "has_changes": pl.Boolean,
-    "date": pl.Date,
-    "adult": pl.Boolean,
-}
-
-OUTDATED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
-NEVER_FETCHED = pl.col("retrieved_at").is_null()
-MISSING_STATUS = pl.col("success").is_null()
-DUPLICATE_IMDB_IDS = (
-    pl.col("imdb_numeric_id").is_not_null() & pl.col("imdb_numeric_id").is_duplicated()
-)
-
 EXTRACT_IMDB_TITLE_NUMERIC_ID = (
     pl.col("imdb_id")
     .str.extract(r"tt(\d+)", 1)
     .cast(pl.UInt32)
     .alias("imdb_numeric_id")
 )
-
 EXTRACT_IMDB_NAME_NUMERIC_ID = (
     pl.col("imdb_id")
     .str.extract(r"nm(\d+)", 1)
     .cast(pl.UInt32)
     .alias("imdb_numeric_id")
 )
-
 EXTRACT_IMDB_NUMERIC_ID = {
     "movie": EXTRACT_IMDB_TITLE_NUMERIC_ID,
     "tv": EXTRACT_IMDB_TITLE_NUMERIC_ID,
@@ -69,23 +45,13 @@ EXTRACT_WIKIDATA_NUMERIC_ID = (
 )
 
 EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
-    [
-        pl.Field("success", pl.Boolean),
-        pl.Field("id", pl.Int64),
-        pl.Field("imdb_id", pl.Utf8),
-        pl.Field("tvdb_id", pl.UInt32),
-        pl.Field("wikidata_id", pl.Utf8),
-    ]
-)
-
-
-FIND_RESULT_DTYPE = pl.Struct([pl.Field("id", pl.Int64)])
-FIND_RESPONSE_DTYPE = pl.Struct(
-    [
-        pl.Field("movie_results", pl.List(FIND_RESULT_DTYPE)),
-        pl.Field("tv_results", pl.List(FIND_RESULT_DTYPE)),
-        pl.Field("person_results", pl.List(FIND_RESULT_DTYPE)),
-    ]
+    {
+        "success": pl.Boolean,
+        "id": pl.Int64,
+        "imdb_id": pl.Utf8,
+        "tvdb_id": pl.UInt32,
+        "wikidata_id": pl.Utf8,
+    }
 )
 
 
@@ -121,9 +87,6 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
-    assert df.schema == CHANGES_SCHEMA
-    assert tmdb_type in ["movie", "tv", "person"]
-
     df = df.cache()
     dates_df = df.select(
         [
@@ -143,8 +106,12 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame
     )
 
 
+CHANGES_RESPONSE_DTYPE = pl.Struct(
+    {"results": pl.List(pl.Struct({"id": pl.Int64, "adult": pl.Boolean}))}
+)
+
+
 def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
-    assert df.schema == {"date": pl.Date}
     assert tmdb_type in ["movie", "tv", "person"]
 
     return (
@@ -182,8 +149,6 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
 
 
 def tmdb_exists(tmdb_type: str) -> pl.Expr:
-    assert tmdb_type in ["movie", "tv", "person"]
-
     return (
         pl.format(
             "https://api.themoviedb.org/3/{}/{}?api_key={}",
@@ -199,10 +164,16 @@ def tmdb_exists(tmdb_type: str) -> pl.Expr:
     )
 
 
-def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
-    assert tmdb_type in ["movie", "tv", "person"]
-    assert external_id_type in ["imdb_id", "tvdb_id"]
+FIND_RESPONSE_DTYPE = pl.Struct(
+    {
+        "movie_results": pl.List(pl.Struct({"id": pl.Int64})),
+        "tv_results": pl.List(pl.Struct({"id": pl.Int64})),
+        "person_results": pl.List(pl.Struct({"id": pl.Int64})),
+    }
+)
 
+
+def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
     return (
         pl.format(
             "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
@@ -221,6 +192,13 @@ def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
 
 
 # Internal
+
+OUTDATED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
+NEVER_FETCHED = pl.col("retrieved_at").is_null()
+MISSING_STATUS = pl.col("success").is_null()
+DUPLICATE_IMDB_IDS = (
+    pl.col("imdb_numeric_id").is_not_null() & pl.col("imdb_numeric_id").is_duplicated()
+)
 
 
 def _tmdb_outdated_external_ids(
