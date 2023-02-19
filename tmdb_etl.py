@@ -9,8 +9,8 @@ import requests
 
 from polars_utils import (
     align_to_index,
-    apply_with_tqdm,
     read_ipc,
+    series_apply_with_tqdm,
     timestamp,
     update_ipc,
 )
@@ -255,7 +255,9 @@ def _request_text(urls: pl.Series) -> pl.Series:
     def get_text(url: str) -> str:
         return session.get(url, timeout=5).text
 
-    return apply_with_tqdm(urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs")
+    return series_apply_with_tqdm(
+        urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs"
+    )
 
 
 def main_changes(tmdb_type: str) -> None:

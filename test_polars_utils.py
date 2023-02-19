@@ -10,9 +10,11 @@ from polars.testing.parametric import column, dataframes
 
 from polars_utils import (
     align_to_index,
+    expr_apply_with_tqdm,
     read_xml,
     request_text,
     row_differences,
+    series_apply_with_tqdm,
     unique_row_differences,
     update_ipc,
 )
@@ -318,6 +320,27 @@ def test_unique_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame)
     assert updated <= len(df1), "updated should be <= len(df1)"
     assert df1.height - removed + added == df2.height, "df1 - removed + added == df2"
     assert df2.height - added + removed == df1.height, "df2 - added + removed == df1"
+
+
+def test_series_apply_with_tqdm():
+    s1 = pl.Series([1, 2, 3])
+    s2 = pl.Series([2, 3, 4])
+    s3 = series_apply_with_tqdm(s1, lambda x: x + 1)
+    assert_series_equal(s2, s3)
+
+
+def test_expr_apply_with_tqdm():
+    df1 = pl.DataFrame({"s": [1, 2, 3]}).lazy()
+    df2 = pl.DataFrame({"s": [2, 3, 4]}).lazy()
+    df3 = df1.select(
+        expr_apply_with_tqdm(
+            pl.col("s"),
+            lambda x: x + 1,
+            return_dtype=pl.Int64,
+        )
+    )
+    assert df3.schema == {"s": pl.Int64}
+    assert_frame_equal(df2, df3)
 
 
 def test_request_text():

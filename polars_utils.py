@@ -119,7 +119,7 @@ def unique_row_differences(
     return added.height, removed.height, updated
 
 
-def apply_with_tqdm(
+def series_apply_with_tqdm(
     s: pl.Series,
     func: Callable[[Any], Any],
     return_dtype: pl.PolarsDataType | None = None,
@@ -141,6 +141,25 @@ def apply_with_tqdm(
         pbar.close()
 
 
+def expr_apply_with_tqdm(
+    expr: pl.Expr,
+    func: Callable[[Any], Any],
+    return_dtype: pl.PolarsDataType | None = None,
+    skip_nulls: bool = True,
+    desc: str | None = None,
+) -> pl.Expr:
+    def map_inner(s: pl.Series) -> pl.Series:
+        return series_apply_with_tqdm(
+            s,
+            func,
+            return_dtype=return_dtype,
+            skip_nulls=skip_nulls,
+            desc=desc,
+        )
+
+    return expr.map(map_inner, return_dtype=return_dtype)
+
+
 def request_text(urls: pl.Series) -> pl.Series:
     assert urls.dtype == pl.Utf8, "series must be strings"
 
@@ -149,7 +168,9 @@ def request_text(urls: pl.Series) -> pl.Series:
     def get_text(url: str) -> str:
         return session.get(url).text
 
-    return apply_with_tqdm(urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs")
+    return series_apply_with_tqdm(
+        urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs"
+    )
 
 
 def read_xml(
