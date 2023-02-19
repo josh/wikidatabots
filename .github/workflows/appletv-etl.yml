@@ -54,21 +54,6 @@ jobs:
           restore-keys: |
             cache-${{ github.job }}-${{ matrix.type }}-
 
-      - name: Fetch sitemaps
-        shell: python
-        run: |
-          import os
-
-          from appletv_etl import cleaned_sitemap
-
-          cleaned_sitemap(type=os.environ["TYPE"]).to_feather("sitemap_changes.arrow")
-        env:
-          TYPE: ${{ matrix.type }}
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py sitemap_changes.arrow
-
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.arrow" "sitemap.arrow"
@@ -76,17 +61,16 @@ jobs:
         env:
           TYPE: ${{ matrix.type }}
 
-      - name: Join sitemap changes
+      - name: Fetch sitemaps changes
         shell: python
         run: |
-          import pandas as pd
+          import os
 
-          from appletv_etl import append_sitemap_changes
+          from appletv_etl import main_sitemap
 
-          df1 = pd.read_feather("sitemap.arrow")
-          df2 = pd.read_feather("sitemap_changes.arrow")
-          df3 = append_sitemap_changes(df1, df2)
-          df3.to_feather("sitemap.arrow")
+          main_sitemap(os.environ["TYPE"])
+        env:
+          TYPE: ${{ matrix.type }}
 
       - name: Print stats
         run: |
@@ -148,14 +132,9 @@ jobs:
       - name: Run script
         shell: python
         run: |
-          import pandas as pd
+          from appletv_etl import main_jsonld
 
-          from appletv_etl import append_jsonld_changes
-
-          sitemap_df = pd.read_feather("sitemap.arrow")
-          jsonld_df = pd.read_feather("jsonld.arrow")
-          jsonld_df = append_jsonld_changes(sitemap_df, jsonld_df, limit=1000)
-          jsonld_df.to_feather("jsonld.arrow")
+          main_jsonld()
 
       - name: Print stats
         run: |

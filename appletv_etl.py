@@ -1,191 +1,277 @@
-import atexit
+# pyright: strict
+
+import html
 import urllib.parse
-from datetime import date, datetime, timedelta, timezone
+import zlib
 from typing import Literal
 
-import fsspec
-import pandas as pd
-from dateutil import tz
-from pandas._typing import Dtype
-from tqdm import tqdm
+import polars as pl
+import requests
+from bs4 import BeautifulSoup
 
-import appletv
-from actions import log_group
-from pandas_utils import df_upsert, safe_column_join, safe_row_concat
-
-tqdm.pandas()
-
-PACIFIC_TZ = tz.gettz("America/Los_Angeles")
-
-
-def next_sitemap_updated_at() -> datetime:
-    today = date.today()
-    d = today + timedelta(days=7 - today.weekday())
-    return datetime(d.year, d.month, d.day, tzinfo=PACIFIC_TZ)
-
-
-def seconds_until_sitemap_updated() -> int:
-    now = datetime.now(timezone.utc)
-    return round((next_sitemap_updated_at() - now).total_seconds())
-
-
-cached_fs = fsspec.filesystem(
-    "filecache",
-    target_protocol="http",
-    cache_storage=".cache/appletv_etl/",
-    expiry_time=seconds_until_sitemap_updated(),
-    same_names=True,
-    compression="infer",
+from polars_utils import (
+    read_xml,
+    request_text,
+    series_apply_with_tqdm,
+    timestamp,
+    update_ipc,
 )
-
-
-atexit.register(cached_fs.clear_expired_cache)
-
-
-SITEINDEX_DTYPE: dict[str, Dtype] = {
-    "loc": "string",
-    "lastmod": "datetime64[ns]",
-}
 
 Type = Literal["episode", "movie", "show"]
 
-
-@log_group(title="Fetching siteindex")
-def siteindex(type: Type) -> pd.DataFrame:
-    url = f"https://tv.apple.com/sitemaps_tv_index_{type}_1.xml"
-    with fsspec.open(url) as f:
-        df = pd.read_xml(f, dtype=SITEINDEX_DTYPE)  # type: ignore
-
-    assert df.columns.tolist() == ["loc", "lastmod"]
-    assert df["loc"].dtype == "string"
-    assert df["lastmod"].dtype == "datetime64[ns]"
-    assert df["loc"].is_unique
-
-    return df
-
-
-SITEMAP_DTYPE: dict[str, Dtype] = {
-    "loc": "string",
-    "lastmod": "datetime64[ns]",
-    "changefreq": "category",
-    "priority": "float32",
-    "link": "string",
+SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "loc": pl.Utf8,
 }
+SITEINDEX_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(SITEINDEX_SCHEMA))
 
 
-@log_group(title="Fetching sitemap")
-def sitemap(type: Type) -> pd.DataFrame:
-    index_df = siteindex(type)
-
-    with log_group("Fetching sitemap"):
-        ofs = index_df["loc"].progress_apply(cached_fs.open)
-
-    with log_group("Parsing sitemap"):
-        dfs = ofs.progress_apply(lambda f: pd.read_xml(f, dtype=SITEMAP_DTYPE))
-
-    ofs.apply(lambda f: f.close())
-
-    df = safe_row_concat(dfs)
-
-    assert df.columns.tolist() == ["loc", "lastmod", "changefreq", "priority", "link"]
-    assert df["loc"].dtype == "string"
-    assert df["lastmod"].dtype == "datetime64[ns]"
-    assert df["changefreq"].dtype == "category"
-    assert df["priority"].dtype == "float32"
-    assert df["link"].dtype == "string"
-    assert df["loc"].is_unique
-
-    return df
-
-
-@log_group(title="Clean Sitemap")
-def clean_sitemap(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.drop(columns=["link"])
-    loc_df = (
-        df["loc"]
-        .str.extract(
-            r"https://tv.apple.com/"
-            r"(?P<country>[a-z]{2})/"
-            r"(?P<type>episode|movie|show)/"
-            r"(?P<slug>[^/]*)/"
-            r"(?P<id>umc.cmc.[0-9a-z]+)"
+def siteindex(type: Type) -> pl.LazyFrame:
+    return (
+        pl.DataFrame({"type": [type]})
+        .lazy()
+        .select(
+            pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
+            .map(request_text, return_dtype=pl.Utf8)
+            .apply(_parse_siteindex_xml, return_dtype=SITEINDEX_DTYPE)
+            .alias("siteindex"),
         )
-        .astype({"country": "category", "type": "category"})
+        .explode("siteindex")
+        .select(
+            pl.col("siteindex").struct.field("loc"),
+        )
     )
-    loc_df["slug"] = loc_df["slug"].apply(urllib.parse.unquote).astype("string")
-    df = safe_column_join([df, loc_df])
-
-    assert df.columns.tolist() == [
-        "loc",
-        "lastmod",
-        "changefreq",
-        "priority",
-        "country",
-        "type",
-        "slug",
-        "id",
-    ]
-    assert df["loc"].dtype == "string"
-    assert df["lastmod"].dtype == "datetime64[ns]"
-    assert df["changefreq"].dtype == "category"
-    assert df["priority"].dtype == "float32"
-    assert df["country"].dtype == "category"
-    assert df["type"].dtype == "category"
-    assert df["slug"].dtype == "string"
-    assert df["id"].dtype == "string"
-
-    return df
 
 
-def cleaned_sitemap(type: Type) -> pd.DataFrame:
-    return clean_sitemap(sitemap(type))
+def _parse_siteindex_xml(text: str) -> pl.Series:
+    return read_xml(text, schema=SITEINDEX_SCHEMA).to_struct("siteindex")
 
 
-def append_sitemap_changes(df: pd.DataFrame, latest_df: pd.DataFrame) -> pd.DataFrame:
-    df["in_latest_sitemap"] = False
-    latest_df["in_latest_sitemap"] = True
-    return df_upsert(df, latest_df, on="loc")
-
-
-JSONLD_DTYPES = {
-    "loc": "string",
-    "jsonld_success": "boolean",
-    "title": "string",
-    "published_at": "object",
-    "director": "string",
-    "retrieved_at": "datetime64[ns]",
+SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "loc": pl.Utf8,
+    "lastmod": pl.Utf8,
+    "changefreq": pl.Categorical,
+    "priority": pl.Float32,
 }
+SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(SITEMAP_SCHEMA))
 
 
-@log_group(title="Fetching JSON-LD")
-def fetch_jsonld_df(urls: pd.Series) -> pd.DataFrame:
-    # TODO: Handle empty urls
-    records = urls.progress_apply(appletv.fetch_jsonld)
-    df = pd.DataFrame.from_records(list(records))
-    df = df.rename(columns={"url": "loc", "success": "jsonld_success"})
-    df["retrieved_at"] = pd.Timestamp.now().floor("s")
-    return df.astype(JSONLD_DTYPES)
+def sitemap(type: Type) -> pl.LazyFrame:
+    return (
+        siteindex(type)
+        .select(
+            pl.col("loc")
+            .map(_request_compressed_text, return_dtype=pl.Utf8)
+            .apply(_parse_sitemap_xml, return_dtype=SITEMAP_DTYPE)
+            .alias("sitemap")
+        )
+        .explode("sitemap")
+        .select(
+            pl.col("sitemap").struct.field("loc").alias("loc"),
+            (
+                pl.col("sitemap")
+                .struct.field("lastmod")
+                .str.strptime(datatype=pl.Datetime(time_unit="ns"), fmt="%+")
+                .cast(pl.Datetime(time_unit="us"))
+            ),
+            pl.col("sitemap").struct.field("changefreq"),
+            pl.col("sitemap").struct.field("priority"),
+        )
+    )
 
 
-@log_group(title="Append JSON-LD changes")
+def _parse_sitemap_xml(text: str) -> pl.Series:
+    return read_xml(text, schema=SITEMAP_SCHEMA).to_struct("sitemap")
+
+
+# TODO: Can't return binary from map for some reason
+def _request_compressed_text(urls: pl.Series) -> pl.Series:
+    session = requests.Session()
+
+    def get_text(url: str) -> str:
+        r = session.get(url, timeout=5)
+        return zlib.decompress(r.content, 16 + zlib.MAX_WBITS).decode("utf-8")
+
+    return series_apply_with_tqdm(
+        urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs"
+    )
+
+
+LOC_PATTERN = (
+    r"https://tv.apple.com/"
+    r"(?P<country>[a-z]{2})/"
+    r"(?P<type>episode|movie|show)/"
+    r"(?P<slug>[^/]*)/"
+    r"(?P<id>umc.cmc.[0-9a-z]+)"
+)
+
+
+def cleaned_sitemap(type: Type) -> pl.LazyFrame:
+    # TODO: str.extract should return a struct
+    return (
+        sitemap(type)
+        .with_columns(
+            (
+                pl.col("loc")
+                .str.extract(LOC_PATTERN, 1)
+                .cast(pl.Categorical)
+                .alias("country")
+            ),
+            (
+                pl.col("loc")
+                .str.extract(LOC_PATTERN, 2)
+                .cast(pl.Categorical)
+                .alias("type")
+            ),
+            (
+                pl.col("loc")
+                .str.extract(LOC_PATTERN, 3)
+                .apply(urllib.parse.unquote, return_dtype=pl.Utf8)
+                .alias("slug")
+            ),
+            pl.col("loc").str.extract(LOC_PATTERN, 4).alias("id"),
+            LATEST_EXPR,
+        )
+        .select(
+            [
+                "loc",
+                "country",
+                "slug",
+                "id",
+                "priority",
+                "in_latest_sitemap",
+                "lastmod",
+                "changefreq",
+                "type",
+            ]
+        )
+    )
+
+
+JSONLD_DTYPE = pl.Struct(
+    [
+        pl.Field("name", pl.Utf8),
+        pl.Field("datePublished", pl.Utf8),
+        pl.Field("director", pl.List(pl.Struct([pl.Field("name", pl.Utf8)]))),
+    ]
+)
+
+JSONLD_SUCCESS_EXPR = pl.col("jsonld").struct.field("name").is_not_null()
+JSONLD_TITLE_EXPR = (
+    pl.col("jsonld").struct.field("name").apply(html.unescape, return_dtype=pl.Utf8)
+)
+JSONLD_PUBLISHED_AT_EXPR = (
+    pl.col("jsonld")
+    .struct.field("datePublished")
+    .str.strptime(datatype=pl.Date, fmt="%+")
+)
+JSONLD_DIRECTOR_EXPR = (
+    pl.col("jsonld")
+    .struct.field("director")
+    .arr.first()
+    .struct.field("name")
+    .apply(html.unescape, return_dtype=pl.Utf8)
+)
+
+
+def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
+    return (
+        df.with_columns(
+            pl.col("loc")
+            .map(request_text, return_dtype=pl.Utf8)
+            .map(_series_extract_jsonld, return_dtype=pl.Utf8)
+            .str.json_extract(dtype=JSONLD_DTYPE)
+            .alias("jsonld")
+        )
+        .with_columns(
+            JSONLD_SUCCESS_EXPR.alias("jsonld_success"),
+            JSONLD_TITLE_EXPR.alias("title"),
+            JSONLD_PUBLISHED_AT_EXPR.alias("published_at"),
+            JSONLD_DIRECTOR_EXPR.alias("director"),
+            timestamp().alias("retrieved_at"),
+        )
+        .drop("jsonld")
+    )
+
+
+def _series_extract_jsonld(urls: pl.Series) -> pl.Series:
+    return series_apply_with_tqdm(
+        urls,
+        _extract_jsonld,
+        return_dtype=pl.Utf8,
+        desc="Extracting JSON-LD",
+    )
+
+
+def _extract_jsonld(html: str) -> str | None:
+    soup = BeautifulSoup(html, "html.parser")
+
+    if soup.find("h1", string="This content is no longer available."):
+        return None
+
+    link = soup.find("link", attrs={"rel": "canonical"})
+    if not link:
+        return None
+
+    scripts = soup.find_all("script", {"type": "application/ld+json"})
+    for script in scripts:
+        return script.text
+
+    return None
+
+
 def append_jsonld_changes(
-    sitemap_df: pd.DataFrame,
-    jsonld_df: pd.DataFrame,
-    limit: int = 1000,
-) -> pd.DataFrame:
-    sitemap_df = sitemap_df.merge(jsonld_df, on="loc", how="left")
-    sitemap_df = sitemap_df[sitemap_df["jsonld_success"].isna()]
+    sitemap_df: pl.LazyFrame,
+    jsonld_df: pl.LazyFrame,
+    limit: int,
+) -> pl.LazyFrame:
+    sitemap_df, jsonld_df = sitemap_df.cache(), jsonld_df.cache()
 
-    # FIXME: Restrict to US for now
-    us_sitemap_df = sitemap_df[sitemap_df["country"] == "us"]
-    if len(us_sitemap_df) > 0:
-        sitemap_df = us_sitemap_df
+    jsonld_new_df = (
+        sitemap_df.join(jsonld_df, on="loc", how="left")
+        .filter(pl.col("jsonld_success").is_null())
+        .with_columns(
+            pl.when(pl.col("country").eq("us"))
+            .then(pl.col("priority") + 1)
+            .otherwise(pl.col("priority"))
+            .alias("priority")
+        )
+        .sort(by="priority", reverse=True)
+        .head(limit)
+        .select(["loc"])
+        .pipe(fetch_jsonld_columns)
+    )
 
-    urls = sitemap_df.sort_values("priority", ascending=False).head(limit)["loc"]
+    return (
+        pl.concat([jsonld_df, jsonld_new_df])
+        .unique(subset="loc", keep="last")
+        .sort(by="loc")
+    )
 
-    if len(urls) > 0:
-        jsonld_new_df = fetch_jsonld_df(urls)
-        jsonld_df = df_upsert(jsonld_df, jsonld_new_df, on="loc")
-        jsonld_df = jsonld_df.sort_values("loc", ignore_index=True)
 
-    return jsonld_df
+OUTDATED_EXPR = pl.lit(False).alias("in_latest_sitemap")
+LATEST_EXPR = pl.lit(True).alias("in_latest_sitemap")
+
+
+def main_sitemap(type: Type) -> None:
+    def update_sitemap(df: pl.LazyFrame) -> pl.LazyFrame:
+        return (
+            pl.concat(
+                [
+                    df.with_columns(OUTDATED_EXPR),
+                    cleaned_sitemap(type).with_columns(LATEST_EXPR),
+                ]
+            )
+            .unique(subset="loc", keep="last")
+            .sort(by="loc")
+        )
+
+    with pl.StringCache():
+        update_ipc("sitemap.arrow", update_sitemap)
+
+
+def main_jsonld() -> None:
+    with pl.StringCache():
+        sitemap_df = pl.read_ipc("sitemap.arrow", memory_map=False).lazy()
+        jsonld_df = pl.read_ipc("jsonld.arrow", memory_map=False).lazy()
+        df = append_jsonld_changes(sitemap_df, jsonld_df, limit=1000)
+        df.collect().write_ipc("jsonld.arrow", compression="lz4")
