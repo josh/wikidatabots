@@ -26,7 +26,10 @@ def find_tmdb_ids_via_imdb_id(
     ).alias("rdf_statement")
 
     tmdb_df = (
-        pl.scan_ipc(f"s3://wikidatabots/tmdb/{tmdb_type}/external_ids.arrow")
+        pl.scan_ipc(
+            f"s3://wikidatabots/tmdb/{tmdb_type}/external_ids.arrow",
+            storage_options={"anon": True},
+        )
         .select(["id", "imdb_numeric_id"])
         .rename({"id": "tmdb_id"})
         .drop_nulls()
@@ -66,7 +69,10 @@ def find_tmdb_ids_via_tvdb_id(
     ).alias("rdf_statement")
 
     tmdb_df = (
-        pl.scan_ipc(f"s3://wikidatabots/tmdb/{tmdb_type}/external_ids.arrow")
+        pl.scan_ipc(
+            f"s3://wikidatabots/tmdb/{tmdb_type}/external_ids.arrow",
+            storage_options={"anon": True},
+        )
         .select(["id", "tvdb_id"])
         .rename({"id": "tmdb_id"})
         .drop_nulls()
