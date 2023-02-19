@@ -68,7 +68,7 @@ SITEMAP_DTYPE: dict[str, Dtype] = {
     "loc": "string",
     "lastmod": "datetime64[ns]",
     "changefreq": "category",
-    "priority": "float16",
+    "priority": "float32",
     "link": "string",
 }
 
@@ -91,7 +91,7 @@ def sitemap(type: Type) -> pd.DataFrame:
     assert df["loc"].dtype == "string"
     assert df["lastmod"].dtype == "datetime64[ns]"
     assert df["changefreq"].dtype == "category"
-    assert df["priority"].dtype == "float16"
+    assert df["priority"].dtype == "float32"
     assert df["link"].dtype == "string"
     assert df["loc"].is_unique
 
@@ -128,7 +128,7 @@ def clean_sitemap(df: pd.DataFrame) -> pd.DataFrame:
     assert df["loc"].dtype == "string"
     assert df["lastmod"].dtype == "datetime64[ns]"
     assert df["changefreq"].dtype == "category"
-    assert df["priority"].dtype == "float16"
+    assert df["priority"].dtype == "float32"
     assert df["country"].dtype == "category"
     assert df["type"].dtype == "category"
     assert df["slug"].dtype == "string"
