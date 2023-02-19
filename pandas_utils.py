@@ -1,12 +1,6 @@
-from typing import Callable, Iterable
+from typing import Iterable
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.feather as feather
-
-import actions
-
-actions.install_warnings_hook()
 
 
 def df_upsert(
