@@ -5,6 +5,8 @@ import polars as pl
 import pyarrow as pa
 import pyarrow.feather as feather
 
+from polars_utils import read_ipc
+
 STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
 
 txt_out = sys.stdout
@@ -14,7 +16,7 @@ filename = sys.argv[1]
 
 table = feather.read_table(filename)
 with pl.StringCache():
-    df = pl.read_ipc(filename, memory_map=False)
+    df = read_ipc(filename).collect()
 count = len(df)
 
 
