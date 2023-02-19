@@ -71,7 +71,7 @@ def sitemap(type: Type) -> pl.LazyFrame:
                 pl.col("sitemap")
                 .struct.field("lastmod")
                 .str.strptime(datatype=pl.Datetime(time_unit="ns"), fmt="%+")
-                .cast(pl.Datetime(time_unit="us"))
+                .cast(pl.Datetime(time_unit="ns"))
                 .alias("lastmod")
             ),
             pl.col("sitemap").struct.field("changefreq").alias("changefreq"),

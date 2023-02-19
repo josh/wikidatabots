@@ -37,7 +37,7 @@ def test_cleaned_sitemap():
         "country": pl.Categorical,
         "slug": pl.Utf8,
         "loc": pl.Utf8,
-        "lastmod": pl.Datetime(time_unit="us"),
+        "lastmod": pl.Datetime(time_unit="ns"),
         "changefreq": pl.Categorical,
         "priority": pl.Float32,
         "in_latest_sitemap": pl.Boolean,
