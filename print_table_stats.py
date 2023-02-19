@@ -13,7 +13,8 @@ md_out = open(STEP_SUMMARY, "w")
 filename = sys.argv[1]
 
 table = feather.read_table(filename)
-df = pl.read_ipc(filename, memory_map=False)
+with pl.StringCache():
+    df = pl.read_ipc(filename, memory_map=False)
 count = len(df)
 
 
