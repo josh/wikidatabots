@@ -184,7 +184,7 @@ def read_xml(
     return pl.from_dicts(rows, schema_overrides=schema)
 
 
-XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | None
+XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None
 
 
 def xml_to_dtype(
@@ -219,7 +219,7 @@ def _xml_element_field_iter(
     element: ET.Element,
     name: str,
     dtype: pl.PolarsDataType,
-) -> Iterator[dict[str, XMLValue] | str | int]:
+) -> Iterator[dict[str, XMLValue] | str | int | float]:
     assert not isinstance(dtype, pl.List)
 
     if name in element.attrib:
@@ -235,5 +235,7 @@ def _xml_element_field_iter(
             elif child.text and child.text.strip():
                 if dtype is pl.Int64:
                     yield int(child.text)
+                elif dtype is pl.Float64:
+                    yield float(child.text)
                 else:
                     yield child.text
