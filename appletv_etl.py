@@ -37,7 +37,7 @@ def siteindex(type: Type) -> pl.LazyFrame:
         )
         .explode("siteindex")
         .select(
-            pl.col("siteindex").struct.field("loc"),
+            pl.col("siteindex").struct.field("loc").alias("loc"),
         )
     )
 
@@ -72,9 +72,10 @@ def sitemap(type: Type) -> pl.LazyFrame:
                 .struct.field("lastmod")
                 .str.strptime(datatype=pl.Datetime(time_unit="ns"), fmt="%+")
                 .cast(pl.Datetime(time_unit="us"))
+                .alias("lastmod")
             ),
-            pl.col("sitemap").struct.field("changefreq"),
-            pl.col("sitemap").struct.field("priority"),
+            pl.col("sitemap").struct.field("changefreq").alias("changefreq"),
+            pl.col("sitemap").struct.field("priority").alias("priority"),
         )
     )
 
