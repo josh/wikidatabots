@@ -17,6 +17,7 @@ from polars_utils import (
     series_apply_with_tqdm,
     unique_row_differences,
     update_ipc,
+    xml_to_dtype,
 )
 
 
@@ -26,7 +27,7 @@ def test_update_ipc():
 
     update_ipc(filename, lambda df: df.with_columns(pl.col("a") * 2))
 
-    df = pl.read_ipc(filename)
+    df = pl.read_ipc(filename, memory_map=False)
     df2 = pl.DataFrame({"a": [2, 4, 6]})
     assert_frame_equal(df, df2)
 
@@ -101,7 +102,7 @@ def test_read_xml_with_overrides():
     schema: dict[str, pl.PolarsDataType] = {
         "name": pl.Utf8,
         "rank": pl.Int64,
-        "neighbor": pl.List(pl.Struct([pl.Field("name", pl.Utf8)])),
+        "neighbor": pl.List(pl.Struct({"name": pl.Utf8})),
     }
 
     df = pl.DataFrame(
@@ -124,6 +125,36 @@ def test_read_xml_with_overrides():
     )
 
     assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
+
+
+def test_xml_to_dtype():
+    dtype = pl.List(
+        pl.Struct(
+            {
+                "name": pl.Utf8,
+                "rank": pl.Int64,
+                "neighbor": pl.List(pl.Struct({"name": pl.Utf8})),
+            }
+        )
+    )
+    obj = [
+        {
+            "name": "Liechtenstein",
+            "rank": 1,
+            "neighbor": [{"name": "Austria"}, {"name": "Switzerland"}],
+        },
+        {
+            "name": "Singapore",
+            "rank": 4,
+            "neighbor": [{"name": "Malaysia"}],
+        },
+        {
+            "name": "Panama",
+            "rank": 68,
+            "neighbor": [{"name": "Costa Rica"}, {"name": "Colombia"}],
+        },
+    ]
+    assert xml_to_dtype(XML_EXAMPLE, dtype=dtype) == obj
 
 
 def test_align_to_index():

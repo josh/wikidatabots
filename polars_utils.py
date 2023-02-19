@@ -184,7 +184,18 @@ def read_xml(
     return pl.from_dicts(rows, schema_overrides=schema)
 
 
-XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | None
+XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | None
+
+
+def xml_to_dtype(
+    xml: str,
+    dtype: pl.List,
+    xpath: str = "./*",
+) -> list[XMLValue]:
+    inner_dtype = dtype.inner
+    assert isinstance(inner_dtype, pl.Struct)
+    root = ET.fromstring(xml)
+    return [_xml_element_struct_field(el, inner_dtype) for el in root.findall(xpath)]
 
 
 def _xml_element_struct_field(
@@ -208,7 +219,7 @@ def _xml_element_field_iter(
     element: ET.Element,
     name: str,
     dtype: pl.PolarsDataType,
-) -> Iterator[dict[str, XMLValue] | str]:
+) -> Iterator[dict[str, XMLValue] | str | int]:
     assert not isinstance(dtype, pl.List)
 
     if name in element.attrib:
@@ -222,4 +233,7 @@ def _xml_element_field_iter(
             if isinstance(dtype, pl.Struct):
                 yield _xml_element_struct_field(child, dtype)
             elif child.text and child.text.strip():
-                yield child.text
+                if dtype is pl.Int64:
+                    yield int(child.text)
+                else:
+                    yield child.text
