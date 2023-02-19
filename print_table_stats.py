@@ -17,41 +17,29 @@ df = pl.read_ipc(filename, memory_map=False)
 count = len(df)
 
 
-def true_count(colname: str) -> int:
-    if table[colname].type == pa.bool_():
-        return len(df.filter(pl.col(colname)))
-    else:
-        return 0
+def count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
+    return df.select(expr).transpose(include_header=True, column_names=[column_name])
 
 
-def false_count(colname: str) -> int:
-    if table[colname].type == pa.bool_():
-        return len(df.filter(pl.col(colname).is_not()))
-    else:
-        return 0
-
-
-def null_count(colname: str) -> int:
-    return len(df.filter(pl.col(colname).is_null()))
-
-
-def is_unique(colname: str) -> bool:
-    return df.n_unique(subset=colname) == count
-
+null_count_df = count_columns("null_count", pl.col("*").null_count())
+n_unique_df = count_columns("n_unique", pl.col("*").n_unique())
+true_count_df = count_columns("true_count", pl.col(pl.Boolean).sum())
+false_count_df = count_columns("false_count", pl.col(pl.Boolean).is_not().sum())
 
 schema_df = (
-    pl.DataFrame({"name": table.column_names})
+    (
+        null_count_df.join(n_unique_df, on="column")
+        .join(true_count_df, on="column", how="left")
+        .join(false_count_df, on="column", how="left")
+        .rename({"column": "name"})
+    )
     .with_columns(
         pl.col("name").apply(lambda n: table[n].type).alias("dtype"),
-        pl.col("name").apply(lambda n: table[n].type == pa.bool_()).alias("is_bool"),
+        pl.col("true_count").fill_null(0),
+        pl.col("false_count").fill_null(0),
     )
     .with_columns(
-        pl.col("name").apply(true_count).alias("true_count"),
-        pl.col("name").apply(false_count).alias("false_count"),
-        pl.col("name").apply(null_count).alias("null_count"),
-        pl.col("name").apply(is_unique).alias("is_unique"),
-    )
-    .with_columns(
+        (pl.col("n_unique") == count).alias("is_unique"),
         (pl.col("true_count") / count).alias("true_percent"),
         (pl.col("false_count") / count).alias("false_percent"),
         (pl.col("null_count") / count).alias("null_percent"),
