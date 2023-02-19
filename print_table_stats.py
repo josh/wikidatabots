@@ -21,7 +21,11 @@ count = len(df)
 
 
 def count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
-    return df.select(expr).transpose(include_header=True, column_names=[column_name])
+    df2 = df.select(expr)
+    if df2.is_empty():
+        schema = {"column": pl.Utf8, column_name: pl.UInt32}
+        return pl.DataFrame(schema=schema)
+    return df2.transpose(include_header=True, column_names=[column_name])
 
 
 null_count_df = count_columns("null_count", pl.col("*").null_count())
