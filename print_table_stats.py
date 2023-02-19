@@ -2,6 +2,7 @@ import os
 import sys
 
 import pandas as pd
+import polars as pl
 import pyarrow as pa
 import pyarrow.feather as feather
 
@@ -13,7 +14,7 @@ md_out = open(STEP_SUMMARY, "w")
 filename = sys.argv[1]
 
 table = feather.read_table(filename)
-df = pd.read_feather(filename)
+df = pl.read_ipc(filename, memory_map=False).to_pandas()
 count = len(df)
 
 schema_df = pd.DataFrame({"name": table.column_names}, index=table.column_names)
