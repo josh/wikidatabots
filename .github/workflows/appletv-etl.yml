@@ -74,7 +74,8 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py sitemap.arrow
+          # python print_table_stats.py sitemap.arrow
+          echo "FIXME: Converting unsigned dictionary indices to pandas not yet supported, index type: uint32"
 
       - name: Print diff
         run: |
