@@ -5,10 +5,10 @@ import logging
 import polars as pl
 
 from sparql import sparql_df
-from tmdb_etl import tmdb_exists
+from tmdb_etl import TMDB_TYPE, tmdb_exists
 
 
-def main(tmdb_type: str):
+def main(tmdb_type: TMDB_TYPE):
     rdf_statement = pl.format(
         "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
         'wikidatabots:editSummary "{}" .',

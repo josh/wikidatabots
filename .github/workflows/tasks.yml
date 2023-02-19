@@ -16,51 +16,6 @@ env:
   TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
 jobs:
-  tmdb:
-    runs-on: ubuntu-latest
-    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
-
-    strategy:
-      fail-fast: false
-      matrix:
-        property:
-          - "P4985"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Load cache
-        uses: actions/cache@v3
-        with:
-          path: .cache/
-          key: cache-${{ github.job }}-${{ matrix.property }}-${{ github.run_id }}
-          restore-keys: |
-            cache-${{ github.job }}-${{ matrix.property }}-
-
-      - name: Run script
-        run: |
-          set -o pipefail
-          python "$PROPERTY_ID.py" | tee output.csv
-        env:
-          PROPERTY_ID: ${{ matrix.property }}
-
-      - name: Submit QuickStatements batch
-        env:
-          QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
-        run: |
-          python quickstatements.py --batchname TMDbIDs <output.csv
-
   itunes:
     runs-on: ubuntu-latest
     if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
@@ -211,6 +166,7 @@ jobs:
           - "not_found_tmdb"
           - "P4947"
           - "P4983"
+          - "P4985"
 
     steps:
       - uses: actions/checkout@v3

@@ -2,6 +2,7 @@
 
 import datetime
 import os
+from typing import Literal
 
 import backoff
 import polars as pl
@@ -17,6 +18,8 @@ from polars_utils import (
 
 session = requests.Session()
 
+TMDB_TYPE = Literal["movie", "tv", "person"]
+
 ONE_DAY = datetime.timedelta(days=1)
 
 EXTRACT_IMDB_TITLE_NUMERIC_ID = (
@@ -31,7 +34,7 @@ EXTRACT_IMDB_NAME_NUMERIC_ID = (
     .cast(pl.UInt32)
     .alias("imdb_numeric_id")
 )
-EXTRACT_IMDB_NUMERIC_ID = {
+EXTRACT_IMDB_NUMERIC_ID: dict[TMDB_TYPE, pl.Expr] = {
     "movie": EXTRACT_IMDB_TITLE_NUMERIC_ID,
     "tv": EXTRACT_IMDB_TITLE_NUMERIC_ID,
     "person": EXTRACT_IMDB_NAME_NUMERIC_ID,
@@ -55,7 +58,9 @@ EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
 )
 
 
-def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
+def fetch_tmdb_external_ids(
+    tmdb_ids: pl.LazyFrame, tmdb_type: TMDB_TYPE
+) -> pl.LazyFrame:
     return (
         tmdb_ids.with_columns(
             pl.format(
@@ -86,7 +91,7 @@ def fetch_tmdb_external_ids(tmdb_ids: pl.LazyFrame, tmdb_type: str) -> pl.LazyFr
     )
 
 
-def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
+def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     df = df.cache()
     dates_df = df.select(
         [
@@ -111,9 +116,7 @@ CHANGES_RESPONSE_DTYPE = pl.Struct(
 )
 
 
-def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
-    assert tmdb_type in ["movie", "tv", "person"]
-
+def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     return (
         df.with_columns(
             pl.format(
@@ -148,7 +151,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: str) -> pl.LazyFrame:
     )
 
 
-def tmdb_exists(tmdb_type: str) -> pl.Expr:
+def tmdb_exists(tmdb_type: TMDB_TYPE) -> pl.Expr:
     return (
         pl.format(
             "https://api.themoviedb.org/3/{}/{}?api_key={}",
@@ -173,7 +176,7 @@ FIND_RESPONSE_DTYPE = pl.Struct(
 )
 
 
-def tmdb_find(tmdb_type: str, external_id_type: str) -> pl.Expr:
+def tmdb_find(tmdb_type: TMDB_TYPE, external_id_type: str) -> pl.Expr:
     return (
         pl.format(
             "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
@@ -216,7 +219,7 @@ def _tmdb_outdated_external_ids(
 
 def _insert_tmdb_external_ids(
     df: pl.LazyFrame,
-    tmdb_type: str,
+    tmdb_type: TMDB_TYPE,
     tmdb_ids: pl.LazyFrame,
 ) -> pl.LazyFrame:
     return (
@@ -236,14 +239,14 @@ def _request_text(urls: pl.Series) -> pl.Series:
     )
 
 
-def main_changes(tmdb_type: str) -> None:
+def main_changes(tmdb_type: TMDB_TYPE) -> None:
     update_ipc(
         "latest_changes.arrow",
         lambda df: insert_tmdb_latest_changes(df, tmdb_type),
     )
 
 
-def main_external_ids(tmdb_type: str):
+def main_external_ids(tmdb_type: TMDB_TYPE):
     latest_changes_df = read_ipc("latest_changes.arrow")
     external_ids_df = read_ipc("external_ids.arrow")
 
