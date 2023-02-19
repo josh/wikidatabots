@@ -93,6 +93,12 @@ jobs:
           restore-keys: |
             cache-${{ github.job }}-${{ matrix.property }}-
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
       - name: Run script
         run: |
           set -o pipefail
