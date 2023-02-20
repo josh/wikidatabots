@@ -3,10 +3,7 @@ import sys
 
 import polars as pl
 
-import actions
 from polars_utils import read_ipc, row_differences, unique_row_differences
-
-actions.install_warnings_hook()
 
 STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
 
