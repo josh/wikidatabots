@@ -17,12 +17,7 @@ SELECT ?item ?imdb_id WHERE {
 
 
 def main() -> None:
-    df = find_tmdb_ids_via_imdb_id(
-        tmdb_type="person",
-        sparql_query=QUERY,
-        wd_pid="P4985",
-        wd_plabel="TMDb person ID",
-    )
+    df = find_tmdb_ids_via_imdb_id(tmdb_type="person", sparql_query=QUERY)
 
     for (line,) in df.collect().iter_rows():
         print(line)

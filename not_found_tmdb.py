@@ -4,38 +4,16 @@ import logging
 
 import polars as pl
 
-from sparql import sparql_df
-from tmdb_etl import TMDB_TYPE, tmdb_exists
+from wd_tmdb import find_tmdb_ids_not_found
 
 
-def main(tmdb_type: TMDB_TYPE):
-    rdf_statement = pl.format(
-        "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
-        'wikidatabots:editSummary "{}" .',
-        pl.col("statement"),
-        pl.lit(f"Deprecate removed TMDB {tmdb_type} ID"),
-    )
-
-    changes_df = pl.scan_ipc(f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow")
-
-    query = """
-    SELECT ?statement ?id WHERE {
-      ?statement ps:P0000 ?id.
-      ?statement wikibase:rank ?rank.
-      FILTER(?rank != wikibase:DeprecatedRank)
-      FILTER(xsd:integer(?id))
-    }
-    """
-    props = {"movie": "P4947", "tv": "P4983", "person": "P4985"}
-    query = query.replace("P0000", props[tmdb_type])
-    df = sparql_df(query, dtypes={"statement": pl.Utf8, "id": pl.UInt32})
-
-    df = (
-        df.join(changes_df, on="id", how="left")
-        .filter(pl.col("adult").is_null() & pl.col("has_changes"))
-        .rename({"id": "tmdb_id"})
-        .filter(tmdb_exists(tmdb_type).is_not())
-        .select(rdf_statement)
+def main():
+    df = pl.concat(
+        [
+            find_tmdb_ids_not_found("movie"),
+            find_tmdb_ids_not_found("tv"),
+            find_tmdb_ids_not_found("person"),
+        ]
     )
 
     for (line,) in df.collect().iter_rows():
@@ -44,7 +22,4 @@ def main(tmdb_type: TMDB_TYPE):
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-
-    main("movie")
-    main("tv")
-    main("person")
+    main()

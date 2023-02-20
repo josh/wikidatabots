@@ -5,24 +5,33 @@ from typing import Literal
 import polars as pl
 
 from sparql import sparql_df
-from tmdb_etl import EXTRACT_IMDB_NUMERIC_ID, TMDB_TYPE, tmdb_find
+from tmdb_etl import EXTRACT_IMDB_NUMERIC_ID, TMDB_TYPE, tmdb_exists, tmdb_find
 
 STATEMENT_LIMIT = 100
 TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
+TMDB_TYPE_TO_WD_PID: dict[TMDB_TYPE, TMDB_ID_PID] = {
+    "movie": "P4947",
+    "tv": "P4983",
+    "person": "P4985",
+}
 
-def find_tmdb_ids_via_imdb_id(
-    tmdb_type: TMDB_TYPE,
-    sparql_query: str,
-    wd_pid: TMDB_ID_PID,
-    wd_plabel: str,
-) -> pl.LazyFrame:
+WD_PID_LABEL: dict[TMDB_ID_PID, str] = {
+    "P4947": "TMDb movie ID",
+    "P4983": "TMDb TV series ID",
+    "P4985": "TMDb person ID",
+}
+
+
+def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE, sparql_query: str) -> pl.LazyFrame:
+    wd_pid = TMDB_TYPE_TO_WD_PID[tmdb_type]
+
     rdf_statement = pl.format(
         '<{}> wdt:{} "{}" ; wikidatabots:editSummary "{}" .',
         pl.col("item"),
         pl.lit(wd_pid),
         pl.col("tmdb_id"),
-        pl.lit(f"Add {wd_plabel} claim via associated IMDb ID"),
+        pl.lit(f"Add {WD_PID_LABEL[wd_pid]} claim via associated IMDb ID"),
     ).alias("rdf_statement")
 
     tmdb_df = (
@@ -52,17 +61,18 @@ def find_tmdb_ids_via_imdb_id(
 
 
 def find_tmdb_ids_via_tvdb_id(
-    tmdb_type: Literal["tv"],
-    sparql_query: str,
-    wd_pid: Literal["P4983"],
-    wd_plabel: str,
+    tmdb_type: Literal["tv"], sparql_query: str
 ) -> pl.LazyFrame:
+    wd_pid = TMDB_TYPE_TO_WD_PID[tmdb_type]
+
     rdf_statement = pl.format(
         '<{}> wdt:{} "{}" ; wikidatabots:editSummary "{}" .',
         pl.col("item"),
         pl.lit(wd_pid),
         pl.col("tmdb_id"),
-        pl.lit(f"Add {wd_plabel} claim via associated TheTVDB.com series ID"),
+        pl.lit(
+            f"Add {WD_PID_LABEL[wd_pid]} claim via associated TheTVDB.com series ID"
+        ),
     ).alias("rdf_statement")
 
     tmdb_df = (
@@ -86,4 +96,38 @@ def find_tmdb_ids_via_tvdb_id(
         .drop_nulls()
         .select(rdf_statement)
         .head(STATEMENT_LIMIT)
+    )
+
+
+NOT_DEPRECATED_QUERY = """
+SELECT ?statement ?id WHERE {
+  ?statement ps:P0000 ?id.
+  ?statement wikibase:rank ?rank.
+  FILTER(?rank != wikibase:DeprecatedRank)
+  FILTER(xsd:integer(?id))
+}
+"""
+
+
+def find_tmdb_ids_not_found(
+    tmdb_type: TMDB_TYPE,
+) -> pl.LazyFrame:
+    rdf_statement = pl.format(
+        "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
+        'wikidatabots:editSummary "{}" .',
+        pl.col("statement"),
+        pl.lit(f"Deprecate removed TMDB {tmdb_type} ID"),
+    ).alias("rdf_statement")
+
+    changes_df = pl.scan_ipc(f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow")
+
+    query = NOT_DEPRECATED_QUERY.replace("P0000", TMDB_TYPE_TO_WD_PID[tmdb_type])
+    df = sparql_df(query, dtypes={"statement": pl.Utf8, "id": pl.UInt32})
+
+    return (
+        df.join(changes_df, on="id", how="left")
+        .filter(pl.col("adult").is_null() & pl.col("has_changes"))
+        .rename({"id": "tmdb_id"})
+        .filter(tmdb_exists(tmdb_type).is_not())
+        .select(rdf_statement)
     )

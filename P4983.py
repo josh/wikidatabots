@@ -38,20 +38,8 @@ SELECT ?item ?tvdb_id WHERE {
 
 
 def main() -> None:
-    imdb_df = find_tmdb_ids_via_imdb_id(
-        tmdb_type="tv",
-        sparql_query=IMDB_QUERY,
-        wd_pid="P4983",
-        wd_plabel="TMDb TV series ID",
-    )
-
-    tvdb_df = find_tmdb_ids_via_tvdb_id(
-        tmdb_type="tv",
-        sparql_query=TVDB_QUERY,
-        wd_pid="P4983",
-        wd_plabel="TMDb TV series ID",
-    )
-
+    imdb_df = find_tmdb_ids_via_imdb_id(tmdb_type="tv", sparql_query=IMDB_QUERY)
+    tvdb_df = find_tmdb_ids_via_tvdb_id(tmdb_type="tv", sparql_query=TVDB_QUERY)
     df = pl.concat([imdb_df, tvdb_df])
 
     for (line,) in df.collect().iter_rows():
