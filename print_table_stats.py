@@ -26,25 +26,25 @@ def count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
     return df2.transpose(include_header=True, column_names=[column_name])
 
 
-null_count_df = count_columns("null_count", pl.col("*").null_count())
-n_unique_df = count_columns("n_unique", pl.col("*").n_unique())
-true_count_df = count_columns("true_count", pl.col(pl.Boolean).sum())
-false_count_df = count_columns("false_count", pl.col(pl.Boolean).is_not().sum())
+null_count_df = count_columns("null_count", pl.all().null_count())
+is_unique_df = count_columns("is_unique", pl.all().drop_nulls().is_unique().all())
+true_count_df = count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
+false_count_df = count_columns(
+    "false_count", pl.col(pl.Boolean).drop_nulls().is_not().sum()
+)
 
 schema_df = (
     (
-        null_count_df.join(n_unique_df, on="column")
+        null_count_df.join(is_unique_df, on="column", how="left")
         .join(true_count_df, on="column", how="left")
         .join(false_count_df, on="column", how="left")
-        .rename({"column": "name"})
     )
     .with_columns(
-        pl.col("name").apply(lambda n: table[n].type).alias("dtype"),
+        pl.col("column").apply(lambda n: table[n].type).alias("dtype"),
         pl.col("true_count").fill_null(0),
         pl.col("false_count").fill_null(0),
     )
     .with_columns(
-        (pl.col("n_unique") == count).alias("is_unique"),
         (pl.col("true_count") / count).alias("true_percent"),
         (pl.col("false_count") / count).alias("false_percent"),
         (pl.col("null_count") / count).alias("null_percent"),
@@ -52,7 +52,7 @@ schema_df = (
 )
 
 for row in schema_df.iter_rows(named=True):
-    print(f"{row['name']}: {row['dtype']}", file=txt_out)
+    print(f"{row['column']}: {row['dtype']}", file=txt_out)
     if row["true_count"] > 0 or row["false_count"] > 0:
         print(
             f"|   true: {row['true_count']:,} ({row['true_percent']:.2%})",
@@ -76,7 +76,7 @@ print(f"## {filename}", file=md_out)
 print("|name|dtype|null|true|false|unique|", file=md_out)
 print("|---|---|---|---|---|---|", file=md_out)
 for row in schema_df.iter_rows(named=True):
-    print(f"|{row['name']}|{row['dtype']}", file=md_out, end="|")
+    print(f"|{row['column']}|{row['dtype']}", file=md_out, end="|")
     if row["null_count"] > 0:
         print(
             f"{row['null_count']:,} ({row['null_percent']:.2%})", file=md_out, end="|"
