@@ -39,6 +39,26 @@ def update_ipc(
     os.rename(tmpfile, filename)
 
 
+def assert_not_null(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
+    def assert_not_null_inner(df: pl.DataFrame) -> pl.DataFrame:
+        df2 = df.select(expr.is_not_null().all())
+        for col in df2.columns:
+            assert df2[col].all(), f"Column {col} has null values"
+        return df
+
+    return ldf.map(assert_not_null_inner)
+
+
+def assert_unique(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
+    def assert_unique_inner(df: pl.DataFrame) -> pl.DataFrame:
+        df2 = df.select(expr.drop_nulls().is_unique().all())
+        for col in df2.columns:
+            assert df2[col].all(), f"Column {col} is not unique"
+        return df
+
+    return ldf.map(assert_unique_inner)
+
+
 TIMESTAMP_EXPR = (
     pl.lit(0)
     .map(lambda _: datetime.now(), return_dtype=pl.Datetime)

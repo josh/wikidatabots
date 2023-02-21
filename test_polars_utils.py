@@ -10,6 +10,8 @@ from polars.testing.parametric import column, dataframes
 
 from polars_utils import (
     align_to_index,
+    assert_not_null,
+    assert_unique,
     expr_apply_with_tqdm,
     read_xml,
     request_text,
@@ -19,6 +21,36 @@ from polars_utils import (
     update_ipc,
     xml_to_dtype,
 )
+
+
+def test_assert_not_null():
+    df = pl.DataFrame({"a": [1, 2, 3], "b": [1, None, 2]}).lazy()
+
+    ldf = df.pipe(assert_not_null, pl.col("a"))
+    ldf.collect()
+
+    ldf = df.pipe(assert_not_null, pl.col("b"))
+    with pytest.raises(pl.ComputeError):  # type: ignore
+        ldf.collect()
+
+    ldf = df.pipe(assert_not_null, pl.all())
+    with pytest.raises(pl.ComputeError):  # type: ignore
+        ldf.collect()
+
+
+def test_assert_unique():
+    df = pl.DataFrame({"a": [1, 2, 3], "b": [1, 1, 2]}).lazy()
+
+    ldf = df.pipe(assert_unique, pl.col("a"))
+    ldf.collect()
+
+    ldf = df.pipe(assert_unique, pl.col("b"))
+    with pytest.raises(pl.ComputeError):  # type: ignore
+        ldf.collect()
+
+    ldf = df.pipe(assert_unique, pl.all())
+    with pytest.raises(pl.ComputeError):  # type: ignore
+        ldf.collect()
 
 
 def test_update_ipc():
