@@ -2,8 +2,6 @@ import os
 import sys
 
 import polars as pl
-import pyarrow as pa
-import pyarrow.feather as feather
 
 from polars_utils import read_ipc
 
@@ -14,9 +12,9 @@ md_out = open(STEP_SUMMARY, "w")
 
 filename = sys.argv[1]
 
-table = feather.read_table(filename)
 with pl.StringCache():
     df = read_ipc(filename).collect()
+table = df.to_arrow()
 count = len(df)
 
 
@@ -105,11 +103,11 @@ print(f"total: {count:,}", file=txt_out)
 print("", file=md_out)
 print(f"total: {count:,} rows", file=md_out)
 
-kb = pa.total_allocated_bytes() >> 10
-mb = pa.total_allocated_bytes() >> 20
+mb = df.estimated_size("mb")
 if mb > 2:
-    print(f"  rss: {mb:,}MB", file=txt_out)
-    print(f"rss: {mb:,}MB", file=md_out)
+    print(f"  rss: {mb:,.1f}MB", file=txt_out)
+    print(f"rss: {mb:,.1f}MB", file=md_out)
 else:
-    print(f"  rss: {kb:,}KB", file=txt_out)
-    print(f"rss: {kb:,}KB", file=md_out)
+    kb = df.estimated_size("kb")
+    print(f"  rss: {kb:,.1f}KB", file=txt_out)
+    print(f"rss: {kb:,.1f}KB", file=md_out)
