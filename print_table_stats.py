@@ -1,3 +1,5 @@
+# pyright: strict
+
 import os
 import sys
 
@@ -14,7 +16,7 @@ filename = sys.argv[1]
 
 with pl.StringCache():
     df = read_ipc(filename).collect()
-table = df.to_arrow()
+table = df.to_arrow()  # type: ignore
 count = len(df)
 
 
@@ -40,7 +42,7 @@ schema_df = (
         .join(false_count_df, on="column", how="left")
     )
     .with_columns(
-        pl.col("column").apply(lambda n: table[n].type).alias("dtype"),
+        pl.col("column").apply(lambda n: table[n].type).alias("dtype"),  # type: ignore
         pl.col("true_count").fill_null(0),
         pl.col("false_count").fill_null(0),
     )
