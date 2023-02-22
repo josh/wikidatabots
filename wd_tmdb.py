@@ -1,5 +1,6 @@
 # pyright: strict
 
+import logging
 from typing import Literal
 
 import polars as pl
@@ -22,9 +23,56 @@ WD_PID_LABEL: dict[TMDB_ID_PID, str] = {
     "P4985": "TMDb person ID",
 }
 
+MOVIE_IMDB_QUERY = """
+SELECT ?item ?imdb_id WHERE {
+  ?item wdt:P345 ?imdb_id.
 
-def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE, sparql_query: str) -> pl.LazyFrame:
+  VALUES ?classes {
+    wd:Q11424
+    wd:Q1261214
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?classes.
+
+  OPTIONAL { ?item wdt:P4947 ?tmdb_id. }
+  FILTER(!(BOUND(?tmdb_id)))
+}
+"""
+
+TV_IMDB_QUERY = """
+SELECT ?item ?imdb_id WHERE {
+  ?item wdt:P345 ?imdb_id.
+
+  VALUES ?classes {
+    wd:Q15416
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?classes.
+
+  OPTIONAL { ?item p:P4983 ?tmdb_id. }
+  FILTER(!(BOUND(?tmdb_id)))
+}
+"""
+
+PERSON_IMDB_QUERY = """
+SELECT ?item ?imdb_id WHERE {
+  ?item wdt:P345 ?imdb_id.
+
+  ?item wdt:P31 wd:Q5.
+
+  OPTIONAL { ?item wdt:P4985 ?tmdb_id. }
+  FILTER(!(BOUND(?tmdb_id)))
+}
+"""
+
+IMDB_QUERY: dict[TMDB_ID_PID, str] = {
+    "P4947": MOVIE_IMDB_QUERY,
+    "P4983": TV_IMDB_QUERY,
+    "P4985": PERSON_IMDB_QUERY,
+}
+
+
+def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     wd_pid = TMDB_TYPE_TO_WD_PID[tmdb_type]
+    sparql_query = IMDB_QUERY[wd_pid]
 
     rdf_statement = pl.format(
         '<{}> wdt:{} "{}" ; wikidatabots:editSummary "{}" .',
@@ -56,14 +104,33 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE, sparql_query: str) -> pl.Laz
         .select(["item", "tmdb_id"])
         .drop_nulls()
         .select(rdf_statement)
-        .head(STATEMENT_LIMIT)
     )
 
 
-def find_tmdb_ids_via_tvdb_id(
-    tmdb_type: Literal["tv"], sparql_query: str
-) -> pl.LazyFrame:
+TV_TVDB_QUERY = """
+SELECT ?item ?tvdb_id WHERE {
+  ?item wdt:P4835 ?tvdb_id.
+
+  VALUES ?classes {
+    wd:Q15416
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?classes.
+
+  FILTER(xsd:integer(?tvdb_id))
+
+  OPTIONAL { ?item p:P4983 ?tmdb_id. }
+  FILTER(!(BOUND(?tmdb_id)))
+}
+"""
+
+TVDB_QUERY: dict[TMDB_ID_PID, str] = {
+    "P4983": TV_TVDB_QUERY,
+}
+
+
+def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     wd_pid = TMDB_TYPE_TO_WD_PID[tmdb_type]
+    sparql_query = TVDB_QUERY[wd_pid]
 
     rdf_statement = pl.format(
         '<{}> wdt:{} "{}" ; wikidatabots:editSummary "{}" .',
@@ -95,7 +162,6 @@ def find_tmdb_ids_via_tvdb_id(
         .select(["item", "tmdb_id"])
         .drop_nulls()
         .select(rdf_statement)
-        .head(STATEMENT_LIMIT)
     )
 
 
@@ -131,3 +197,25 @@ def find_tmdb_ids_not_found(
         .filter(tmdb_exists(tmdb_type).is_not())
         .select(rdf_statement)
     )
+
+
+def main() -> None:
+    df = pl.concat(
+        [
+            find_tmdb_ids_via_imdb_id("movie"),
+            find_tmdb_ids_via_imdb_id("tv"),
+            find_tmdb_ids_via_tvdb_id("tv"),
+            find_tmdb_ids_via_imdb_id("person"),
+            find_tmdb_ids_not_found("movie"),
+            find_tmdb_ids_not_found("tv"),
+            find_tmdb_ids_not_found("person"),
+        ]
+    ).head(STATEMENT_LIMIT)
+
+    for (line,) in df.collect().iter_rows():
+        print(line)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    main()

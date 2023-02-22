@@ -164,10 +164,7 @@ jobs:
         script:
           - "not_found_P6398"
           - "not_found_P9586"
-          - "not_found_tmdb"
-          - "P4947"
-          - "P4983"
-          - "P4985"
+          - "wd_tmdb"
 
     steps:
       - uses: actions/checkout@v3
