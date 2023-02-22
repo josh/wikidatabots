@@ -201,7 +201,7 @@ def read_xml(
     tree = ET.fromstring(xml)
     dtype = pl.Struct([pl.Field(k, schema[k]) for k in schema])
     rows = [_xml_element_struct_field(row, dtype) for row in tree.findall(xpath)]
-    return pl.from_dicts(rows, schema_overrides=schema)
+    return pl.from_dicts(rows, schema=schema)
 
 
 XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None

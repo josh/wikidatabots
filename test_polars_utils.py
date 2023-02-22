@@ -159,6 +159,24 @@ def test_read_xml_with_overrides():
     assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
 
 
+def test_read_xml_with_missing():
+    schema: dict[str, pl.PolarsDataType] = {
+        "name": pl.Utf8,
+        "price": pl.UInt32,
+    }
+    df = pl.DataFrame(
+        {
+            "name": ["Liechtenstein", "Singapore", "Panama"],
+            "price": [None, None, None],
+        },
+        schema=schema,
+    )
+    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
+
+    df = pl.DataFrame({"name": [], "price": []}, schema=schema)
+    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema, xpath="./foo"), df)
+
+
 def test_xml_to_dtype():
     dtype = pl.List(
         pl.Struct(
