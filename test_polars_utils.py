@@ -1,5 +1,6 @@
 # pyright: strict
 
+import datetime
 from typing import TypeVar
 
 import polars as pl
@@ -15,6 +16,8 @@ from polars_utils import (
     expr_apply_with_tqdm,
     read_xml,
     request_text,
+    request_urls,
+    response_date,
     row_differences,
     series_apply_with_tqdm,
     unique_row_differences,
@@ -424,7 +427,33 @@ def test_expr_apply_with_tqdm():
     assert_frame_equal(df2, df3)
 
 
-def test_request_text():
+def test_request_urls() -> None:
+    urls = pl.Series(
+        name="urls",
+        values=[
+            "http://httpbin.org/get?foo=1",
+            "http://httpbin.org/get?foo=2",
+            "http://httpbin.org/get?foo=3",
+            None,
+        ],
+    )
+    responses = request_urls(urls)
+    assert responses.dtype == pl.Object
+    assert len(responses) == 4
+
+
+def test_response_date() -> None:
+    urls = pl.Series(
+        name="urls",
+        values=["http://httpbin.org/get"],
+    )
+    responses = request_urls(urls)
+    dates = response_date(responses)
+    assert len(dates) == 1
+    assert isinstance(dates[0], datetime.datetime)
+
+
+def test_request_text() -> None:
     urls = pl.Series(
         name="urls",
         values=[
