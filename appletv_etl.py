@@ -236,7 +236,7 @@ def append_jsonld_changes(
             .otherwise(pl.col("priority"))
             .alias("priority")
         )
-        .sort(by="priority", reverse=True)
+        .sort(by="priority", descending=True)
         .head(limit)
         .select(["loc"])
         .pipe(fetch_jsonld_columns)

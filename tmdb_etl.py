@@ -210,7 +210,7 @@ def _tmdb_outdated_external_ids(
 ) -> pl.LazyFrame:
     return (
         latest_changes_df.join(external_ids_df, on="id", how="left")
-        .sort(pl.col("retrieved_at"), reverse=True)
+        .sort(pl.col("retrieved_at"), descending=True)
         .filter(OUTDATED | NEVER_FETCHED | MISSING_STATUS | DUPLICATE_IMDB_IDS)
         .head(10_000)
         .select(["id"])
