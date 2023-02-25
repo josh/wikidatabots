@@ -36,16 +36,9 @@ jobs:
       - name: Fetch Plex library GUIDs
         shell: python
         run: |
-          import os
+          from plex_etl import main_library
 
-          from plex import plex_library_guids, plex_server
-
-          server = plex_server(
-              name=os.environ["PLEX_SERVER"],
-              token=os.environ["PLEX_TOKEN"],
-          )
-          df = plex_library_guids(server["uri"], server["accessToken"])
-          df.to_feather("plex_library.arrow")
+          main_library()
         env:
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
           PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
@@ -85,14 +78,9 @@ jobs:
       - name: Fetch Plex similar GUIDs
         shell: python
         run: |
-          import pandas as pd
+          from plex_etl import main_similar
 
-          from plex import plex_similar
-
-          df = pd.read_feather("s3://wikidatabots/plex.arrow", columns=["key"])
-          keys_sample = df["key"].sample(n=500)
-
-          keys_sample.pipe(plex_similar, progress=True).to_feather("plex_similar.arrow")
+          main_similar()
         env:
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
 
@@ -131,9 +119,9 @@ jobs:
       - name: Fetch Wikidata Plex GUIDs
         shell: python
         run: |
-          from plex import wikidata_plex_guids
+          from plex_etl import main_wikidata
 
-          wikidata_plex_guids().to_feather("plex_wikidata.arrow")
+         main_wikidata()
 
       - name: Print stats
         run: |
@@ -188,21 +176,9 @@ jobs:
       - name: Merge artifacts
         shell: python
         run: |
-          from glob import glob
+          from plex_etl import main_append_guids
 
-          import pandas as pd
-
-          from pandas_utils import df_append_new
-
-          df = pd.read_feather("plex.arrow")
-
-          for fn in glob("artifacts/**/*.arrow", recursive=True):
-              df = df_append_new(df, pd.read_feather(fn), on="key")
-
-          # TODO: Review this sort
-          df = df.sort_values("key").reset_index(drop=True)
-
-          df.to_feather("plex.arrow")
+          main_append_guids()
 
       - name: Print stats
         run: |
@@ -253,11 +229,9 @@ jobs:
       - name: Backfill missing metadata
         shell: python
         run: |
-          import pandas as pd
+          from plex_etl import main_metadata
 
-          from plex import backfill_missing_metadata
-
-          pd.read_feather("plex.arrow").pipe(backfill_missing_metadata).to_feather("plex.arrow")
+          main_metadata()
         env:
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
 
