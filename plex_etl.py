@@ -140,9 +140,7 @@ def plex_search_guids(query: str) -> pl.LazyFrame:
 
 def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
-    df2 = df.filter(pl.col("type").is_null() | pl.col("retrieved_at").is_null()).pipe(
-        fetch_metadata_guids
-    )
+    df2 = df.filter(pl.col("retrieved_at").is_null()).pipe(fetch_metadata_guids)
     return (
         pl.concat([df, df2])
         .unique(subset="key", keep="last")
