@@ -13,9 +13,8 @@ txt_out = sys.stdout
 md_out = open(STEP_SUMMARY, "w")
 
 with pl.StringCache():
-    # TODO: Use scan_ipc
-    df_a = pl.read_ipc(sys.argv[1], memory_map=False).lazy()
-    df_b = pl.read_ipc(sys.argv[2], memory_map=False).lazy()
+    df_a = pl.scan_ipc(sys.argv[1])
+    df_b = pl.scan_ipc(sys.argv[2])
 
 if len(sys.argv) > 3:
     key = sys.argv[3]
