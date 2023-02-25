@@ -13,131 +13,7 @@ env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  library:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
-      - name: Fetch Plex library GUIDs
-        shell: python
-        run: |
-          from plex_etl import main_library
-
-          main_library()
-        env:
-          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
-          PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py plex_library.arrow
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: library
-          path: |
-            *.arrow
-          retention-days: 7
-
-  similar:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
-      - name: Fetch Plex similar GUIDs
-        shell: python
-        run: |
-          from plex_etl import main_similar
-
-          main_similar()
-        env:
-          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
-          FSSPEC_S3_ANON: true
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py plex_similar.arrow
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: library
-          path: |
-            *.arrow
-          retention-days: 7
-
-  wikidata:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
-      - name: Fetch Wikidata Plex GUIDs
-        shell: python
-        run: |
-          from plex_etl import main_wikidata
-
-          main_wikidata()
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py plex_wikidata.arrow
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: wikidata
-          path: |
-            *.arrow
-          retention-days: 7
-
-  append_guids:
-    needs: [library, similar, wikidata]
+  discover_guids:
     runs-on: ubuntu-latest
     concurrency: plex
     timeout-minutes: 60
@@ -165,21 +41,20 @@ jobs:
         run: |
           echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
-      - uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/plex.arrow" "plex.arrow"
           cp plex.arrow plex.arrow~
 
-      - name: Merge artifacts
+      - name: Run script
         shell: python
         run: |
-          from plex_etl import main_append_guids
+          from plex_etl import main_discover_guids
 
-          main_append_guids()
+          main_discover_guids()
+        env:
+          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
+          PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
 
       - name: Print stats
         run: |
@@ -194,7 +69,7 @@ jobs:
           aws s3 cp "plex.arrow" "s3://wikidatabots/plex.arrow"
 
   metadata:
-    needs: [append_guids]
+    needs: [discover_guids]
     runs-on: ubuntu-latest
     concurrency: plex
     timeout-minutes: 60

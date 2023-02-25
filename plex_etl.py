@@ -266,33 +266,22 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def main_library() -> None:
-    server = plex_server(name=os.environ["PLEX_SERVER"])
-    df = plex_library_guids(server["uri"], server["accessToken"]).collect()
-    df.write_ipc("plex_library.arrow", compression="lz4")
-
-
-def main_wikidata() -> None:
-    df = wikidata_plex_guids().collect()
-    df.write_ipc("plex_wikidata.arrow", compression="lz4")
-
-
-def main_similar(n: int = 500) -> None:
-    df = (
-        pl.scan_ipc("s3://wikidatabots/plex.arrow")
-        .select(["key"])
-        .collect()
-        .sample(n)
-        .lazy()
-        .pipe(plex_similar)
-        .collect()
-    )
-    df.write_ipc("plex_similar.arrow", compression="lz4")
-
-
-def main_append_guids() -> None:
+def main_discover_guids() -> None:
     with pl.StringCache():
-        dfs = [pl.scan_ipc(fn) for fn in glob("artifacts/**/*.arrow", recursive=True)]
+        server = plex_server(name=os.environ["PLEX_SERVER"])
+
+        dfs = [
+            plex_library_guids(server["uri"], server["accessToken"]),
+            wikidata_plex_guids(),
+            (
+                pl.scan_ipc("s3://wikidatabots/plex.arrow")
+                .select(["key"])
+                .collect()
+                .sample(n=500)
+                .lazy()
+                .pipe(plex_similar)
+            ),
+        ]
         df_new = pl.concat(dfs).unique(subset="key")
 
         df = (
