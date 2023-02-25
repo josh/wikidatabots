@@ -1,3 +1,5 @@
+# pyright: strict
+
 import os
 
 import polars as pl
@@ -92,12 +94,21 @@ def test_encode_plex_guids() -> None:
     ).lazy()
     df2 = pl.DataFrame(
         {
+            "type": pl.Series(
+                ["episode", "movie", "season", "show"], dtype=pl.Categorical
+            ),
+            "key": [
+                b"]\x9c\x11\x15N\xef\xaa\x00\x1fcd\xe0",
+                b"]whhoE!\x00\x1e\xaa\\\xac",
+                b"]\x9c\t\xbd<?\x87\x00\x1f6\x13D",
+                b"]\x9c\x08TN\xef\xaa\x00\x1f]\xaaP",
+            ],
             "guid": [
                 "plex://episode/5d9c11154eefaa001f6364e0",
                 "plex://movie/5d7768686f4521001eaa5cac",
                 "plex://season/5d9c09bd3c3f87001f361344",
                 "plex://show/5d9c08544eefaa001f5daa50",
-            ]
+            ],
         }
     ).lazy()
     assert_frame_equal(encode_plex_guids(df1), df2)

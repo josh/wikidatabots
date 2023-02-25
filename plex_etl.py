@@ -1,3 +1,5 @@
+# pyright: strict
+
 import os
 from typing import Any
 
@@ -254,7 +256,7 @@ def decode_plex_guids(guids: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.select(
+    return df.with_columns(
         pl.format(
             "plex://{}/{}",
             pl.col("type"),
