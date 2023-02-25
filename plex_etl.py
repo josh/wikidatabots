@@ -140,18 +140,7 @@ def plex_search_guids(query: str) -> pl.LazyFrame:
 
 
 def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
-    # TODO: Remove select after migration
-    df = df.select(
-        [
-            "key",
-            "type",
-            "success",
-            "retrieved_at",
-            "imdb_numeric_id",
-            "tmdb_id",
-            "tvdb_id",
-        ]
-    ).cache()
+    df = df.cache()
     df2 = df.filter(pl.col("retrieved_at").is_null()).pipe(fetch_metadata_guids)
     return (
         pl.concat([df, df2])
@@ -308,18 +297,6 @@ def main_append_guids() -> None:
             read_ipc("plex.arrow")
             .join(df_new, on="key", how="outer")
             .sort(by=pl.col("key").bin.encode("hex"))
-            # TODO: Remove after migration
-            .select(
-                [
-                    "key",
-                    "type",
-                    "success",
-                    "retrieved_at",
-                    "imdb_numeric_id",
-                    "tmdb_id",
-                    "tvdb_id",
-                ]
-            )
         )
         df.collect().write_ipc("plex.arrow", compression="lz4")
 
