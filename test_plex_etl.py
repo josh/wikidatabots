@@ -12,6 +12,7 @@ from plex_etl import (
     extract_guids,
     fetch_metadata_guids,
     plex_search_guids,
+    pmdb_plex_keys,
     wikidata_plex_guids,
 )
 
@@ -28,6 +29,12 @@ def teardown_module() -> None:
 
 def test_wikidata_plex_guids() -> None:
     ldf = wikidata_plex_guids()
+    assert ldf.schema == {"key": pl.Binary}
+    assert len(ldf.collect()) > 0
+
+
+def test_pmdb_plex_keys() -> None:
+    ldf = pmdb_plex_keys()
     assert ldf.schema == {"key": pl.Binary}
     assert len(ldf.collect()) > 0
 

@@ -1,5 +1,6 @@
 # pyright: strict
 
+import itertools
 import os
 from typing import Any
 
@@ -99,6 +100,28 @@ def wikidata_plex_guids() -> pl.LazyFrame:
         .select(["key"])
         .drop_nulls()
         .unique(subset="key")
+    )
+
+
+def _load_pmdb_plex(_df: pl.DataFrame) -> pl.DataFrame:
+    r = requests.get("https://josh.github.io/pmdb/plex.json")
+    r.raise_for_status()
+    data = r.json()
+    keys = itertools.chain.from_iterable(
+        [
+            data["show"].keys(),
+            data["movie"].keys(),
+        ]
+    )
+    return pl.DataFrame({"key": keys})
+
+
+def pmdb_plex_keys() -> pl.LazyFrame:
+    return (
+        pl.DataFrame()
+        .lazy()
+        .map(_load_pmdb_plex, schema={"key": pl.Utf8})
+        .select(pl.col("key").str.decode("hex").cast(pl.Binary))
     )
 
 
@@ -272,6 +295,7 @@ def main_discover_guids() -> None:
         dfs = [
             plex_library_guids(server["uri"], server["accessToken"]),
             wikidata_plex_guids(),
+            pmdb_plex_keys(),
             (
                 pl.scan_ipc("s3://wikidatabots/plex.arrow")
                 .select(["key"])
