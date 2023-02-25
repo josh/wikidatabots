@@ -292,15 +292,11 @@ def main_similar(n: int = 500) -> None:
 
 def main_append_guids() -> None:
     with pl.StringCache():
-        dfs = [
-            pl.read_ipc(fn, memory_map=False).lazy()
-            for fn in glob("artifacts/**/*.arrow", recursive=True)
-        ]
+        dfs = [pl.scan_ipc(fn) for fn in glob("artifacts/**/*.arrow", recursive=True)]
         df_new = pl.concat(dfs).unique(subset="key")
 
         df = (
-            pl.read_ipc("plex.arrow", memory_map=False)
-            .lazy()
+            pl.scan_ipc("plex.arrow")
             .join(df_new, on="key", how="outer")
             .sort(by=pl.col("key").bin.encode("hex"))
         )

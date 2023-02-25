@@ -241,8 +241,8 @@ def main_changes(tmdb_type: TMDB_TYPE) -> None:
 
 
 def main_external_ids(tmdb_type: TMDB_TYPE):
-    latest_changes_df = pl.read_ipc("latest_changes.arrow", memory_map=False).lazy()
-    external_ids_df = pl.read_ipc("external_ids.arrow", memory_map=False).lazy()
+    latest_changes_df = pl.scan_ipc("latest_changes.arrow")
+    external_ids_df = pl.scan_ipc("external_ids.arrow")
 
     tmdb_ids = _tmdb_outdated_external_ids(
         latest_changes_df=latest_changes_df,
