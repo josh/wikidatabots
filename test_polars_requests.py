@@ -15,7 +15,7 @@ from polars_requests import (
     response_series_date,
 )
 
-_HTTPBIN_SESSION = Session(host="httpbin.org", connect_timeout=0.1, read_timeout=2.0)
+_HTTPBIN_SESSION = Session(host="httpbin.org", connect_timeout=1.0, read_timeout=2.0)
 
 
 def test_request_url_expr() -> None:
