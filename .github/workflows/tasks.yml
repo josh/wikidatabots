@@ -164,6 +164,7 @@ jobs:
         script:
           - "not_found_P6398"
           - "not_found_P9586"
+          - "wd_plex"
           - "wd_tmdb"
 
     steps:
