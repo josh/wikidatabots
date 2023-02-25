@@ -171,16 +171,16 @@ def sparql_csv(query: str) -> BytesIO:
 def sparql_df(
     query: str,
     columns: list[str] | None = None,
-    dtypes: dict[str, pl.PolarsDataType] | None = None,
+    schema: dict[str, pl.PolarsDataType] | None = None,
 ) -> pl.LazyFrame:
-    if columns and not dtypes:
-        dtypes = {column: pl.Utf8 for column in columns}
-    assert dtypes, "missing dtypes"
+    if columns and not schema:
+        schema = {column: pl.Utf8 for column in columns}
+    assert schema, "missing schema"
 
     def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
-        return pl.read_csv(sparql_csv(query), dtypes=dtypes)
+        return pl.read_csv(sparql_csv(query), dtypes=schema)
 
-    return pl.DataFrame().lazy().map(sparql_df_inner, schema=dtypes)
+    return pl.DataFrame().lazy().map(sparql_df_inner, schema=schema)
 
 
 def extract_qid(name: str = "item") -> pl.Expr:

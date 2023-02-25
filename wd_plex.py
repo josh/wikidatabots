@@ -39,7 +39,7 @@ SELECT DISTINCT ?item ?tmdb_id WHERE {
 def _wikidata_tmdb_ids(pid: str) -> pl.LazyFrame:
     return sparql_df(
         _TMDB_QUERY.replace("P0000", pid),
-        dtypes={"item": pl.Utf8, "tmdb_id": pl.UInt32},
+        schema={"item": pl.Utf8, "tmdb_id": pl.UInt32},
     )
 
 

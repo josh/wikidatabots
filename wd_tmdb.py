@@ -151,7 +151,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     )
 
     wd_df = sparql_df(
-        sparql_query, dtypes={"item": pl.Utf8, "tvdb_id": pl.UInt32}
+        sparql_query, schema={"item": pl.Utf8, "tvdb_id": pl.UInt32}
     ).drop_nulls()
 
     return (
@@ -188,7 +188,7 @@ def find_tmdb_ids_not_found(
     changes_df = pl.scan_ipc(f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow")
 
     query = NOT_DEPRECATED_QUERY.replace("P0000", TMDB_TYPE_TO_WD_PID[tmdb_type])
-    df = sparql_df(query, dtypes={"statement": pl.Utf8, "id": pl.UInt32})
+    df = sparql_df(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
 
     return (
         df.join(changes_df, on="id", how="left")
