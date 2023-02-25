@@ -5,7 +5,7 @@ import sys
 
 import polars as pl
 
-from polars_utils import read_ipc, row_differences, unique_row_differences
+from polars_utils import row_differences, unique_row_differences
 
 STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
 
@@ -14,8 +14,8 @@ md_out = open(STEP_SUMMARY, "w")
 
 with pl.StringCache():
     # TODO: Use scan_ipc
-    df_a = read_ipc(sys.argv[1])
-    df_b = read_ipc(sys.argv[2])
+    df_a = pl.read_ipc(sys.argv[1], memory_map=False).lazy()
+    df_b = pl.read_ipc(sys.argv[2], memory_map=False).lazy()
 
 if len(sys.argv) > 3:
     key = sys.argv[3]

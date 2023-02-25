@@ -8,13 +8,7 @@ import backoff
 import polars as pl
 import requests
 
-from polars_utils import (
-    align_to_index,
-    read_ipc,
-    series_apply_with_tqdm,
-    timestamp,
-    update_ipc,
-)
+from polars_utils import align_to_index, series_apply_with_tqdm, timestamp, update_ipc
 
 session = requests.Session()
 
@@ -247,8 +241,8 @@ def main_changes(tmdb_type: TMDB_TYPE) -> None:
 
 
 def main_external_ids(tmdb_type: TMDB_TYPE):
-    latest_changes_df = read_ipc("latest_changes.arrow")
-    external_ids_df = read_ipc("external_ids.arrow")
+    latest_changes_df = pl.read_ipc("latest_changes.arrow", memory_map=False).lazy()
+    external_ids_df = pl.read_ipc("external_ids.arrow", memory_map=False).lazy()
 
     tmdb_ids = _tmdb_outdated_external_ids(
         latest_changes_df=latest_changes_df,

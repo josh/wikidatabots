@@ -10,7 +10,7 @@ from polars_requests import (
     response_series_status_code,
     response_series_text,
 )
-from polars_utils import read_ipc, read_xml, update_ipc
+from polars_utils import read_xml, update_ipc
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
@@ -290,11 +290,15 @@ def main_similar(n: int = 500) -> None:
 
 def main_append_guids() -> None:
     with pl.StringCache():
-        dfs = [read_ipc(fn) for fn in glob("artifacts/**/*.arrow", recursive=True)]
+        dfs = [
+            pl.read_ipc(fn, memory_map=False).lazy()
+            for fn in glob("artifacts/**/*.arrow", recursive=True)
+        ]
         df_new = pl.concat(dfs).unique(subset="key")
 
         df = (
-            read_ipc("plex.arrow")
+            pl.read_ipc("plex.arrow", memory_map=False)
+            .lazy()
             .join(df_new, on="key", how="outer")
             .sort(by=pl.col("key").bin.encode("hex"))
         )

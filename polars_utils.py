@@ -10,11 +10,6 @@ import polars as pl
 from tqdm import tqdm
 
 
-def read_ipc(filename: str) -> pl.LazyFrame:
-    # TODO: Use scan_ipc
-    return pl.read_ipc(filename, memory_map=False).lazy()
-
-
 def update_ipc(
     filename: str,
     transform: Callable[[pl.LazyFrame], pl.LazyFrame],

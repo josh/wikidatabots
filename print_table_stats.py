@@ -5,8 +5,6 @@ import sys
 
 import polars as pl
 
-from polars_utils import read_ipc
-
 STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
 
 txt_out = sys.stdout
@@ -15,7 +13,7 @@ md_out = open(STEP_SUMMARY, "w")
 filename = sys.argv[1]
 
 with pl.StringCache():
-    df = read_ipc(filename).collect()
+    df = pl.read_ipc(filename, memory_map=False)
 table = df.to_arrow()  # type: ignore
 count = len(df)
 
