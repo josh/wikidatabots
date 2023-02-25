@@ -121,7 +121,7 @@ jobs:
         run: |
           from plex_etl import main_wikidata
 
-         main_wikidata()
+          main_wikidata()
 
       - name: Print stats
         run: |
