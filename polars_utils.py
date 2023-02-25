@@ -2,7 +2,6 @@
 
 import os
 import random
-import warnings
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Any, Callable, Iterator
@@ -10,18 +9,10 @@ from typing import Any, Callable, Iterator
 import polars as pl
 from tqdm import tqdm
 
-import actions
-
-actions.install_warnings_hook()
-
 
 def read_ipc(filename: str) -> pl.LazyFrame:
-    try:
-        # TODO: Use scan_ipc
-        return pl.read_ipc(filename, memory_map=False).lazy()
-    except:  # noqa: E722
-        warnings.warn("arrow2 reader failed, falling back to pyarrow")
-        return pl.read_ipc(filename, use_pyarrow=True, memory_map=False).lazy()
+    # TODO: Use scan_ipc
+    return pl.read_ipc(filename, memory_map=False).lazy()
 
 
 def update_ipc(
