@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from polars_requests import Session, request_url_expr_text, session_get
 from polars_utils import read_xml, series_apply_with_tqdm, timestamp, update_ipc
 
-_APPLETV_SESSION = Session(host="tv.apple.com", connect_timeout=0.1, read_timeout=5.0)
+_APPLETV_SESSION = Session(host="tv.apple.com", connect_timeout=0.1, read_timeout=10.0)
 
 Type = Literal["episode", "movie", "show"]
 
