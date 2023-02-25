@@ -186,6 +186,7 @@ jobs:
           python print_table_stats.py plex.arrow
 
       - name: Print diff
+        continue-on-error: true
         run: |
           python print_table_diff.py plex.arrow~ plex.arrow key
 
@@ -241,6 +242,7 @@ jobs:
           python print_table_stats.py plex.arrow
 
       - name: Print diff
+        continue-on-error: true
         run: |
           python print_table_diff.py plex.arrow~ plex.arrow key
 
