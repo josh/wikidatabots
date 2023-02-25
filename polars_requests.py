@@ -117,7 +117,7 @@ def _response_text(response: requests.Response) -> str:
 
 
 def _session_get_without_retry(session: Session, url: str) -> requests.Response:
-    assert url.startswith(
+    assert session.host == "*" or url.startswith(
         f"https://{session.host}"
     ), f"Session host ({session.host}) does not match URL: {url}"
     r = session.session.get(
