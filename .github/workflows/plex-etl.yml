@@ -83,6 +83,7 @@ jobs:
           main_similar()
         env:
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
+          FSSPEC_S3_ANON: true
 
       - name: Print stats
         run: |
