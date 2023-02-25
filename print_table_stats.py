@@ -12,8 +12,9 @@ md_out = open(STEP_SUMMARY, "w")
 
 filename = sys.argv[1]
 
-with pl.StringCache():
-    df = pl.read_ipc(filename, memory_map=False)
+pl.toggle_string_cache(True)
+
+df = pl.read_ipc(filename, memory_map=False)
 table = df.to_arrow()  # type: ignore
 count = len(df)
 

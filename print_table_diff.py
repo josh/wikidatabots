@@ -12,9 +12,10 @@ STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
 txt_out = sys.stdout
 md_out = open(STEP_SUMMARY, "w")
 
-with pl.StringCache():
-    df_a = pl.scan_ipc(sys.argv[1])
-    df_b = pl.scan_ipc(sys.argv[2])
+pl.toggle_string_cache(True)
+
+df_a = pl.scan_ipc(sys.argv[1])
+df_b = pl.scan_ipc(sys.argv[2])
 
 if len(sys.argv) > 3:
     key = sys.argv[3]
