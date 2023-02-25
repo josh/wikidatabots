@@ -150,7 +150,7 @@ def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-_METADATA_XML_SCHEMA = {
+_METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
     "type": pl.Categorical,
     "Guid": pl.List(pl.Struct({"id": pl.Utf8})),
 }
