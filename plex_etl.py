@@ -180,7 +180,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
         return read_xml(
             text,
             schema=_METADATA_XML_SCHEMA,
-            xpath="./Video",
+            xpath="./*",
         ).to_struct("video")
 
     def extract_guid(pattern: str) -> pl.Expr:
