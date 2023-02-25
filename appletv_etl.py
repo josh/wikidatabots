@@ -6,11 +6,12 @@ import zlib
 from typing import Literal
 
 import polars as pl
-import requests
 from bs4 import BeautifulSoup
 
-from polars_requests import request_text
+from polars_requests import Session, request_url_expr_text, session_get
 from polars_utils import read_xml, series_apply_with_tqdm, timestamp, update_ipc
+
+_APPLETV_SESSION = Session(host="tv.apple.com", connect_timeout=0.1, read_timeout=3.0)
 
 Type = Literal["episode", "movie", "show"]
 
@@ -25,8 +26,13 @@ def siteindex(type: Type) -> pl.LazyFrame:
         pl.DataFrame({"type": [type]})
         .lazy()
         .select(
-            pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
-            .map(request_text, return_dtype=pl.Utf8)
+            # TODO: Use Expr.pipe
+            request_url_expr_text(
+                pl.format(
+                    "https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type")
+                ),
+                session=_APPLETV_SESSION,
+            )
             .apply(_parse_siteindex_xml, return_dtype=SITEINDEX_DTYPE)
             .alias("siteindex"),
         )
@@ -45,7 +51,7 @@ SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
     "lastmod": pl.Utf8,
     "changefreq": pl.Categorical,
-    "priority": pl.Float32,
+    "priority": pl.Utf8,
 }
 SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(SITEMAP_SCHEMA))
 
@@ -70,7 +76,10 @@ def sitemap(type: Type) -> pl.LazyFrame:
                 .alias("lastmod")
             ),
             pl.col("sitemap").struct.field("changefreq").alias("changefreq"),
-            pl.col("sitemap").struct.field("priority").alias("priority"),
+            pl.col("sitemap")
+            .struct.field("priority")
+            .cast(pl.Float32)
+            .alias("priority"),
         )
     )
 
@@ -81,10 +90,8 @@ def _parse_sitemap_xml(text: str) -> pl.Series:
 
 # TODO: Can't return binary from map for some reason
 def _request_compressed_text(urls: pl.Series) -> pl.Series:
-    session = requests.Session()
-
     def get_text(url: str) -> str:
-        r = session.get(url, timeout=5)
+        r = session_get(_APPLETV_SESSION, url)
         return zlib.decompress(r.content, 16 + zlib.MAX_WBITS).decode("utf-8")
 
     return series_apply_with_tqdm(
@@ -172,8 +179,8 @@ JSONLD_DIRECTOR_EXPR = (
 def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.with_columns(
-            pl.col("loc")
-            .map(request_text, return_dtype=pl.Utf8)
+            # TODO: Use Expr.pipe
+            request_url_expr_text(pl.col("loc"), session=_APPLETV_SESSION)
             .map(_series_extract_jsonld, return_dtype=pl.Utf8)
             .str.json_extract(dtype=JSONLD_DTYPE)
             .alias("jsonld")
