@@ -9,13 +9,8 @@ import polars as pl
 import requests
 from bs4 import BeautifulSoup
 
-from polars_utils import (
-    read_xml,
-    request_text,
-    series_apply_with_tqdm,
-    timestamp,
-    update_ipc,
-)
+from polars_requests import request_text
+from polars_utils import read_xml, series_apply_with_tqdm, timestamp, update_ipc
 
 Type = Literal["episode", "movie", "show"]
 
