@@ -49,12 +49,6 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
-        env:
-          TYPE: ${{ matrix.type }}
-
-      - name: Download from S3
-        run: |
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow" "external_ids.arrow"
           cp latest_changes.arrow latest_changes.arrow~
           cp external_ids.arrow external_ids.arrow~
