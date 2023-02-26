@@ -11,7 +11,6 @@ from plex_etl import (
     encode_plex_guids,
     extract_guids,
     fetch_metadata_guids,
-    plex_search_guids,
     pmdb_plex_keys,
     wikidata_plex_guids,
 )
@@ -37,13 +36,6 @@ def test_pmdb_plex_keys() -> None:
     ldf = pmdb_plex_keys()
     assert ldf.schema == {"key": pl.Binary}
     assert len(ldf.collect()) > 0
-
-
-@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
-def test_plex_search_guids():
-    df = plex_search_guids(query="Top Gun").collect()
-    assert df.schema == {"type": pl.Categorical, "key": pl.Binary}
-    assert len(df) > 0
 
 
 def test_decode_plex_guids() -> None:

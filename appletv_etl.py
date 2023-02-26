@@ -8,15 +8,16 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from polars_requests import (
-    Session,
-    request_url_expr,
-    request_url_expr_text,
-    response_expr_content,
-)
+from polars_requests import Session, response_text, urllib3_request_urls
 from polars_utils import expr_apply_with_tqdm, read_xml, timestamp, update_ipc
 
-_APPLETV_SESSION = Session(host="tv.apple.com", connect_timeout=0.5, read_timeout=10.0)
+_APPLETV_SESSION = Session(
+    connect_timeout=0.5,
+    read_timeout=10.0,
+    retry_statuses={502},
+    retry_count=3,
+    retry_backoff_factor=1.0,
+)
 
 Type = Literal["episode", "movie", "show"]
 
@@ -31,7 +32,8 @@ def siteindex(type: Type) -> pl.LazyFrame:
         pl.LazyFrame({"type": [type]})
         .select(
             pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
-            .pipe(request_url_expr_text, session=_APPLETV_SESSION)
+            .pipe(urllib3_request_urls, session=_APPLETV_SESSION)
+            .pipe(response_text)
             .apply(_parse_siteindex_xml, return_dtype=SITEINDEX_DTYPE)
             .alias("siteindex"),
         )
@@ -60,8 +62,8 @@ def sitemap(type: Type) -> pl.LazyFrame:
         siteindex(type)
         .select(
             pl.col("loc")
-            .pipe(request_url_expr, session=_APPLETV_SESSION)
-            .pipe(response_expr_content)
+            .pipe(urllib3_request_urls, session=_APPLETV_SESSION)
+            .struct.field("data")
             .pipe(_zlib_decompress_expr)
             .apply(_parse_sitemap_xml, return_dtype=SITEMAP_DTYPE)
             .alias("sitemap")
@@ -183,7 +185,8 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.with_columns(
             pl.col("loc")
-            .pipe(request_url_expr_text, session=_APPLETV_SESSION)
+            .pipe(urllib3_request_urls, session=_APPLETV_SESSION)
+            .pipe(response_text)
             .pipe(_extract_jsonld_expr)
             .str.json_extract(dtype=JSONLD_DTYPE)
             .alias("jsonld")

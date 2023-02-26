@@ -5,18 +5,24 @@ from typing import Any
 
 import polars as pl
 import requests
+import json
 
 from polars_requests import (
-    request_url_ldf,
-    response_expr_date,
-    response_expr_status_code,
-    response_expr_text,
+    Session,
+    response_date,
+    response_text,
+    urllib3_request_urls,
 )
-from polars_utils import expr_apply_with_tqdm, read_xml, update_ipc
+from polars_utils import read_xml, update_ipc
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
-_SESSION = requests.Session()
+
+_PLEX_SESSION = Session(
+    headers={"X-Plex-Token": os.environ["PLEX_TOKEN"]},
+    ok_statuses={200, 404},
+)
+_GITHUB_IO_SESSION = Session()
 
 _PLEX_DEVICE_SCHEMA: dict[str, pl.PolarsDataType] = {
     "name": pl.Utf8,
@@ -53,34 +59,23 @@ def plex_server(name: str) -> dict[str, Any]:
 
 
 def plex_library_guids(baseuri: str, server_token: str) -> pl.LazyFrame:
-    session = requests.Session()
-    session.headers.update({"X-Plex-Token": server_token})
+    plex_server_session = Session(headers={"X-Plex-Token": server_token})
 
-    def _request(url: str) -> pl.Series:
-        r = session.get(url)
-        r.raise_for_status()
-        return read_xml(r.text, schema={"guid": pl.Utf8}).to_struct("video")
+    def _parse_xml(text: str) -> pl.Series:
+        return read_xml(text, schema={"guid": pl.Utf8}).to_struct("item")
 
     return (
-        pl.LazyFrame(
-            {
-                "url": [
-                    f"{baseuri}/library/sections/1/all",
-                    f"{baseuri}/library/sections/2/all",
-                ]
-            }
-        )
+        pl.LazyFrame({"section": [1, 2]})
         .select(
-            pl.col("url")
-            .apply(
-                _request,
-                return_dtype=pl.List(pl.Struct({"guid": pl.Utf8})),
-            )
-            .alias("video")
+            pl.format("{}/library/sections/{}/all", pl.lit(baseuri), pl.col("section"))
+            .pipe(urllib3_request_urls, session=plex_server_session)
+            .pipe(response_text)
+            .apply(_parse_xml, return_dtype=pl.List(pl.Struct({"guid": pl.Utf8})))
+            .alias("item")
         )
-        .explode("video")
+        .explode("item")
         .select(
-            pl.col("video").struct.field("guid").alias("guid"),
+            pl.col("item").struct.field("guid").alias("guid"),
         )
         .pipe(decode_plex_guids)
         .select(["key"])
@@ -103,11 +98,12 @@ def wikidata_plex_guids() -> pl.LazyFrame:
 
 
 def _extract_pmdb_plex(df: pl.DataFrame) -> pl.DataFrame:
-    r = df[0, 0]
-    assert isinstance(r, requests.Response)
+    text = df[0, 0]
+    assert isinstance(text, str)
+
+    data = json.loads(text)
 
     def keys():
-        data = r.json()
         yield from data["show"].keys()
         yield from data["movie"].keys()
 
@@ -116,23 +112,15 @@ def _extract_pmdb_plex(df: pl.DataFrame) -> pl.DataFrame:
 
 def pmdb_plex_keys() -> pl.LazyFrame:
     return (
-        request_url_ldf("https://josh.github.io/pmdb/plex.json")
+        pl.LazyFrame({"url": ["https://josh.github.io/pmdb/plex.json"]})
+        .select(
+            pl.col("url")
+            .pipe(urllib3_request_urls, session=_GITHUB_IO_SESSION)
+            .pipe(response_text)
+        )
         .map(_extract_pmdb_plex, schema={"key": pl.Utf8})
         .select(pl.col("key").str.decode("hex").cast(pl.Binary))
     )
-
-
-def _plex_search(query: str) -> requests.Response:
-    url = "https://metadata.provider.plex.tv/library/search"
-    params = {
-        "query": query,
-        "limit": "100",
-        "searchTypes": "movie,tv",
-        "includeMetadata": "1",
-    }
-    headers = {"Accept": "application/json", "X-Plex-Token": os.environ["PLEX_TOKEN"]}
-    r = _SESSION.get(url, headers=headers, params=params)
-    return r
 
 
 def plex_similar(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -143,19 +131,6 @@ def plex_similar(df: pl.LazyFrame) -> pl.LazyFrame:
         .select(["key"])
         .drop_nulls()
         .unique(subset="key")
-    )
-
-
-def plex_search_guids(query: str) -> pl.LazyFrame:
-    return (
-        pl.LazyFrame({"query": [query]})
-        .select(
-            pl.col("query")
-            .apply(_plex_search, return_dtype=pl.Object)
-            .pipe(response_expr_text)
-            .alias("text")
-        )
-        .pipe(extract_guids)
     )
 
 
@@ -177,24 +152,19 @@ _METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
 
 def fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.with_columns(
-        pl.col("key")
-        .bin.encode("hex")
-        .pipe(
-            expr_apply_with_tqdm,
-            _request_metadata,
-            return_dtype=pl.Object,
-            desc="Fetching URLs",
-        )
-        .alias("response"),
+        pl.format(
+            "https://metadata.provider.plex.tv/library/metadata/{}",
+            pl.col("key").bin.encode("hex"),
+        ).pipe(urllib3_request_urls, session=_PLEX_SESSION),
     ).with_columns(
-        pl.col("response").pipe(response_expr_status_code).alias("status_code"),
+        pl.col("response").struct.field("status").alias("status_code"),
         (
             pl.col("response")
-            .pipe(response_expr_date)
+            .pipe(response_date)
             .cast(pl.Datetime(time_unit="ns"))
             .alias("retrieved_at")
         ),
-        pl.col("response").pipe(response_expr_text).alias("response_text"),
+        pl.col("response").pipe(response_text).alias("response_text"),
     )
 
 
@@ -205,20 +175,6 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             schema=_METADATA_XML_SCHEMA,
             xpath="./*",
         ).to_struct("video")
-
-    def extract_guid(pattern: str) -> pl.Expr:
-        return (
-            pl.col("video")
-            .struct.field("Guid")
-            .arr.eval(
-                pl.element()
-                .struct.field("id")
-                .str.extract(pattern, 1)
-                .cast(pl.UInt32)
-                .drop_nulls(),
-            )
-            .arr.first()
-        )
 
     return (
         df.pipe(fetch_metadata_text)
@@ -238,18 +194,26 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("video").struct.field("type").alias("type"),
             (pl.col("status_code") == 200).alias("success"),
             pl.col("retrieved_at"),
-            extract_guid(r"imdb://(?:tt|nm)(\d+)").alias("imdb_numeric_id"),
-            extract_guid(r"tmdb://(\d+)").alias("tmdb_id"),
-            extract_guid(r"tvdb://(\d+)").alias("tvdb_id"),
+            _extract_guid(r"imdb://(?:tt|nm)(\d+)").alias("imdb_numeric_id"),
+            _extract_guid(r"tmdb://(\d+)").alias("tmdb_id"),
+            _extract_guid(r"tvdb://(\d+)").alias("tvdb_id"),
         )
     )
 
 
-def _request_metadata(key: str) -> requests.Response:
-    url = f"https://metadata.provider.plex.tv/library/metadata/{key}"
-    headers = {"X-Plex-Token": os.environ["PLEX_TOKEN"]}
-    r = _SESSION.get(url, headers=headers)
-    return r
+def _extract_guid(pattern: str) -> pl.Expr:
+    return (
+        pl.col("video")
+        .struct.field("Guid")
+        .arr.eval(
+            pl.element()
+            .struct.field("id")
+            .str.extract(pattern, 1)
+            .cast(pl.UInt32)
+            .drop_nulls(),
+        )
+        .arr.first()
+    )
 
 
 def extract_guids(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -288,34 +252,25 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
+    server = plex_server(name=os.environ["PLEX_SERVER"])
+
+    dfs = [
+        plex_library_guids(server["uri"], server["accessToken"]),
+        wikidata_plex_guids(),
+        pmdb_plex_keys(),
+        (plex_df.select(["key"]).collect().sample(n=500).lazy().pipe(plex_similar)),
+    ]
+    df_new = pl.concat(dfs).unique(subset="key")
+
+    return plex_df.join(df_new, on="key", how="outer").sort(
+        by=pl.col("key").bin.encode("hex")
+    )
+
+
 def main_discover_guids() -> None:
     with pl.StringCache():
-        server = plex_server(name=os.environ["PLEX_SERVER"])
-
-        dfs = [
-            plex_library_guids(server["uri"], server["accessToken"]),
-            wikidata_plex_guids(),
-            pmdb_plex_keys(),
-            (
-                pl.scan_ipc(
-                    "s3://wikidatabots/plex.arrow",
-                    storage_options={"anon": True},
-                )
-                .select(["key"])
-                .collect()
-                .sample(n=500)
-                .lazy()
-                .pipe(plex_similar)
-            ),
-        ]
-        df_new = pl.concat(dfs).unique(subset="key")
-
-        df = (
-            pl.scan_ipc("plex.arrow")
-            .join(df_new, on="key", how="outer")
-            .sort(by=pl.col("key").bin.encode("hex"))
-        )
-        df.collect().write_ipc("plex.arrow", compression="lz4")
+        update_ipc("plex.arrow", _discover_guids)
 
 
 def main_metadata() -> None:

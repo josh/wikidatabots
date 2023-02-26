@@ -1,142 +1,165 @@
-# pyright: strict
+# pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
 
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Iterator, Type
 
-import backoff
 import polars as pl
-import requests
+import urllib3
 from tqdm import tqdm
+from typing import TypedDict
+from urllib3.exceptions import ResponseError
+
+
+class HTTPResponseHeader(TypedDict):
+    name: str
+    value: str
+
+
+class HTTPResponse(TypedDict):
+    status: int
+    headers: list[HTTPResponseHeader]
+    data: bytes
+
+
+HTTP_RESPONSE_HEADER_DTYPE = pl.Struct(
+    [pl.Field("name", pl.Utf8), pl.Field("value", pl.Utf8)]
+)
+
+HTTP_RESPONSE_DTYPE = pl.Struct(
+    [
+        pl.Field("status", pl.UInt16),
+        pl.Field("headers", pl.List(HTTP_RESPONSE_HEADER_DTYPE)),
+        pl.Field("data", pl.Binary),
+    ]
+)
 
 
 @dataclass
 class Session:
-    host: str = "*"
-    session: requests.Session = field(default_factory=requests.Session)
+    num_pools: int = 10
+    maxsize: int = 1
+    block: bool = True
+
+    fields: dict[str, str] = field(default_factory=dict)
     headers: dict[str, str] = field(default_factory=dict)
-    params: dict[str, str] = field(default_factory=dict)
 
     connect_timeout: float = 1.0
     read_timeout: float = 10.0
 
-    ok_status_codes: set[int] = field(default_factory=set)
-    retry_exceptions: list[Type[Exception]] = field(default_factory=list)
-    retry_max_tries: int = 0
-    retry_max_time: float = 3600.0
+    ok_statuses: set[int] = field(default_factory=lambda: {200})
+    retry_statuses: set[int] = field(default_factory=lambda: {413, 429, 503})
+
+    retry_count: int = 0
+    retry_allowed_methods: list[str] = field(default_factory=lambda: ["HEAD", "GET"])
+    retry_backoff_factor: float = 0.0
+    retry_raise_on_redirect: bool = True
+    retry_raise_on_status: bool = True
+    retry_respect_retry_after_header: bool = True
+
+    def __post_init__(self) -> None:
+        timeout = urllib3.Timeout(
+            connect=self.connect_timeout,
+            read=self.read_timeout,
+        )
+
+        retries = urllib3.Retry(
+            total=self.retry_count,
+            allowed_methods=self.retry_allowed_methods,
+            status_forcelist=self.retry_statuses,
+            backoff_factor=self.retry_backoff_factor,
+            raise_on_redirect=self.retry_raise_on_redirect,
+            raise_on_status=self.retry_raise_on_status,
+            respect_retry_after_header=self.retry_respect_retry_after_header,
+        )
+
+        self._poolmanager = urllib3.PoolManager(
+            num_pools=self.num_pools,
+            timeout=timeout,
+            maxsize=self.maxsize,
+            block=self.block,
+            headers=self.headers,
+            retries=retries,
+        )
+
+    def poolmanager(self) -> urllib3.PoolManager:
+        return self._poolmanager
 
 
-def request_url_expr(urls: pl.Expr, session: Session = Session()) -> pl.Expr:
+def urllib3_request_urls(urls: pl.Expr, session: Session) -> pl.Expr:
     return urls.map(
-        partial(_request_url_series, session=session), return_dtype=pl.Object
-    )
+        partial(_urllib3_request_urls_series, session=session),
+        return_dtype=HTTP_RESPONSE_DTYPE,
+    ).alias("response")
 
 
-# TODO: Deprecate this function
-def request_url_expr_text(urls: pl.Expr, session: Session = Session()) -> pl.Expr:
-    return urls.pipe(request_url_expr, session=session).pipe(response_expr_text)
-
-
-def request_url_ldf(url: str, session: Session = Session()) -> pl.LazyFrame:
-    return pl.LazyFrame({"url": [url]}).map(
-        partial(_request_urls_df, session=session), schema={"response": pl.Object}
-    )
-
-
-def response_expr_content(responses: pl.Expr) -> pl.Expr:
-    return responses.map(_response_series_content, return_dtype=pl.Binary)
-
-
-def response_expr_date(responses: pl.Expr) -> pl.Expr:
-    return responses.map(
-        _response_series_date, return_dtype=pl.Datetime(time_unit="ms")
-    )
-
-
-def response_expr_status_code(responses: pl.Expr) -> pl.Expr:
-    return responses.map(_response_series_status_code, return_dtype=pl.UInt16)
-
-
-def response_expr_text(responses: pl.Expr) -> pl.Expr:
-    return responses.map(_response_series_text, return_dtype=pl.Utf8)
-
-
-def _request_urls_df(df: pl.DataFrame, session: Session) -> pl.DataFrame:
-    return pl.DataFrame({"response": _request_url_series(df["url"], session=session)})
-
-
-def _request_url_series(urls: pl.Series, session: Session) -> pl.Series:
-    def values() -> Iterator[requests.Response | None]:
-        for url in tqdm(urls, desc="Fetching URLs", unit="url"):
+def _urllib3_request_urls_series(urls: pl.Series, session: Session) -> pl.Series:
+    def values():
+        for url in tqdm(urls, desc="Fetching URLs", unit="row"):
             if url:
-                yield _session_get(session, url)
+                yield _urllib3_request(session=session, url=url)
             else:
                 yield None
 
-    assert urls.dtype == pl.Utf8
-    return pl.Series(name="response", values=values(), dtype=pl.Object)
+    return pl.Series("response", values(), dtype=HTTP_RESPONSE_DTYPE)
 
 
-def _response_series_content(responses: pl.Series) -> pl.Series:
-    assert responses.dtype == pl.Object
-    return responses.apply(_response_content, return_dtype=pl.Binary)
+def _urllib3_request(
+    session: Session,
+    url: str,
+    fields: dict[str, str] = {},
+    headers: dict[str, str] = {},
+) -> HTTPResponse:
+    http = session.poolmanager()
 
+    fields = dict(session.fields, **fields)
+    headers = dict(session.headers, **headers)
 
-def _response_series_date(responses: pl.Series) -> pl.Series:
-    assert responses.dtype == pl.Object
-    return responses.apply(_response_headers_date, return_dtype=pl.Utf8).str.strptime(
-        pl.Datetime(time_unit="ms"), "%a, %d %b %Y %H:%M:%S %Z", strict=True
-    )
-
-
-def _response_series_status_code(responses: pl.Series) -> pl.Series:
-    assert responses.dtype == pl.Object
-    return responses.apply(_response_status_code, return_dtype=pl.UInt16)
-
-
-def _response_series_text(responses: pl.Series) -> pl.Series:
-    assert responses.dtype == pl.Object
-    return responses.apply(_response_text, return_dtype=pl.Utf8)
-
-
-def _response_content(response: requests.Response) -> bytes:
-    return response.content
-
-
-def _response_headers_date(response: requests.Response) -> str | None:
-    return response.headers.get("Date")
-
-
-def _response_status_code(response: requests.Response) -> int:
-    return response.status_code
-
-
-def _response_text(response: requests.Response) -> str:
-    return response.text
-
-
-def _session_get(session: Session, url: str) -> requests.Response:
-    if session.retry_exceptions:
-        return backoff.on_exception(
-            wait_gen=backoff.expo,
-            exception=session.retry_exceptions,
-            max_tries=session.retry_max_tries,
-            max_time=session.retry_max_time,
-        )(_session_get_without_retry)(session, url)
-    else:
-        return _session_get_without_retry(session, url)
-
-
-def _session_get_without_retry(session: Session, url: str) -> requests.Response:
-    assert session.host == "*" or url.startswith(
-        f"https://{session.host}"
-    ), f"Session host ({session.host}) does not match URL: {url}"
-    r = session.session.get(
+    response: urllib3.HTTPResponse = http.request(
+        method="GET",
         url=url,
-        params=session.params,
-        headers=session.headers,
-        timeout=(session.connect_timeout, session.read_timeout),
+        fields=fields,
+        headers=headers,
     )
-    if r.status_code not in session.ok_status_codes:
-        r.raise_for_status()
-    return r
+
+    if response.status not in session.ok_statuses:
+        raise ResponseError(f"unretryable {response.status} error response")
+
+    resp_headers: list[HTTPResponseHeader] = []
+    for name, value in response.headers.items():
+        resp_headers.append({"name": name, "value": value})
+
+    return {"status": response.status, "headers": resp_headers, "data": response.data}
+
+
+def response_ok(response: pl.Expr) -> pl.Expr:
+    return (
+        (response.struct.field("status") >= 200)
+        & (response.struct.field("status") < 300)
+    ).alias("ok")
+
+
+def response_header_value(response: pl.Expr, name: str) -> pl.Expr:
+    return (
+        response.struct.field("headers")
+        .arr.eval(
+            pl.element()
+            .where(pl.element().struct.field("name") == name)
+            .struct.field("value")
+        )
+        .arr.first()
+        .alias(name)
+    )
+
+
+def response_date(response: pl.Expr) -> pl.Expr:
+    return (
+        response.pipe(response_header_value, name="Date")
+        .str.strptime(
+            pl.Datetime(time_unit="ms"), "%a, %d %b %Y %H:%M:%S %Z", strict=True
+        )
+        .alias("response_date")
+    )
+
+
+def response_text(response: pl.Expr) -> pl.Expr:
+    return response.struct.field("data").cast(pl.Utf8).alias("response_text")
