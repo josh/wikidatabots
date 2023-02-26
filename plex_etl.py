@@ -62,7 +62,7 @@ def plex_library_guids(baseuri: str, server_token: str) -> pl.LazyFrame:
         return read_xml(r.text, schema={"guid": pl.Utf8}).to_struct("video")
 
     return (
-        pl.DataFrame(
+        pl.LazyFrame(
             {
                 "url": [
                     f"{baseuri}/library/sections/1/all",
@@ -70,7 +70,6 @@ def plex_library_guids(baseuri: str, server_token: str) -> pl.LazyFrame:
                 ]
             }
         )
-        .lazy()
         .select(
             pl.col("url")
             .apply(
@@ -149,8 +148,7 @@ def plex_similar(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def plex_search_guids(query: str) -> pl.LazyFrame:
     return (
-        pl.DataFrame({"query": [query]})
-        .lazy()
+        pl.LazyFrame({"query": [query]})
         .select(
             pl.col("query")
             .apply(_plex_search, return_dtype=pl.Object)

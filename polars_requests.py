@@ -39,10 +39,8 @@ def request_url_expr_text(urls: pl.Expr, session: Session = Session()) -> pl.Exp
 
 
 def request_url_ldf(url: str, session: Session = Session()) -> pl.LazyFrame:
-    return (
-        pl.DataFrame({"url": [url]})  # TODO: Use pl.LazyFrame()
-        .lazy()
-        .map(partial(request_urls_df, session=session), schema={"response": pl.Object})
+    return pl.LazyFrame({"url": [url]}).map(
+        partial(request_urls_df, session=session), schema={"response": pl.Object}
     )
 
 

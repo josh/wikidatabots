@@ -46,7 +46,7 @@ def test_cleaned_sitemap():
 
 def test_fetch_jsonld_columns() -> None:
     df = (
-        pl.DataFrame(
+        pl.LazyFrame(
             {
                 "loc": [
                     "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
@@ -55,12 +55,11 @@ def test_fetch_jsonld_columns() -> None:
                 ]
             }
         )
-        .lazy()
         .pipe(fetch_jsonld_columns)
         .drop(columns=["retrieved_at"])
     )
 
-    df2 = pl.DataFrame(
+    df2 = pl.LazyFrame(
         {
             "loc": [
                 "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
@@ -74,13 +73,13 @@ def test_fetch_jsonld_columns() -> None:
             ),
             "director": [None, "Siân Heder", None],
         },
-    ).lazy()
+    )
 
     assert_frame_equal(df, df2)
 
 
 def test_append_jsonld_changes():
-    sitemap_df = pl.DataFrame(
+    sitemap_df = pl.LazyFrame(
         {
             "loc": [
                 "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
@@ -90,8 +89,8 @@ def test_append_jsonld_changes():
             "country": ["us", "us", "us"],
             "priority": [0.8, 0.5, 0.1],
         }
-    ).lazy()
-    jsonld_df = pl.DataFrame(
+    )
+    jsonld_df = pl.LazyFrame(
         {
             "loc": ["https://tv.apple.com/us/movie/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir"],
             "jsonld_success": [True],
@@ -102,10 +101,10 @@ def test_append_jsonld_changes():
                 [datetime(2023, 1, 1)], dtype=pl.Datetime(time_unit="ns")
             ),
         }
-    ).lazy()
+    )
 
     df = append_jsonld_changes(sitemap_df, jsonld_df, limit=3).drop("retrieved_at")
-    df2 = pl.DataFrame(
+    df2 = pl.LazyFrame(
         {
             "loc": [
                 "https://tv.apple.com/us/movie/umc.cmc.1111111111111111111111111",
@@ -119,5 +118,5 @@ def test_append_jsonld_changes():
             ),
             "director": [None, "Siân Heder", None],
         }
-    ).lazy()
+    )
     assert_frame_equal(df, df2)

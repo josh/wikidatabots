@@ -23,8 +23,7 @@ SITEINDEX_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(SITEINDEX_SCHEMA))
 
 def siteindex(type: Type) -> pl.LazyFrame:
     return (
-        pl.DataFrame({"type": [type]})
-        .lazy()
+        pl.LazyFrame({"type": [type]})
         .select(
             # TODO: Use Expr.pipe
             request_url_expr_text(

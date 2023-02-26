@@ -23,7 +23,7 @@ from polars_utils import (
 
 
 def test_assert_not_null():
-    df = pl.DataFrame({"a": [1, 2, 3], "b": [1, None, 2]}).lazy()
+    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, None, 2]})
 
     ldf = df.pipe(assert_not_null, pl.col("a"))
     ldf.collect()
@@ -38,7 +38,7 @@ def test_assert_not_null():
 
 
 def test_assert_unique():
-    df = pl.DataFrame({"a": [1, 2, 3], "b": [1, 1, 2]}).lazy()
+    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 1, 2]})
 
     ldf = df.pipe(assert_unique, pl.col("a"))
     ldf.collect()
@@ -210,44 +210,44 @@ def test_align_to_index():
     df1 = pl.DataFrame([], schema={"id": pl.Int64}).lazy()
     assert_frame_equal(align_to_index(df1, name="id"), df1)
 
-    df1 = pl.DataFrame(
+    df1 = pl.LazyFrame(
         {
             "id": pl.Series([1, 2, 5], dtype=pl.Int8),
             "value": [1, 2, 5],
         }
-    ).lazy()
-    df2 = pl.DataFrame(
+    )
+    df2 = pl.LazyFrame(
         {
             "id": pl.Series([0, 1, 2, 3, 4, 5], dtype=pl.Int8),
             "value": [None, 1, 2, None, None, 5],
         }
-    ).lazy()
+    )
     assert_frame_equal(align_to_index(df1, name="id"), df2)
 
-    df1 = pl.DataFrame(
+    df1 = pl.LazyFrame(
         {
             "id": pl.Series([255], dtype=pl.UInt8),
             "value": [42],
         }
-    ).lazy()
+    )
     df2 = align_to_index(df1, name="id").collect()
     assert df2.schema == {"id": pl.UInt8, "value": pl.Int64}
     assert df2.height == 256
 
-    # df = pl.DataFrame(
+    # df = pl.LazyFrame(
     #     {
     #         "id": [-1, 2, 5],
     #         "value": [-1, 2, 5],
     #     }
-    # ).lazy()
+    # )
     # align_to_index(df, name="id").collect()
 
-    df = pl.DataFrame(
+    df = pl.LazyFrame(
         {
             "id": ["a", "b", "c"],
             "value": [1, 2, 5],
         }
-    ).lazy()
+    )
     with pytest.raises(AssertionError):
         align_to_index(df, name="id").collect()
 
@@ -269,63 +269,55 @@ def test_align_to_index_properties(df: pl.DataFrame):
 
 
 def test_align_to_index_evaluates_df_once():
-    ldf1 = (
-        pl.DataFrame(
-            {
-                "id": pl.Series([1, 2, 5], dtype=pl.Int8),
-                "value": [1, 2, 5],
-            }
-        )
-        .lazy()
-        .map(assert_called_once())
-    )
+    ldf1 = pl.LazyFrame(
+        {
+            "id": pl.Series([1, 2, 5], dtype=pl.Int8),
+            "value": [1, 2, 5],
+        }
+    ).map(assert_called_once())
     align_to_index(ldf1, name="id").collect()
 
-    ldf2 = (
-        pl.DataFrame(
-            {
-                "id": pl.Series([1, 2, 5], dtype=pl.Int8),
-                "value": [1, 2, 5],
-            }
-        )
-        .lazy()
-        .select(
-            [
-                pl.col("id").map(assert_called_once(), return_dtype=pl.Int8),
-                pl.col("value").map(assert_called_once(), return_dtype=pl.Int64),
-            ]
-        )
+    ldf2 = pl.LazyFrame(
+        {
+            "id": pl.Series([1, 2, 5], dtype=pl.Int8),
+            "value": [1, 2, 5],
+        }
+    ).select(
+        [
+            pl.col("id").map(assert_called_once(), return_dtype=pl.Int8),
+            pl.col("value").map(assert_called_once(), return_dtype=pl.Int64),
+        ]
     )
     align_to_index(ldf2, name="id").collect()
 
 
 def test_row_differences():
-    df1 = pl.DataFrame({"a": [1, 2, 3]}).lazy().map(assert_called_once())
-    df2 = pl.DataFrame({"a": [2, 3, 4]}).lazy().map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1, 2, 3]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2, 3, 4]}).map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 1
     assert removed == 1
 
-    df1 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
-    df2 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy().map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1, 2, 3, 4]}).map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 3
     assert removed == 0
 
-    df1 = pl.DataFrame({"a": [1, 2, 3, 4]}).lazy().map(assert_called_once())
-    df2 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1, 2, 3, 4]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 0
     assert removed == 3
 
-    df1 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
-    df2 = pl.DataFrame({"a": [1, 1]}).lazy().map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1, 1]}).map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 1
     assert removed == 0
 
-    df1 = pl.DataFrame({"a": [1, 1]}).lazy().map(assert_called_once())
-    df2 = pl.DataFrame({"a": [1]}).lazy().map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1, 1]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
     added, removed = row_differences(df1, df2)
     assert added == 0
     assert removed == 1
@@ -349,30 +341,22 @@ def test_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> Non
 
 
 def test_unique_row_differences():
-    df1 = (
-        pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
-        .lazy()
-        .map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map(
+        assert_called_once()
     )
-    df2 = (
-        pl.DataFrame({"a": [2, 3, 4], "b": [True, False, False]})
-        .lazy()
-        .map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2, 3, 4], "b": [True, False, False]}).map(
+        assert_called_once()
     )
     added, removed, updated = unique_row_differences(df1, df2, on="a")
     assert added == 1
     assert removed == 1
     assert updated == 1
 
-    df1 = (
-        pl.DataFrame({"a": [1, 2, 3], "b": [False, False, False]})
-        .lazy()
-        .map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map(
+        assert_called_once()
     )
-    df2 = (
-        pl.DataFrame({"a": [1, 2, 3], "b": [True, True, False]})
-        .lazy()
-        .map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1, 2, 3], "b": [True, True, False]}).map(
+        assert_called_once()
     )
     added, removed, updated = unique_row_differences(df1, df2, on="a")
     assert added == 0
@@ -410,8 +394,8 @@ def test_series_apply_with_tqdm():
 
 
 def test_expr_apply_with_tqdm():
-    df1 = pl.DataFrame({"s": [1, 2, 3]}).lazy()
-    df2 = pl.DataFrame({"s": [2, 3, 4]}).lazy()
+    df1 = pl.LazyFrame({"s": [1, 2, 3]})
+    df2 = pl.LazyFrame({"s": [2, 3, 4]})
     df3 = df1.select(
         expr_apply_with_tqdm(
             pl.col("s"),

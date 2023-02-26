@@ -180,7 +180,7 @@ def sparql_df(
     def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
         return pl.read_csv(sparql_csv(query), dtypes=schema)
 
-    return pl.DataFrame().lazy().map(sparql_df_inner, schema=schema)
+    return pl.LazyFrame().map(sparql_df_inner, schema=schema)
 
 
 def extract_qid(name: str = "item") -> pl.Expr:

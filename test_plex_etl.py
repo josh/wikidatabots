@@ -47,7 +47,7 @@ def test_plex_search_guids():
 
 
 def test_decode_plex_guids() -> None:
-    df = pl.DataFrame(
+    df = pl.LazyFrame(
         {
             "guid": [
                 "plex://episode/5d9c11154eefaa001f6364e0",
@@ -58,8 +58,8 @@ def test_decode_plex_guids() -> None:
                 "plex://invalid/111111111111111111111111",
             ],
         }
-    ).lazy()
-    df2 = pl.DataFrame(
+    )
+    df2 = pl.LazyFrame(
         {
             "type": pl.Series(
                 [
@@ -81,12 +81,12 @@ def test_decode_plex_guids() -> None:
                 None,
             ],
         }
-    ).lazy()
+    )
     assert_frame_equal(decode_plex_guids(df), df2)
 
 
 def test_encode_plex_guids() -> None:
-    df1 = pl.DataFrame(
+    df1 = pl.LazyFrame(
         {
             "type": pl.Series(
                 ["episode", "movie", "season", "show"], dtype=pl.Categorical
@@ -98,8 +98,8 @@ def test_encode_plex_guids() -> None:
                 b"]\x9c\x08TN\xef\xaa\x00\x1f]\xaaP",
             ],
         }
-    ).lazy()
-    df2 = pl.DataFrame(
+    )
+    df2 = pl.LazyFrame(
         {
             "type": pl.Series(
                 ["episode", "movie", "season", "show"], dtype=pl.Categorical
@@ -117,12 +117,12 @@ def test_encode_plex_guids() -> None:
                 "plex://show/5d9c08544eefaa001f5daa50",
             ],
         }
-    ).lazy()
+    )
     assert_frame_equal(encode_plex_guids(df1), df2)
 
 
 def test_extract_guids() -> None:
-    df = pl.DataFrame(
+    df = pl.LazyFrame(
         {
             "text": [
                 """
@@ -137,8 +137,8 @@ def test_extract_guids() -> None:
                 """,
             ]
         }
-    ).lazy()
-    df2 = pl.DataFrame(
+    )
+    df2 = pl.LazyFrame(
         {
             "type": pl.Series(
                 [
@@ -156,13 +156,13 @@ def test_extract_guids() -> None:
                 bytes.fromhex("5d9c11154eefaa001f6364e0"),
             ],
         }
-    ).lazy()
+    )
     assert_frame_equal(extract_guids(df), df2)
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_fetch_metadata_guids() -> None:
-    df = pl.DataFrame(
+    df = pl.LazyFrame(
         {
             "key": [
                 bytes.fromhex("5d776be17a53e9001e732ab9"),
@@ -172,8 +172,8 @@ def test_fetch_metadata_guids() -> None:
                 bytes.fromhex("000000000000000000000000"),
             ]
         }
-    ).lazy()
-    df2 = pl.DataFrame(
+    )
+    df2 = pl.LazyFrame(
         {
             "key": [
                 bytes.fromhex("5d776be17a53e9001e732ab9"),
@@ -192,5 +192,5 @@ def test_fetch_metadata_guids() -> None:
             "tmdb_id": pl.Series([361743, 18, 2207, 49075, None], dtype=pl.UInt32),
             "tvdb_id": pl.Series([16721, 305, 75932, 108501, None], dtype=pl.UInt32),
         }
-    ).lazy()
+    )
     assert_frame_equal(fetch_metadata_guids(df).drop(["retrieved_at"]), df2)
