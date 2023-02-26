@@ -14,13 +14,7 @@ from polars_requests import (
     request_url_expr_text,
     response_expr_content,
 )
-from polars_utils import (
-    read_xml,
-    series_apply_with_tqdm,
-    timestamp,
-    update_ipc,
-    expr_apply_with_tqdm,
-)
+from polars_utils import expr_apply_with_tqdm, read_xml, timestamp, update_ipc
 
 _APPLETV_SESSION = Session(host="tv.apple.com", connect_timeout=0.5, read_timeout=10.0)
 
