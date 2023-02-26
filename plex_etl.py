@@ -295,7 +295,10 @@ def main_discover_guids() -> None:
             wikidata_plex_guids(),
             pmdb_plex_keys(),
             (
-                pl.scan_ipc("s3://wikidatabots/plex.arrow")
+                pl.scan_ipc(
+                    "s3://wikidatabots/plex.arrow",
+                    storage_options={"anon": True},
+                )
                 .select(["key"])
                 .collect()
                 .sample(n=500)

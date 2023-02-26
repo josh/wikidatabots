@@ -12,7 +12,6 @@ permissions:
   contents: read
 
 env:
-  FSSPEC_S3_ANON: true
   TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
