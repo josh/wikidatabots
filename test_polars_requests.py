@@ -45,9 +45,9 @@ def test_request_url_expr_text() -> None:
             ]
         }
     ).with_columns(
-        request_url_expr_text(pl.col("url"), session=_HTTPBIN_SESSION).alias(
-            "response_text"
-        ),
+        pl.col("url")
+        .pipe(request_url_expr_text, session=_HTTPBIN_SESSION)
+        .alias("response_text"),
     )
     assert df.shape == (3, 2)
     assert df.schema == {"url": pl.Utf8, "response_text": pl.Utf8}
@@ -100,10 +100,12 @@ def test_response_expr_text() -> None:
     df = (
         pl.DataFrame({"url": ["https://httpbin.org/get"]})
         .with_columns(
-            request_url_expr(pl.col("url"), session=_HTTPBIN_SESSION).alias("response"),
+            pl.col("url")
+            .pipe(request_url_expr, session=_HTTPBIN_SESSION)
+            .alias("response"),
         )
         .with_columns(
-            response_expr_text(pl.col("response")).alias("response_text"),
+            pl.col("response").pipe(response_expr_text).alias("response_text"),
         )
     )
     assert df.shape == (1, 3)

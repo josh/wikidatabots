@@ -25,13 +25,8 @@ def siteindex(type: Type) -> pl.LazyFrame:
     return (
         pl.LazyFrame({"type": [type]})
         .select(
-            # TODO: Use Expr.pipe
-            request_url_expr_text(
-                pl.format(
-                    "https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type")
-                ),
-                session=_APPLETV_SESSION,
-            )
+            pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
+            .pipe(request_url_expr_text, session=_APPLETV_SESSION)
             .apply(_parse_siteindex_xml, return_dtype=SITEINDEX_DTYPE)
             .alias("siteindex"),
         )
@@ -178,8 +173,8 @@ JSONLD_DIRECTOR_EXPR = (
 def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.with_columns(
-            # TODO: Use Expr.pipe
-            request_url_expr_text(pl.col("loc"), session=_APPLETV_SESSION)
+            pl.col("loc")
+            .pipe(request_url_expr_text, session=_APPLETV_SESSION)
             .map(_series_extract_jsonld, return_dtype=pl.Utf8)
             .str.json_extract(dtype=JSONLD_DTYPE)
             .alias("jsonld")
