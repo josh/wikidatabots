@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 @dataclass
 class Session:
-    host: str
+    host: str = "*"
     session: requests.Session = field(default_factory=requests.Session)
     headers: dict[str, str] = field(default_factory=dict)
     params: dict[str, str] = field(default_factory=dict)
@@ -26,15 +26,23 @@ class Session:
     retry_max_time: float = 3600.0
 
 
-def request_url_expr(urls: pl.Expr, session: Session) -> pl.Expr:
+def request_url_expr(urls: pl.Expr, session: Session = Session()) -> pl.Expr:
     return urls.map(
         partial(request_url_series, session=session), return_dtype=pl.Object
     )
 
 
-def request_url_expr_text(urls: pl.Expr, session: Session) -> pl.Expr:
+def request_url_expr_text(urls: pl.Expr, session: Session = Session()) -> pl.Expr:
     return urls.map(
         partial(request_url_series_text, session=session), return_dtype=pl.Utf8
+    )
+
+
+def request_url_ldf(url: str, session: Session = Session()) -> pl.LazyFrame:
+    return (
+        pl.DataFrame({"url": [url]})  # TODO: Use pl.LazyFrame()
+        .lazy()
+        .map(partial(request_urls_df, session=session), schema={"response": pl.Object})
     )
 
 
@@ -56,6 +64,10 @@ def request_url_series(
 def request_url_series_text(urls: pl.Series, session: Session) -> pl.Series:
     assert urls.dtype == pl.Utf8
     return response_series_text(request_url_series(urls, session=session))
+
+
+def request_urls_df(df: pl.DataFrame, session: Session = Session()) -> pl.DataFrame:
+    return pl.DataFrame({"response": request_url_series(df["url"], session=session)})
 
 
 def response_series_content(responses: pl.Series) -> pl.Series:

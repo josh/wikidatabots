@@ -1,6 +1,5 @@
 # pyright: strict
 
-import itertools
 import os
 from typing import Any
 
@@ -8,6 +7,7 @@ import polars as pl
 import requests
 
 from polars_requests import (
+    request_url_ldf,
     response_series_date,
     response_series_status_code,
     response_series_text,
@@ -103,24 +103,22 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-def _load_pmdb_plex(_df: pl.DataFrame) -> pl.DataFrame:
-    r = requests.get("https://josh.github.io/pmdb/plex.json")
-    r.raise_for_status()
-    data = r.json()
-    keys = itertools.chain.from_iterable(
-        [
-            data["show"].keys(),
-            data["movie"].keys(),
-        ]
-    )
-    return pl.DataFrame({"key": keys})
+def _extract_pmdb_plex(df: pl.DataFrame) -> pl.DataFrame:
+    r = df[0, 0]
+    assert isinstance(r, requests.Response)
+
+    def keys():
+        data = r.json()
+        yield from data["show"].keys()
+        yield from data["movie"].keys()
+
+    return pl.DataFrame({"key": keys()})
 
 
 def pmdb_plex_keys() -> pl.LazyFrame:
     return (
-        pl.DataFrame()
-        .lazy()
-        .map(_load_pmdb_plex, schema={"key": pl.Utf8})
+        request_url_ldf("https://josh.github.io/pmdb/plex.json")
+        .map(_extract_pmdb_plex, schema={"key": pl.Utf8})
         .select(pl.col("key").str.decode("hex").cast(pl.Binary))
     )
 

@@ -9,6 +9,7 @@ from polars_requests import (
     Session,
     request_url_expr,
     request_url_expr_text,
+    request_url_ldf,
     request_url_series,
     request_url_series_text,
     response_expr_text,
@@ -50,6 +51,12 @@ def test_request_url_expr_text() -> None:
     )
     assert df.shape == (3, 2)
     assert df.schema == {"url": pl.Utf8, "response_text": pl.Utf8}
+
+
+def test_request_url_ldf() -> None:
+    ldf = request_url_ldf("https://httpbin.org/get?foo=1", session=_HTTPBIN_SESSION)
+    assert ldf.schema == {"response": pl.Object}
+    assert len(ldf.collect()) == 1
 
 
 def test_request_url_series() -> None:
