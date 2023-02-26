@@ -1,18 +1,13 @@
 # pyright: strict
 
+import json
 import os
 from typing import Any
 
 import polars as pl
 import requests
-import json
 
-from polars_requests import (
-    Session,
-    response_date,
-    response_text,
-    urllib3_request_urls,
-)
+from polars_requests import Session, response_date, response_text, urllib3_request_urls
 from polars_utils import read_xml, update_ipc
 from sparql import sparql_df
 

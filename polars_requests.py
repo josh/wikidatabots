@@ -2,11 +2,11 @@
 
 from dataclasses import dataclass, field
 from functools import partial
+from typing import TypedDict
 
 import polars as pl
 import urllib3
 from tqdm import tqdm
-from typing import TypedDict
 from urllib3.exceptions import ResponseError
 
 
