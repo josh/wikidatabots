@@ -28,30 +28,48 @@ class Session:
 
 def request_url_expr(urls: pl.Expr, session: Session = Session()) -> pl.Expr:
     return urls.map(
-        partial(request_url_series, session=session), return_dtype=pl.Object
+        partial(_request_url_series, session=session), return_dtype=pl.Object
     )
 
 
+# TODO: Deprecate this function
 def request_url_expr_text(urls: pl.Expr, session: Session = Session()) -> pl.Expr:
-    return urls.map(
-        partial(request_url_series_text, session=session), return_dtype=pl.Utf8
-    )
+    return urls.pipe(request_url_expr, session=session).pipe(response_expr_text)
 
 
 def request_url_ldf(url: str, session: Session = Session()) -> pl.LazyFrame:
     return pl.LazyFrame({"url": [url]}).map(
-        partial(request_urls_df, session=session), schema={"response": pl.Object}
+        partial(_request_urls_df, session=session), schema={"response": pl.Object}
     )
 
 
-def request_url_series(
-    urls: pl.Series,
-    session: Session,
-) -> pl.Series:
+def response_expr_content(responses: pl.Expr) -> pl.Expr:
+    return responses.map(_response_series_content, return_dtype=pl.Binary)
+
+
+def response_expr_date(responses: pl.Expr) -> pl.Expr:
+    return responses.map(
+        _response_series_date, return_dtype=pl.Datetime(time_unit="ms")
+    )
+
+
+def response_expr_status_code(responses: pl.Expr) -> pl.Expr:
+    return responses.map(_response_series_status_code, return_dtype=pl.UInt16)
+
+
+def response_expr_text(responses: pl.Expr) -> pl.Expr:
+    return responses.map(_response_series_text, return_dtype=pl.Utf8)
+
+
+def _request_urls_df(df: pl.DataFrame, session: Session) -> pl.DataFrame:
+    return pl.DataFrame({"response": _request_url_series(df["url"], session=session)})
+
+
+def _request_url_series(urls: pl.Series, session: Session) -> pl.Series:
     def values() -> Iterator[requests.Response | None]:
         for url in tqdm(urls, desc="Fetching URLs", unit="url"):
             if url:
-                yield session_get(session, url)
+                yield _session_get(session, url)
             else:
                 yield None
 
@@ -59,63 +77,26 @@ def request_url_series(
     return pl.Series(name="response", values=values(), dtype=pl.Object)
 
 
-def request_url_series_text(urls: pl.Series, session: Session) -> pl.Series:
-    assert urls.dtype == pl.Utf8
-    return response_series_text(request_url_series(urls, session=session))
-
-
-def request_urls_df(df: pl.DataFrame, session: Session = Session()) -> pl.DataFrame:
-    return pl.DataFrame({"response": request_url_series(df["url"], session=session)})
-
-
-def response_expr_content(responses: pl.Expr) -> pl.Expr:
-    return responses.map(response_series_content, return_dtype=pl.Binary)
-
-
-def response_series_content(responses: pl.Series) -> pl.Series:
+def _response_series_content(responses: pl.Series) -> pl.Series:
     assert responses.dtype == pl.Object
     return responses.apply(_response_content, return_dtype=pl.Binary)
 
 
-def response_expr_date(responses: pl.Expr) -> pl.Expr:
-    return responses.map(response_series_date, return_dtype=pl.Datetime(time_unit="ms"))
-
-
-def response_series_date(responses: pl.Series) -> pl.Series:
+def _response_series_date(responses: pl.Series) -> pl.Series:
     assert responses.dtype == pl.Object
     return responses.apply(_response_headers_date, return_dtype=pl.Utf8).str.strptime(
         pl.Datetime(time_unit="ms"), "%a, %d %b %Y %H:%M:%S %Z", strict=True
     )
 
 
-def response_expr_status_code(responses: pl.Expr) -> pl.Expr:
-    return responses.map(response_series_status_code, return_dtype=pl.UInt16)
-
-
-def response_series_status_code(responses: pl.Series) -> pl.Series:
+def _response_series_status_code(responses: pl.Series) -> pl.Series:
     assert responses.dtype == pl.Object
     return responses.apply(_response_status_code, return_dtype=pl.UInt16)
 
 
-def response_expr_text(responses: pl.Expr) -> pl.Expr:
-    return responses.map(response_series_text, return_dtype=pl.Utf8)
-
-
-def response_series_text(responses: pl.Series) -> pl.Series:
+def _response_series_text(responses: pl.Series) -> pl.Series:
     assert responses.dtype == pl.Object
     return responses.apply(_response_text, return_dtype=pl.Utf8)
-
-
-def session_get(session: Session, url: str) -> requests.Response:
-    if session.retry_exceptions:
-        return backoff.on_exception(
-            wait_gen=backoff.expo,
-            exception=session.retry_exceptions,
-            max_tries=session.retry_max_tries,
-            max_time=session.retry_max_time,
-        )(_session_get_without_retry)(session, url)
-    else:
-        return _session_get_without_retry(session, url)
 
 
 def _response_content(response: requests.Response) -> bytes:
@@ -132,6 +113,18 @@ def _response_status_code(response: requests.Response) -> int:
 
 def _response_text(response: requests.Response) -> str:
     return response.text
+
+
+def _session_get(session: Session, url: str) -> requests.Response:
+    if session.retry_exceptions:
+        return backoff.on_exception(
+            wait_gen=backoff.expo,
+            exception=session.retry_exceptions,
+            max_tries=session.retry_max_tries,
+            max_time=session.retry_max_time,
+        )(_session_get_without_retry)(session, url)
+    else:
+        return _session_get_without_retry(session, url)
 
 
 def _session_get_without_retry(session: Session, url: str) -> requests.Response:
