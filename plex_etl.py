@@ -8,11 +8,11 @@ import requests
 
 from polars_requests import (
     request_url_ldf,
-    response_series_date,
-    response_series_status_code,
-    response_series_text,
+    response_expr_date,
+    response_expr_status_code,
+    response_expr_text,
 )
-from polars_utils import read_xml, update_ipc
+from polars_utils import expr_apply_with_tqdm, read_xml, update_ipc
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
@@ -152,7 +152,7 @@ def plex_search_guids(query: str) -> pl.LazyFrame:
         .select(
             pl.col("query")
             .apply(_plex_search, return_dtype=pl.Object)
-            .map(response_series_text, return_dtype=pl.Utf8)
+            .pipe(response_expr_text)
             .alias("text")
         )
         .pipe(extract_guids)
@@ -176,20 +176,25 @@ _METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
 
 
 def fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
-    def _request_metadata(keys: pl.Series) -> pl.Series:
-        return pl.Series([request_metadata(k) for k in keys])
-
     return df.with_columns(
-        pl.col("key").map(_request_metadata).alias("response"),
+        pl.col("key")
+        .bin.encode("hex")
+        .pipe(
+            expr_apply_with_tqdm,
+            _request_metadata,
+            return_dtype=pl.Object,
+            desc="Fetching URLs",
+        )
+        .alias("response"),
     ).with_columns(
-        pl.col("response").map(response_series_status_code).alias("status_code"),
-        pl.col("response")
-        .map(response_series_date)
-        .cast(pl.Datetime(time_unit="ns"))
-        .alias("retrieved_at"),
-        pl.col("response")
-        .map(response_series_text, return_dtype=pl.Utf8)
-        .alias("response_text"),
+        pl.col("response").pipe(response_expr_status_code).alias("status_code"),
+        (
+            pl.col("response")
+            .pipe(response_expr_date)
+            .cast(pl.Datetime(time_unit="ns"))
+            .alias("retrieved_at")
+        ),
+        pl.col("response").pipe(response_expr_text).alias("response_text"),
     )
 
 
@@ -240,9 +245,8 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def request_metadata(key: bytes) -> requests.Response:
-    assert len(key) == 12
-    url = f"https://metadata.provider.plex.tv/library/metadata/{key.hex()}"
+def _request_metadata(key: str) -> requests.Response:
+    url = f"https://metadata.provider.plex.tv/library/metadata/{key}"
     headers = {"X-Plex-Token": os.environ["PLEX_TOKEN"]}
     r = _SESSION.get(url, headers=headers)
     return r

@@ -68,13 +68,17 @@ def request_urls_df(df: pl.DataFrame, session: Session = Session()) -> pl.DataFr
     return pl.DataFrame({"response": request_url_series(df["url"], session=session)})
 
 
+def response_expr_content(responses: pl.Expr) -> pl.Expr:
+    return responses.map(response_series_content, return_dtype=pl.Binary)
+
+
 def response_series_content(responses: pl.Series) -> pl.Series:
     assert responses.dtype == pl.Object
     return responses.apply(_response_content, return_dtype=pl.Binary)
 
 
-def response_expr_content(responses: pl.Expr) -> pl.Expr:
-    return responses.map(response_series_content, return_dtype=pl.Binary)
+def response_expr_date(responses: pl.Expr) -> pl.Expr:
+    return responses.map(response_series_date, return_dtype=pl.Datetime(time_unit="ms"))
 
 
 def response_series_date(responses: pl.Series) -> pl.Series:
@@ -82,6 +86,10 @@ def response_series_date(responses: pl.Series) -> pl.Series:
     return responses.apply(_response_headers_date, return_dtype=pl.Utf8).str.strptime(
         pl.Datetime(time_unit="ms"), "%a, %d %b %Y %H:%M:%S %Z", strict=True
     )
+
+
+def response_expr_status_code(responses: pl.Expr) -> pl.Expr:
+    return responses.map(response_series_status_code, return_dtype=pl.UInt16)
 
 
 def response_series_status_code(responses: pl.Series) -> pl.Series:
