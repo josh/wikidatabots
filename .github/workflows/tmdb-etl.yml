@@ -10,9 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  changes:
+  run:
     runs-on: ubuntu-latest
-    concurrency: tmdb_changes_${{ matrix.type }}
+    concurrency: tmdb_${{ matrix.type }}
     timeout-minutes: 60
 
     strategy:
@@ -49,7 +49,15 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
+        env:
+          TYPE: ${{ matrix.type }}
+
+      - name: Download from S3
+        run: |
+          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
+          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow" "external_ids.arrow"
           cp latest_changes.arrow latest_changes.arrow~
+          cp external_ids.arrow external_ids.arrow~
         env:
           TYPE: ${{ matrix.type }}
 
@@ -73,58 +81,7 @@ jobs:
         run: |
           python print_table_diff.py latest_changes.arrow~ latest_changes.arrow id
 
-      - name: Upload to S3
-        run: |
-          aws s3 cp "latest_changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow"
-        env:
-          TYPE: ${{ matrix.type }}
-
-  external_ids:
-    needs: changes
-    runs-on: ubuntu-latest
-    concurrency: tmdb_external_ids_${{ matrix.type }}
-    timeout-minutes: 60
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - type: "movie"
-          - type: "tv"
-          - type: "person"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
-      - name: Download from S3
-        run: |
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow" "external_ids.arrow"
-          cp external_ids.arrow external_ids.arrow~
-        env:
-          TYPE: ${{ matrix.type }}
-
-      - name: Run ETL script
+      - name: Run ETL external IDs script
         shell: python
         run: |
           import os
@@ -146,6 +103,7 @@ jobs:
 
       - name: Upload to S3
         run: |
+          aws s3 cp "latest_changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow"
           aws s3 cp "external_ids.arrow" "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow"
         env:
           TYPE: ${{ matrix.type }}
