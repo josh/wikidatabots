@@ -8,8 +8,19 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from polars_requests import Session, request_url_expr_text, session_get
-from polars_utils import read_xml, series_apply_with_tqdm, timestamp, update_ipc
+from polars_requests import (
+    Session,
+    request_url_expr,
+    request_url_expr_text,
+    response_expr_content,
+)
+from polars_utils import (
+    read_xml,
+    series_apply_with_tqdm,
+    timestamp,
+    update_ipc,
+    expr_apply_with_tqdm,
+)
 
 _APPLETV_SESSION = Session(host="tv.apple.com", connect_timeout=0.5, read_timeout=10.0)
 
@@ -55,7 +66,9 @@ def sitemap(type: Type) -> pl.LazyFrame:
         siteindex(type)
         .select(
             pl.col("loc")
-            .map(_request_compressed_text, return_dtype=pl.Utf8)
+            .pipe(request_url_expr, session=_APPLETV_SESSION)
+            .pipe(response_expr_content)
+            .pipe(_zlib_decompress_expr)
             .apply(_parse_sitemap_xml, return_dtype=SITEMAP_DTYPE)
             .alias("sitemap")
         )
@@ -78,19 +91,21 @@ def sitemap(type: Type) -> pl.LazyFrame:
     )
 
 
+def _zlib_decompress(data: bytes) -> str:
+    return zlib.decompress(data, 16 + zlib.MAX_WBITS).decode("utf-8")
+
+
+def _zlib_decompress_expr(expr: pl.Expr) -> pl.Expr:
+    return expr_apply_with_tqdm(
+        expr,
+        _zlib_decompress,
+        return_dtype=pl.Utf8,
+        desc="Decompressing",
+    )
+
+
 def _parse_sitemap_xml(text: str) -> pl.Series:
     return read_xml(text, schema=SITEMAP_SCHEMA).to_struct("sitemap")
-
-
-# TODO: Can't return binary from map for some reason
-def _request_compressed_text(urls: pl.Series) -> pl.Series:
-    def get_text(url: str) -> str:
-        r = session_get(_APPLETV_SESSION, url)
-        return zlib.decompress(r.content, 16 + zlib.MAX_WBITS).decode("utf-8")
-
-    return series_apply_with_tqdm(
-        urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs"
-    )
 
 
 LOC_PATTERN = (
@@ -175,7 +190,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
         df.with_columns(
             pl.col("loc")
             .pipe(request_url_expr_text, session=_APPLETV_SESSION)
-            .map(_series_extract_jsonld, return_dtype=pl.Utf8)
+            .pipe(_extract_jsonld_expr)
             .str.json_extract(dtype=JSONLD_DTYPE)
             .alias("jsonld")
         )
@@ -190,9 +205,9 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def _series_extract_jsonld(urls: pl.Series) -> pl.Series:
-    return series_apply_with_tqdm(
-        urls,
+def _extract_jsonld_expr(expr: pl.Expr) -> pl.Expr:
+    return expr_apply_with_tqdm(
+        expr,
         _extract_jsonld,
         return_dtype=pl.Utf8,
         desc="Extracting JSON-LD",
