@@ -19,7 +19,7 @@ from sparql import sparql_df
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
 
 _PLEX_SESSION = Session(
-    headers={"X-Plex-Token": os.environ["PLEX_TOKEN"]},
+    headers={"X-Plex-Token": os.environ.get("PLEX_TOKEN", "")},
     ok_statuses={200, 404},
 )
 _GITHUB_IO_SESSION = Session()
