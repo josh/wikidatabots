@@ -67,6 +67,17 @@ def test_urllib3_request_urls() -> None:
     assert len(df) == 3
 
 
+def test_urllib3_request_urls_empty() -> None:
+    ldf = pl.LazyFrame({"url": []}, schema={"url": pl.Utf8}).with_columns(
+        pl.col("url").pipe(urllib3_request_urls, session=_HTTPBIN_SESSION),
+    )
+    ldf2 = pl.LazyFrame({"url": [], "response": []}).with_columns(
+        pl.col("url").cast(pl.Utf8),
+        pl.col("response").cast(HTTP_RESPONSE_DTYPE),
+    )
+    assert_frame_equal(ldf, ldf2)
+
+
 def test_urllib3_request_urls_with_defaults() -> None:
     session = Session(fields={"foo": "bar"}, headers={"X-Foo": "baz"})
     response_dtype = pl.Struct(

@@ -75,6 +75,11 @@ def test_tmdb_exists():
     df3 = df.with_columns(pl.Series("exists", [False, True, True, False]))
     assert_frame_equal(df2, df3)
 
+    df = pl.LazyFrame({"tmdb_id": []})
+    df2 = df.with_columns(tmdb_exists(tmdb_type="movie"))
+    df3 = df.with_columns(pl.Series("exists", [], dtype=pl.Boolean))
+    assert_frame_equal(df2, df3)
+
 
 def test_find_by_external_id():
     df = pl.LazyFrame({"imdb_id": ["tt1630029", "tt14269590", "nm3718007"]})

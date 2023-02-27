@@ -147,7 +147,11 @@ def _urllib3_request_urls_series(urls: pl.Series, session: Session) -> pl.Series
             else:
                 yield None
 
-    return pl.Series("response", values(), dtype=HTTP_RESPONSE_DTYPE)
+    if len(urls) == 0:
+        # FIXME: Polars bug, can't create empty series with dtype
+        return pl.Series(name="response").cast(HTTP_RESPONSE_DTYPE)
+    else:
+        return pl.Series(name="response", values=values(), dtype=HTTP_RESPONSE_DTYPE)
 
 
 def _urllib3_request(
