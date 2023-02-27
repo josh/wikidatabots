@@ -10,25 +10,37 @@ from tqdm import tqdm
 from urllib3.exceptions import ResponseError
 
 
-class HTTPResponseHeader(TypedDict):
+class HTTPDict(TypedDict):
     name: str
     value: str
 
 
+class HTTPRequest(TypedDict):
+    url: str
+    fields: list[HTTPDict]
+    headers: list[HTTPDict]
+
+
 class HTTPResponse(TypedDict):
     status: int
-    headers: list[HTTPResponseHeader]
+    headers: list[HTTPDict]
     data: bytes
 
 
-HTTP_RESPONSE_HEADER_DTYPE = pl.Struct(
-    [pl.Field("name", pl.Utf8), pl.Field("value", pl.Utf8)]
+HTTP_DICT_DTYPE = pl.Struct([pl.Field("name", pl.Utf8), pl.Field("value", pl.Utf8)])
+
+HTTP_REQUEST_DTYPE = pl.Struct(
+    [
+        pl.Field("url", pl.Utf8),
+        pl.Field("fields", pl.List(HTTP_DICT_DTYPE)),
+        pl.Field("headers", pl.List(HTTP_DICT_DTYPE)),
+    ]
 )
 
 HTTP_RESPONSE_DTYPE = pl.Struct(
     [
         pl.Field("status", pl.UInt16),
-        pl.Field("headers", pl.List(HTTP_RESPONSE_HEADER_DTYPE)),
+        pl.Field("headers", pl.List(HTTP_DICT_DTYPE)),
         pl.Field("data", pl.Binary),
     ]
 )
@@ -85,6 +97,41 @@ class Session:
         return self._poolmanager
 
 
+def urllib3_requests(requests: pl.Expr, session: Session) -> pl.Expr:
+    return requests.map(
+        partial(_urllib3_requests_series, session=session),
+        return_dtype=HTTP_RESPONSE_DTYPE,
+    ).alias("response")
+
+
+def _urllib3_requests_series(requests: pl.Series, session: Session) -> pl.Series:
+    def values():
+        for request in tqdm(requests, desc="Fetching URLs", unit="row"):
+            if request:
+                r: HTTPRequest = request
+
+                url = r["url"]
+
+                fields: dict[str, str] = {}
+                for f in r["fields"]:
+                    fields[f["name"]] = f["value"]
+
+                headers: dict[str, str] = {}
+                for h in r["headers"]:
+                    headers[h["name"]] = h["value"]
+
+                yield _urllib3_request(
+                    session=session,
+                    url=url,
+                    fields=fields,
+                    headers=headers,
+                )
+            else:
+                yield None
+
+    return pl.Series("response", values(), dtype=HTTP_RESPONSE_DTYPE)
+
+
 def urllib3_request_urls(urls: pl.Expr, session: Session) -> pl.Expr:
     return urls.map(
         partial(_urllib3_request_urls_series, session=session),
@@ -124,7 +171,7 @@ def _urllib3_request(
     if response.status not in session.ok_statuses:
         raise ResponseError(f"unretryable {response.status} error response")
 
-    resp_headers: list[HTTPResponseHeader] = []
+    resp_headers: list[HTTPDict] = []
     for name, value in response.headers.items():
         resp_headers.append({"name": name, "value": value})
 
