@@ -155,18 +155,20 @@ def _urllib3_request_urls_series(urls: pl.Series, session: Session) -> pl.Series
 def _urllib3_request(
     session: Session,
     url: str,
-    fields: list[_HTTPDict] = [],
-    headers: list[_HTTPDict] = [],
+    fields: list[_HTTPDict] | None = None,
+    headers: list[_HTTPDict] | None = None,
 ) -> _HTTPResponse:
     http = session.poolmanager()
 
     fields_dict = session.fields.copy()
-    for f in fields:
-        fields_dict[f["name"]] = f["value"]
+    if fields:
+        for f in fields:
+            fields_dict[f["name"]] = f["value"]
 
     headers_dict = session.headers.copy()
-    for h in headers:
-        headers_dict[h["name"]] = h["value"]
+    if headers:
+        for h in headers:
+            headers_dict[h["name"]] = h["value"]
 
     response: urllib3.HTTPResponse = http.request(
         method="GET",
@@ -200,7 +202,15 @@ def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:
     return expr
 
 
+# FIXME: Patch polars to allow empty lists
+_EMPTY_LIST = pl.concat_list([pl.lit(None, dtype=pl.Utf8)]).arr.eval(
+    pl.element().drop_nulls()
+)
+
+
 def _http_dict(pairs: dict[str, pl.Expr | str]) -> pl.Expr:
+    if len(pairs) == 0:
+        return _EMPTY_LIST
     return pl.concat_list([_http_dict_struct(n, v) for n, v in pairs.items()])
 
 
@@ -219,7 +229,7 @@ def prepare_request(
             _http_dict(headers).alias("headers"),
         ],
         schema=_HTTP_REQUEST_SCHEMA,
-    )
+    ).alias("request")
     assert isinstance(expr, pl.Expr)
     return expr
 
