@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from functools import partial
-from typing import TypedDict
+from typing import Iterator, TypedDict
 
 import polars as pl
 import urllib3
@@ -10,40 +10,46 @@ from tqdm import tqdm
 from urllib3.exceptions import ResponseError
 
 
-class HTTPDict(TypedDict):
+class _HTTPDict(TypedDict):
     name: str
     value: str
 
 
-class HTTPRequest(TypedDict):
-    url: str
-    fields: list[HTTPDict]
-    headers: list[HTTPDict]
+# class _HTTPRequest(TypedDict):
+#     url: str
+#     fields: list[_HTTPDict]
+#     headers: list[_HTTPDict]
 
 
-class HTTPResponse(TypedDict):
+class _HTTPResponse(TypedDict):
     status: int
-    headers: list[HTTPDict]
+    headers: list[_HTTPDict]
     data: bytes
 
 
-HTTP_DICT_DTYPE = pl.Struct([pl.Field("name", pl.Utf8), pl.Field("value", pl.Utf8)])
+_HTTP_DICT_DTYPE = pl.Struct([pl.Field("name", pl.Utf8), pl.Field("value", pl.Utf8)])
 
-HTTP_REQUEST_DTYPE = pl.Struct(
+_HTTP_DICT_SCHEMA = _HTTP_DICT_DTYPE.to_schema()
+
+_HTTP_REQUEST_DTYPE = pl.Struct(
     [
         pl.Field("url", pl.Utf8),
-        pl.Field("fields", pl.List(HTTP_DICT_DTYPE)),
-        pl.Field("headers", pl.List(HTTP_DICT_DTYPE)),
+        pl.Field("fields", pl.List(_HTTP_DICT_DTYPE)),
+        pl.Field("headers", pl.List(_HTTP_DICT_DTYPE)),
     ]
 )
+
+_HTTP_REQUEST_SCHEMA = _HTTP_REQUEST_DTYPE.to_schema()
 
 HTTP_RESPONSE_DTYPE = pl.Struct(
     [
         pl.Field("status", pl.UInt16),
-        pl.Field("headers", pl.List(HTTP_DICT_DTYPE)),
+        pl.Field("headers", pl.List(_HTTP_DICT_DTYPE)),
         pl.Field("data", pl.Binary),
     ]
 )
+
+# _HTTP_RESPONSE_SCHEMA = HTTP_RESPONSE_DTYPE.to_schema()
 
 
 @dataclass
@@ -105,31 +111,23 @@ def urllib3_requests(requests: pl.Expr, session: Session) -> pl.Expr:
 
 
 def _urllib3_requests_series(requests: pl.Series, session: Session) -> pl.Series:
-    def values():
+    def values() -> Iterator[_HTTPResponse | None]:
         for request in tqdm(requests, desc="Fetching URLs", unit="row"):
             if request:
-                r: HTTPRequest = request
-
-                url = r["url"]
-
-                fields: dict[str, str] = {}
-                for f in r["fields"]:
-                    fields[f["name"]] = f["value"]
-
-                headers: dict[str, str] = {}
-                for h in r["headers"]:
-                    headers[h["name"]] = h["value"]
-
                 yield _urllib3_request(
                     session=session,
-                    url=url,
-                    fields=fields,
-                    headers=headers,
+                    url=request["url"],
+                    fields=request["fields"],
+                    headers=request["headers"],
                 )
             else:
                 yield None
 
-    return pl.Series("response", values(), dtype=HTTP_RESPONSE_DTYPE)
+    if len(requests) == 0:
+        # FIXME: Polars bug, can't create empty series with dtype
+        return pl.Series(name="response").cast(HTTP_RESPONSE_DTYPE)
+    else:
+        return pl.Series(name="response", values=values(), dtype=HTTP_RESPONSE_DTYPE)
 
 
 def urllib3_request_urls(urls: pl.Expr, session: Session) -> pl.Expr:
@@ -140,7 +138,7 @@ def urllib3_request_urls(urls: pl.Expr, session: Session) -> pl.Expr:
 
 
 def _urllib3_request_urls_series(urls: pl.Series, session: Session) -> pl.Series:
-    def values():
+    def values() -> Iterator[_HTTPResponse | None]:
         for url in tqdm(urls, desc="Fetching URLs", unit="row"):
             if url:
                 yield _urllib3_request(session=session, url=url)
@@ -157,29 +155,73 @@ def _urllib3_request_urls_series(urls: pl.Series, session: Session) -> pl.Series
 def _urllib3_request(
     session: Session,
     url: str,
-    fields: dict[str, str] = {},
-    headers: dict[str, str] = {},
-) -> HTTPResponse:
+    fields: list[_HTTPDict] = [],
+    headers: list[_HTTPDict] = [],
+) -> _HTTPResponse:
     http = session.poolmanager()
 
-    fields = dict(session.fields, **fields)
-    headers = dict(session.headers, **headers)
+    fields_dict = session.fields.copy()
+    for f in fields:
+        fields_dict[f["name"]] = f["value"]
+
+    headers_dict = session.headers.copy()
+    for h in headers:
+        headers_dict[h["name"]] = h["value"]
 
     response: urllib3.HTTPResponse = http.request(
         method="GET",
         url=url,
-        fields=fields,
-        headers=headers,
+        fields=fields_dict,
+        headers=headers_dict,
     )
 
     if response.status not in session.ok_statuses:
         raise ResponseError(f"unretryable {response.status} error response")
 
-    resp_headers: list[HTTPDict] = []
+    resp_headers: list[_HTTPDict] = []
     for name, value in response.headers.items():
         resp_headers.append({"name": name, "value": value})
 
     return {"status": response.status, "headers": resp_headers, "data": response.data}
+
+
+def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:
+    if isinstance(value, str):
+        value = pl.lit(value)
+
+    expr = pl.struct(
+        [
+            pl.lit(name).alias("name"),
+            value.alias("value"),
+        ],
+        schema=_HTTP_DICT_SCHEMA,
+    )
+    assert isinstance(expr, pl.Expr)
+    return expr
+
+
+def _http_dict(pairs: dict[str, pl.Expr | str]) -> pl.Expr:
+    return pl.concat_list([_http_dict_struct(n, v) for n, v in pairs.items()])
+
+
+def prepare_request(
+    url: pl.Expr | str,
+    fields: dict[str, pl.Expr | str] = {},
+    headers: dict[str, pl.Expr | str] = {},
+) -> pl.Expr:
+    if isinstance(url, str):
+        url = pl.lit(url)
+
+    expr = pl.struct(
+        [
+            url.alias("url"),
+            _http_dict(fields).alias("fields"),
+            _http_dict(headers).alias("headers"),
+        ],
+        schema=_HTTP_REQUEST_SCHEMA,
+    )
+    assert isinstance(expr, pl.Expr)
+    return expr
 
 
 def response_ok(response: pl.Expr) -> pl.Expr:

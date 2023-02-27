@@ -5,9 +5,9 @@ import pytest
 from polars.testing import assert_frame_equal
 
 from polars_requests import (
-    HTTP_REQUEST_DTYPE,
     HTTP_RESPONSE_DTYPE,
     Session,
+    prepare_request,
     response_date,
     response_header_value,
     response_ok,
@@ -104,7 +104,7 @@ def test_urllib3_request_urls_with_defaults() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests() -> None:
+def test_urllib3_requests_raw() -> None:
     response_dtype = pl.Struct(
         {
             "args": pl.Struct({"foo": pl.Utf8}),
@@ -120,7 +120,6 @@ def test_urllib3_requests() -> None:
                 "headers": [{"name": "X-Foo", "value": "baz"}],
             }
         ],
-        dtype=HTTP_REQUEST_DTYPE,
     )
 
     ldf = pl.LazyFrame({"request": requests}).select(
@@ -133,6 +132,33 @@ def test_urllib3_requests() -> None:
 
     ldf2 = pl.LazyFrame(
         {
+            "data": [{"args": {"foo": "bar"}, "headers": {"X-Foo": "baz"}}],
+        }
+    )
+
+    assert_frame_equal(ldf, ldf2)
+
+
+def test_urllib3_requests_prepare() -> None:
+    response_dtype = pl.Struct(
+        {
+            "args": pl.Struct({"foo": pl.Utf8}),
+            "headers": pl.Struct({"X-Foo": pl.Utf8}),
+        }
+    )
+
+    ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
+        pl.col("url")
+        .pipe(prepare_request, fields={"foo": "bar"}, headers={"X-Foo": "baz"})
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .pipe(response_text)
+        .str.json_extract(response_dtype)
+        .alias("data"),
+    )
+
+    ldf2 = pl.LazyFrame(
+        {
+            "url": ["https://httpbin.org/get"],
             "data": [{"args": {"foo": "bar"}, "headers": {"X-Foo": "baz"}}],
         }
     )
