@@ -4,13 +4,18 @@ import datetime
 import os
 from typing import Literal
 
-import backoff
 import polars as pl
-import requests
 
-from polars_utils import align_to_index, series_apply_with_tqdm, timestamp, update_ipc
+from polars_requests import Session, response_text, urllib3_request_urls
+from polars_utils import align_to_index, timestamp, update_ipc
 
-_SESSION = requests.Session()
+_SESSION = Session(
+    ok_statuses={200, 404},
+    connect_timeout=1.0,
+    read_timeout=3.0,
+    retry_count=3,
+    retry_backoff_factor=1.0,
+)
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 
@@ -63,7 +68,8 @@ def fetch_tmdb_external_ids(
                 pl.col("id"),
                 pl.lit(os.environ["TMDB_API_KEY"]),
             )
-            .map(_request_text, return_dtype=pl.Utf8)
+            .pipe(urllib3_request_urls, session=_SESSION)
+            .pipe(response_text)
             .str.json_extract(dtype=_EXTERNAL_IDS_RESPONSE_DTYPE)
             .alias("result")
         )
@@ -126,7 +132,8 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
             [
                 pl.col("date"),
                 pl.col("url")
-                .map(_request_text, return_dtype=pl.Utf8)
+                .pipe(urllib3_request_urls, session=_SESSION)
+                .pipe(response_text)
                 .str.json_extract(dtype=_CHANGES_RESPONSE_DTYPE)
                 .struct.field("results")
                 .arr.reverse()
@@ -153,7 +160,8 @@ def tmdb_exists(tmdb_type: TMDB_TYPE) -> pl.Expr:
             pl.col("tmdb_id"),
             pl.lit(os.environ["TMDB_API_KEY"]),
         )
-        .map(_request_text, return_dtype=pl.Utf8)
+        .pipe(urllib3_request_urls, session=_SESSION)
+        .pipe(response_text)
         .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.Int64)]))
         .struct.field("id")
         .is_not_null()
@@ -178,7 +186,8 @@ def tmdb_find(tmdb_type: TMDB_TYPE, external_id_type: str) -> pl.Expr:
             pl.lit(os.environ["TMDB_API_KEY"]),
             pl.lit(external_id_type),
         )
-        .map(_request_text, return_dtype=pl.Utf8)
+        .pipe(urllib3_request_urls, session=_SESSION)
+        .pipe(response_text)
         .str.json_extract(dtype=_FIND_RESPONSE_DTYPE)
         .struct.field(f"{tmdb_type}_results")
         .arr.first()
@@ -218,16 +227,6 @@ def _insert_tmdb_external_ids(
         pl.concat([df, fetch_tmdb_external_ids(tmdb_ids, tmdb_type)])
         .unique(subset=["id"], keep="last")
         .pipe(align_to_index, name="id")
-    )
-
-
-def _request_text(urls: pl.Series) -> pl.Series:
-    @backoff.on_exception(backoff.expo, requests.exceptions.ReadTimeout, max_tries=3)
-    def get_text(url: str) -> str:
-        return _SESSION.get(url, timeout=3).text
-
-    return series_apply_with_tqdm(
-        urls, get_text, return_dtype=pl.Utf8, desc="Fetching URLs"
     )
 
 
