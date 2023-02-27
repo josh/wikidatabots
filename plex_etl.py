@@ -2,10 +2,8 @@
 
 import json
 import os
-from typing import Any
 
 import polars as pl
-import requests
 
 from polars_requests import Session, response_date, response_text, urllib3_request_urls
 from polars_utils import read_xml, update_ipc
@@ -34,27 +32,43 @@ _PLEX_DEVICE_SCHEMA: dict[str, pl.PolarsDataType] = {
 }
 
 
-def plex_server(name: str) -> dict[str, Any]:
-    url = "https://plex.tv/api/resources"
-    headers = {"X-Plex-Token": os.environ["PLEX_TOKEN"]}
-    r = requests.get(url, headers=headers)
-    r.raise_for_status()
+def _parse_device_xml(text: str) -> pl.Series:
+    return read_xml(text, schema=_PLEX_DEVICE_SCHEMA).to_struct("Device")
 
+
+def plex_server(name: str) -> pl.LazyFrame:
     return (
-        read_xml(r.text, schema=_PLEX_DEVICE_SCHEMA)
-        .explode("Connection")
+        pl.LazyFrame({"url": ["https://plex.tv/api/resources"]})
+        .select(
+            pl.col("url")
+            .pipe(urllib3_request_urls, session=_PLEX_SESSION)
+            .pipe(response_text)
+            .apply(
+                _parse_device_xml, return_dtype=pl.List(pl.Struct(_PLEX_DEVICE_SCHEMA))
+            )
+            .alias("Device")
+        )
+        .explode("Device")
+        .select(
+            pl.col("Device").struct.field("name").alias("name"),
+            pl.col("Device").struct.field("publicAddress").alias("publicAddress"),
+            pl.col("Device").struct.field("accessToken").alias("accessToken"),
+            pl.col("Device").struct.field("Connection").alias("Connection"),
+        )
         .filter(pl.col("name") == name)
+        .explode("Connection")
         .filter(pl.col("Connection").struct.field("local") == "0")
         .with_columns(
             pl.col("Connection").struct.field("uri"),
         )
         .drop("Connection")
-        .row(index=0, named=True)
     )
 
 
-def plex_library_guids(baseuri: str, server_token: str) -> pl.LazyFrame:
-    plex_server_session = Session(headers={"X-Plex-Token": server_token})
+def plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
+    # TODO: Avoid collect
+    server = server_df.collect().row(index=0, named=True)
+    plex_server_session = Session(headers={"X-Plex-Token": server["accessToken"]})
 
     def _parse_xml(text: str) -> pl.Series:
         return read_xml(text, schema={"guid": pl.Utf8}).to_struct("item")
@@ -62,7 +76,9 @@ def plex_library_guids(baseuri: str, server_token: str) -> pl.LazyFrame:
     return (
         pl.LazyFrame({"section": [1, 2]})
         .select(
-            pl.format("{}/library/sections/{}/all", pl.lit(baseuri), pl.col("section"))
+            pl.format(
+                "{}/library/sections/{}/all", pl.lit(server["uri"]), pl.col("section")
+            )
             .pipe(urllib3_request_urls, session=plex_server_session)
             .pipe(response_text)
             .apply(_parse_xml, return_dtype=pl.List(pl.Struct({"guid": pl.Utf8})))
@@ -248,10 +264,10 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
-    server = plex_server(name=os.environ["PLEX_SERVER"])
+    server_df = plex_server(name=os.environ["PLEX_SERVER"])
 
     dfs = [
-        plex_library_guids(server["uri"], server["accessToken"]),
+        plex_library_guids(server_df),
         wikidata_plex_guids(),
         pmdb_plex_keys(),
         (plex_df.select(["key"]).collect().sample(n=500).lazy().pipe(plex_similar)),
