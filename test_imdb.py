@@ -3,16 +3,11 @@
 import pytest
 import requests
 
-from imdb import (
-    ID,
-    CaptchaException,
-    canonical_id,
-    decode_numeric_id,
-    encode_numeric_id,
-    extract_id,
-    formatted_url,
-    id,
-)
+from imdb import CaptchaException, canonical_id, extract_id, formatted_url
+
+
+def id(id: str) -> str:
+    return id
 
 
 def test_extract_id():
@@ -93,7 +88,7 @@ def test_formatted_url():
     assert not formatted_url("/title/tt0111161/")
 
 
-def externalid_url(id: ID) -> str:
+def externalid_url(id: str) -> str:
     url = (
         "https://wikidata-externalid-url.toolforge.org/?"
         "p=345&"
@@ -126,17 +121,3 @@ def test_canonical_id():
         assert not canonical_id(id("tt1555101"))
     except CaptchaException:
         pytest.skip("captcha error")
-
-
-def test_decode_numeric_id():
-    assert decode_numeric_id("tt9114286", type="tt") == 9114286
-    assert decode_numeric_id("tt0114369", type="tt") == 114369
-    assert decode_numeric_id("nm1569276", type="nm") == 1569276
-    assert decode_numeric_id("nm0000399", type="nm") == 399
-
-
-def test_encode_numeric_id():
-    assert encode_numeric_id(9114286, type="tt") == "tt9114286"
-    assert encode_numeric_id(114369, type="tt") == "tt0114369"
-    assert encode_numeric_id(1569276, type="nm") == "nm1569276"
-    assert encode_numeric_id(399, type="nm") == "nm0000399"

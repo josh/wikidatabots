@@ -41,10 +41,12 @@ def main():
         item = results[qid]
 
         for statement, value in item.get(IMDB_ID_PID, []):
-            id = imdb.tryid(value)
-            if not id:
+            assert isinstance(value, str)
+
+            if not imdb.formatted_url(value):
                 logging.debug(f"{value} is invalid format")
                 continue
+            id = value
 
             new_id = imdb.canonical_id(id)
             if not new_id:

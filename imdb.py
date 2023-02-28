@@ -1,31 +1,16 @@
 # pyright: strict
 
 import re
-from typing import Any, Literal, NewType
 from urllib.parse import urlparse
 
 import requests
-
-ID = NewType("ID", str)
-IMDBIDType = Literal["tt", "nm"]
-
-
-def id(id: str) -> ID:
-    assert formatted_url(id), f"'{id}' is not a valid IMDb ID"
-    return ID(id)
-
-
-def tryid(id: Any) -> ID | None:
-    if type(id) is str and formatted_url(id):
-        return ID(id)
-    return None
 
 
 class CaptchaException(Exception):
     pass
 
 
-def canonical_id(id: ID) -> ID | None:
+def canonical_id(id: str) -> str | None:
     url = formatted_url(id)
     assert url, f"bad id: {id}"
 
@@ -75,52 +60,32 @@ def formatted_url(id: str) -> str | None:
     return None
 
 
-def extract_id(url: str) -> ID | None:
+def extract_id(url: str) -> str | None:
     r = urlparse(url)
 
     if r.netloc != "www.imdb.com" and r.netloc != "":
         return None
 
     if m := re.match(r"/title/(tt\d+)/?$", r.path):
-        return ID(m.group(1))
+        return str(m.group(1))
 
     if m := re.match(r"/name/(nm\d+)/?$", r.path):
-        return ID(m.group(1))
+        return str(m.group(1))
 
     if m := re.match(r"/character/(ch\d+)/?$", r.path):
-        return ID(m.group(1))
+        return str(m.group(1))
 
     if m := re.match(r"/event/(ev\d+)/(\d+)(/|/\d+)?$", r.path):
-        return ID(f"{m.group(1)}/{m.group(2)}")
+        return str(f"{m.group(1)}/{m.group(2)}")
 
     if m := re.match(r"/event/(ev\d+)/?$", r.path):
-        return ID(m.group(1))
+        return str(m.group(1))
 
     if m := re.match(r"/company/(co\d+)/?$", r.path):
-        return ID(m.group(1))
+        return str(m.group(1))
 
     if r.path == "/search/title/":
         if m := re.match(r"companies=(co\d+)", r.query):
-            return ID(m.group(1))
+            return str(m.group(1))
 
     return None
-
-
-def decode_numeric_id(id: str, type: IMDBIDType) -> int | None:
-    m = re.fullmatch(r"(tt|nm)(\d+)", id)
-    if not m:
-        return None
-
-    if type != m.group(1):
-        return None
-
-    numeric_id: int = int(m.group(2))
-
-    if encode_numeric_id(numeric_id, type) != id:
-        return None
-
-    return numeric_id
-
-
-def encode_numeric_id(numeric_id: int, type: IMDBIDType) -> str:
-    return type + str(numeric_id).zfill(7)
