@@ -95,13 +95,11 @@ def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     df = df.cache()
     dates_df = df.select(
-        [
-            pl.date_range(
-                low=pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
-                high=datetime.date.today(),
-                interval="1d",
-            ).alias("date")
-        ]
+        pl.date_range(
+            low=pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
+            high=datetime.date.today(),
+            interval="1d",
+        ).alias("date")
     )
 
     return (
