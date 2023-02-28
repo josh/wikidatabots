@@ -21,19 +21,18 @@ def test_fetch_tmdb_external_ids():
         {
             "id": [1, 2, 3, 4],
             "success": [False, True, True, False],
-            "imdb_id": [None, "tt0094675", "tt0092149", None],
+            "imdb_numeric_id": pl.Series([None, 94675, 92149, None], dtype=pl.UInt32),
         }
     )
     assert df.schema == {
         "id": pl.Int64,
         "success": pl.Boolean,
         "retrieved_at": pl.Datetime(time_unit="ns"),
-        "imdb_id": pl.Utf8,
-        "tvdb_id": pl.UInt32,
         "imdb_numeric_id": pl.UInt32,
+        "tvdb_id": pl.UInt32,
         "wikidata_numeric_id": pl.UInt32,
     }
-    assert_frame_equal(df.select(["id", "success", "imdb_id"]), df2)
+    assert_frame_equal(df.select(["id", "success", "imdb_numeric_id"]), df2)
 
 
 CHANGES_SCHEMA = {
