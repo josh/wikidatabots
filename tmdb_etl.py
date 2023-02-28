@@ -52,7 +52,7 @@ _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
 )
 
 _CHANGES_RESPONSE_DTYPE = pl.Struct(
-    {"results": pl.List(pl.Struct({"id": pl.Int64, "adult": pl.Boolean}))}
+    {"results": pl.List(pl.Struct({"id": pl.UInt32, "adult": pl.Boolean}))}
 )
 
 _FIND_RESPONSE_DTYPE = pl.Struct(
@@ -151,28 +151,20 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 pl.lit(os.environ["TMDB_API_KEY"]),
                 pl.col("date"),
                 (pl.col("date").dt.offset_by("1d")),
-            ).alias("url")
-        )
-        .select(
-            [
-                pl.col("date"),
-                pl.col("url")
-                .pipe(urllib3_request_urls, session=_SESSION)
-                .pipe(response_text)
-                .str.json_extract(dtype=_CHANGES_RESPONSE_DTYPE)
-                .struct.field("results")
-                .arr.reverse()
-                .alias("results"),
-            ]
+            )
+            .pipe(urllib3_request_urls, session=_SESSION)
+            .pipe(response_text)
+            .str.json_extract(dtype=_CHANGES_RESPONSE_DTYPE)
+            .struct.field("results")
+            .arr.reverse()
+            .alias("results")
         )
         .explode("results")
         .select(
-            [
-                pl.col("results").struct.field("id").alias("id").cast(pl.UInt32),
-                pl.lit(True).alias("has_changes"),
-                pl.col("date"),
-                pl.col("results").struct.field("adult").alias("adult"),
-            ]
+            pl.col("results").struct.field("id").alias("id"),
+            pl.lit(True).alias("has_changes"),
+            pl.col("date"),
+            pl.col("results").struct.field("adult").alias("adult"),
         )
     )
 
