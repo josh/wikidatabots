@@ -243,6 +243,8 @@ def _insert_tmdb_external_ids(
     tmdb_type: TMDB_TYPE,
     tmdb_ids: pl.LazyFrame,
 ) -> pl.LazyFrame:
+    assert df.schema == EXTERNAL_IDS_SCHEMA
+    assert tmdb_ids.schema == {"id": pl.UInt32}
     return (
         pl.concat([df, tmdb_external_ids(tmdb_ids, tmdb_type)])
         .unique(subset=["id"], keep="last")
