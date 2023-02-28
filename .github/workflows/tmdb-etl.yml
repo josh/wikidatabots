@@ -78,9 +78,14 @@ jobs:
         run: |
           python print_table_diff.py external_ids.arrow~ external_ids.arrow id
 
+      - name: Print stats
+        run: |
+          python print_table_stats.py tmdb.arrow
+
       - name: Upload to S3
         run: |
           aws s3 cp "latest_changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow"
           aws s3 cp "external_ids.arrow" "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow"
+          aws s3 cp "tmdb.arrow" "s3://wikidatabots/tmdb/${TYPE}.arrow"
         env:
           TYPE: ${{ matrix.type }}
