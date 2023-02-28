@@ -169,17 +169,17 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
 
-def tmdb_exists(tmdb_type: TMDB_TYPE) -> pl.Expr:
+def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
     return (
         pl.format(
             "https://api.themoviedb.org/3/{}/{}?api_key={}",
             pl.lit(tmdb_type),
-            pl.col("tmdb_id"),
+            expr,
             pl.lit(os.environ["TMDB_API_KEY"]),
         )
         .pipe(urllib3_request_urls, session=_SESSION)
         .pipe(response_text)
-        .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.Int64)]))
+        .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.UInt32)]))
         .struct.field("id")
         .is_not_null()
         .alias("exists")

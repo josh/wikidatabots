@@ -203,7 +203,7 @@ def find_tmdb_ids_not_found(
         df.join(changes_df, on="id", how="left")
         .filter(pl.col("adult").is_null() & pl.col("has_changes"))
         .rename({"id": "tmdb_id"})
-        .filter(tmdb_exists(tmdb_type).is_not())
+        .filter(pl.col("tmdb_id").pipe(tmdb_exists, tmdb_type).is_not())
         .select(rdf_statement)
     )
 
