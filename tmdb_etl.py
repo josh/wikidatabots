@@ -14,6 +14,18 @@ from polars_utils import align_to_index
 TMDB_TYPE = Literal["movie", "tv", "person"]
 TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
 
+SCHEMA = {
+    "id": pl.UInt32,
+    "has_changes": pl.Boolean,
+    "date": pl.Date,
+    "adult": pl.Boolean,
+    "success": pl.Boolean,
+    "retrieved_at": pl.Datetime(time_unit="ns"),
+    "imdb_numeric_id": pl.UInt32,
+    "tvdb_id": pl.UInt32,
+    "wikidata_numeric_id": pl.UInt32,
+}
+
 CHANGES_SCHEMA = {
     "id": pl.UInt32,
     "has_changes": pl.Boolean,
