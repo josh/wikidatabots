@@ -6,41 +6,14 @@ import polars as pl
 from polars.testing import assert_frame_equal
 
 from tmdb_etl import (
-    append_tmdb_external_ids,
+    CHANGES_SCHEMA,
+    EXTERNAL_IDS_SCHEMA,
     insert_tmdb_latest_changes,
     tmdb_changes,
     tmdb_exists,
+    tmdb_external_ids,
     tmdb_find,
 )
-
-
-def test_append_tmdb_external_ids():
-    ids = pl.Series("id", [1, 2, 3, 4], dtype=pl.UInt32)
-    df = append_tmdb_external_ids(ids.to_frame().lazy(), tmdb_type="movie")
-    df2 = pl.LazyFrame(
-        {
-            "id": ids,
-            "success": [False, True, True, False],
-            "imdb_numeric_id": pl.Series([None, 94675, 92149, None], dtype=pl.UInt32),
-        }
-    )
-    assert df.schema == {
-        "id": pl.UInt32,
-        "success": pl.Boolean,
-        "retrieved_at": pl.Datetime(time_unit="ns"),
-        "imdb_numeric_id": pl.UInt32,
-        "tvdb_id": pl.UInt32,
-        "wikidata_numeric_id": pl.UInt32,
-    }
-    assert_frame_equal(df.select(["id", "success", "imdb_numeric_id"]), df2)
-
-
-CHANGES_SCHEMA = {
-    "id": pl.UInt32,
-    "has_changes": pl.Boolean,
-    "date": pl.Date,
-    "adult": pl.Boolean,
-}
 
 
 def test_insert_tmdb_latest_changes():
@@ -80,7 +53,21 @@ def test_tmdb_exists():
     assert_frame_equal(df2, df3)
 
 
-def test_find_by_external_id():
+def test_tmdb_external_ids():
+    ids = pl.Series("id", [1, 2, 3, 4], dtype=pl.UInt32)
+    df = tmdb_external_ids(ids.to_frame().lazy(), tmdb_type="movie")
+    df2 = pl.LazyFrame(
+        {
+            "id": ids,
+            "success": [False, True, True, False],
+            "imdb_numeric_id": pl.Series([None, 94675, 92149, None], dtype=pl.UInt32),
+        }
+    )
+    assert df.schema == EXTERNAL_IDS_SCHEMA
+    assert_frame_equal(df.select(["id", "success", "imdb_numeric_id"]), df2)
+
+
+def test_find():
     df = pl.LazyFrame({"imdb_id": ["tt1630029", "tt14269590", "nm3718007"]})
 
     df2 = df.with_columns(tmdb_find(tmdb_type="movie", external_id_type="imdb_id"))

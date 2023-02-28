@@ -9,6 +9,24 @@ import polars as pl
 from polars_requests import Session, response_date, response_text, urllib3_request_urls
 from polars_utils import align_to_index, update_ipc
 
+TMDB_TYPE = Literal["movie", "tv", "person"]
+
+CHANGES_SCHEMA = {
+    "id": pl.UInt32,
+    "has_changes": pl.Boolean,
+    "date": pl.Date,
+    "adult": pl.Boolean,
+}
+
+EXTERNAL_IDS_SCHEMA = {
+    "id": pl.UInt32,
+    "success": pl.Boolean,
+    "retrieved_at": pl.Datetime(time_unit="ns"),
+    "imdb_numeric_id": pl.UInt32,
+    "tvdb_id": pl.UInt32,
+    "wikidata_numeric_id": pl.UInt32,
+}
+
 _SESSION = Session(
     ok_statuses={200, 404},
     connect_timeout=1.0,
@@ -17,9 +35,11 @@ _SESSION = Session(
     retry_backoff_factor=1.0,
 )
 
-TMDB_TYPE = Literal["movie", "tv", "person"]
-
-_ID_DTYPE = pl.UInt32
+_IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
+    "movie": r"tt(\d+)",
+    "tv": r"tt(\d+)",
+    "person": r"nm(\d+)",
+}
 
 _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
     {
@@ -31,9 +51,21 @@ _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
     }
 )
 
+_CHANGES_RESPONSE_DTYPE = pl.Struct(
+    {"results": pl.List(pl.Struct({"id": pl.Int64, "adult": pl.Boolean}))}
+)
 
-def append_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    assert df.schema["id"] == _ID_DTYPE
+_FIND_RESPONSE_DTYPE = pl.Struct(
+    {
+        "movie_results": pl.List(pl.Struct({"id": pl.Int64})),
+        "tv_results": pl.List(pl.Struct({"id": pl.Int64})),
+        "person_results": pl.List(pl.Struct({"id": pl.Int64})),
+    }
+)
+
+
+def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    assert df.schema["id"] == pl.UInt32
     return (
         df.with_columns(
             pl.format(
@@ -76,13 +108,6 @@ def append_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     )
 
 
-_IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
-    "movie": r"tt(\d+)",
-    "tv": r"tt(\d+)",
-    "person": r"nm(\d+)",
-}
-
-
 def extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
     return (
         expr.str.extract(_IMDB_ID_PATTERN[tmdb_type], 1)
@@ -96,6 +121,8 @@ def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    assert df.schema == CHANGES_SCHEMA
+
     df = df.cache()
     dates_df = df.select(
         pl.date_range(
@@ -113,12 +140,8 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
     )
 
 
-_CHANGES_RESPONSE_DTYPE = pl.Struct(
-    {"results": pl.List(pl.Struct({"id": pl.Int64, "adult": pl.Boolean}))}
-)
-
-
 def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    assert df.schema == {"date": pl.Date}
     return (
         df.with_columns(
             pl.format(
@@ -171,15 +194,6 @@ def tmdb_exists(tmdb_type: TMDB_TYPE) -> pl.Expr:
     )
 
 
-_FIND_RESPONSE_DTYPE = pl.Struct(
-    {
-        "movie_results": pl.List(pl.Struct({"id": pl.Int64})),
-        "tv_results": pl.List(pl.Struct({"id": pl.Int64})),
-        "person_results": pl.List(pl.Struct({"id": pl.Int64})),
-    }
-)
-
-
 def tmdb_find(tmdb_type: TMDB_TYPE, external_id_type: str) -> pl.Expr:
     return (
         pl.format(
@@ -226,7 +240,7 @@ def _insert_tmdb_external_ids(
     tmdb_ids: pl.LazyFrame,
 ) -> pl.LazyFrame:
     return (
-        pl.concat([df, append_tmdb_external_ids(tmdb_ids, tmdb_type)])
+        pl.concat([df, tmdb_external_ids(tmdb_ids, tmdb_type)])
         .unique(subset=["id"], keep="last")
         .pipe(align_to_index, name="id")
     )
