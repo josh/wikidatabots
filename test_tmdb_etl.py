@@ -13,10 +13,11 @@ from tmdb_etl import (
     tmdb_exists,
     tmdb_external_ids,
     tmdb_find,
+    update_changes_and_external_ids,
 )
 
 
-def test_insert_tmdb_latest_changes():
+def test_insert_tmdb_latest_changes() -> None:
     df1 = pl.LazyFrame(
         {
             "id": [3],
@@ -32,7 +33,7 @@ def test_insert_tmdb_latest_changes():
     assert len(df2) > 0
 
 
-def test_tmdb_changes():
+def test_tmdb_changes() -> None:
     dates_df = pl.LazyFrame(
         {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
     )
@@ -41,7 +42,7 @@ def test_tmdb_changes():
     ldf.collect()
 
 
-def test_tmdb_exists():
+def test_tmdb_exists() -> None:
     df = pl.LazyFrame({"tmdb_id": [0, 2, 3, 4]})
     df2 = df.with_columns(pl.col("tmdb_id").pipe(tmdb_exists, "movie"))
     df3 = df.with_columns(pl.Series("exists", [False, True, True, False]))
@@ -53,7 +54,7 @@ def test_tmdb_exists():
     assert_frame_equal(df2, df3)
 
 
-def test_tmdb_external_ids():
+def test_tmdb_external_ids() -> None:
     ids = pl.Series("id", [1, 2, 3, 4], dtype=pl.UInt32)
     df = tmdb_external_ids(ids.to_frame().lazy(), tmdb_type="movie")
     df2 = pl.LazyFrame(
@@ -67,7 +68,7 @@ def test_tmdb_external_ids():
     assert_frame_equal(df.select(["id", "success", "imdb_numeric_id"]), df2)
 
 
-def test_find():
+def test_find() -> None:
     df = pl.LazyFrame({"imdb_id": ["tt1630029", "tt14269590", "nm3718007"]})
 
     df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="movie"))
@@ -81,3 +82,34 @@ def test_find():
     df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="person"))
     df3 = df.with_columns(pl.Series("tmdb_id", [None, None, 1674162], dtype=pl.UInt32))
     assert_frame_equal(df2, df3)
+
+
+def test_update_changes_and_external_ids() -> None:
+    changes_df = pl.LazyFrame(
+        {
+            "id": [3],
+            "has_changes": [True],
+            "date": [datetime.date.today()],
+            "adult": [False],
+        },
+        schema=CHANGES_SCHEMA,
+    )
+    external_ids_df = pl.LazyFrame(
+        {
+            "id": [3],
+            "success": [None],
+            "retrieved_at": [None],
+            "imdb_numeric_id": [None],
+            "tvdb_id": [None],
+            "wikidata_numeric_id": [None],
+        },
+        schema=EXTERNAL_IDS_SCHEMA,
+    )
+
+    changes_ldf, external_ids_ldf = update_changes_and_external_ids(
+        changes_df=changes_df,
+        external_ids_df=external_ids_df,
+        tmdb_type="tv",
+    )
+    assert changes_ldf.schema == CHANGES_SCHEMA
+    assert external_ids_ldf.schema == EXTERNAL_IDS_SCHEMA

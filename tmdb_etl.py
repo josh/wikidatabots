@@ -1,13 +1,15 @@
 # pyright: strict
 
 import datetime
+import logging
 import os
+import sys
 from typing import Literal
 
 import polars as pl
 
 from polars_requests import Session, response_date, response_text, urllib3_request_urls
-from polars_utils import align_to_index, update_ipc
+from polars_utils import align_to_index
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
@@ -64,10 +66,12 @@ _FIND_RESPONSE_DTYPE = pl.Struct(
     }
 )
 
-_TMDB_EXTERNAL_SOURCE_LOOKUP: dict[str, TMDB_EXTERNAL_SOURCE] = {
-    "imdb_id": "imdb_id",
-    "tvdb_id": "tvdb_id",
-    "wikidata_id": "wikidata_id",
+_TMDB_TYPES: set[TMDB_TYPE] = {"movie", "tv", "person"}
+
+_TMDB_EXTERNAL_SOURCES: set[TMDB_EXTERNAL_SOURCE] = {
+    "imdb_id",
+    "tvdb_id",
+    "wikidata_id",
 }
 
 
@@ -199,7 +203,9 @@ def tmdb_find(
     external_id_type: TMDB_EXTERNAL_SOURCE | None = None,
 ) -> pl.Expr:
     if not external_id_type:
-        external_id_type = _TMDB_EXTERNAL_SOURCE_LOOKUP[expr.meta.output_name()]
+        output_name = expr.meta.output_name()
+        assert output_name in _TMDB_EXTERNAL_SOURCES
+        external_id_type = output_name
 
     return (
         pl.format(
@@ -224,13 +230,13 @@ _MISSING_STATUS = pl.col("success").is_null()
 
 
 def _tmdb_outdated_external_ids(
-    latest_changes_df: pl.LazyFrame,
+    changes_df: pl.LazyFrame,
     external_ids_df: pl.LazyFrame,
 ) -> pl.LazyFrame:
-    assert latest_changes_df.schema == CHANGES_SCHEMA
+    assert changes_df.schema == CHANGES_SCHEMA
     assert external_ids_df.schema == EXTERNAL_IDS_SCHEMA
     return (
-        latest_changes_df.join(external_ids_df, on="id", how="left")
+        changes_df.join(external_ids_df, on="id", how="left")
         .sort(pl.col("retrieved_at"), descending=True)
         .filter(_OUTDATED | _NEVER_FETCHED | _MISSING_STATUS)
         .head(10_000)
@@ -252,26 +258,47 @@ def _insert_tmdb_external_ids(
     )
 
 
-def main_changes(tmdb_type: TMDB_TYPE) -> None:
-    update_ipc(
-        "latest_changes.arrow",
-        lambda df: insert_tmdb_latest_changes(df, tmdb_type),
+def update_changes_and_external_ids(
+    changes_df: pl.LazyFrame,
+    external_ids_df: pl.LazyFrame,
+    tmdb_type: TMDB_TYPE,
+) -> tuple[pl.LazyFrame, pl.LazyFrame]:
+    # TODO: cache() not working here
+    changes_df = (
+        insert_tmdb_latest_changes(changes_df, tmdb_type=tmdb_type).collect().lazy()
     )
+    external_ids_df = external_ids_df.cache()
 
-
-def main_external_ids(tmdb_type: TMDB_TYPE):
-    latest_changes_df = pl.scan_ipc("latest_changes.arrow")
-    external_ids_df = pl.scan_ipc("external_ids.arrow").cache()
-
-    tmdb_ids = _tmdb_outdated_external_ids(
-        latest_changes_df=latest_changes_df,
+    outdated_ids = _tmdb_outdated_external_ids(
+        changes_df=changes_df,
         external_ids_df=external_ids_df,
     )
 
     external_ids_df = _insert_tmdb_external_ids(
         external_ids_df,
         tmdb_type=tmdb_type,
-        tmdb_ids=tmdb_ids,
-    ).collect()
+        tmdb_ids=outdated_ids,
+    )
 
+    return (changes_df, external_ids_df)
+
+
+def main() -> None:
+    tmdb_type = sys.argv[1]
+    assert tmdb_type in _TMDB_TYPES
+
+    changes_df, external_ids_df = pl.collect_all(
+        update_changes_and_external_ids(
+            changes_df=pl.scan_ipc("latest_changes.arrow"),
+            external_ids_df=pl.scan_ipc("external_ids.arrow"),
+            tmdb_type=tmdb_type,
+        )
+    )
+
+    changes_df.write_ipc("latest_changes.arrow", compression="lz4")
     external_ids_df.write_ipc("external_ids.arrow", compression="lz4")
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    main()

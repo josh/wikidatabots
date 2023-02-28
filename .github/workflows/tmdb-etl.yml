@@ -55,14 +55,9 @@ jobs:
         env:
           TYPE: ${{ matrix.type }}
 
-      - name: Run ETL changes script
-        shell: python
+      - name: Run ETL script
         run: |
-          import os
-
-          from tmdb_etl import main_changes
-
-          main_changes(tmdb_type=os.environ["TYPE"])
+          python tmdb_etl.py "$TYPE"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
@@ -74,18 +69,6 @@ jobs:
       - name: Print diff
         run: |
           python print_table_diff.py latest_changes.arrow~ latest_changes.arrow id
-
-      - name: Run ETL external IDs script
-        shell: python
-        run: |
-          import os
-
-          from tmdb_etl import main_external_ids
-
-          main_external_ids(tmdb_type=os.environ["TYPE"])
-        env:
-          TYPE: ${{ matrix.type }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
 
       - name: Print stats
         run: |
