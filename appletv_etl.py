@@ -9,7 +9,7 @@ import polars as pl
 from bs4 import BeautifulSoup
 
 from polars_requests import Session, response_text, urllib3_request_urls
-from polars_utils import expr_apply_with_tqdm, read_xml, timestamp, update_ipc
+from polars_utils import apply_with_tqdm, read_xml, timestamp, update_ipc
 
 _APPLETV_SESSION = Session(
     connect_timeout=0.5,
@@ -92,7 +92,7 @@ def _zlib_decompress(data: bytes) -> str:
 
 
 def _zlib_decompress_expr(expr: pl.Expr) -> pl.Expr:
-    return expr_apply_with_tqdm(
+    return apply_with_tqdm(
         expr,
         _zlib_decompress,
         return_dtype=pl.Utf8,
@@ -203,7 +203,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _extract_jsonld_expr(expr: pl.Expr) -> pl.Expr:
-    return expr_apply_with_tqdm(
+    return apply_with_tqdm(
         expr,
         _extract_jsonld,
         return_dtype=pl.Utf8,

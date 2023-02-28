@@ -5,17 +5,16 @@ from typing import TypeVar
 import polars as pl
 import pytest
 from hypothesis import given
-from polars.testing import assert_frame_equal, assert_series_equal
+from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes
 
 from polars_utils import (
     align_to_index,
+    apply_with_tqdm,
     assert_not_null,
     assert_unique,
-    expr_apply_with_tqdm,
     read_xml,
     row_differences,
-    series_apply_with_tqdm,
     unique_row_differences,
     update_ipc,
     xml_to_dtype,
@@ -386,18 +385,11 @@ def test_unique_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame)
     assert df2.height - added + removed == df1.height, "df2 - added + removed == df1"
 
 
-def test_series_apply_with_tqdm():
-    s1 = pl.Series([1, 2, 3])
-    s2 = pl.Series([2, 3, 4])
-    s3 = series_apply_with_tqdm(s1, lambda x: x + 1)
-    assert_series_equal(s2, s3)
-
-
-def test_expr_apply_with_tqdm():
+def test_apply_with_tqdm():
     df1 = pl.LazyFrame({"s": [1, 2, 3]})
     df2 = pl.LazyFrame({"s": [2, 3, 4]})
     df3 = df1.select(
-        expr_apply_with_tqdm(
+        apply_with_tqdm(
             pl.col("s"),
             lambda x: x + 1,
             return_dtype=pl.Int64,

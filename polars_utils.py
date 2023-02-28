@@ -124,45 +124,31 @@ def unique_row_differences(
     return added.height, removed.height, updated
 
 
-def series_apply_with_tqdm(
-    s: pl.Series,
-    func: Callable[[Any], Any],
-    return_dtype: pl.PolarsDataType | None = None,
-    skip_nulls: bool = True,
-    desc: str | None = None,
-) -> pl.Series:
-    pbar = tqdm()
-    pbar.desc = desc
-    pbar.total = len(s)
-    pbar.unit = "rows"
-
-    def wrapped_func(item: Any) -> Any:
-        pbar.update(1)
-        return func(item)
-
-    try:
-        return s.apply(wrapped_func, return_dtype=return_dtype, skip_nulls=skip_nulls)
-    finally:
-        pbar.close()
-
-
-def expr_apply_with_tqdm(
+def apply_with_tqdm(
     expr: pl.Expr,
-    func: Callable[[Any], Any],
+    function: Callable[[Any], Any],
     return_dtype: pl.PolarsDataType | None = None,
     skip_nulls: bool = True,
     desc: str | None = None,
 ) -> pl.Expr:
-    def map_inner(s: pl.Series) -> pl.Series:
-        return series_apply_with_tqdm(
-            s,
-            func,
-            return_dtype=return_dtype,
-            skip_nulls=skip_nulls,
-            desc=desc,
-        )
+    def map_function(s: pl.Series) -> pl.Series:
+        pbar = tqdm()
+        pbar.desc = desc
+        pbar.total = len(s)
+        pbar.unit = "row"
 
-    return expr.map(map_inner, return_dtype=return_dtype)
+        def apply_function(item: Any) -> Any:
+            pbar.update(1)
+            return function(item)
+
+        try:
+            return s.apply(
+                apply_function, return_dtype=return_dtype, skip_nulls=skip_nulls
+            )
+        finally:
+            pbar.close()
+
+    return expr.map(map_function, return_dtype=return_dtype)
 
 
 def read_xml(
