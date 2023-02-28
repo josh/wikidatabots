@@ -238,17 +238,7 @@ def main_changes(tmdb_type: TMDB_TYPE) -> None:
 
 def main_external_ids(tmdb_type: TMDB_TYPE):
     latest_changes_df = pl.scan_ipc("latest_changes.arrow")
-    external_ids_df = pl.scan_ipc("external_ids.arrow").select(
-        # TODO: Remove after migration
-        [
-            "id",
-            "success",
-            "retrieved_at",
-            "imdb_numeric_id",
-            "tvdb_id",
-            "wikidata_numeric_id",
-        ]
-    )
+    external_ids_df = pl.scan_ipc("external_ids.arrow")
 
     tmdb_ids = _tmdb_outdated_external_ids(
         latest_changes_df=latest_changes_df,
