@@ -19,6 +19,8 @@ _SESSION = Session(
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 
+_ID_DTYPE = pl.UInt32
+
 _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
     {
         "success": pl.Boolean,
@@ -31,6 +33,7 @@ _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
 
 
 def append_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    assert df.schema["id"] == _ID_DTYPE
     return (
         df.with_columns(
             pl.format(

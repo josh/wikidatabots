@@ -15,17 +15,17 @@ from tmdb_etl import (
 
 
 def test_append_tmdb_external_ids():
-    ids = pl.LazyFrame({"id": [1, 2, 3, 4]})
-    df = append_tmdb_external_ids(ids, "movie")
+    ids = pl.Series("id", [1, 2, 3, 4], dtype=pl.UInt32)
+    df = append_tmdb_external_ids(ids.to_frame().lazy(), tmdb_type="movie")
     df2 = pl.LazyFrame(
         {
-            "id": [1, 2, 3, 4],
+            "id": ids,
             "success": [False, True, True, False],
             "imdb_numeric_id": pl.Series([None, 94675, 92149, None], dtype=pl.UInt32),
         }
     )
     assert df.schema == {
-        "id": pl.Int64,
+        "id": pl.UInt32,
         "success": pl.Boolean,
         "retrieved_at": pl.Datetime(time_unit="ns"),
         "imdb_numeric_id": pl.UInt32,
