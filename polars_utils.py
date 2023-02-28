@@ -2,12 +2,17 @@
 
 import os
 import random
+import warnings
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import Any, Callable, Iterator
 
 import polars as pl
 from tqdm import tqdm
+
+from actions import install_warnings_hook
+
+install_warnings_hook()
 
 
 def update_ipc(
@@ -44,7 +49,7 @@ def assert_unique(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
     return ldf.map(assert_unique_inner)
 
 
-TIMESTAMP_EXPR = (
+_TIMESTAMP_EXPR = (
     pl.lit(0)
     .map(lambda _: datetime.now(), return_dtype=pl.Datetime)
     .cast(pl.Datetime(time_unit="ns"))
@@ -54,7 +59,13 @@ TIMESTAMP_EXPR = (
 
 
 def timestamp() -> pl.Expr:
-    return TIMESTAMP_EXPR
+    warnings.warn(
+        "polars_utils.timestamp() deprecated, "
+        "use polars_requests.response_date() instead",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return _TIMESTAMP_EXPR
 
 
 PL_INTEGERS = {
