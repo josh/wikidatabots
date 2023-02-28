@@ -227,6 +227,8 @@ def _tmdb_outdated_external_ids(
     latest_changes_df: pl.LazyFrame,
     external_ids_df: pl.LazyFrame,
 ) -> pl.LazyFrame:
+    assert latest_changes_df.schema == CHANGES_SCHEMA
+    assert external_ids_df.schema == EXTERNAL_IDS_SCHEMA
     return (
         latest_changes_df.join(external_ids_df, on="id", how="left")
         .sort(pl.col("retrieved_at"), descending=True)
