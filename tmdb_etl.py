@@ -10,6 +10,7 @@ from polars_requests import Session, response_date, response_text, urllib3_reque
 from polars_utils import align_to_index, update_ipc
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
+TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
 
 CHANGES_SCHEMA = {
     "id": pl.UInt32,
@@ -44,7 +45,7 @@ _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
 _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
     {
         "success": pl.Boolean,
-        "id": pl.Int64,
+        "id": pl.UInt32,
         "imdb_id": pl.Utf8,
         "tvdb_id": pl.UInt32,
         "wikidata_id": pl.Utf8,
@@ -57,11 +58,17 @@ _CHANGES_RESPONSE_DTYPE = pl.Struct(
 
 _FIND_RESPONSE_DTYPE = pl.Struct(
     {
-        "movie_results": pl.List(pl.Struct({"id": pl.Int64})),
-        "tv_results": pl.List(pl.Struct({"id": pl.Int64})),
-        "person_results": pl.List(pl.Struct({"id": pl.Int64})),
+        "movie_results": pl.List(pl.Struct({"id": pl.UInt32})),
+        "tv_results": pl.List(pl.Struct({"id": pl.UInt32})),
+        "person_results": pl.List(pl.Struct({"id": pl.UInt32})),
     }
 )
+
+_TMDB_EXTERNAL_SOURCE_LOOKUP: dict[str, TMDB_EXTERNAL_SOURCE] = {
+    "imdb_id": "imdb_id",
+    "tvdb_id": "tvdb_id",
+    "wikidata_id": "wikidata_id",
+}
 
 
 def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
@@ -186,11 +193,18 @@ def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
     )
 
 
-def tmdb_find(tmdb_type: TMDB_TYPE, external_id_type: str) -> pl.Expr:
+def tmdb_find(
+    expr: pl.Expr,
+    tmdb_type: TMDB_TYPE,
+    external_id_type: TMDB_EXTERNAL_SOURCE | None = None,
+) -> pl.Expr:
+    if not external_id_type:
+        external_id_type = _TMDB_EXTERNAL_SOURCE_LOOKUP[expr.meta.output_name()]
+
     return (
         pl.format(
             "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
-            pl.col(external_id_type),
+            expr,
             pl.lit(os.environ["TMDB_API_KEY"]),
             pl.lit(external_id_type),
         )
@@ -200,7 +214,6 @@ def tmdb_find(tmdb_type: TMDB_TYPE, external_id_type: str) -> pl.Expr:
         .struct.field(f"{tmdb_type}_results")
         .arr.first()
         .struct.field("id")
-        .cast(pl.UInt32)
         .alias("tmdb_id")
     )
 

@@ -70,14 +70,14 @@ def test_tmdb_external_ids():
 def test_find():
     df = pl.LazyFrame({"imdb_id": ["tt1630029", "tt14269590", "nm3718007"]})
 
-    df2 = df.with_columns(tmdb_find(tmdb_type="movie", external_id_type="imdb_id"))
+    df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="movie"))
     df3 = df.with_columns(pl.Series("tmdb_id", [76600, None, None], dtype=pl.UInt32))
     assert_frame_equal(df2, df3)
 
-    df2 = df.with_columns(tmdb_find(tmdb_type="tv", external_id_type="imdb_id"))
+    df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="tv"))
     df3 = df.with_columns(pl.Series("tmdb_id", [None, 120998, None], dtype=pl.UInt32))
     assert_frame_equal(df2, df3)
 
-    df2 = df.with_columns(tmdb_find(tmdb_type="person", external_id_type="imdb_id"))
+    df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="person"))
     df3 = df.with_columns(pl.Series("tmdb_id", [None, None, 1674162], dtype=pl.UInt32))
     assert_frame_equal(df2, df3)
