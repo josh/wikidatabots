@@ -21,30 +21,24 @@ TMDB_TYPE = Literal["movie", "tv", "person"]
 
 _ONE_DAY = datetime.timedelta(days=1)
 
-_EXTRACT_IMDB_TITLE_NUMERIC_ID = (
-    pl.col("imdb_id")
-    .str.extract(r"tt(\d+)", 1)
-    .cast(pl.UInt32)
-    .alias("imdb_numeric_id")
-)
-_EXTRACT_IMDB_NAME_NUMERIC_ID = (
-    pl.col("imdb_id")
-    .str.extract(r"nm(\d+)", 1)
-    .cast(pl.UInt32)
-    .alias("imdb_numeric_id")
-)
-EXTRACT_IMDB_NUMERIC_ID: dict[TMDB_TYPE, pl.Expr] = {
-    "movie": _EXTRACT_IMDB_TITLE_NUMERIC_ID,
-    "tv": _EXTRACT_IMDB_TITLE_NUMERIC_ID,
-    "person": _EXTRACT_IMDB_NAME_NUMERIC_ID,
+_IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
+    "movie": r"tt(\d+)",
+    "tv": r"tt(\d+)",
+    "person": r"nm(\d+)",
 }
 
-_EXTRACT_WIKIDATA_NUMERIC_ID = (
-    pl.col("wikidata_id")
-    .str.extract(r"Q(\d+)", 1)
-    .cast(pl.UInt32)
-    .alias("wikidata_numeric_id")
-)
+
+def extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
+    return (
+        expr.str.extract(_IMDB_ID_PATTERN[tmdb_type], 1)
+        .cast(pl.UInt32)
+        .alias("imdb_numeric_id")
+    )
+
+
+def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(r"Q(\d+)", 1).cast(pl.UInt32).alias("wikidata_numeric_id")
+
 
 _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
     {
@@ -83,9 +77,9 @@ def fetch_tmdb_external_ids(
             pl.col("id"),
             pl.col("success").fill_null(True),
             timestamp().alias("retrieved_at"),
-            EXTRACT_IMDB_NUMERIC_ID[tmdb_type],
+            pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type),
             pl.col("tvdb_id"),
-            _EXTRACT_WIKIDATA_NUMERIC_ID,
+            pl.col("wikidata_id").pipe(_extract_wikidata_numeric_id),
         )
     )
 

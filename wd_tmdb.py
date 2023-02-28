@@ -6,7 +6,7 @@ from typing import Literal
 import polars as pl
 
 from sparql import sparql_df
-from tmdb_etl import EXTRACT_IMDB_NUMERIC_ID, TMDB_TYPE, tmdb_exists, tmdb_find
+from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
 STATEMENT_LIMIT = 100
 TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
@@ -95,7 +95,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
 
     wd_df = (
         sparql_df(sparql_query, columns=["item", "imdb_id"])
-        .with_columns(EXTRACT_IMDB_NUMERIC_ID[tmdb_type])
+        .with_columns(pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type))
         .drop_nulls()
     )
 
