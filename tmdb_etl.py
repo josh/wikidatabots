@@ -6,8 +6,8 @@ from typing import Literal
 
 import polars as pl
 
-from polars_requests import Session, response_text, urllib3_request_urls
-from polars_utils import align_to_index, timestamp, update_ipc
+from polars_requests import Session, response_date, response_text, urllib3_request_urls
+from polars_utils import align_to_index, update_ipc
 
 _SESSION = Session(
     ok_statuses={200, 404},
@@ -20,6 +20,60 @@ _SESSION = Session(
 TMDB_TYPE = Literal["movie", "tv", "person"]
 
 _ONE_DAY = datetime.timedelta(days=1)
+
+_EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
+    {
+        "success": pl.Boolean,
+        "id": pl.Int64,
+        "imdb_id": pl.Utf8,
+        "tvdb_id": pl.UInt32,
+        "wikidata_id": pl.Utf8,
+    }
+)
+
+
+def append_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    return (
+        df.with_columns(
+            pl.format(
+                "https://api.themoviedb.org/3/{}/{}/external_ids?api_key={}",
+                pl.lit(tmdb_type),
+                pl.col("id"),
+                pl.lit(os.environ["TMDB_API_KEY"]),
+            )
+            .pipe(urllib3_request_urls, session=_SESSION)
+            .alias("response")
+        )
+        .with_columns(
+            pl.col("response")
+            .pipe(response_text)
+            .str.json_extract(dtype=_EXTERNAL_IDS_RESPONSE_DTYPE)
+            .alias("data")
+        )
+        .with_columns(
+            pl.col("id"),
+            pl.col("data").struct.field("success").fill_null(True).alias("success"),
+            (
+                pl.col("response")
+                .pipe(response_date)
+                .cast(pl.Datetime(time_unit="ns"))
+                .alias("retrieved_at")
+            ),
+            (
+                pl.col("data")
+                .struct.field("imdb_id")
+                .pipe(extract_imdb_numeric_id, tmdb_type)
+            ),
+            pl.col("data").struct.field("tvdb_id").alias("tvdb_id"),
+            (
+                pl.col("data")
+                .struct.field("wikidata_id")
+                .pipe(_extract_wikidata_numeric_id)
+            ),
+        )
+        .drop(["response", "data"])
+    )
+
 
 _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
     "movie": r"tt(\d+)",
@@ -38,50 +92,6 @@ def extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
 
 def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(r"Q(\d+)", 1).cast(pl.UInt32).alias("wikidata_numeric_id")
-
-
-_EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
-    {
-        "success": pl.Boolean,
-        "id": pl.Int64,
-        "imdb_id": pl.Utf8,
-        "tvdb_id": pl.UInt32,
-        "wikidata_id": pl.Utf8,
-    }
-)
-
-
-def fetch_tmdb_external_ids(
-    tmdb_ids: pl.LazyFrame, tmdb_type: TMDB_TYPE
-) -> pl.LazyFrame:
-    return (
-        tmdb_ids.with_columns(
-            pl.format(
-                "https://api.themoviedb.org/3/{}/{}/external_ids?api_key={}",
-                pl.lit(tmdb_type),
-                pl.col("id"),
-                pl.lit(os.environ["TMDB_API_KEY"]),
-            )
-            .pipe(urllib3_request_urls, session=_SESSION)
-            .pipe(response_text)
-            .str.json_extract(dtype=_EXTERNAL_IDS_RESPONSE_DTYPE)
-            .alias("result")
-        )
-        .with_columns(
-            pl.col("result").struct.field("success").alias("success"),
-            pl.col("result").struct.field("imdb_id").alias("imdb_id"),
-            pl.col("result").struct.field("tvdb_id").alias("tvdb_id"),
-            pl.col("result").struct.field("wikidata_id").alias("wikidata_id"),
-        )
-        .select(
-            pl.col("id"),
-            pl.col("success").fill_null(True),
-            timestamp().alias("retrieved_at"),
-            pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type),
-            pl.col("tvdb_id"),
-            pl.col("wikidata_id").pipe(_extract_wikidata_numeric_id),
-        )
-    )
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
@@ -217,7 +227,7 @@ def _insert_tmdb_external_ids(
     tmdb_ids: pl.LazyFrame,
 ) -> pl.LazyFrame:
     return (
-        pl.concat([df, fetch_tmdb_external_ids(tmdb_ids, tmdb_type)])
+        pl.concat([df, append_tmdb_external_ids(tmdb_ids, tmdb_type)])
         .unique(subset=["id"], keep="last")
         .pipe(align_to_index, name="id")
     )

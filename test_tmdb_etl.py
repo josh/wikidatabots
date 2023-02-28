@@ -6,7 +6,7 @@ import polars as pl
 from polars.testing import assert_frame_equal
 
 from tmdb_etl import (
-    fetch_tmdb_external_ids,
+    append_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
     tmdb_exists,
@@ -14,9 +14,9 @@ from tmdb_etl import (
 )
 
 
-def test_fetch_tmdb_external_ids():
+def test_append_tmdb_external_ids():
     ids = pl.LazyFrame({"id": [1, 2, 3, 4]})
-    df = fetch_tmdb_external_ids(ids, "movie")
+    df = append_tmdb_external_ids(ids, "movie")
     df2 = pl.LazyFrame(
         {
             "id": [1, 2, 3, 4],
