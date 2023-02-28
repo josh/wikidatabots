@@ -19,8 +19,6 @@ _SESSION = Session(
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 
-_ONE_DAY = datetime.timedelta(days=1)
-
 _EXTERNAL_IDS_RESPONSE_DTYPE = pl.Struct(
     {
         "success": pl.Boolean,
@@ -99,7 +97,7 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
     dates_df = df.select(
         [
             pl.date_range(
-                low=pl.col("date").max().alias("start_date") - _ONE_DAY,
+                low=pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
                 high=datetime.date.today(),
                 interval="1d",
             ).alias("date")
@@ -128,7 +126,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 pl.lit(tmdb_type),
                 pl.lit(os.environ["TMDB_API_KEY"]),
                 pl.col("date"),
-                (pl.col("date") + _ONE_DAY),
+                (pl.col("date").dt.offset_by("1d")),
             ).alias("url")
         )
         .select(
