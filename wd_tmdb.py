@@ -84,7 +84,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
 
     tmdb_df = (
         pl.scan_ipc(
-            f"s3://wikidatabots/tmdb/{tmdb_type}/external_ids.arrow",
+            f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
             storage_options={"anon": True},
         )
         .select(["id", "imdb_numeric_id"])
@@ -147,7 +147,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
 
     tmdb_df = (
         pl.scan_ipc(
-            f"s3://wikidatabots/tmdb/{tmdb_type}/external_ids.arrow",
+            f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
             storage_options={"anon": True},
         )
         .select(["id", "tvdb_id"])
@@ -191,16 +191,16 @@ def find_tmdb_ids_not_found(
         pl.lit(f"Deprecate removed TMDB {tmdb_type} ID"),
     ).alias("rdf_statement")
 
-    changes_df = pl.scan_ipc(
-        f"s3://wikidatabots/tmdb/{tmdb_type}/latest_changes.arrow",
+    tmdb_df = pl.scan_ipc(
+        f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
         storage_options={"anon": True},
-    )
+    ).select(["id", "has_changes", "adult"])
 
     query = NOT_DEPRECATED_QUERY.replace("P0000", TMDB_TYPE_TO_WD_PID[tmdb_type])
     df = sparql_df(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
 
     return (
-        df.join(changes_df, on="id", how="left")
+        df.join(tmdb_df, on="id", how="left")
         .filter(pl.col("adult").is_null() & pl.col("has_changes"))
         .rename({"id": "tmdb_id"})
         .filter(pl.col("tmdb_id").pipe(tmdb_exists, tmdb_type).is_not())
