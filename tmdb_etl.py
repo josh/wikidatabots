@@ -321,9 +321,6 @@ def main() -> None:
         )
     )
 
-    changes_df.write_ipc("latest_changes.arrow", compression="lz4")
-    external_ids_df.write_ipc("external_ids.arrow", compression="lz4")
-
     df = changes_df.join(external_ids_df, on="id", how="left")
     df.write_ipc("tmdb.arrow", compression="lz4")
 

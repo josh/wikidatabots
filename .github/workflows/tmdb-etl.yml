@@ -49,11 +49,7 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/tmdb/${TYPE}.arrow" "tmdb.arrow"
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow" "latest_changes.arrow"
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow" "external_ids.arrow"
           cp tmdb.arrow tmdb.arrow~
-          cp latest_changes.arrow latest_changes.arrow~
-          cp external_ids.arrow external_ids.arrow~
         env:
           TYPE: ${{ matrix.type }}
 
@@ -75,7 +71,5 @@ jobs:
       - name: Upload to S3
         run: |
           aws s3 cp "tmdb.arrow" "s3://wikidatabots/tmdb/${TYPE}.arrow"
-          aws s3 cp "latest_changes.arrow" "s3://wikidatabots/tmdb/${TYPE}/latest_changes.arrow"
-          aws s3 cp "external_ids.arrow" "s3://wikidatabots/tmdb/${TYPE}/external_ids.arrow"
         env:
           TYPE: ${{ matrix.type }}
