@@ -268,10 +268,7 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     assert df.schema == SCHEMA
     df = df.cache()
     new_external_ids_df = (
-        df.with_columns(_OUTDATED.alias("outdated"))
-        .filter(pl.col("outdated"))
-        .select("id")
-        .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
+        df.filter(_OUTDATED).select("id").pipe(tmdb_external_ids, tmdb_type=tmdb_type)
     )
     external_ids_df = (
         pl.concat(
