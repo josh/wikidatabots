@@ -104,7 +104,8 @@ _TMDB_EXTERNAL_SOURCES: set[TMDB_EXTERNAL_SOURCE] = {
 def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema["id"] == pl.UInt32
     return (
-        df.with_columns(
+        df.head(10_000)  # TODO: Remove limit
+        .with_columns(
             pl.format(
                 "https://api.themoviedb.org/3/{}/{}/external_ids?api_key={}",
                 pl.lit(tmdb_type),
@@ -261,37 +262,30 @@ def tmdb_find(
     )
 
 
-_OUTDATED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
+_CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
 _MISSING_STATUS = pl.col("success").is_null()
+_OUTDATED = _CHANGED | _NEVER_FETCHED | _MISSING_STATUS
 
 
 def tmdb_outdated_external_ids(df: pl.LazyFrame) -> pl.LazyFrame:
     assert df.schema == SCHEMA
-    df = df.cache()
-
-    df_outdated = (
-        df.sort(pl.col("retrieved_at"), descending=True)
-        .filter(_OUTDATED | _NEVER_FETCHED | _MISSING_STATUS)
-        .head(10_000)
-        .select(["id"])
-        .with_columns(pl.lit(True).alias("outdated"))
-    )
-
-    return df.join(df_outdated, on="id", how="left").with_columns(
-        pl.col("outdated").fill_null(False)
-    )
+    return df.with_columns(_OUTDATED.alias("outdated"))
 
 
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema == SCHEMA_WITH_OUTDATED
     df = df.cache()
-    outdated_ids = df.filter(pl.col("outdated")).select("id")
+    new_external_ids_df = (
+        df.filter(pl.col("outdated"))
+        .select("id")
+        .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
+    )
     external_ids_df = (
         pl.concat(
             [
                 df.select(_EXTERNAL_IDS_COLUMNS),
-                tmdb_external_ids(outdated_ids, tmdb_type),
+                new_external_ids_df,
             ]
         )
         .unique(subset=["id"], keep="last")
