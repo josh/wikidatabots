@@ -10,14 +10,12 @@ from tmdb_etl import (
     CHANGES_SCHEMA,
     EXTERNAL_IDS_SCHEMA,
     SCHEMA,
-    SCHEMA_WITH_OUTDATED,
     insert_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
     tmdb_exists,
     tmdb_external_ids,
     tmdb_find,
-    tmdb_outdated_external_ids,
     update_changes_and_external_ids,
 )
 
@@ -34,9 +32,8 @@ def test_insert_tmdb_external_ids() -> None:
             "imdb_numeric_id": [None],
             "tvdb_id": [None],
             "wikidata_numeric_id": [None],
-            "outdated": [True],
         },
-        schema=SCHEMA_WITH_OUTDATED,
+        schema=SCHEMA,
     ).map(assert_called_once())
     ldf = insert_tmdb_external_ids(df1, tmdb_type="movie")
     assert ldf.schema == SCHEMA
@@ -113,26 +110,6 @@ def test_find() -> None:
 
     df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="person"))
     df3 = df.with_columns(pl.Series("tmdb_id", [None, None, 1674162], dtype=pl.UInt32))
-    assert_frame_equal(df2, df3)
-
-
-def test_tmdb_outdated_external_ids() -> None:
-    df = pl.LazyFrame(
-        {
-            "id": [1, 3],
-            "has_changes": [False, False],
-            "date": [datetime.date.today(), None],
-            "adult": [False, False],
-            "success": [True, None],
-            "retrieved_at": [datetime.datetime.now(), None],
-            "imdb_numeric_id": [None, None],
-            "tvdb_id": [None, None],
-            "wikidata_numeric_id": [None, None],
-        },
-        schema=SCHEMA,
-    )
-    df2 = df.with_columns(pl.Series("outdated", [False, True]))
-    df3 = tmdb_outdated_external_ids(df.map(assert_called_once()))
     assert_frame_equal(df2, df3)
 
 

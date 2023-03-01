@@ -25,10 +25,6 @@ SCHEMA = {
     "tvdb_id": pl.UInt32,
     "wikidata_numeric_id": pl.UInt32,
 }
-SCHEMA_WITH_OUTDATED = {
-    **SCHEMA,
-    "outdated": pl.Boolean,
-}
 
 CHANGES_SCHEMA = {
     "id": pl.UInt32,
@@ -268,16 +264,12 @@ _MISSING_STATUS = pl.col("success").is_null()
 _OUTDATED = _CHANGED | _NEVER_FETCHED | _MISSING_STATUS
 
 
-def tmdb_outdated_external_ids(df: pl.LazyFrame) -> pl.LazyFrame:
-    assert df.schema == SCHEMA
-    return df.with_columns(_OUTDATED.alias("outdated"))
-
-
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    assert df.schema == SCHEMA_WITH_OUTDATED
+    assert df.schema == SCHEMA
     df = df.cache()
     new_external_ids_df = (
-        df.filter(pl.col("outdated"))
+        df.with_columns(_OUTDATED.alias("outdated"))
+        .filter(pl.col("outdated"))
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
     )
@@ -298,10 +290,8 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
 def update_changes_and_external_ids(
     df: pl.LazyFrame, tmdb_type: TMDB_TYPE
 ) -> pl.LazyFrame:
-    return (
-        df.pipe(insert_tmdb_latest_changes, tmdb_type=tmdb_type)
-        .pipe(tmdb_outdated_external_ids)
-        .pipe(insert_tmdb_external_ids, tmdb_type=tmdb_type)
+    return df.pipe(insert_tmdb_latest_changes, tmdb_type=tmdb_type).pipe(
+        insert_tmdb_external_ids, tmdb_type=tmdb_type
     )
 
 
