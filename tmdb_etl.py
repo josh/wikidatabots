@@ -16,7 +16,6 @@ TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
 
 SCHEMA = {
     "id": pl.UInt32,
-    "has_changes": pl.Boolean,
     "date": pl.Date,
     "adult": pl.Boolean,
     "success": pl.Boolean,
@@ -28,7 +27,6 @@ SCHEMA = {
 
 CHANGES_SCHEMA = {
     "id": pl.UInt32,
-    "has_changes": pl.Boolean,
     "date": pl.Date,
     "adult": pl.Boolean,
 }
@@ -42,7 +40,7 @@ EXTERNAL_IDS_SCHEMA = {
     "wikidata_numeric_id": pl.UInt32,
 }
 
-_CHANGES_COLUMNS = ["id", "has_changes", "date", "adult"]
+_CHANGES_COLUMNS = ["id", "date", "adult"]
 _EXTERNAL_IDS_COLUMNS = [
     "id",
     "success",
@@ -178,7 +176,6 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
         )
         .unique(subset="id", keep="last")
         .pipe(align_to_index, name="id")
-        .with_columns(pl.col("has_changes").fill_null(False))
     )
 
     external_ids_df = df.select(_EXTERNAL_IDS_COLUMNS)
@@ -207,7 +204,6 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         .explode("results")
         .select(
             pl.col("results").struct.field("id").alias("id"),
-            pl.lit(True).alias("has_changes"),
             pl.col("date"),
             pl.col("results").struct.field("adult").alias("adult"),
         )

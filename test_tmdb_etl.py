@@ -24,7 +24,6 @@ def test_insert_tmdb_external_ids() -> None:
     df1 = pl.LazyFrame(
         {
             "id": [3],
-            "has_changes": [True],
             "date": [datetime.date.today()],
             "adult": [False],
             "success": [None],
@@ -45,7 +44,6 @@ def test_insert_tmdb_latest_changes() -> None:
     df1 = pl.LazyFrame(
         {
             "id": [3],
-            "has_changes": [True],
             "date": [datetime.date.today()],
             "adult": [False],
             "success": [None],
@@ -117,7 +115,6 @@ def test_update_changes_and_external_ids() -> None:
     df = pl.LazyFrame(
         {
             "id": [3],
-            "has_changes": [True],
             "date": [datetime.date.today()],
             "adult": [False],
             "success": [None],
