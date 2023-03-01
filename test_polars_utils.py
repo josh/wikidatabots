@@ -1,6 +1,5 @@
 # pyright: strict
 
-from typing import TypeVar
 
 import polars as pl
 import pytest
@@ -11,6 +10,7 @@ from polars.testing.parametric import column, dataframes
 from polars_utils import (
     align_to_index,
     apply_with_tqdm,
+    assert_called_once,
     assert_not_null,
     assert_unique,
     read_xml,
@@ -397,18 +397,3 @@ def test_apply_with_tqdm():
     )
     assert df3.schema == {"s": pl.Int64}
     assert_frame_equal(df2, df3)
-
-
-T = TypeVar("T")
-
-
-def assert_called_once():
-    calls: int = 1
-
-    def mock(value: T) -> T:
-        nonlocal calls
-        calls -= 1
-        assert calls >= 0, "mock called too many times"
-        return value
-
-    return mock

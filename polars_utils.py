@@ -5,7 +5,7 @@ import random
 import warnings
 import xml.etree.ElementTree as ET
 from datetime import datetime
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterator, TypeVar
 
 import polars as pl
 from tqdm import tqdm
@@ -121,7 +121,8 @@ def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:
 def unique_row_differences(
     df1: pl.LazyFrame, df2: pl.LazyFrame, on: str
 ) -> tuple[int, int, int]:
-    # .cache() doesn't seem to work here
+    # FIXME: cache() isn't working
+    # df1, df2 = df1.cache(), df2.cache()
     df1, df2 = df1.collect().lazy(), df2.collect().lazy()
     [removed, added, both_key, both_equal] = pl.collect_all(
         [
@@ -228,3 +229,18 @@ def _xml_element_field_iter(
                     yield float(child.text)
                 else:
                     yield child.text
+
+
+T = TypeVar("T")
+
+
+def assert_called_once() -> Callable[[T], T]:
+    calls: int = 1
+
+    def mock(value: T) -> T:
+        nonlocal calls
+        calls -= 1
+        assert calls >= 0, "mock called too many times"
+        return value
+
+    return mock

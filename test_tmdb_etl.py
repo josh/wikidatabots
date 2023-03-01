@@ -5,16 +5,43 @@ import datetime
 import polars as pl
 from polars.testing import assert_frame_equal
 
+from polars_utils import assert_called_once
 from tmdb_etl import (
     CHANGES_SCHEMA,
     EXTERNAL_IDS_SCHEMA,
+    SCHEMA,
+    SCHEMA_WITH_OUTDATED,
+    insert_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
     tmdb_exists,
     tmdb_external_ids,
     tmdb_find,
+    tmdb_outdated_external_ids,
     update_changes_and_external_ids,
 )
+
+
+def test_insert_tmdb_external_ids() -> None:
+    df1 = pl.LazyFrame(
+        {
+            "id": [3],
+            "has_changes": [True],
+            "date": [datetime.date.today()],
+            "adult": [False],
+            "success": [None],
+            "retrieved_at": [None],
+            "imdb_numeric_id": [None],
+            "tvdb_id": [None],
+            "wikidata_numeric_id": [None],
+            "outdated": [True],
+        },
+        schema=SCHEMA_WITH_OUTDATED,
+    ).map(assert_called_once())
+    ldf = insert_tmdb_external_ids(df1, tmdb_type="movie")
+    assert ldf.schema == SCHEMA
+    df2 = ldf.collect()
+    assert len(df2) > 0
 
 
 def test_insert_tmdb_latest_changes() -> None:
@@ -24,11 +51,16 @@ def test_insert_tmdb_latest_changes() -> None:
             "has_changes": [True],
             "date": [datetime.date.today()],
             "adult": [False],
+            "success": [None],
+            "retrieved_at": [None],
+            "imdb_numeric_id": [None],
+            "tvdb_id": [None],
+            "wikidata_numeric_id": [None],
         },
-        schema=CHANGES_SCHEMA,
-    )
+        schema=SCHEMA,
+    ).map(assert_called_once())
     ldf = insert_tmdb_latest_changes(df1, tmdb_type="movie")
-    assert ldf.schema == CHANGES_SCHEMA
+    assert ldf.schema == SCHEMA
     df2 = ldf.collect()
     assert len(df2) > 0
 
@@ -84,32 +116,41 @@ def test_find() -> None:
     assert_frame_equal(df2, df3)
 
 
+def test_tmdb_outdated_external_ids() -> None:
+    df = pl.LazyFrame(
+        {
+            "id": [1, 3],
+            "has_changes": [False, False],
+            "date": [datetime.date.today(), None],
+            "adult": [False, False],
+            "success": [True, None],
+            "retrieved_at": [datetime.datetime.now(), None],
+            "imdb_numeric_id": [None, None],
+            "tvdb_id": [None, None],
+            "wikidata_numeric_id": [None, None],
+        },
+        schema=SCHEMA,
+    )
+    df2 = df.with_columns(pl.Series("outdated", [False, True]))
+    df3 = tmdb_outdated_external_ids(df.map(assert_called_once()))
+    assert_frame_equal(df2, df3)
+
+
 def test_update_changes_and_external_ids() -> None:
-    changes_df = pl.LazyFrame(
+    df = pl.LazyFrame(
         {
             "id": [3],
             "has_changes": [True],
             "date": [datetime.date.today()],
             "adult": [False],
-        },
-        schema=CHANGES_SCHEMA,
-    )
-    external_ids_df = pl.LazyFrame(
-        {
-            "id": [3],
             "success": [None],
             "retrieved_at": [None],
             "imdb_numeric_id": [None],
             "tvdb_id": [None],
             "wikidata_numeric_id": [None],
         },
-        schema=EXTERNAL_IDS_SCHEMA,
+        schema=SCHEMA,
     )
 
-    changes_ldf, external_ids_ldf = update_changes_and_external_ids(
-        changes_df=changes_df,
-        external_ids_df=external_ids_df,
-        tmdb_type="tv",
-    )
-    assert changes_ldf.schema == CHANGES_SCHEMA
-    assert external_ids_ldf.schema == EXTERNAL_IDS_SCHEMA
+    ldf = update_changes_and_external_ids(df, tmdb_type="tv")
+    assert ldf.schema == SCHEMA

@@ -25,6 +25,10 @@ SCHEMA = {
     "tvdb_id": pl.UInt32,
     "wikidata_numeric_id": pl.UInt32,
 }
+SCHEMA_WITH_OUTDATED = {
+    **SCHEMA,
+    "outdated": pl.Boolean,
+}
 
 CHANGES_SCHEMA = {
     "id": pl.UInt32,
@@ -41,6 +45,16 @@ EXTERNAL_IDS_SCHEMA = {
     "tvdb_id": pl.UInt32,
     "wikidata_numeric_id": pl.UInt32,
 }
+
+_CHANGES_COLUMNS = ["id", "has_changes", "date", "adult"]
+_EXTERNAL_IDS_COLUMNS = [
+    "id",
+    "success",
+    "retrieved_at",
+    "imdb_numeric_id",
+    "tvdb_id",
+    "wikidata_numeric_id",
+]
 
 _SESSION = Session(
     ok_statuses={200, 404},
@@ -144,9 +158,12 @@ def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    assert df.schema == CHANGES_SCHEMA
+    assert df.schema == SCHEMA
 
-    df = df.cache()
+    # FIXME: cache() isn't working
+    # df = df.cache()
+    df = df.collect().lazy()
+
     dates_df = df.select(
         pl.date_range(
             low=pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
@@ -155,12 +172,20 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
         ).alias("date")
     )
 
-    return (
-        pl.concat([df, tmdb_changes(dates_df, tmdb_type=tmdb_type)])
+    changes_df = (
+        pl.concat(
+            [
+                df.select(_CHANGES_COLUMNS),
+                tmdb_changes(dates_df, tmdb_type=tmdb_type),
+            ]
+        )
         .unique(subset="id", keep="last")
         .pipe(align_to_index, name="id")
         .with_columns(pl.col("has_changes").fill_null(False))
     )
+
+    external_ids_df = df.select(_EXTERNAL_IDS_COLUMNS)
+    return changes_df.join(external_ids_df, on="id", how="left")
 
 
 def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
@@ -241,88 +266,58 @@ _NEVER_FETCHED = pl.col("retrieved_at").is_null()
 _MISSING_STATUS = pl.col("success").is_null()
 
 
-def _tmdb_outdated_external_ids(
-    changes_df: pl.LazyFrame,
-    external_ids_df: pl.LazyFrame,
-) -> pl.LazyFrame:
-    assert changes_df.schema == CHANGES_SCHEMA
-    assert external_ids_df.schema == EXTERNAL_IDS_SCHEMA
-    return (
-        changes_df.join(external_ids_df, on="id", how="left")
-        .sort(pl.col("retrieved_at"), descending=True)
+def tmdb_outdated_external_ids(df: pl.LazyFrame) -> pl.LazyFrame:
+    assert df.schema == SCHEMA
+    df = df.cache()
+
+    df_outdated = (
+        df.sort(pl.col("retrieved_at"), descending=True)
         .filter(_OUTDATED | _NEVER_FETCHED | _MISSING_STATUS)
         .head(10_000)
         .select(["id"])
+        .with_columns(pl.lit(True).alias("outdated"))
+    )
+
+    return df.join(df_outdated, on="id", how="left").with_columns(
+        pl.col("outdated").fill_null(False)
     )
 
 
-def _insert_tmdb_external_ids(
-    df: pl.LazyFrame,
-    tmdb_type: TMDB_TYPE,
-    tmdb_ids: pl.LazyFrame,
-) -> pl.LazyFrame:
-    assert df.schema == EXTERNAL_IDS_SCHEMA
-    assert tmdb_ids.schema == {"id": pl.UInt32}
-    return (
-        pl.concat([df, tmdb_external_ids(tmdb_ids, tmdb_type)])
+def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    assert df.schema == SCHEMA_WITH_OUTDATED
+    df = df.cache()
+    outdated_ids = df.filter(pl.col("outdated")).select("id")
+    external_ids_df = (
+        pl.concat(
+            [
+                df.select(_EXTERNAL_IDS_COLUMNS),
+                tmdb_external_ids(outdated_ids, tmdb_type),
+            ]
+        )
         .unique(subset=["id"], keep="last")
         .pipe(align_to_index, name="id")
     )
+    changes_df = df.select(_CHANGES_COLUMNS)
+    return changes_df.join(external_ids_df, on="id", how="left")
 
 
 def update_changes_and_external_ids(
-    changes_df: pl.LazyFrame,
-    external_ids_df: pl.LazyFrame,
-    tmdb_type: TMDB_TYPE,
-) -> tuple[pl.LazyFrame, pl.LazyFrame]:
-    # TODO: cache() not working here
-    changes_df = (
-        insert_tmdb_latest_changes(changes_df, tmdb_type=tmdb_type).collect().lazy()
+    df: pl.LazyFrame, tmdb_type: TMDB_TYPE
+) -> pl.LazyFrame:
+    return (
+        df.pipe(insert_tmdb_latest_changes, tmdb_type=tmdb_type)
+        .pipe(tmdb_outdated_external_ids)
+        .pipe(insert_tmdb_external_ids, tmdb_type=tmdb_type)
     )
-    external_ids_df = external_ids_df.cache()
-
-    outdated_ids = _tmdb_outdated_external_ids(
-        changes_df=changes_df,
-        external_ids_df=external_ids_df,
-    )
-
-    external_ids_df = _insert_tmdb_external_ids(
-        external_ids_df,
-        tmdb_type=tmdb_type,
-        tmdb_ids=outdated_ids,
-    )
-
-    return (changes_df, external_ids_df)
 
 
 def main() -> None:
     tmdb_type = sys.argv[1]
     assert tmdb_type in _TMDB_TYPES
 
-    df = pl.scan_ipc("tmdb.arrow").cache()
-
-    changes_df = df.select(["id", "has_changes", "date", "adult"])
-    external_ids_df = df.select(
-        [
-            "id",
-            "success",
-            "retrieved_at",
-            "imdb_numeric_id",
-            "tvdb_id",
-            "wikidata_numeric_id",
-        ]
-    )
-
-    changes_df, external_ids_df = pl.collect_all(
-        update_changes_and_external_ids(
-            changes_df=changes_df,
-            external_ids_df=external_ids_df,
-            tmdb_type=tmdb_type,
-        )
-    )
-
-    df = changes_df.join(external_ids_df, on="id", how="left")
-    df.write_ipc("tmdb.arrow", compression="lz4")
+    df = pl.scan_ipc("tmdb.arrow")
+    df = update_changes_and_external_ids(df, tmdb_type=tmdb_type)
+    df.collect().write_ipc("tmdb.arrow", compression="lz4")
 
 
 if __name__ == "__main__":
