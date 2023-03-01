@@ -299,10 +299,24 @@ def main() -> None:
     tmdb_type = sys.argv[1]
     assert tmdb_type in _TMDB_TYPES
 
+    df = pl.scan_ipc("tmdb.arrow").cache()
+
+    changes_df = df.select(["id", "has_changes", "date", "adult"])
+    external_ids_df = df.select(
+        [
+            "id",
+            "success",
+            "retrieved_at",
+            "imdb_numeric_id",
+            "tvdb_id",
+            "wikidata_numeric_id",
+        ]
+    )
+
     changes_df, external_ids_df = pl.collect_all(
         update_changes_and_external_ids(
-            changes_df=pl.scan_ipc("latest_changes.arrow"),
-            external_ids_df=pl.scan_ipc("external_ids.arrow"),
+            changes_df=changes_df,
+            external_ids_df=external_ids_df,
             tmdb_type=tmdb_type,
         )
     )
