@@ -3,7 +3,7 @@
 
 import polars as pl
 import pytest
-from hypothesis import given
+from hypothesis import assume, given
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes
 
@@ -17,6 +17,7 @@ from polars_utils import (
     row_differences,
     unique_row_differences,
     update_ipc,
+    update_or_append,
     xml_to_dtype,
 )
 
@@ -257,14 +258,15 @@ def test_align_to_index():
             column("a", dtype=pl.UInt8, unique=True),
             column("b", dtype=pl.UInt16, unique=True),
             column("c", dtype=pl.Boolean),
-        ]
+        ],
+        lazy=True,
     )
 )
-def test_align_to_index_properties(df: pl.DataFrame):
-    df2 = align_to_index(df.lazy(), name="a").collect()
+def test_align_to_index_properties(df: pl.LazyFrame):
+    df2 = align_to_index(df, name="a").collect()
 
-    df2 = align_to_index(df.lazy(), name="b").collect()
-    assert df2.height >= df.height
+    df2 = align_to_index(df, name="b").collect()
+    assert df2.height >= df.collect().height
 
 
 def test_align_to_index_evaluates_df_once():
@@ -288,6 +290,73 @@ def test_align_to_index_evaluates_df_once():
         ]
     )
     align_to_index(ldf2, name="id").collect()
+
+
+def test_update_or_append() -> None:
+    df1 = pl.LazyFrame({"a": []}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": []}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": []})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": [1]})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2]}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": [1, 2]})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+    df1 = pl.LazyFrame({"a": [1], "b": [True]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2]}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": [1, 2], "b": [True, None]})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+    df1 = pl.LazyFrame({"a": [1], "b": [True]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2], "b": [False]}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": [1, 2], "b": [True, False]})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+    df1 = pl.LazyFrame({"a": [1], "b": [1], "c": [True]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1], "b": [2]}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": [1], "b": [2], "c": [True]})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+    df1 = pl.LazyFrame({"a": [1], "b": [1], "c": [True]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1], "b": [2], "c": [False]}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": [1], "b": [2], "c": [False]})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+
+@given(
+    df1=dataframes(
+        cols=[
+            column("a", dtype=pl.UInt8, null_probability=0.0, unique=True),
+            column("b", dtype=pl.UInt8),
+            column("c", dtype=pl.Boolean),
+        ],
+    ),
+    df2=dataframes(
+        cols=[
+            column("a", dtype=pl.UInt8, null_probability=0.0, unique=True),
+            column("b", dtype=pl.UInt8),
+            column("c", dtype=pl.Boolean),
+        ],
+    ),
+)
+def test_update_or_append_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
+    assume(df1.height == 0 or df1["a"].is_not_null().all())
+    assume(df2.height == 0 or df2["a"].is_not_null().all())
+    assume(df1.height == 0 or df1["a"].is_unique().all())
+    assume(df2.height == 0 or df2["a"].is_unique().all())
+
+    df3 = update_or_append(df1.lazy(), df2.lazy(), on="a").collect()
+    assert df3.schema == df1.schema
+    assert df3.height >= df1.height
+    assert df3.height >= df2.height
+    assert df3.height == 0 or df3["a"].is_not_null().all()
+    assert df3.height == 0 or df3["a"].is_unique().all()
 
 
 def test_row_differences():
