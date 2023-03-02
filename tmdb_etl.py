@@ -98,7 +98,7 @@ _TMDB_EXTERNAL_SOURCES: set[TMDB_EXTERNAL_SOURCE] = {
 def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema["id"] == pl.UInt32
     return (
-        df.head(20_000)  # TODO: Remove limit
+        df.tail(20_000)  # TODO: Remove limit
         .with_columns(
             pl.format(
                 "https://api.themoviedb.org/3/{}/{}/external_ids?api_key={}",
