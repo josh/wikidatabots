@@ -206,7 +206,7 @@ def test_xml_to_dtype():
 
 
 def test_align_to_index():
-    df1 = pl.DataFrame([], schema={"id": pl.Int64}).lazy()
+    df1 = pl.LazyFrame([], schema={"id": pl.Int64})
     assert_frame_equal(align_to_index(df1, name="id"), df1)
 
     df1 = pl.LazyFrame(
@@ -214,13 +214,13 @@ def test_align_to_index():
             "id": pl.Series([1, 2, 5], dtype=pl.Int8),
             "value": [1, 2, 5],
         }
-    )
+    ).map(assert_called_once())
     df2 = pl.LazyFrame(
         {
             "id": pl.Series([0, 1, 2, 3, 4, 5], dtype=pl.Int8),
             "value": [None, 1, 2, None, None, 5],
         }
-    )
+    ).map(assert_called_once())
     assert_frame_equal(align_to_index(df1, name="id"), df2)
 
     df1 = pl.LazyFrame(
@@ -228,7 +228,7 @@ def test_align_to_index():
             "id": pl.Series([255], dtype=pl.UInt8),
             "value": [42],
         }
-    )
+    ).map(assert_called_once())
     df2 = align_to_index(df1, name="id").collect()
     assert df2.schema == {"id": pl.UInt8, "value": pl.Int64}
     assert df2.height == 256
