@@ -1,6 +1,6 @@
 # pyright: strict
 
-from datetime import datetime
+from datetime import date, datetime
 
 import polars as pl
 from polars.testing import assert_frame_equal
@@ -69,7 +69,7 @@ def test_fetch_jsonld_columns() -> None:
             "jsonld_success": [True, True, False],
             "title": ["The Morning Show", "CODA", None],
             "published_at": pl.Series(
-                [datetime(2019, 11, 1), datetime(2021, 8, 13), None], dtype=pl.Date
+                [date(2019, 11, 1), date(2021, 8, 13), None], dtype=pl.Date
             ),
             "director": [None, "Siân Heder", None],
         },
@@ -95,7 +95,7 @@ def test_append_jsonld_changes():
             "loc": ["https://tv.apple.com/us/movie/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir"],
             "jsonld_success": [True],
             "title": ["CODA"],
-            "published_at": pl.Series([datetime(2021, 8, 13)], dtype=pl.Date),
+            "published_at": pl.Series([date(2021, 8, 13)], dtype=pl.Date),
             "director": ["Siân Heder"],
             "retrieved_at": pl.Series(
                 [datetime(2023, 1, 1)], dtype=pl.Datetime(time_unit="ns")
@@ -114,7 +114,7 @@ def test_append_jsonld_changes():
             "jsonld_success": [False, True, True],
             "title": [None, "CODA", "The Morning Show"],
             "published_at": pl.Series(
-                [None, datetime(2021, 8, 13), datetime(2019, 11, 1)], dtype=pl.Date
+                [None, date(2021, 8, 13), date(2019, 11, 1)], dtype=pl.Date
             ),
             "director": [None, "Siân Heder", None],
         }
