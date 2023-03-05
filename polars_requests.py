@@ -123,6 +123,8 @@ def _urllib3_requests_series(requests: pl.Series, session: Session) -> pl.Series
             else:
                 yield None
 
+    assert len(requests) < 50_000, f"Too many requests: {len(requests)}"
+
     if len(requests) == 0:
         # FIXME: Polars bug, can't create empty series with dtype
         return pl.Series(name="response").cast(HTTP_RESPONSE_DTYPE)
@@ -144,6 +146,8 @@ def _urllib3_request_urls_series(urls: pl.Series, session: Session) -> pl.Series
                 yield _urllib3_request(session=session, url=url)
             else:
                 yield None
+
+    assert len(urls) < 50_000, f"Too many requests: {len(urls)}"
 
     if len(urls) == 0:
         # FIXME: Polars bug, can't create empty series with dtype
