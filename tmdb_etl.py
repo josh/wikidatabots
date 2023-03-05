@@ -292,7 +292,7 @@ def main() -> None:
     tmdb_type = sys.argv[1]
     assert tmdb_type in _TMDB_TYPES
 
-    df = pl.scan_ipc("tmdb.arrow")
+    df = pl.scan_ipc("tmdb.arrow", memory_map=False)
     df = update_changes_and_external_ids(df, tmdb_type=tmdb_type)
     df.collect().write_ipc("tmdb.arrow", compression="lz4")
 
