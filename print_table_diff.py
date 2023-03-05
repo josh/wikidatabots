@@ -14,8 +14,8 @@ md_out = open(STEP_SUMMARY, "w")
 
 pl.toggle_string_cache(True)
 
-df_a = pl.scan_ipc(sys.argv[1])
-df_b = pl.scan_ipc(sys.argv[2])
+df_a = pl.scan_ipc(sys.argv[1], memory_map=False)
+df_b = pl.scan_ipc(sys.argv[2], memory_map=False)
 
 if len(sys.argv) > 3:
     key = sys.argv[3]

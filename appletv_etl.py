@@ -280,7 +280,7 @@ def main_sitemap(type: Type) -> None:
 
 def main_jsonld() -> None:
     with pl.StringCache():
-        sitemap_df = pl.scan_ipc("sitemap.arrow")
-        jsonld_df = pl.scan_ipc("jsonld.arrow")
+        sitemap_df = pl.scan_ipc("sitemap.arrow", memory_map=False)
+        jsonld_df = pl.scan_ipc("jsonld.arrow", memory_map=False)
         df = append_jsonld_changes(sitemap_df, jsonld_df, limit=1000)
         df.collect().write_ipc("jsonld.arrow", compression="lz4")
