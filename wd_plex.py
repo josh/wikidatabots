@@ -30,6 +30,14 @@ SELECT DISTINCT ?item ?tmdb_id WHERE {
   ?item wdt:P0000 ?tmdb_id.
   FILTER(xsd:integer(?tmdb_id))
 
+  VALUES ?classes {
+    wd:Q15416
+    wd:Q11424
+    wd:Q24856
+    wd:Q2431196
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?classes.
+
   OPTIONAL { ?item wdt:P11460 ?plex_guid. }
   FILTER(!(BOUND(?plex_guid)))
 }
