@@ -155,6 +155,40 @@ def test_urllib3_requests_prepare_empty_headers() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
+@pytest.mark.xfail
+def test_urllib3_requests_prepare_empty_df() -> None:
+    ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
+        pl.col("url")
+        .pipe(prepare_request, fields={"foo": "bar"}, headers={"X-Foo": "baz"})
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .struct.field("status")
+    )
+    ldf2 = pl.LazyFrame(
+        {
+            "url": pl.Series([], dtype=pl.Utf8),
+            "status": pl.Series([], dtype=pl.UInt16),
+        }
+    )
+    assert_frame_equal(ldf, ldf2)
+
+
+@pytest.mark.xfail
+def test_urllib3_requests_prepare_empty_df_and_headers() -> None:
+    ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
+        pl.col("url")
+        .pipe(prepare_request)
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .struct.field("status")
+    )
+    ldf2 = pl.LazyFrame(
+        {
+            "url": pl.Series([], dtype=pl.Utf8),
+            "status": pl.Series([], dtype=pl.UInt16),
+        }
+    )
+    assert_frame_equal(ldf, ldf2)
+
+
 def test_urllib3_requests_prepare() -> None:
     response_dtype = pl.Struct(
         {
