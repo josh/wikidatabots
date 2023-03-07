@@ -73,7 +73,9 @@ def test_urllib3_request_urls() -> None:
             }
         )
         .with_columns(
-            pl.col("url").pipe(urllib3_request_urls, session=_HTTPBIN_SESSION),
+            pl.col("url").pipe(
+                urllib3_request_urls, session=_HTTPBIN_SESSION, log_group="httpbin"
+            ),
         )
         .with_columns(
             pl.col("response").pipe(response_ok),
@@ -110,7 +112,9 @@ def test_urllib3_request_urls() -> None:
 
 def test_urllib3_request_urls_empty() -> None:
     ldf = pl.LazyFrame({"url": []}, schema={"url": pl.Utf8}).with_columns(
-        pl.col("url").pipe(urllib3_request_urls, session=_HTTPBIN_SESSION),
+        pl.col("url").pipe(
+            urllib3_request_urls, session=_HTTPBIN_SESSION, log_group="httpbin"
+        ),
     )
     ldf2 = pl.LazyFrame({"url": [], "response": []}).with_columns(
         pl.col("url").cast(pl.Utf8),
@@ -129,7 +133,7 @@ def test_urllib3_request_urls_with_defaults() -> None:
     )
     ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
         pl.col("url")
-        .pipe(urllib3_request_urls, session=session)
+        .pipe(urllib3_request_urls, session=session, log_group="httpbin")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -165,7 +169,7 @@ def test_urllib3_requests_raw() -> None:
 
     ldf = pl.LazyFrame({"request": requests}).select(
         pl.col("request")
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -184,7 +188,7 @@ def test_urllib3_requests_prepare_empty_headers() -> None:
     ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -201,7 +205,7 @@ def test_urllib3_requests_prepare_empty_df() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"}, headers={"X-Foo": "baz"})
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -218,7 +222,7 @@ def test_urllib3_requests_prepare_empty_df_and_headers() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -241,7 +245,7 @@ def test_urllib3_requests_prepare() -> None:
     ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"}, headers={"X-Foo": "baz"})
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION)
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -271,7 +275,9 @@ def test_urllib3_request_urls_retry_status() -> None:
             }
         )
         .with_columns(
-            pl.col("url").pipe(urllib3_request_urls, session=session),
+            pl.col("url").pipe(
+                urllib3_request_urls, session=session, log_group="httpbin"
+            ),
         )
         .select(
             pl.col("url"), pl.col("response").struct.field("status").alias("status")
@@ -301,7 +307,7 @@ def test_urllib3_request_urls_timeout() -> None:
             ]
         }
     ).with_columns(
-        pl.col("url").pipe(urllib3_request_urls, session=session),
+        pl.col("url").pipe(urllib3_request_urls, session=session, log_group="httpbin"),
     )
 
     assert ldf.schema == {

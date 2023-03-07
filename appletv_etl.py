@@ -32,7 +32,11 @@ def siteindex(type: Type) -> pl.LazyFrame:
         pl.LazyFrame({"type": [type]})
         .select(
             pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
-            .pipe(urllib3_request_urls, session=_APPLETV_SESSION)
+            .pipe(
+                urllib3_request_urls,
+                session=_APPLETV_SESSION,
+                log_group="tv.apple.com/sitemaps_tv_index_type_1.xml",
+            )
             .pipe(response_text)
             .apply(_parse_siteindex_xml, return_dtype=SITEINDEX_DTYPE)
             .alias("siteindex"),
@@ -62,7 +66,11 @@ def sitemap(type: Type) -> pl.LazyFrame:
         siteindex(type)
         .select(
             pl.col("loc")
-            .pipe(urllib3_request_urls, session=_APPLETV_SESSION)
+            .pipe(
+                urllib3_request_urls,
+                session=_APPLETV_SESSION,
+                log_group="tv.apple.com/sitemaps_tv_type.xml.gz",
+            )
             .struct.field("data")
             .pipe(_zlib_decompress_expr)
             .apply(_parse_sitemap_xml, return_dtype=SITEMAP_DTYPE)
@@ -185,7 +193,9 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.with_columns(
             pl.col("loc")
-            .pipe(urllib3_request_urls, session=_APPLETV_SESSION)
+            .pipe(
+                urllib3_request_urls, session=_APPLETV_SESSION, log_group="tv.apple.com"
+            )
             .pipe(response_text)
             .pipe(_extract_jsonld_expr)
             .str.json_extract(dtype=JSONLD_DTYPE)

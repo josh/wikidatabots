@@ -106,7 +106,11 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 pl.col("id"),
                 pl.lit(os.environ["TMDB_API_KEY"]),
             )
-            .pipe(urllib3_request_urls, session=_SESSION)
+            .pipe(
+                urllib3_request_urls,
+                session=_SESSION,
+                log_group=f"api.themoviedb.org/3/{tmdb_type}/external_ids",
+            )
             .alias("response")
         )
         .with_columns(
@@ -192,7 +196,11 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 pl.col("date"),
                 (pl.col("date").dt.offset_by("1d")),
             )
-            .pipe(urllib3_request_urls, session=_SESSION)
+            .pipe(
+                urllib3_request_urls,
+                session=_SESSION,
+                log_group=f"api.themoviedb.org/3/{tmdb_type}/changes",
+            )
             .pipe(response_text)
             .str.json_extract(dtype=_CHANGES_RESPONSE_DTYPE)
             .struct.field("results")
@@ -216,7 +224,11 @@ def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
             expr,
             pl.lit(os.environ["TMDB_API_KEY"]),
         )
-        .pipe(urllib3_request_urls, session=_SESSION)
+        .pipe(
+            urllib3_request_urls,
+            session=_SESSION,
+            log_group=f"api.themoviedb.org/3/{tmdb_type}",
+        )
         .pipe(response_text)
         .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.UInt32)]))
         .struct.field("id")
@@ -242,7 +254,11 @@ def tmdb_find(
             pl.lit(os.environ["TMDB_API_KEY"]),
             pl.lit(external_id_type),
         )
-        .pipe(urllib3_request_urls, session=_SESSION)
+        .pipe(
+            urllib3_request_urls,
+            session=_SESSION,
+            log_group="api.themoviedb.org/3/find",
+        )
         .pipe(response_text)
         .str.json_extract(dtype=_FIND_RESPONSE_DTYPE)
         .struct.field(f"{tmdb_type}_results")
