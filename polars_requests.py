@@ -31,7 +31,7 @@ _HTTP_DICT_DTYPE = pl.Struct([pl.Field("name", pl.Utf8), pl.Field("value", pl.Ut
 
 _HTTP_DICT_SCHEMA = _HTTP_DICT_DTYPE.to_schema()
 
-_HTTP_REQUEST_DTYPE = pl.Struct(
+HTTP_REQUEST_DTYPE = pl.Struct(
     [
         pl.Field("url", pl.Utf8),
         pl.Field("fields", pl.List(_HTTP_DICT_DTYPE)),
@@ -39,7 +39,7 @@ _HTTP_REQUEST_DTYPE = pl.Struct(
     ]
 )
 
-_HTTP_REQUEST_SCHEMA = _HTTP_REQUEST_DTYPE.to_schema()
+_HTTP_REQUEST_SCHEMA = HTTP_REQUEST_DTYPE.to_schema()
 
 HTTP_RESPONSE_DTYPE = pl.Struct(
     [

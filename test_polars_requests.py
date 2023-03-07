@@ -2,9 +2,15 @@
 
 import polars as pl
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
+from hypothesis.provisional import urls
+from hypothesis.strategies import DrawFn, composite
 from polars.testing import assert_frame_equal
+from polars.testing.parametric import series
 
 from polars_requests import (
+    HTTP_REQUEST_DTYPE,
     HTTP_RESPONSE_DTYPE,
     Session,
     prepare_request,
@@ -17,6 +23,41 @@ from polars_requests import (
 )
 
 _HTTPBIN_SESSION = Session(connect_timeout=1.0, read_timeout=2.0)
+
+
+def _st_http_status():
+    return st.integers(min_value=100, max_value=599)
+
+
+def _st_http_header():
+    return st.fixed_dictionaries({"name": st.text(), "value": st.text()})
+
+
+def _st_http_headers():
+    return st.lists(_st_http_header())
+
+
+def _st_http_data():
+    return st.binary()
+
+
+def _st_http_data_utf8():
+    return _st_binary_utf8()
+
+
+@composite
+def _st_binary_utf8(draw: DrawFn) -> bytes:
+    return draw(st.text()).encode("utf-8")
+
+
+def _st_http_response_dict(utf8_data: bool = False):
+    return st.fixed_dictionaries(
+        {
+            "status": _st_http_status(),
+            "headers": _st_http_headers(),
+            "data": _st_http_data_utf8() if utf8_data else _st_http_data(),
+        }
+    )
 
 
 def test_urllib3_request_urls() -> None:
@@ -270,3 +311,60 @@ def test_urllib3_request_urls_timeout() -> None:
 
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
+
+
+@given(
+    url=urls(),
+    fields=st.dictionaries(st.text(), st.text()),
+    headers=st.dictionaries(st.text(), st.text()),
+)
+def test_prepare_request(
+    url: str,
+    fields: dict[str, pl.Expr | str],
+    headers: dict[str, pl.Expr | str],
+) -> None:
+    expr = prepare_request(url, fields=fields, headers=headers)
+    df = pl.select(expr)
+    assert df.schema == {"request": HTTP_REQUEST_DTYPE}
+
+
+@given(
+    responses=series(
+        dtype=HTTP_RESPONSE_DTYPE,
+        strategy=_st_http_response_dict(),
+    )
+)
+def test_response_ok(responses: pl.Series) -> None:
+    df = pl.DataFrame({"response": responses}).select(
+        pl.col("response").pipe(response_ok)
+    )
+    assert df.schema == {"ok": pl.Boolean}
+    assert len(df) == len(responses)
+
+
+@given(
+    responses=series(
+        dtype=HTTP_RESPONSE_DTYPE,
+        strategy=_st_http_response_dict(),
+    )
+)
+def test_response_header_value(responses: pl.Series) -> None:
+    df = pl.DataFrame({"response": responses}).select(
+        pl.col("response").pipe(response_header_value, name="Date")
+    )
+    assert df.schema == {"Date": pl.Utf8}
+    assert len(df) == len(responses)
+
+
+@given(
+    responses=series(
+        dtype=HTTP_RESPONSE_DTYPE,
+        strategy=_st_http_response_dict(utf8_data=True),
+    )
+)
+def test_response_text(responses: pl.Series) -> None:
+    df = pl.DataFrame({"response": responses}).select(
+        pl.col("response").pipe(response_text)
+    )
+    assert df.schema == {"response_text": pl.Utf8}
+    assert len(df) == len(responses)
