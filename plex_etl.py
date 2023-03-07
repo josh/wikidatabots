@@ -6,7 +6,7 @@ import os
 import polars as pl
 
 from polars_requests import Session, response_date, response_text, urllib3_request_urls
-from polars_utils import read_xml, update_ipc
+from polars_utils import apply_with_tqdm, read_xml, update_ipc
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
@@ -47,8 +47,11 @@ def plex_server(name: str) -> pl.LazyFrame:
                 log_group="plex.tv/api/resources",
             )
             .pipe(response_text)
-            .apply(
-                _parse_device_xml, return_dtype=pl.List(pl.Struct(_PLEX_DEVICE_SCHEMA))
+            .pipe(
+                apply_with_tqdm,
+                _parse_device_xml,
+                return_dtype=pl.List(pl.Struct(_PLEX_DEVICE_SCHEMA)),
+                log_group="parse_device_xml",
             )
             .alias("Device")
         )
@@ -89,7 +92,12 @@ def plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
                 log_group="plexserver/library/sections/all",
             )
             .pipe(response_text)
-            .apply(_parse_xml, return_dtype=pl.List(pl.Struct({"guid": pl.Utf8})))
+            .pipe(
+                apply_with_tqdm,
+                _parse_xml,
+                return_dtype=pl.List(pl.Struct({"guid": pl.Utf8})),
+                log_group="parse_xml",
+            )
             .alias("item")
         )
         .explode("item")
@@ -211,9 +219,11 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
         .with_columns(
             (
                 pl.col("response_text")
-                .apply(
+                .pipe(
+                    apply_with_tqdm,
                     parse_response_text,
                     return_dtype=pl.List(pl.Struct(_METADATA_XML_SCHEMA)),
+                    log_group="parse_response_text",
                 )
                 .arr.first()
                 .alias("video")
