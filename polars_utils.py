@@ -161,6 +161,7 @@ def apply_with_tqdm(
         pbar.desc = desc
         pbar.total = len(s)
         pbar.unit = "row"
+        pbar.disable = len(s) == 0
 
         def apply_function(item: Any) -> Any:
             pbar.update(1)
