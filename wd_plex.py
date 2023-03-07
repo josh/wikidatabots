@@ -7,7 +7,7 @@ import polars as pl
 from plex_etl import encode_plex_guids
 from sparql import sparql_df
 
-LIMIT = 10
+LIMIT = 25
 
 
 def _plex_guids() -> tuple[pl.LazyFrame, pl.LazyFrame]:
