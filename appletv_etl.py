@@ -251,7 +251,10 @@ def append_jsonld_changes(
     )
 
     return (
-        pl.concat([jsonld_df, jsonld_new_df])
+        pl.concat(
+            [jsonld_df, jsonld_new_df],
+            parallel=False,  # BUG: parallel caching is broken
+        )
         .unique(subset="loc", keep="last")
         .sort(by="loc")
     )
@@ -268,7 +271,8 @@ def main_sitemap(type: Type) -> None:
                 [
                     df.with_columns(OUTDATED_EXPR),
                     cleaned_sitemap(type).with_columns(LATEST_EXPR),
-                ]
+                ],
+                parallel=False,  # BUG: parallel caching is broken
             )
             .unique(subset="loc", keep="last")
             .sort(by="loc")

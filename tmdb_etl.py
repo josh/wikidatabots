@@ -154,10 +154,7 @@ def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema == SCHEMA
-
-    # FIXME: cache() isn't working
-    # df = df.cache()
-    df = df.collect().lazy()
+    df = df.cache()
 
     dates_df = df.select(
         pl.date_range(
@@ -172,7 +169,8 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
             [
                 df.select(_CHANGES_COLUMNS),
                 tmdb_changes(dates_df, tmdb_type=tmdb_type),
-            ]
+            ],
+            parallel=False,  # BUG: parallel caching is broken
         )
         .unique(subset="id", keep="last")
         .pipe(align_to_index, name="id")
@@ -271,7 +269,8 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
             [
                 df.select(_EXTERNAL_IDS_COLUMNS),
                 new_external_ids_df,
-            ]
+            ],
+            parallel=False,  # BUG: parallel caching is broken
         )
         .unique(subset=["id"], keep="last")
         .pipe(align_to_index, name="id")

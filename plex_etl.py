@@ -149,7 +149,10 @@ def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
     df2 = df.filter(pl.col("retrieved_at").is_null()).pipe(fetch_metadata_guids)
     return (
-        pl.concat([df, df2])
+        pl.concat(
+            [df, df2],
+            parallel=False,  # BUG: parallel caching is broken
+        )
         .unique(subset="key", keep="last")
         .sort(by=pl.col("key").bin.encode("hex"))
     )
@@ -272,7 +275,10 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
         pmdb_plex_keys(),
         (plex_df.select(["key"]).collect().sample(n=500).lazy().pipe(plex_similar)),
     ]
-    df_new = pl.concat(dfs).unique(subset="key")
+    df_new = pl.concat(
+        dfs,
+        parallel=False,  # BUG: parallel caching is broken
+    ).unique(subset="key")
 
     return plex_df.join(df_new, on="key", how="outer").sort(
         by=pl.col("key").bin.encode("hex")

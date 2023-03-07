@@ -219,7 +219,8 @@ def main() -> None:
             find_tmdb_ids_not_found("movie"),
             find_tmdb_ids_not_found("tv"),
             find_tmdb_ids_not_found("person"),
-        ]
+        ],
+        parallel=False,  # BUG: parallel caching is broken
     ).head(STATEMENT_LIMIT)
 
     for (line,) in df.collect().iter_rows():

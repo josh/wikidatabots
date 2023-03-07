@@ -119,13 +119,14 @@ def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:
 
 
 def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
+    df, other = df.cache(), other.cache()
     other_cols = list(other.columns)
     other_cols.remove(on)
-    # FIXME: cache() isn't working
-    # df, other = df.cache(), other.cache()
-    df, other = df.collect().lazy(), other.collect().lazy()
     other = other.join(df.drop(other_cols), on=on, how="left")
-    return pl.concat([df, other]).unique(subset=on, keep="last")
+    return pl.concat(
+        [df, other],
+        parallel=False,  # BUG: parallel caching is broken
+    ).unique(subset=on, keep="last")
 
 
 def unique_row_differences(

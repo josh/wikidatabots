@@ -75,7 +75,10 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
         .select(_rdf_statement(source_label="TMDb TV series ID"))
         .head(LIMIT)
     )
-    return pl.concat([wd_movie_df, wd_tv_df])
+    return pl.concat(
+        [wd_movie_df, wd_tv_df],
+        parallel=False,  # BUG: parallel caching is broken
+    )
 
 
 def main() -> None:
