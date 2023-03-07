@@ -5,7 +5,7 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from polars.testing import assert_frame_equal
-from polars.testing.parametric import column, dataframes
+from polars.testing.parametric import column, dataframes, series
 
 from polars_utils import (
     align_to_index,
@@ -467,3 +467,15 @@ def test_apply_with_tqdm() -> None:
     )
     assert df3.schema == {"s": pl.Int64}
     assert_frame_equal(df2, df3)
+
+
+@given(s=series(dtype=pl.Int64))
+def test_apply_with_tqdm_properties(s: pl.Series) -> None:
+    def fn(a: int) -> int:
+        return max(min(a, 0), 100)
+
+    df = pl.DataFrame({"a": s}).select(
+        pl.col("a").pipe(apply_with_tqdm, fn, return_dtype=pl.Int64, log_group="test")
+    )
+    assert df.schema == {"a": pl.Int64}
+    assert len(df) == len(s)

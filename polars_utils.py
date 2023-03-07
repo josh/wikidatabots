@@ -156,25 +156,22 @@ def apply_with_tqdm(
     desc: str | None = None,
     log_group: str = "apply(unknown)",
 ) -> pl.Expr:
-    def map_function(s: pl.Series) -> pl.Series:
-        pbar = tqdm()
-        pbar.desc = desc
-        pbar.total = len(s)
-        pbar.unit = "row"
-        pbar.disable = len(s) == 0
-
-        def apply_function(item: Any) -> Any:
-            pbar.update(1)
-            return function(item)
+    def apply_function(s: pl.Series) -> Iterator[Any]:
+        if len(s) == 0:
+            return
 
         try:
             print(f"::group::{log_group}", file=sys.stderr)
-            return s.apply(
-                apply_function, return_dtype=return_dtype, skip_nulls=skip_nulls
-            )
+            for item in tqdm(s, desc=desc, unit="row"):
+                if item:
+                    yield function(item)
+                else:
+                    yield None
         finally:
-            pbar.close()
             print("::endgroup::", file=sys.stderr)
+
+    def map_function(s: pl.Series) -> pl.Series:
+        return pl.Series(values=apply_function(s), dtype=return_dtype)
 
     return expr.map(map_function, return_dtype=return_dtype)
 
