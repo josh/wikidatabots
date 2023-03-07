@@ -2,6 +2,7 @@
 
 import os
 import random
+import sys
 import warnings
 import xml.etree.ElementTree as ET
 from datetime import datetime
@@ -153,6 +154,7 @@ def apply_with_tqdm(
     return_dtype: pl.PolarsDataType | None = None,
     skip_nulls: bool = True,
     desc: str | None = None,
+    log_group: str = "apply(unknown)",
 ) -> pl.Expr:
     def map_function(s: pl.Series) -> pl.Series:
         pbar = tqdm()
@@ -165,11 +167,13 @@ def apply_with_tqdm(
             return function(item)
 
         try:
+            print(f"::group::{log_group}", file=sys.stderr)
             return s.apply(
                 apply_function, return_dtype=return_dtype, skip_nulls=skip_nulls
             )
         finally:
             pbar.close()
+            print("::endgroup::", file=sys.stderr)
 
     return expr.map(map_function, return_dtype=return_dtype)
 
