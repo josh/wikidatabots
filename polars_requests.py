@@ -1,5 +1,6 @@
 # pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
 
+import sys
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Iterator, TypedDict
@@ -111,7 +112,9 @@ def urllib3_requests(requests: pl.Expr, session: Session) -> pl.Expr:
 
 
 def _urllib3_requests_series(requests: pl.Series, session: Session) -> pl.Series:
-    def values() -> Iterator[_HTTPResponse | None]:
+    assert len(requests) < 50_000, f"Too many requests: {len(requests):,}"
+
+    def _values() -> Iterator[_HTTPResponse | None]:
         for request in tqdm(requests, desc="Fetching URLs", unit="row"):
             if request:
                 yield _urllib3_request(
@@ -123,13 +126,15 @@ def _urllib3_requests_series(requests: pl.Series, session: Session) -> pl.Series
             else:
                 yield None
 
-    assert len(requests) < 50_000, f"Too many requests: {len(requests)}"
-
     if len(requests) == 0:
         # FIXME: Polars bug, can't create empty series with dtype
         return pl.Series(name="response").cast(HTTP_RESPONSE_DTYPE)
     else:
-        return pl.Series(name="response", values=values(), dtype=HTTP_RESPONSE_DTYPE)
+        log_group_title = f"Fetching {len(requests):,} URLs"
+        print(f"::group::{log_group_title}", file=sys.stderr)
+        values = list(_values())
+        print("::endgroup::", file=sys.stderr)
+        return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
 
 
 def urllib3_request_urls(urls: pl.Expr, session: Session) -> pl.Expr:
