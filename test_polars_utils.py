@@ -11,6 +11,7 @@ from polars_utils import (
     align_to_index,
     apply_with_tqdm,
     assert_called_once,
+    assert_count,
     assert_not_null,
     assert_unique,
     read_xml,
@@ -48,6 +49,27 @@ def test_assert_unique():
         ldf.collect()
 
     ldf = df.pipe(assert_unique, pl.all())
+    with pytest.raises(pl.ComputeError):  # type: ignore
+        ldf.collect()
+
+
+def test_assert_count() -> None:
+    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 1, 2]})
+
+    ldf = df.pipe(assert_count, limit=3)
+    ldf.collect()
+
+    ldf = df.pipe(assert_count, limit=4)
+    ldf.collect()
+
+    ldf = df.pipe(assert_count, limit=5)
+    ldf.collect()
+
+    ldf = df.pipe(assert_count, limit=2)
+    with pytest.raises(pl.ComputeError):  # type: ignore
+        ldf.collect()
+
+    ldf = df.pipe(assert_count, limit=1)
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 

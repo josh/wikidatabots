@@ -50,6 +50,16 @@ def assert_unique(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
     return ldf.map(assert_unique_inner)
 
 
+def assert_count(ldf: pl.LazyFrame, limit: int) -> pl.LazyFrame:
+    def assert_count_inner(df: pl.DataFrame) -> pl.DataFrame:
+        assert (
+            len(df) <= limit
+        ), f"DataFrame has {len(df):,} rows, expected less than {limit:,}"
+        return df
+
+    return ldf.map(assert_count_inner)
+
+
 _TIMESTAMP_EXPR = (
     pl.lit(0)
     .map(lambda _: datetime.now(), return_dtype=pl.Datetime)
