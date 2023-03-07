@@ -145,20 +145,24 @@ def urllib3_request_urls(urls: pl.Expr, session: Session) -> pl.Expr:
 
 
 def _urllib3_request_urls_series(urls: pl.Series, session: Session) -> pl.Series:
-    def values() -> Iterator[_HTTPResponse | None]:
+    def _values() -> Iterator[_HTTPResponse | None]:
         for url in tqdm(urls, desc="Fetching URLs", unit="row"):
             if url:
                 yield _urllib3_request(session=session, url=url)
             else:
                 yield None
 
-    assert len(urls) < 50_000, f"Too many requests: {len(urls)}"
+    assert len(urls) < 50_000, f"Too many requests: {len(urls):,}"
 
     if len(urls) == 0:
         # FIXME: Polars bug, can't create empty series with dtype
         return pl.Series(name="response").cast(HTTP_RESPONSE_DTYPE)
     else:
-        return pl.Series(name="response", values=values(), dtype=HTTP_RESPONSE_DTYPE)
+        log_group_title = f"Fetching {len(urls):,} URLs"
+        print(f"::group::{log_group_title}", file=sys.stderr)
+        values = list(_values())
+        print("::endgroup::", file=sys.stderr)
+        return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
 
 
 def _urllib3_request(
