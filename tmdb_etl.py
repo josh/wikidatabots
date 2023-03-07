@@ -9,7 +9,7 @@ from typing import Literal
 import polars as pl
 
 from polars_requests import Session, response_date, response_text, urllib3_request_urls
-from polars_utils import align_to_index
+from polars_utils import align_to_index, assert_count
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
@@ -166,7 +166,7 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
             high=datetime.date.today(),
             interval="1d",
         ).alias("date")
-    )
+    ).pipe(assert_count, limit=30)
 
     changes_df = (
         pl.concat(
