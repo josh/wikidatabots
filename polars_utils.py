@@ -30,34 +30,42 @@ def update_ipc(
     os.rename(tmpfile, filename)
 
 
+def _check_ldf(
+    ldf: pl.LazyFrame,
+    function: Callable[[pl.DataFrame], None],
+) -> pl.LazyFrame:
+    def _inner_check(df: pl.DataFrame) -> pl.DataFrame:
+        function(df)
+        return df
+
+    return ldf.map(_inner_check)
+
+
 def assert_not_null(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
-    def assert_not_null_inner(df: pl.DataFrame) -> pl.DataFrame:
+    def assert_not_null_inner(df: pl.DataFrame) -> None:
         df2 = df.select(expr.is_not_null().all())
         for col in df2.columns:
             assert df2[col].all(), f"Column {col} has null values"
-        return df
 
-    return ldf.map(assert_not_null_inner)
+    return _check_ldf(ldf, assert_not_null_inner)
 
 
 def assert_unique(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
-    def assert_unique_inner(df: pl.DataFrame) -> pl.DataFrame:
+    def assert_unique_inner(df: pl.DataFrame) -> None:
         df2 = df.select(expr.drop_nulls().is_unique().all())
         for col in df2.columns:
             assert df2[col].all(), f"Column {col} is not unique"
-        return df
 
-    return ldf.map(assert_unique_inner)
+    return _check_ldf(ldf, assert_unique_inner)
 
 
 def assert_count(ldf: pl.LazyFrame, limit: int) -> pl.LazyFrame:
-    def assert_count_inner(df: pl.DataFrame) -> pl.DataFrame:
+    def assert_count_inner(df: pl.DataFrame) -> None:
         assert (
             len(df) <= limit
         ), f"DataFrame has {len(df):,} rows, expected less than {limit:,}"
-        return df
 
-    return ldf.map(assert_count_inner)
+    return _check_ldf(ldf, assert_count_inner)
 
 
 _TIMESTAMP_EXPR = (
