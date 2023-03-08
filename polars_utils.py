@@ -131,9 +131,13 @@ def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:
 
 
 def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
-    df, other = df.cache(), other.cache()
+    assert_expr = pl.col(on).is_not_null() & pl.col(on).is_unique()
+    df = df.pipe(assert_expression, assert_expr).cache()
+    other = other.pipe(assert_expression, assert_expr).cache()
+
     other_cols = list(other.columns)
     other_cols.remove(on)
+
     other = other.join(df.drop(other_cols), on=on, how="left")
     return pl.concat(
         [df, other],
