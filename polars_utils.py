@@ -91,8 +91,8 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
 
     df = df.pipe(
         assert_expression,
-        pl.col(name).is_not_null() & pl.col(name).is_unique(),
-        f"Column {name} has nulls or is not unique",
+        pl.col(name).is_not_null() & pl.col(name).is_unique() & (pl.col(name) >= 0),
+        f"Invalid {name} index",
     ).cache()
 
     return df.select(

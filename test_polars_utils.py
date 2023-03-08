@@ -258,13 +258,14 @@ def test_align_to_index():
     assert df2.schema == {"id": pl.UInt8, "value": pl.Int64}
     assert df2.height == 256
 
-    # df = pl.LazyFrame(
-    #     {
-    #         "id": [-1, 2, 5],
-    #         "value": [-1, 2, 5],
-    #     }
-    # )
-    # align_to_index(df, name="id").collect()
+    df = pl.LazyFrame(
+        {
+            "id": [-1, 2, 5],
+            "value": [-1, 2, 5],
+        }
+    )
+    with pytest.raises(pl.ComputeError):  #  type: ignore
+        align_to_index(df, name="id").collect()
 
     df = pl.LazyFrame(
         {
