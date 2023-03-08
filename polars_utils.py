@@ -41,31 +41,18 @@ def _check_ldf(
     return ldf.map(_inner_check)
 
 
-def assert_not_null(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
-    def assert_not_null_inner(df: pl.DataFrame) -> None:
-        df2 = df.select(expr.is_not_null().all())
-        for col in df2.columns:
-            assert df2[col].all(), f"Column {col} has null values"
+def assert_expression(
+    ldf: pl.LazyFrame, expr: pl.Expr, message: str = ""
+) -> pl.LazyFrame:
+    def assert_expression_inner(df: pl.DataFrame) -> None:
+        if len(df) == 0:
+            return
 
-    return _check_ldf(ldf, assert_not_null_inner)
+        for name, series in df.select(expr).to_dict().items():
+            assert series.dtype == pl.Boolean
+            assert series.all(), message.format(name)
 
-
-def assert_unique(ldf: pl.LazyFrame, expr: pl.Expr) -> pl.LazyFrame:
-    def assert_unique_inner(df: pl.DataFrame) -> None:
-        df2 = df.select(expr.drop_nulls().is_unique().all())
-        for col in df2.columns:
-            assert df2[col].all(), f"Column {col} is not unique"
-
-    return _check_ldf(ldf, assert_unique_inner)
-
-
-def assert_count(ldf: pl.LazyFrame, limit: int) -> pl.LazyFrame:
-    def assert_count_inner(df: pl.DataFrame) -> None:
-        assert (
-            len(df) <= limit
-        ), f"DataFrame has {len(df):,} rows, expected less than {limit:,}"
-
-    return _check_ldf(ldf, assert_count_inner)
+    return _check_ldf(ldf, assert_expression_inner)
 
 
 _TIMESTAMP_EXPR = (
@@ -100,8 +87,14 @@ PL_INTEGERS = {
 
 
 def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
-    df = df.cache()
     assert df.schema[name] in PL_INTEGERS
+
+    df = df.pipe(
+        assert_expression,
+        pl.col(name).is_not_null() & pl.col(name).is_unique(),
+        f"Column {name} has nulls or is not unique",
+    ).cache()
+
     return df.select(
         pl.arange(
             low=0,

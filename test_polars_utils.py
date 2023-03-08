@@ -11,9 +11,7 @@ from polars_utils import (
     align_to_index,
     apply_with_tqdm,
     assert_called_once,
-    assert_count,
-    assert_not_null,
-    assert_unique,
+    assert_expression,
     read_xml,
     row_differences,
     unique_row_differences,
@@ -24,16 +22,20 @@ from polars_utils import (
 
 
 def test_assert_not_null():
-    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, None, 2]})
-
-    ldf = df.pipe(assert_not_null, pl.col("a"))
+    df = pl.LazyFrame({"a": []})
+    ldf = df.pipe(assert_expression, pl.col("a").is_not_null())
     ldf.collect()
 
-    ldf = df.pipe(assert_not_null, pl.col("b"))
+    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, None, 2]})
+
+    ldf = df.pipe(assert_expression, pl.col("a").is_not_null())
+    ldf.collect()
+
+    ldf = df.pipe(assert_expression, pl.col("b").is_not_null())
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 
-    ldf = df.pipe(assert_not_null, pl.all())
+    ldf = df.pipe(assert_expression, pl.all().is_not_null())
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 
@@ -41,14 +43,14 @@ def test_assert_not_null():
 def test_assert_unique():
     df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 1, 2]})
 
-    ldf = df.pipe(assert_unique, pl.col("a"))
+    ldf = df.pipe(assert_expression, pl.col("a").drop_nulls().is_unique())
     ldf.collect()
 
-    ldf = df.pipe(assert_unique, pl.col("b"))
+    ldf = df.pipe(assert_expression, pl.col("b").drop_nulls().is_unique())
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 
-    ldf = df.pipe(assert_unique, pl.all())
+    ldf = df.pipe(assert_expression, pl.all().drop_nulls().is_unique())
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 
@@ -56,20 +58,20 @@ def test_assert_unique():
 def test_assert_count() -> None:
     df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 1, 2]})
 
-    ldf = df.pipe(assert_count, limit=3)
+    ldf = df.pipe(assert_expression, pl.count() <= 3)
     ldf.collect()
 
-    ldf = df.pipe(assert_count, limit=4)
+    ldf = df.pipe(assert_expression, pl.count() <= 4)
     ldf.collect()
 
-    ldf = df.pipe(assert_count, limit=5)
+    ldf = df.pipe(assert_expression, pl.count() < 5)
     ldf.collect()
 
-    ldf = df.pipe(assert_count, limit=2)
+    ldf = df.pipe(assert_expression, pl.count() <= 2)
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 
-    ldf = df.pipe(assert_count, limit=1)
+    ldf = df.pipe(assert_expression, pl.count() <= 1)
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 
