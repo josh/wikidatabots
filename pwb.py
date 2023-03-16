@@ -1,3 +1,5 @@
+# pyright: reportGeneralTypeIssues=false
+
 """
 Pywikibot login wrapper.
 """

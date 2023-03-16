@@ -1,3 +1,5 @@
+# pyright: reportGeneralTypeIssues=false
+
 import itertools
 import logging
 import os

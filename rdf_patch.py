@@ -1,3 +1,5 @@
+# pyright: reportGeneralTypeIssues=false
+
 import datetime
 import logging
 from collections import defaultdict
