@@ -55,7 +55,7 @@ def _parse_siteindex_xml(text: str) -> pl.Series:
 SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
     "lastmod": pl.Utf8,
-    "changefreq": pl.Categorical,
+    "changefreq": pl.Utf8,
     "priority": pl.Utf8,
 }
 SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(SITEMAP_SCHEMA))
@@ -86,11 +86,18 @@ def sitemap(type: Type) -> pl.LazyFrame:
                 .cast(pl.Datetime(time_unit="ns"))
                 .alias("lastmod")
             ),
-            pl.col("sitemap").struct.field("changefreq").alias("changefreq"),
-            pl.col("sitemap")
-            .struct.field("priority")
-            .cast(pl.Float32)
-            .alias("priority"),
+            (
+                pl.col("sitemap")
+                .struct.field("changefreq")
+                .cast(pl.Categorical)  # BUG: Workaround string to category panic
+                .alias("changefreq")
+            ),
+            (
+                pl.col("sitemap")
+                .struct.field("priority")
+                .cast(pl.Float32)
+                .alias("priority")
+            ),
         )
     )
 
