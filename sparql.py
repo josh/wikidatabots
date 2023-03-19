@@ -250,7 +250,11 @@ def type_constraints(property: PID) -> set[QID]:
     Result = TypedDict("Result", {"subclass": QID})
     results: list[Result] = sparql(query)
 
-    return set([result["subclass"] for result in results])
+    classes: set[QID] = set()
+    for result in results:
+        if result["subclass"].startswith("Q"):
+            classes.add(result["subclass"])
+    return classes
 
 
 SampleType = Literal["created", "updated", "random"]
