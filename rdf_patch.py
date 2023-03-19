@@ -2,7 +2,6 @@
 
 import datetime
 import logging
-import warnings
 from collections import defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
@@ -12,14 +11,12 @@ import pywikibot.config
 from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
-from actions import install_warnings_hook
+from actions import warn
 from constants import INSTANCE_OF_PID
 from page import blocked_qids
 from pwb import login
 from sparql import type_constraints
 from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
-
-install_warnings_hook()
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -122,7 +119,7 @@ def process_graph(
             edit_summaries[item] = object.toPython()
 
         else:
-            warnings.warn(f"Unknown wd triple: {subject} {predicate} {object}")
+            warn("NotImplemented", f"Unknown wd triple: {subject} {predicate} {object}")
 
     def visit_wds_subject(
         item: pywikibot.ItemPage,
@@ -177,7 +174,7 @@ def process_graph(
             edit_summaries[item] = object.toPython()
 
         else:
-            warnings.warn(f"Unknown wds triple: {predicate} {object}")
+            warn("NotImplemented", f"Unknown wds triple: {predicate} {object}")
 
     for subject in subjects(graph):
         if isinstance(subject, BNode):
@@ -201,11 +198,11 @@ def process_graph(
                 visit_wds_subject(claim_item, claim, predicate, object)
 
         else:
-            warnings.warn(f"Unknown subject: {subject}")
+            warn("NotImplemented", f"Unknown subject: {subject}")
 
     for item, claims in changed_claims.items():
         if item.id in blocked_qids():
-            warnings.warn(f"Skipping edit, {item.id} is blocked")
+            warn("BadItem", f"Skipping edit, {item.id} is blocked")
             continue
 
         summary: str | None = edit_summaries.get(item)
@@ -304,7 +301,7 @@ def check_item_property_constraints(
                 ok = True
 
     if not ok:
-        warnings.warn(f"Constraint violation: {item.id} / {property.id}", stacklevel=2)
+        warn("BadClaim", f"Constraint violation: {item.id} / {property.id}")
 
 
 @cache
