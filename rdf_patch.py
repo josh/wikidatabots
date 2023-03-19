@@ -303,7 +303,7 @@ def check_item_property_constraints(
                 ok = True
 
     if not ok:
-        warnings.warn(f"Constraint violation: {item.id} / {property.id}")
+        warnings.warn(f"Constraint violation: {item.id} / {property.id}", stacklevel=2)
 
 
 @cache
