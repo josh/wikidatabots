@@ -26,7 +26,7 @@ def _plex_guids() -> tuple[pl.LazyFrame, pl.LazyFrame]:
 
 
 _TMDB_QUERY = """
-SELECT DISTINCT ?item ?tmdb_id WHERE {
+SELECT ?item ?tmdb_id ?plex_guid WHERE {
   ?item wdt:P0000 ?tmdb_id.
   FILTER(xsd:integer(?tmdb_id))
 
@@ -39,16 +39,24 @@ SELECT DISTINCT ?item ?tmdb_id WHERE {
   ?item (wdt:P31/(wdt:P279*)) ?classes.
 
   OPTIONAL { ?item wdt:P11460 ?plex_guid. }
-  FILTER(!(BOUND(?plex_guid)))
 }
 """
 
 
 def _wikidata_tmdb_ids(pid: str) -> pl.LazyFrame:
-    return sparql_df(
-        _TMDB_QUERY.replace("P0000", pid),
-        schema={"item": pl.Utf8, "tmdb_id": pl.UInt32},
-    ).unique(subset=["tmdb_id"], keep="none")
+    return (
+        sparql_df(
+            _TMDB_QUERY.replace("P0000", pid),
+            schema={
+                "item": pl.Utf8,
+                "tmdb_id": pl.UInt32,
+                "plex_guid": pl.Utf8,
+            },
+        )
+        .unique(subset=["tmdb_id"], keep="none")
+        .filter(pl.col("plex_guid").is_null())
+        .select(["item", "tmdb_id"])
+    )
 
 
 def _rdf_statement(source_label: str) -> pl.Expr:
