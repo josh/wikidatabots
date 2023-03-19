@@ -97,6 +97,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         sparql_df(sparql_query, columns=["item", "imdb_id"])
         .with_columns(pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type))
         .drop_nulls()
+        .unique(subset=["imdb_numeric_id"], keep="none")
     )
 
     return (
@@ -156,9 +157,11 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
         .unique(subset=["tvdb_id"])
     )
 
-    wd_df = sparql_df(
-        sparql_query, schema={"item": pl.Utf8, "tvdb_id": pl.UInt32}
-    ).drop_nulls()
+    wd_df = (
+        sparql_df(sparql_query, schema={"item": pl.Utf8, "tvdb_id": pl.UInt32})
+        .drop_nulls()
+        .unique(subset=["tvdb_id"], keep="none")
+    )
 
     return (
         wd_df.join(tmdb_df, on="tvdb_id", how="left")
