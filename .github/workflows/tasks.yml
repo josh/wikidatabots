@@ -204,3 +204,5 @@ jobs:
       - name: Process RDF statements
         run: |
           python rdf_patch.py <output.ttl
+        env:
+          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
