@@ -13,7 +13,9 @@ from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
 from actions import install_warnings_hook
+from constants import INSTANCE_OF_PID
 from page import blocked_qids
+from sparql import type_constraints
 from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
 
 install_warnings_hook()
@@ -281,6 +283,30 @@ def get_property_page(pid: str) -> pywikibot.PropertyPage:
 
 
 @cache
+def get_property_type_constraints(
+    property: pywikibot.PropertyPage,
+) -> list[pywikibot.ItemPage]:
+    qids = type_constraints(property.getID())
+    return [get_item_page(qid) for qid in qids]
+
+
+def check_item_property_constraints(
+    item: pywikibot.ItemPage,
+    property: pywikibot.PropertyPage,
+) -> None:
+    valid_instance_of_items = get_property_type_constraints(property)
+    ok = False
+
+    if INSTANCE_OF_PID in item.claims:
+        for claim in item.claims[INSTANCE_OF_PID]:
+            if claim.target in valid_instance_of_items:
+                ok = True
+
+    if not ok:
+        warnings.warn(f"Constraint violation: {item.id} / {property.id}")
+
+
+@cache
 def resolve_claim_guid(guid: str) -> pywikibot.Claim:
     qid, hash = guid.split("-", 1)
     snak = f"{qid}${hash}"
@@ -330,6 +356,7 @@ def item_append_claim_target(
     claim: pywikibot.Claim = property.newClaim()
     claim.setTarget(target)
     item.claims[pid].append(claim)
+    check_item_property_constraints(item, property)
 
     return (True, claim)
 
