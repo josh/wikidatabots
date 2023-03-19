@@ -4,6 +4,7 @@ import logging
 
 import polars as pl
 
+from constants import TMDB_MOVIE_ID_PID, TMDB_TV_SERIES_ID_PID
 from plex_etl import encode_plex_guids
 from sparql import sparql_df
 
@@ -70,13 +71,13 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
     plex_movie_df, plex_show_df = _plex_guids()
 
     wd_movie_df = (
-        _wikidata_tmdb_ids("P4947")
+        _wikidata_tmdb_ids(TMDB_MOVIE_ID_PID)
         .join(plex_movie_df, on="tmdb_id")
         .select(_rdf_statement(source_label="TMDb movie ID"))
         .head(_LIMIT)
     )
     wd_tv_df = (
-        _wikidata_tmdb_ids("P4983")
+        _wikidata_tmdb_ids(TMDB_TV_SERIES_ID_PID)
         .join(plex_show_df, on="tmdb_id")
         .select(_rdf_statement(source_label="TMDb TV series ID"))
         .head(_LIMIT)
