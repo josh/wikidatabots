@@ -163,7 +163,7 @@ def sparql_csv(query: str) -> BytesIO:
     r.raise_for_status()
 
     duration = math.floor(r.elapsed.total_seconds() * 1000)
-    logging.info(f"sparql: {duration} ms")
+    logging.info(f"sparql: {duration:,} ms")
 
     return BytesIO(r.content)
 
