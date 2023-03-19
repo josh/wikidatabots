@@ -7,7 +7,7 @@ import polars as pl
 from plex_etl import encode_plex_guids
 from sparql import sparql_df
 
-LIMIT = 25
+_LIMIT = 25
 
 
 def _plex_guids() -> tuple[pl.LazyFrame, pl.LazyFrame]:
@@ -42,17 +42,16 @@ SELECT DISTINCT ?item ?tmdb_id ?plex_guid WHERE {
 }
 """
 
+_TMDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "item": pl.Utf8,
+    "tmdb_id": pl.UInt32,
+    "plex_guid": pl.Utf8,
+}
+
 
 def _wikidata_tmdb_ids(pid: str) -> pl.LazyFrame:
     return (
-        sparql_df(
-            _TMDB_QUERY.replace("P0000", pid),
-            schema={
-                "item": pl.Utf8,
-                "tmdb_id": pl.UInt32,
-                "plex_guid": pl.Utf8,
-            },
-        )
+        sparql_df(_TMDB_QUERY.replace("P0000", pid), schema=_TMDB_QUERY_SCHEMA)
         .filter(pl.col("tmdb_id").is_unique() & pl.col("plex_guid").is_null())
         .drop("plex_guid")
     )
@@ -74,13 +73,13 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
         _wikidata_tmdb_ids("P4947")
         .join(plex_movie_df, on="tmdb_id")
         .select(_rdf_statement(source_label="TMDb movie ID"))
-        .head(LIMIT)
+        .head(_LIMIT)
     )
     wd_tv_df = (
         _wikidata_tmdb_ids("P4983")
         .join(plex_show_df, on="tmdb_id")
         .select(_rdf_statement(source_label="TMDb TV series ID"))
-        .head(LIMIT)
+        .head(_LIMIT)
     )
     return pl.concat(
         [wd_movie_df, wd_tv_df],
