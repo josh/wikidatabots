@@ -48,7 +48,7 @@ def _wikidata_tmdb_ids(pid: str) -> pl.LazyFrame:
     return sparql_df(
         _TMDB_QUERY.replace("P0000", pid),
         schema={"item": pl.Utf8, "tmdb_id": pl.UInt32},
-    )
+    ).unique(subset=["tmdb_id"], keep="none")
 
 
 def _rdf_statement(source_label: str) -> pl.Expr:
