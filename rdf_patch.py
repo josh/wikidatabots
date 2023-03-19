@@ -15,6 +15,7 @@ from rdflib.term import BNode, Literal, URIRef
 from actions import install_warnings_hook
 from constants import INSTANCE_OF_PID
 from page import blocked_qids
+from pwb import login
 from sparql import type_constraints
 from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
 
@@ -409,13 +410,22 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
     parser.add_argument("-u", "--username", action="store")
+    parser.add_argument("-p", "--password", action="store")
     parser.add_argument("-n", "--dry-run", action="store_true")
     args = parser.parse_args()
 
-    edits = process_graph(
-        username=args.username
+    username = (
+        args.username
         or os.environ.get("QUICKSTATEMENTS_USERNAME")
-        or os.environ["WIKIDATA_USERNAME"],
+        or os.environ.get("WIKIDATA_USERNAME")
+    )
+    password = args.password or os.environ.get("WIKIDATA_PASSWORD")
+
+    if (not args.dry_run) and username and password:
+        login(username, password)
+
+    edits = process_graph(
+        username=username,
         input=sys.stdin,
     )
 
