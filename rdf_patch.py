@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import warnings
 from collections import defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
@@ -11,8 +12,11 @@ import pywikibot.config
 from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
+from actions import install_warnings_hook
 from page import blocked_qids
 from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
+
+install_warnings_hook()
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -115,7 +119,7 @@ def process_graph(
             edit_summaries[item] = object.toPython()
 
         else:
-            logging.warning(f"Unknown wd triple: {subject} {predicate} {object}")
+            warnings.warn(f"Unknown wd triple: {subject} {predicate} {object}")
 
     def visit_wds_subject(
         item: pywikibot.ItemPage,
@@ -170,7 +174,7 @@ def process_graph(
             edit_summaries[item] = object.toPython()
 
         else:
-            logging.warning(f"Unknown wds triple: {predicate} {object}")
+            warnings.warn(f"Unknown wds triple: {predicate} {object}")
 
     for subject in subjects(graph):
         if isinstance(subject, BNode):
@@ -194,11 +198,11 @@ def process_graph(
                 visit_wds_subject(claim_item, claim, predicate, object)
 
         else:
-            logging.warning(f"Unknown subject: {subject}")
+            warnings.warn(f"Unknown subject: {subject}")
 
     for item, claims in changed_claims.items():
         if item.id in blocked_qids():
-            logging.warning(f"Skipping edit, {item.id} is blocked")
+            warnings.warn(f"Skipping edit, {item.id} is blocked")
             continue
 
         summary: str | None = edit_summaries.get(item)
