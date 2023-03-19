@@ -26,7 +26,7 @@ def _plex_guids() -> tuple[pl.LazyFrame, pl.LazyFrame]:
 
 
 _TMDB_QUERY = """
-SELECT ?item ?tmdb_id ?plex_guid WHERE {
+SELECT DISTINCT ?item ?tmdb_id ?plex_guid WHERE {
   ?item wdt:P0000 ?tmdb_id.
   FILTER(xsd:integer(?tmdb_id))
 
@@ -53,9 +53,8 @@ def _wikidata_tmdb_ids(pid: str) -> pl.LazyFrame:
                 "plex_guid": pl.Utf8,
             },
         )
-        .unique(subset=["tmdb_id"], keep="none")
-        .filter(pl.col("plex_guid").is_null())
-        .select(["item", "tmdb_id"])
+        .filter(pl.col("tmdb_id").is_unique() & pl.col("plex_guid").is_null())
+        .drop("plex_guid")
     )
 
 
