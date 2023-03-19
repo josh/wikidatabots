@@ -5,26 +5,28 @@ from typing import Literal
 
 import polars as pl
 
+from polars_utils import assert_expression
 from sparql import sparql_df
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
-STATEMENT_LIMIT = 100
-TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
+_STATEMENT_LIMIT = 100
+_CHECK_LIMIT = 1000
+_TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
-TMDB_TYPE_TO_WD_PID: dict[TMDB_TYPE, TMDB_ID_PID] = {
+_TMDB_TYPE_TO_WD_PID: dict[TMDB_TYPE, _TMDB_ID_PID] = {
     "movie": "P4947",
     "tv": "P4983",
     "person": "P4985",
 }
 
-WD_PID_LABEL: dict[TMDB_ID_PID, str] = {
+_WD_PID_LABEL: dict[_TMDB_ID_PID, str] = {
     "P4947": "TMDb movie ID",
     "P4983": "TMDb TV series ID",
     "P4985": "TMDb person ID",
 }
 
-MOVIE_IMDB_QUERY = """
-SELECT ?item ?imdb_id WHERE {
+_MOVIE_IMDB_QUERY = """
+SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
   VALUES ?classes {
@@ -33,13 +35,15 @@ SELECT ?item ?imdb_id WHERE {
   }
   ?item (wdt:P31/(wdt:P279*)) ?classes.
 
-  OPTIONAL { ?item wdt:P4947 ?tmdb_id. }
-  FILTER(!(BOUND(?tmdb_id)))
+  OPTIONAL {
+    ?item wdt:P4947 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
+  }
 }
 """
 
-TV_IMDB_QUERY = """
-SELECT ?item ?imdb_id WHERE {
+_TV_IMDB_QUERY = """
+SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
   VALUES ?classes {
@@ -47,39 +51,49 @@ SELECT ?item ?imdb_id WHERE {
   }
   ?item (wdt:P31/(wdt:P279*)) ?classes.
 
-  OPTIONAL { ?item p:P4983 ?tmdb_id. }
-  FILTER(!(BOUND(?tmdb_id)))
+  OPTIONAL {
+    ?item wdt:P4983 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
+  }
 }
 """
 
-PERSON_IMDB_QUERY = """
-SELECT ?item ?imdb_id WHERE {
+_PERSON_IMDB_QUERY = """
+SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
   ?item wdt:P31 wd:Q5.
 
-  OPTIONAL { ?item wdt:P4985 ?tmdb_id. }
-  FILTER(!(BOUND(?tmdb_id)))
+  OPTIONAL {
+    ?item wdt:P4985 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
+  }
 }
 """
 
-IMDB_QUERY: dict[TMDB_ID_PID, str] = {
-    "P4947": MOVIE_IMDB_QUERY,
-    "P4983": TV_IMDB_QUERY,
-    "P4985": PERSON_IMDB_QUERY,
+_IMDB_QUERY: dict[_TMDB_ID_PID, str] = {
+    "P4947": _MOVIE_IMDB_QUERY,
+    "P4983": _TV_IMDB_QUERY,
+    "P4985": _PERSON_IMDB_QUERY,
+}
+
+_IMDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "item": pl.Utf8,
+    "imdb_id": pl.Utf8,
+    "tmdb_id": pl.UInt32,
 }
 
 
 def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    wd_pid = TMDB_TYPE_TO_WD_PID[tmdb_type]
-    sparql_query = IMDB_QUERY[wd_pid]
+    wd_pid = _TMDB_TYPE_TO_WD_PID[tmdb_type]
+    sparql_query = _IMDB_QUERY[wd_pid]
 
     rdf_statement = pl.format(
         '<{}> wdt:{} "{}" ; wikidatabots:editSummary "{}" .',
         pl.col("item"),
         pl.lit(wd_pid),
         pl.col("tmdb_id"),
-        pl.lit(f"Add {WD_PID_LABEL[wd_pid]} claim via associated IMDb ID"),
+        pl.lit(f"Add {_WD_PID_LABEL[wd_pid]} claim via associated IMDb ID"),
     ).alias("rdf_statement")
 
     tmdb_df = (
@@ -94,16 +108,18 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
     wd_df = (
-        sparql_df(sparql_query, columns=["item", "imdb_id"])
+        sparql_df(sparql_query, schema=_IMDB_QUERY_SCHEMA)
         .with_columns(pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type))
+        .filter(pl.col("imdb_numeric_id").is_unique() & pl.col("tmdb_id").is_null())
+        .drop("tmdb_id")
         .drop_nulls()
-        .unique(subset=["imdb_numeric_id"], keep="none")
     )
 
     return (
         wd_df.join(tmdb_df, on="imdb_numeric_id", how="left")
         .drop_nulls()
         .select(["item", "imdb_id"])
+        .pipe(assert_expression, pl.count() < _CHECK_LIMIT, "Too many IDs to check")
         .with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
         .select(["item", "tmdb_id"])
         .drop_nulls()
@@ -111,8 +127,8 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
 
-TV_TVDB_QUERY = """
-SELECT ?item ?tvdb_id WHERE {
+_TV_TVDB_QUERY = """
+SELECT DISTINCT ?item ?tvdb_id ?tmdb_id WHERE {
   ?item wdt:P4835 ?tvdb_id.
 
   VALUES ?classes {
@@ -122,19 +138,27 @@ SELECT ?item ?tvdb_id WHERE {
 
   FILTER(xsd:integer(?tvdb_id))
 
-  OPTIONAL { ?item p:P4983 ?tmdb_id. }
-  FILTER(!(BOUND(?tmdb_id)))
+  OPTIONAL {
+    ?item wdt:P4983 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
+  }
 }
 """
 
-TVDB_QUERY: dict[TMDB_ID_PID, str] = {
-    "P4983": TV_TVDB_QUERY,
+_TVDB_QUERY: dict[_TMDB_ID_PID, str] = {
+    "P4983": _TV_TVDB_QUERY,
+}
+
+_TVDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "item": pl.Utf8,
+    "tvdb_id": pl.UInt32,
+    "tmdb_id": pl.UInt32,
 }
 
 
 def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
-    wd_pid = TMDB_TYPE_TO_WD_PID[tmdb_type]
-    sparql_query = TVDB_QUERY[wd_pid]
+    wd_pid = _TMDB_TYPE_TO_WD_PID[tmdb_type]
+    sparql_query = _TVDB_QUERY[wd_pid]
 
     rdf_statement = pl.format(
         '<{}> wdt:{} "{}" ; wikidatabots:editSummary "{}" .',
@@ -142,7 +166,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
         pl.lit(wd_pid),
         pl.col("tmdb_id"),
         pl.lit(
-            f"Add {WD_PID_LABEL[wd_pid]} claim via associated TheTVDB.com series ID"
+            f"Add {_WD_PID_LABEL[wd_pid]} claim via associated TheTVDB.com series ID"
         ),
     ).alias("rdf_statement")
 
@@ -158,15 +182,17 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     )
 
     wd_df = (
-        sparql_df(sparql_query, schema={"item": pl.Utf8, "tvdb_id": pl.UInt32})
+        sparql_df(sparql_query, schema=_TVDB_QUERY_SCHEMA)
+        .filter(pl.col("tvdb_id").is_unique() & pl.col("tmdb_id").is_null())
+        .drop("tmdb_id")
         .drop_nulls()
-        .unique(subset=["tvdb_id"], keep="none")
     )
 
     return (
         wd_df.join(tmdb_df, on="tvdb_id", how="left")
         .drop_nulls()
         .select(["item", "tvdb_id"])
+        .pipe(assert_expression, pl.count() < _CHECK_LIMIT, "Too many IDs to check")
         .with_columns(pl.col("tvdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
         .select(["item", "tmdb_id"])
         .drop_nulls()
@@ -174,7 +200,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     )
 
 
-NOT_DEPRECATED_QUERY = """
+_NOT_DEPRECATED_QUERY = """
 SELECT ?statement ?id WHERE {
   ?statement ps:P0000 ?id.
   ?statement wikibase:rank ?rank.
@@ -199,13 +225,14 @@ def find_tmdb_ids_not_found(
         storage_options={"anon": True},
     ).select(["id", "date", "adult"])
 
-    query = NOT_DEPRECATED_QUERY.replace("P0000", TMDB_TYPE_TO_WD_PID[tmdb_type])
+    query = _NOT_DEPRECATED_QUERY.replace("P0000", _TMDB_TYPE_TO_WD_PID[tmdb_type])
     df = sparql_df(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
 
     return (
         df.join(tmdb_df, on="id", how="left")
         .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
+        .pipe(assert_expression, pl.count() < _CHECK_LIMIT, "Too many IDs to check")
         .with_columns(pl.col("tmdb_id").pipe(tmdb_exists, tmdb_type))
         .filter(pl.col("exists").is_not())
         .select(rdf_statement)
@@ -224,7 +251,7 @@ def main() -> None:
             find_tmdb_ids_not_found("person"),
         ],
         parallel=False,  # BUG: parallel caching is broken
-    ).head(STATEMENT_LIMIT)
+    ).head(_STATEMENT_LIMIT)
 
     for (line,) in df.collect().iter_rows():
         print(line)
