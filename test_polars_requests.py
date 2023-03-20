@@ -18,7 +18,6 @@ from polars_requests import (
     response_header_value,
     response_ok,
     response_text,
-    urllib3_request_urls,
     urllib3_requests,
 )
 
@@ -60,7 +59,7 @@ def _st_http_response_dict(utf8_data: bool = False):
     )
 
 
-def test_urllib3_request_urls() -> None:
+def test_urllib3_requests() -> None:
     response_dtype = pl.Struct({"args": pl.Struct({"foo": pl.Utf8})})
     ldf = (
         pl.LazyFrame(
@@ -73,9 +72,9 @@ def test_urllib3_request_urls() -> None:
             }
         )
         .with_columns(
-            pl.col("url").pipe(
-                urllib3_request_urls, session=_HTTPBIN_SESSION, log_group="httpbin"
-            ),
+            pl.col("url")
+            .pipe(prepare_request)
+            .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin"),
         )
         .with_columns(
             pl.col("response").pipe(response_ok),
@@ -110,11 +109,11 @@ def test_urllib3_request_urls() -> None:
     assert len(df) == 3
 
 
-def test_urllib3_request_urls_empty() -> None:
+def test_urllib3_requests_empty() -> None:
     ldf = pl.LazyFrame({"url": []}, schema={"url": pl.Utf8}).with_columns(
-        pl.col("url").pipe(
-            urllib3_request_urls, session=_HTTPBIN_SESSION, log_group="httpbin"
-        ),
+        pl.col("url")
+        .pipe(prepare_request)
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin"),
     )
     ldf2 = pl.LazyFrame({"url": [], "response": []}).with_columns(
         pl.col("url").cast(pl.Utf8),
@@ -123,7 +122,7 @@ def test_urllib3_request_urls_empty() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_request_urls_with_defaults() -> None:
+def test_urllib3_requests_with_defaults() -> None:
     session = Session(fields={"foo": "bar"}, headers={"X-Foo": "baz"})
     response_dtype = pl.Struct(
         {
@@ -133,7 +132,8 @@ def test_urllib3_request_urls_with_defaults() -> None:
     )
     ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
         pl.col("url")
-        .pipe(urllib3_request_urls, session=session, log_group="httpbin")
+        .pipe(prepare_request)
+        .pipe(urllib3_requests, session=session, log_group="httpbin")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -261,7 +261,7 @@ def test_urllib3_requests_prepare() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_request_urls_retry_status() -> None:
+def test_urllib3_requests_retry_status() -> None:
     session = Session(ok_statuses={200}, retry_statuses={500}, retry_count=10)
 
     ldf = (
@@ -275,9 +275,9 @@ def test_urllib3_request_urls_retry_status() -> None:
             }
         )
         .with_columns(
-            pl.col("url").pipe(
-                urllib3_request_urls, session=session, log_group="httpbin"
-            ),
+            pl.col("url")
+            .pipe(prepare_request)
+            .pipe(urllib3_requests, session=session, log_group="httpbin"),
         )
         .select(
             pl.col("url"), pl.col("response").struct.field("status").alias("status")
@@ -296,7 +296,7 @@ def test_urllib3_request_urls_retry_status() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_request_urls_timeout() -> None:
+def test_urllib3_requests_timeout() -> None:
     session = Session(read_timeout=2.0)
 
     ldf = pl.LazyFrame(
@@ -307,7 +307,9 @@ def test_urllib3_request_urls_timeout() -> None:
             ]
         }
     ).with_columns(
-        pl.col("url").pipe(urllib3_request_urls, session=session, log_group="httpbin"),
+        pl.col("url")
+        .pipe(prepare_request)
+        .pipe(urllib3_requests, session=session, log_group="httpbin"),
     )
 
     assert ldf.schema == {

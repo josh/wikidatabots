@@ -141,21 +141,6 @@ def _urllib3_requests_series(
         return pl.Series(name="response", values=_values(), dtype=HTTP_RESPONSE_DTYPE)
 
 
-def urllib3_request_urls(urls: pl.Expr, session: Session, log_group: str) -> pl.Expr:
-    return urls.map(
-        partial(_urllib3_request_urls_series, session=session, log_group=log_group),
-        return_dtype=HTTP_RESPONSE_DTYPE,
-    ).alias("response")
-
-
-def _urllib3_request_urls_series(
-    urls: pl.Series, session: Session, log_group: str
-) -> pl.Series:
-    values = [{"url": url} for url in urls]
-    requests = pl.Series(name="request", values=values, dtype=HTTP_REQUEST_DTYPE)
-    return _urllib3_requests_series(requests, session, log_group)
-
-
 def _urllib3_request(
     session: Session,
     url: str,
