@@ -70,9 +70,9 @@ def test_tmdb_changes() -> None:
 
 
 def test_tmdb_exists() -> None:
-    df = pl.LazyFrame({"tmdb_id": [0, 2, 3, 4]})
+    df = pl.LazyFrame({"tmdb_id": [0, 2, 3, 4, 3106]})
     df2 = df.with_columns(pl.col("tmdb_id").pipe(tmdb_exists, "movie"))
-    df3 = df.with_columns(pl.Series("exists", [False, True, True, False]))
+    df3 = df.with_columns(pl.Series("exists", [False, True, True, False, False]))
     assert_frame_equal(df2, df3)
 
     df = pl.LazyFrame({"tmdb_id": []})
