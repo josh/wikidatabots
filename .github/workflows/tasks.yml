@@ -3,7 +3,6 @@ name: Tasks
 on:
   schedule:
     - cron: "15 7 * * *"
-    - cron: "15 14,21 * * *"
   workflow_dispatch:
 
 permissions:
@@ -17,7 +16,6 @@ env:
 jobs:
   itunes:
     runs-on: ubuntu-latest
-    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -62,7 +60,6 @@ jobs:
 
   appletv:
     runs-on: ubuntu-latest
-    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -107,7 +104,6 @@ jobs:
 
   pywikibot:
     runs-on: ubuntu-latest
-    if: github.event.schedule == '15 7 * * *' || github.event_name == 'workflow_dispatch'
 
     strategy:
       fail-fast: false
@@ -152,7 +148,6 @@ jobs:
 
   rdf_patch:
     runs-on: ubuntu-latest
-    if: github.event.schedule == '15 7 * * *' || github.event.schedule == '15 14,21 * * *' || github.event_name == 'workflow_dispatch'
     concurrency: rdf_patch_${{ matrix.script }}
     timeout-minutes: 60
 
