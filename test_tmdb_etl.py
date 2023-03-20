@@ -16,7 +16,6 @@ from tmdb_etl import (
     tmdb_exists,
     tmdb_external_ids,
     tmdb_find,
-    update_changes_and_external_ids,
 )
 
 
@@ -109,22 +108,3 @@ def test_find() -> None:
     df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="person"))
     df3 = df.with_columns(pl.Series("tmdb_id", [None, None, 1674162], dtype=pl.UInt32))
     assert_frame_equal(df2, df3)
-
-
-def test_update_changes_and_external_ids() -> None:
-    df = pl.LazyFrame(
-        {
-            "id": [3],
-            "date": [datetime.date.today()],
-            "adult": [False],
-            "success": [None],
-            "retrieved_at": [None],
-            "imdb_numeric_id": [None],
-            "tvdb_id": [None],
-            "wikidata_numeric_id": [None],
-        },
-        schema=SCHEMA,
-    )
-
-    ldf = update_changes_and_external_ids(df, tmdb_type="tv")
-    assert ldf.schema == SCHEMA

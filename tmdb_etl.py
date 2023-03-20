@@ -15,7 +15,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import align_to_index, assert_expression, update_or_append
+from polars_utils import align_to_index, assert_expression, update_ipc, update_or_append
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 _TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
@@ -278,21 +278,16 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     )
 
 
-def update_changes_and_external_ids(
-    df: pl.LazyFrame, tmdb_type: TMDB_TYPE
-) -> pl.LazyFrame:
-    return df.pipe(insert_tmdb_latest_changes, tmdb_type=tmdb_type).pipe(
-        insert_tmdb_external_ids, tmdb_type=tmdb_type
-    )
-
-
 def main() -> None:
     tmdb_type = sys.argv[1]
     assert tmdb_type in _TMDB_TYPES
 
-    df = pl.scan_ipc("tmdb.arrow", memory_map=False)
-    df = update_changes_and_external_ids(df, tmdb_type=tmdb_type)
-    df.collect().write_ipc("tmdb.arrow", compression="lz4")
+    def _update(df: pl.LazyFrame) -> pl.LazyFrame:
+        return df.pipe(insert_tmdb_latest_changes, tmdb_type=tmdb_type).pipe(
+            insert_tmdb_external_ids, tmdb_type=tmdb_type
+        )
+
+    update_ipc("tmdb.arrow", _update)
 
 
 if __name__ == "__main__":
