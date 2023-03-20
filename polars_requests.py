@@ -1,9 +1,9 @@
-# pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
+# pyright: strict, reportUnknownMemberType=false
 
 import sys
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Iterator, TypedDict
+from typing import Iterable, Iterator, TypedDict
 
 import polars as pl
 import urllib3
@@ -166,7 +166,8 @@ def _urllib3_request(
         raise ResponseError(f"unretryable {response.status} error response")
 
     resp_headers: list[_HTTPDict] = []
-    for name, value in response.headers.items():
+    header_items: Iterable[tuple[str, str]] = response.headers.items()
+    for name, value in header_items:
         resp_headers.append({"name": name, "value": value})
 
     return {"status": response.status, "headers": resp_headers, "data": response.data}
