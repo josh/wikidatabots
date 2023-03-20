@@ -27,10 +27,10 @@ _APPLETV_SESSION = Session(
 
 Type = Literal["episode", "movie", "show"]
 
-SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
+_SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
 }
-SITEINDEX_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(SITEINDEX_SCHEMA))
+_SITEINDEX_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEINDEX_SCHEMA))
 
 
 def siteindex(type: Type) -> pl.LazyFrame:
@@ -45,7 +45,7 @@ def siteindex(type: Type) -> pl.LazyFrame:
                 log_group="tv.apple.com/sitemaps_tv_index_type_1.xml",
             )
             .pipe(response_text)
-            .apply(_parse_siteindex_xml, return_dtype=SITEINDEX_DTYPE)
+            .apply(_parse_siteindex_xml, return_dtype=_SITEINDEX_DTYPE)
             .alias("siteindex"),
         )
         .explode("siteindex")
@@ -56,16 +56,16 @@ def siteindex(type: Type) -> pl.LazyFrame:
 
 
 def _parse_siteindex_xml(text: str) -> pl.Series:
-    return read_xml(text, schema=SITEINDEX_SCHEMA).to_struct("siteindex")
+    return read_xml(text, schema=_SITEINDEX_SCHEMA).to_struct("siteindex")
 
 
-SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
+_SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
     "lastmod": pl.Utf8,
     "changefreq": pl.Utf8,
     "priority": pl.Utf8,
 }
-SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(SITEMAP_SCHEMA))
+_SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEMAP_SCHEMA))
 
 
 def sitemap(type: Type) -> pl.LazyFrame:
@@ -81,7 +81,7 @@ def sitemap(type: Type) -> pl.LazyFrame:
             )
             .struct.field("data")
             .pipe(_zlib_decompress_expr)
-            .apply(_parse_sitemap_xml, return_dtype=SITEMAP_DTYPE)
+            .apply(_parse_sitemap_xml, return_dtype=_SITEMAP_DTYPE)
             .alias("sitemap")
         )
         .explode("sitemap")
@@ -125,10 +125,10 @@ def _zlib_decompress_expr(expr: pl.Expr) -> pl.Expr:
 
 
 def _parse_sitemap_xml(text: str) -> pl.Series:
-    return read_xml(text, schema=SITEMAP_SCHEMA).to_struct("sitemap")
+    return read_xml(text, schema=_SITEMAP_SCHEMA).to_struct("sitemap")
 
 
-LOC_PATTERN = (
+_LOC_PATTERN = (
     r"https://tv.apple.com/"
     r"(?P<country>[a-z]{2})/"
     r"(?P<type>episode|movie|show)/"
@@ -144,24 +144,24 @@ def cleaned_sitemap(type: Type) -> pl.LazyFrame:
         .with_columns(
             (
                 pl.col("loc")
-                .str.extract(LOC_PATTERN, 1)
+                .str.extract(_LOC_PATTERN, 1)
                 .cast(pl.Categorical)
                 .alias("country")
             ),
             (
                 pl.col("loc")
-                .str.extract(LOC_PATTERN, 2)
+                .str.extract(_LOC_PATTERN, 2)
                 .cast(pl.Categorical)
                 .alias("type")
             ),
             (
                 pl.col("loc")
-                .str.extract(LOC_PATTERN, 3)
+                .str.extract(_LOC_PATTERN, 3)
                 .apply(urllib.parse.unquote, return_dtype=pl.Utf8)
                 .alias("slug")
             ),
-            pl.col("loc").str.extract(LOC_PATTERN, 4).alias("id"),
-            LATEST_EXPR,
+            pl.col("loc").str.extract(_LOC_PATTERN, 4).alias("id"),
+            _LATEST_EXPR,
         )
         .select(
             [
@@ -179,7 +179,7 @@ def cleaned_sitemap(type: Type) -> pl.LazyFrame:
     )
 
 
-JSONLD_DTYPE = pl.Struct(
+_JSONLD_DTYPE = pl.Struct(
     [
         pl.Field("name", pl.Utf8),
         pl.Field("datePublished", pl.Utf8),
@@ -187,16 +187,16 @@ JSONLD_DTYPE = pl.Struct(
     ]
 )
 
-JSONLD_SUCCESS_EXPR = pl.col("jsonld").struct.field("name").is_not_null()
-JSONLD_TITLE_EXPR = (
+_JSONLD_SUCCESS_EXPR = pl.col("jsonld").struct.field("name").is_not_null()
+_JSONLD_TITLE_EXPR = (
     pl.col("jsonld").struct.field("name").apply(html.unescape, return_dtype=pl.Utf8)
 )
-JSONLD_PUBLISHED_AT_EXPR = (
+_JSONLD_PUBLISHED_AT_EXPR = (
     pl.col("jsonld")
     .struct.field("datePublished")
     .str.strptime(datatype=pl.Date, fmt="%+")
 )
-JSONLD_DIRECTOR_EXPR = (
+_JSONLD_DIRECTOR_EXPR = (
     pl.col("jsonld")
     .struct.field("director")
     .arr.first()
@@ -217,14 +217,14 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("response")
             .pipe(response_text)
             .pipe(_extract_jsonld_expr)
-            .str.json_extract(dtype=JSONLD_DTYPE)
+            .str.json_extract(dtype=_JSONLD_DTYPE)
             .alias("jsonld")
         )
         .with_columns(
-            JSONLD_SUCCESS_EXPR.alias("jsonld_success"),
-            JSONLD_TITLE_EXPR.alias("title"),
-            JSONLD_PUBLISHED_AT_EXPR.alias("published_at"),
-            JSONLD_DIRECTOR_EXPR.alias("director"),
+            _JSONLD_SUCCESS_EXPR.alias("jsonld_success"),
+            _JSONLD_TITLE_EXPR.alias("title"),
+            _JSONLD_PUBLISHED_AT_EXPR.alias("published_at"),
+            _JSONLD_DIRECTOR_EXPR.alias("director"),
             (
                 pl.col("response")
                 .pipe(response_date)
@@ -295,8 +295,8 @@ def append_jsonld_changes(
     )
 
 
-OUTDATED_EXPR = pl.lit(False).alias("in_latest_sitemap")
-LATEST_EXPR = pl.lit(True).alias("in_latest_sitemap")
+_OUTDATED_EXPR = pl.lit(False).alias("in_latest_sitemap")
+_LATEST_EXPR = pl.lit(True).alias("in_latest_sitemap")
 
 
 def main_sitemap(type: Type) -> None:
@@ -304,8 +304,8 @@ def main_sitemap(type: Type) -> None:
         return (
             pl.concat(
                 [
-                    df.with_columns(OUTDATED_EXPR),
-                    cleaned_sitemap(type).with_columns(LATEST_EXPR),
+                    df.with_columns(_OUTDATED_EXPR),
+                    cleaned_sitemap(type).with_columns(_LATEST_EXPR),
                 ],
                 parallel=False,  # BUG: parallel caching is broken
             )
