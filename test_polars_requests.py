@@ -200,7 +200,6 @@ def test_urllib3_requests_prepare_empty_headers() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-@pytest.mark.xfail
 def test_urllib3_requests_prepare_empty_df() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
@@ -217,7 +216,6 @@ def test_urllib3_requests_prepare_empty_df() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-@pytest.mark.xfail
 def test_urllib3_requests_prepare_empty_df_and_headers() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
