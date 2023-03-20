@@ -17,6 +17,7 @@ from appletv_etl import (
 def test_siteindex():
     ldf = siteindex(type="show")
     assert ldf.schema == {"loc": pl.Utf8}
+    ldf.collect()
 
 
 def test_sitemap():
@@ -27,6 +28,7 @@ def test_sitemap():
         "changefreq": pl.Categorical,
         "priority": pl.Float32,
     }
+    ldf.collect()
 
 
 def test_cleaned_sitemap():
@@ -42,6 +44,7 @@ def test_cleaned_sitemap():
         "priority": pl.Float32,
         "in_latest_sitemap": pl.Boolean,
     }
+    ldf.collect()
 
 
 def test_fetch_jsonld_columns() -> None:
