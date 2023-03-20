@@ -15,7 +15,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import align_to_index, assert_expression
+from polars_utils import align_to_index, assert_expression, update_or_append
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 _TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
@@ -174,20 +174,9 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
         ).alias("date")
     ).pipe(assert_expression, pl.count() < 30, "Too many dates")
 
-    changes_df = (
-        pl.concat(
-            [
-                df.select(_CHANGES_COLUMNS),
-                tmdb_changes(dates_df, tmdb_type=tmdb_type),
-            ],
-            parallel=False,  # BUG: parallel caching is broken
-        )
-        .unique(subset="id", keep="last")
-        .pipe(align_to_index, name="id")
-    )
-
-    external_ids_df = df.select(_EXTERNAL_IDS_COLUMNS)
-    return changes_df.join(external_ids_df, on="id", how="left")
+    return df.pipe(
+        update_or_append, tmdb_changes(dates_df, tmdb_type=tmdb_type), on="id"
+    ).pipe(align_to_index, name="id")
 
 
 def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
@@ -275,25 +264,17 @@ _OUTDATED_LIMIT = 10_000
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema == SCHEMA
     df = df.cache()
+
     new_external_ids_df = (
         df.filter(_OUTDATED)
         .pipe(assert_expression, pl.count() < _OUTDATED_LIMIT, "Too many outdated rows")
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
     )
-    external_ids_df = (
-        pl.concat(
-            [
-                df.select(_EXTERNAL_IDS_COLUMNS),
-                new_external_ids_df,
-            ],
-            parallel=False,  # BUG: parallel caching is broken
-        )
-        .unique(subset=["id"], keep="last")
-        .pipe(align_to_index, name="id")
+
+    return df.pipe(update_or_append, new_external_ids_df, on="id").pipe(
+        align_to_index, name="id"
     )
-    changes_df = df.select(_CHANGES_COLUMNS)
-    return changes_df.join(external_ids_df, on="id", how="left")
 
 
 def update_changes_and_external_ids(
