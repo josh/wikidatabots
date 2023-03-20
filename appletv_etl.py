@@ -203,6 +203,9 @@ _JSONLD_DIRECTOR_EXPR = (
     .struct.field("name")
     .apply(html.unescape, return_dtype=pl.Utf8)
 )
+_RESPONSE_DATE_EXPR = (
+    pl.col("response").pipe(response_date).cast(pl.Datetime(time_unit="ns"))
+)
 
 
 def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -225,12 +228,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             _JSONLD_TITLE_EXPR.alias("title"),
             _JSONLD_PUBLISHED_AT_EXPR.alias("published_at"),
             _JSONLD_DIRECTOR_EXPR.alias("director"),
-            (
-                pl.col("response")
-                .pipe(response_date)
-                .cast(pl.Datetime(time_unit="ns"))
-                .alias("retrieved_at")
-            ),
+            _RESPONSE_DATE_EXPR.alias("retrieved_at"),
         )
         .drop(["response", "jsonld"])
     )
