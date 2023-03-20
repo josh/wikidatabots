@@ -18,7 +18,7 @@ from polars_requests import (
 from polars_utils import align_to_index, assert_expression
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
-TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
+_TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
 
 SCHEMA = {
     "id": pl.UInt32,
@@ -95,7 +95,7 @@ _FIND_RESPONSE_DTYPE = pl.Struct(
 
 _TMDB_TYPES: set[TMDB_TYPE] = {"movie", "tv", "person"}
 
-_TMDB_EXTERNAL_SOURCES: set[TMDB_EXTERNAL_SOURCE] = {
+_TMDB_EXTERNAL_SOURCES: set[_TMDB_EXTERNAL_SOURCE] = {
     "imdb_id",
     "tvdb_id",
     "wikidata_id",
@@ -242,7 +242,7 @@ def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
 def tmdb_find(
     expr: pl.Expr,
     tmdb_type: TMDB_TYPE,
-    external_id_type: TMDB_EXTERNAL_SOURCE | None = None,
+    external_id_type: _TMDB_EXTERNAL_SOURCE | None = None,
 ) -> pl.Expr:
     if not external_id_type:
         output_name = expr.meta.output_name()
