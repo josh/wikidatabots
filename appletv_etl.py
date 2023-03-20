@@ -8,8 +8,14 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from polars_requests import Session, prepare_request, response_text, urllib3_requests
-from polars_utils import apply_with_tqdm, read_xml, timestamp, update_ipc
+from polars_requests import (
+    Session,
+    prepare_request,
+    response_date,
+    response_text,
+    urllib3_requests,
+)
+from polars_utils import apply_with_tqdm, read_xml, update_ipc
 
 _APPLETV_SESSION = Session(
     connect_timeout=0.5,
@@ -205,6 +211,10 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("loc")
             .pipe(prepare_request)
             .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .alias("response")
+        )
+        .with_columns(
+            pl.col("response")
             .pipe(response_text)
             .pipe(_extract_jsonld_expr)
             .str.json_extract(dtype=JSONLD_DTYPE)
@@ -215,9 +225,14 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             JSONLD_TITLE_EXPR.alias("title"),
             JSONLD_PUBLISHED_AT_EXPR.alias("published_at"),
             JSONLD_DIRECTOR_EXPR.alias("director"),
-            timestamp().alias("retrieved_at"),
+            (
+                pl.col("response")
+                .pipe(response_date)
+                .cast(pl.Datetime(time_unit="ns"))
+                .alias("retrieved_at")
+            ),
         )
-        .drop("jsonld")
+        .drop(["response", "jsonld"])
     )
 
 
