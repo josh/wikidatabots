@@ -111,8 +111,10 @@ def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:
 
 def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
     assert_expr = pl.col(on).is_not_null() & pl.col(on).is_unique()
-    df = df.pipe(assert_expression, assert_expr).cache()
-    other = other.pipe(assert_expression, assert_expr).cache()
+    df = df.pipe(assert_expression, assert_expr, f"Bad '{on}' column on df").cache()
+    other = other.pipe(
+        assert_expression, assert_expr, f"Bad '{on}' column on other"
+    ).cache()
 
     other_cols = list(other.columns)
     other_cols.remove(on)
