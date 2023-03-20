@@ -8,7 +8,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from polars_requests import Session, response_text, urllib3_request_urls
+from polars_requests import Session, prepare_request, response_text, urllib3_requests
 from polars_utils import apply_with_tqdm, read_xml, timestamp, update_ipc
 
 _APPLETV_SESSION = Session(
@@ -32,8 +32,9 @@ def siteindex(type: Type) -> pl.LazyFrame:
         pl.LazyFrame({"type": [type]})
         .select(
             pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
+            .pipe(prepare_request)
             .pipe(
-                urllib3_request_urls,
+                urllib3_requests,
                 session=_APPLETV_SESSION,
                 log_group="tv.apple.com/sitemaps_tv_index_type_1.xml",
             )
@@ -66,8 +67,9 @@ def sitemap(type: Type) -> pl.LazyFrame:
         siteindex(type)
         .select(
             pl.col("loc")
+            .pipe(prepare_request)
             .pipe(
-                urllib3_request_urls,
+                urllib3_requests,
                 session=_APPLETV_SESSION,
                 log_group="tv.apple.com/sitemaps_tv_type.xml.gz",
             )
@@ -201,9 +203,8 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.with_columns(
             pl.col("loc")
-            .pipe(
-                urllib3_request_urls, session=_APPLETV_SESSION, log_group="tv.apple.com"
-            )
+            .pipe(prepare_request)
+            .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
             .pipe(response_text)
             .pipe(_extract_jsonld_expr)
             .str.json_extract(dtype=JSONLD_DTYPE)

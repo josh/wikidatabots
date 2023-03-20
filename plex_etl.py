@@ -5,7 +5,13 @@ import os
 
 import polars as pl
 
-from polars_requests import Session, response_date, response_text, urllib3_request_urls
+from polars_requests import (
+    Session,
+    prepare_request,
+    response_date,
+    response_text,
+    urllib3_requests,
+)
 from polars_utils import apply_with_tqdm, read_xml, update_ipc
 from sparql import sparql_df
 
@@ -41,8 +47,9 @@ def plex_server(name: str) -> pl.LazyFrame:
         pl.LazyFrame({"url": ["https://plex.tv/api/resources"]})
         .select(
             pl.col("url")
+            .pipe(prepare_request)
             .pipe(
-                urllib3_request_urls,
+                urllib3_requests,
                 session=_PLEX_SESSION,
                 log_group="plex.tv/api/resources",
             )
@@ -86,8 +93,9 @@ def plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
             pl.format(
                 "{}/library/sections/{}/all", pl.lit(server["uri"]), pl.col("section")
             )
+            .pipe(prepare_request)
             .pipe(
-                urllib3_request_urls,
+                urllib3_requests,
                 session=plex_server_session,
                 log_group="plexserver/library/sections/all",
             )
@@ -142,8 +150,9 @@ def pmdb_plex_keys() -> pl.LazyFrame:
         pl.LazyFrame({"url": ["https://josh.github.io/pmdb/plex.json"]})
         .select(
             pl.col("url")
+            .pipe(prepare_request)
             .pipe(
-                urllib3_request_urls,
+                urllib3_requests,
                 session=_GITHUB_IO_SESSION,
                 log_group="josh.github.io/pmdb",
             )
@@ -189,8 +198,10 @@ def fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
         pl.format(
             "https://metadata.provider.plex.tv/library/metadata/{}",
             pl.col("key").bin.encode("hex"),
-        ).pipe(
-            urllib3_request_urls,
+        )
+        .pipe(prepare_request)
+        .pipe(
+            urllib3_requests,
             session=_PLEX_SESSION,
             log_group="metadata.provider.plex.tv/library/metadata",
         ),
