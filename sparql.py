@@ -10,6 +10,7 @@ import logging
 import math
 import os
 import platform
+import time
 from collections.abc import Iterable
 from io import BytesIO
 from typing import Any, Literal, TypedDict
@@ -156,14 +157,15 @@ def sparql(query: str) -> list[Any]:
 
 
 def sparql_csv(query: str) -> BytesIO:
+    start = time.time()
     r = session.post(url, data={"query": query}, headers={"Accept": "text/csv"})
 
     if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
         raise TimeoutException(query)
     r.raise_for_status()
 
-    duration = math.floor(r.elapsed.total_seconds() * 1000)
-    logging.info(f"sparql: {duration:,} ms")
+    duration = time.time() - start
+    logging.info(f"sparql: {duration:,.2f}s")
 
     return BytesIO(r.content)
 
