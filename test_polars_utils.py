@@ -378,6 +378,7 @@ def test_update_or_append_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> No
 
     df3 = update_or_append(df1.lazy(), df2.lazy(), on="a").collect()
     assert df3.schema == df1.schema
+    assert df3.columns == df1.columns
     assert df3.height >= df1.height
     assert df3.height >= df2.height
     assert df3.height == 0 or df3["a"].is_not_null().all()
