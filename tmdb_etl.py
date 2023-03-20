@@ -46,16 +46,6 @@ EXTERNAL_IDS_SCHEMA = {
     "wikidata_numeric_id": pl.UInt32,
 }
 
-_CHANGES_COLUMNS = ["id", "date", "adult"]
-_EXTERNAL_IDS_COLUMNS = [
-    "id",
-    "success",
-    "retrieved_at",
-    "imdb_numeric_id",
-    "tvdb_id",
-    "wikidata_numeric_id",
-]
-
 _SESSION = Session(
     ok_statuses={200, 404},
     connect_timeout=1.0,
