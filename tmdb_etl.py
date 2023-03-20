@@ -8,7 +8,13 @@ from typing import Literal
 
 import polars as pl
 
-from polars_requests import Session, response_date, response_text, urllib3_request_urls
+from polars_requests import (
+    Session,
+    prepare_request,
+    response_date,
+    response_text,
+    urllib3_requests,
+)
 from polars_utils import align_to_index, assert_expression
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
@@ -56,6 +62,7 @@ _SESSION = Session(
     read_timeout=3.0,
     retry_count=3,
     retry_backoff_factor=1.0,
+    fields={"api_key": os.environ["TMDB_API_KEY"]},
 )
 
 _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
@@ -100,13 +107,13 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     return (
         df.with_columns(
             pl.format(
-                "https://api.themoviedb.org/3/{}/{}/external_ids?api_key={}",
+                "https://api.themoviedb.org/3/{}/{}/external_ids",
                 pl.lit(tmdb_type),
                 pl.col("id"),
-                pl.lit(os.environ["TMDB_API_KEY"]),
             )
+            .pipe(prepare_request)
             .pipe(
-                urllib3_request_urls,
+                urllib3_requests,
                 session=_SESSION,
                 log_group=f"api.themoviedb.org/3/{tmdb_type}/external_ids",
             )
@@ -187,16 +194,16 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema == {"date": pl.Date}
     return (
         df.with_columns(
-            pl.format(
-                "https://api.themoviedb.org/3/{}/changes"
-                "?api_key={}&start_date={}&end_date={}",
-                pl.lit(tmdb_type),
-                pl.lit(os.environ["TMDB_API_KEY"]),
-                pl.col("date"),
-                (pl.col("date").dt.offset_by("1d")),
+            pl.format("https://api.themoviedb.org/3/{}/changes", pl.lit(tmdb_type))
+            .pipe(
+                prepare_request,
+                fields={
+                    "start_date": pl.col("date"),
+                    "end_date": pl.col("date").dt.offset_by("1d"),
+                },
             )
             .pipe(
-                urllib3_request_urls,
+                urllib3_requests,
                 session=_SESSION,
                 log_group=f"api.themoviedb.org/3/{tmdb_type}/changes",
             )
@@ -217,14 +224,10 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
 
 def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
     return (
-        pl.format(
-            "https://api.themoviedb.org/3/{}/{}?api_key={}",
-            pl.lit(tmdb_type),
-            expr,
-            pl.lit(os.environ["TMDB_API_KEY"]),
-        )
+        pl.format("https://api.themoviedb.org/3/{}/{}", pl.lit(tmdb_type), expr)
+        .pipe(prepare_request)
         .pipe(
-            urllib3_request_urls,
+            urllib3_requests,
             session=_SESSION,
             log_group=f"api.themoviedb.org/3/{tmdb_type}",
         )
@@ -247,14 +250,10 @@ def tmdb_find(
         external_id_type = output_name
 
     return (
-        pl.format(
-            "https://api.themoviedb.org/3/find/{}?api_key={}&external_source={}",
-            expr,
-            pl.lit(os.environ["TMDB_API_KEY"]),
-            pl.lit(external_id_type),
-        )
+        pl.format("https://api.themoviedb.org/3/find/{}", expr)
+        .pipe(prepare_request, fields={"external_source": external_id_type})
         .pipe(
-            urllib3_request_urls,
+            urllib3_requests,
             session=_SESSION,
             log_group="api.themoviedb.org/3/find",
         )
