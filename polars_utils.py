@@ -138,7 +138,7 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
     other_cols = list(other.columns)
     other_cols.remove(on)
 
-    other = other.join(df.drop(other_cols), on=on, how="left")
+    other = other.join(df.drop(other_cols), on=on, how="left").select(df.columns)
     return pl.concat(
         [df, other],
         parallel=False,  # BUG: parallel caching is broken
