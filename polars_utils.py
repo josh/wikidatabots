@@ -3,9 +3,7 @@
 import os
 import random
 import sys
-import warnings
 import xml.etree.ElementTree as ET
-from datetime import datetime
 from typing import Any, Callable, Iterator, TypeVar
 
 import polars as pl
@@ -53,25 +51,6 @@ def assert_expression(
             assert series.all(), message.format(name)
 
     return _check_ldf(ldf, assert_expression_inner)
-
-
-_TIMESTAMP_EXPR = (
-    pl.lit(0)
-    .map(lambda _: datetime.now(), return_dtype=pl.Datetime)
-    .cast(pl.Datetime(time_unit="ns"))
-    .dt.round("1s")
-    .alias("timestamp")
-)
-
-
-def timestamp() -> pl.Expr:
-    warnings.warn(
-        "polars_utils.timestamp() deprecated, "
-        "use polars_requests.response_date() instead",
-        category=DeprecationWarning,
-        stacklevel=2,
-    )
-    return _TIMESTAMP_EXPR
 
 
 PL_INTEGERS = {
