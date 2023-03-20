@@ -36,10 +36,6 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
         with:
