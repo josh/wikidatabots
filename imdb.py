@@ -10,6 +10,12 @@ class CaptchaException(Exception):
     pass
 
 
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
+}
+
+
 def canonical_id(id: str) -> str | None:
     url = formatted_url(id)
     assert url, f"bad id: {id}"
@@ -17,7 +23,7 @@ def canonical_id(id: str) -> str | None:
     if id.startswith("ch") or id.startswith("ev"):
         return id
 
-    r = requests.head(url)
+    r = requests.head(url, headers=_HEADERS)
     if r.status_code == 200:
         return id
     elif r.status_code == 301 or r.status_code == 308:
