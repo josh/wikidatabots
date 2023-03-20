@@ -44,15 +44,6 @@ def position_weighted_shuffled(seq: Iterable[T]) -> list[T]:
     return list([el for _, el in lst])
 
 
-def uniq(*lists: Iterable[T]) -> Iterator[T]:
-    seen: list[T] = []
-    for lst in lists:
-        for el in lst:
-            if el not in seen:
-                yield el
-                seen.append(el)
-
-
 def tryint(value: Any) -> int | None:
     try:
         return int(value)
