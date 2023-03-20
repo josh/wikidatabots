@@ -223,14 +223,14 @@ def find_tmdb_ids_not_found(
     tmdb_df = pl.scan_ipc(
         f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
         storage_options={"anon": True},
-    ).select(["id", "date", "adult"])
+    ).select(["id", "date", "success"])
 
     query = _NOT_DEPRECATED_QUERY.replace("P0000", _TMDB_TYPE_TO_WD_PID[tmdb_type])
     df = sparql_df(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
 
     return (
         df.join(tmdb_df, on="id", how="left")
-        .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
+        .filter(pl.col("success").is_not())
         .rename({"id": "tmdb_id"})
         .pipe(assert_expression, pl.count() < _CHECK_LIMIT, "Too many IDs to check")
         .with_columns(pl.col("tmdb_id").pipe(tmdb_exists, tmdb_type))
