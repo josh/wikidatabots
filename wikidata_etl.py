@@ -6,6 +6,7 @@ from polars_utils import assert_expression
 from sparql import sparql_df
 
 _PIDS: list[str] = [
+    "P345",
     "P4947",
     "P4983",
     "P4985",
