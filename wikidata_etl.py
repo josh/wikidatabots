@@ -88,7 +88,8 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
         .pipe(
             assert_expression,
             pl.col("class_numeric_qid").is_not_null()
-            & pl.col("class_numeric_qid").is_unique(),
+            & pl.col("class_numeric_qid").is_unique()
+            & (pl.count() >= 1),
         )
     )
 
