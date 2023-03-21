@@ -281,24 +281,24 @@ def get_property_page(pid: str) -> pywikibot.PropertyPage:
 
 
 @cache
-def get_property_type_constraints(
-    property: pywikibot.PropertyPage,
-) -> set[str]:
+def get_property_type_constraints(property: pywikibot.PropertyPage) -> set[str]:
     pid: str = property.getID()
-    qids = (
+    qids: list[str] = (
         pl.scan_ipc(
             "s3://wikidatabots/wikidata/property_class_constraints.arrow",
             storage_options={"anon": True},
         )
         .filter(pl.col("pid") == pid)
         .select("class_qid")
-        .collect()["class_qid"]
+        .collect()
+        .to_series()
+        .to_list()
     )
 
     if len(qids) == 0:
         warn("ContraintsMissing", f"No type constraints: {pid}")
 
-    return set(qids.to_list())
+    return set(qids)
 
 
 def check_item_property_constraints(
