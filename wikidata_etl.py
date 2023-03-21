@@ -46,7 +46,7 @@ _CONSTRAINT_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
 }
 
 
-def _fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
+def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
     numeric_pid = int(pid[1:])
     query1 = _CONSTRAINT_INSTANCE_OF_QUERY.replace("P0000", pid)
     query2 = _CONSTRAINT_SUBCLASS_OF_QUERY.replace("P0000", pid)
@@ -76,7 +76,7 @@ def _fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
         )
         .with_columns(
             pl.lit(pid).cast(pl.Categorical).alias("pid"),
-            pl.lit(numeric_pid).alias("numeric_pid"),
+            pl.lit(numeric_pid, dtype=pl.UInt32).alias("numeric_pid"),
         )
         .select(
             "numeric_pid",
@@ -95,7 +95,7 @@ def _fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
 
 def _fetch_all_property_class_constraints() -> pl.LazyFrame:
     return pl.concat(
-        [_fetch_property_class_constraints(pid) for pid in _PIDS],
+        [fetch_property_class_constraints(pid) for pid in _PIDS],
         parallel=False,  # BUG: parallel caching is broken
     )
 
