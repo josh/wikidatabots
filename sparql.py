@@ -11,6 +11,7 @@ import math
 import os
 import platform
 import time
+import warnings
 from collections.abc import Iterable
 from io import BytesIO
 from typing import Any, Literal, TypedDict
@@ -21,7 +22,10 @@ import requests
 from rdflib import URIRef
 
 import timeout
+from actions import install_warnings_hook
 from wikidata import PID, QID
+
+install_warnings_hook()
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -156,7 +160,11 @@ def sparql(query: str) -> list[Any]:
     return list(results())
 
 
-def sparql_csv(query: str) -> BytesIO:
+class SlowQueryWarning(Warning):
+    pass
+
+
+def sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
     start = time.time()
     r = session.post(url, data={"query": query}, headers={"Accept": "text/csv"})
 
@@ -165,7 +173,13 @@ def sparql_csv(query: str) -> BytesIO:
     r.raise_for_status()
 
     duration = time.time() - start
-    logging.info(f"sparql: {duration:,.2f}s")
+    if duration > 45:
+        logging.warn(f"sparql: {duration:,.2f}s")
+        warnings.warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
+    elif duration > 5:
+        logging.info(f"sparql: {duration:,.2f}s")
+    else:
+        logging.debug(f"sparql: {duration:,.2f}s")
 
     return BytesIO(r.content)
 
@@ -180,7 +194,7 @@ def sparql_df(
     assert schema, "missing schema"
 
     def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
-        return pl.read_csv(sparql_csv(query), dtypes=schema)
+        return pl.read_csv(sparql_csv(query, _stacklevel=2), dtypes=schema)
 
     return pl.LazyFrame().map(sparql_df_inner, schema=schema)
 
