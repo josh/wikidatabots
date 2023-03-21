@@ -5,14 +5,7 @@ from rdflib import URIRef
 
 import wikidata
 from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
-from sparql import (
-    extract_qid,
-    fetch_statements,
-    sample_items,
-    sparql,
-    sparql_df,
-    type_constraints,
-)
+from sparql import extract_qid, fetch_statements, sample_items, sparql, sparql_df
 
 
 def test_sparql():
@@ -48,14 +41,6 @@ def test_sparql_property():
         "http://www.wikidata.org/entity/statement/"
         "Q1-789eef0c-4108-cdda-1a63-505cdd324564"
     )
-
-
-def test_type_constraints():
-    classes = type_constraints(TMDB_MOVIE_ID_PID)
-    assert "Q11424" in classes
-    assert "Q2431196" not in classes
-    assert "Q202866" in classes
-    assert "Q1261214" in classes
 
 
 def test_sample_items():

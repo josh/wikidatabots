@@ -238,27 +238,6 @@ def fetch_statements(
     return items
 
 
-def type_constraints(property: PID) -> set[QID]:
-    query = """
-    SELECT DISTINCT ?subclass WHERE {
-    """
-    query += "  wd:" + property + " p:P2302 ?constraint."
-    query += """
-      ?constraint ps:P2302 wd:Q21503250.
-      ?constraint pq:P2308 ?class.
-      ?subclass wdt:P279* ?class.
-    }
-    """
-    Result = TypedDict("Result", {"subclass": QID})
-    results: list[Result] = sparql(query)
-
-    classes: set[QID] = set()
-    for result in results:
-        if result["subclass"].startswith("Q"):
-            classes.add(result["subclass"])
-    return classes
-
-
 SampleType = Literal["created", "updated", "random"]
 
 
