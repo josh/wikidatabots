@@ -29,11 +29,13 @@ _MOVIE_IMDB_QUERY = """
 SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
-  VALUES ?classes {
-    wd:Q11424
-    wd:Q1261214
+  # TMDb movie ID subject type constraints
+  VALUES ?class {
+    wd:Q11424 # film
+    wd:Q24856 # film series
+    wd:Q1261214 # television special
   }
-  ?item (wdt:P31/(wdt:P279*)) ?classes.
+  ?item (wdt:P31/(wdt:P279*)) ?class.
 
   OPTIONAL {
     ?item wdt:P4947 ?tmdb_id.
@@ -46,10 +48,12 @@ _TV_IMDB_QUERY = """
 SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
-  VALUES ?classes {
-    wd:Q15416
+  # TMDb TV series ID subject type constraints
+  VALUES ?class {
+    wd:Q15416 # television program
+    wd:Q5398426 # television series
   }
-  ?item (wdt:P31/(wdt:P279*)) ?classes.
+  ?item (wdt:P31/(wdt:P279*)) ?class.
 
   OPTIONAL {
     ?item wdt:P4983 ?tmdb_id.
@@ -62,7 +66,13 @@ _PERSON_IMDB_QUERY = """
 SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
-  ?item wdt:P31 wd:Q5.
+  # TMDb person ID subject type constraints
+  VALUES ?class {
+    wd:Q5 # human
+    wd:Q16334295 # group of humans
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?class.
+  # ?item wdt:P31 wd:Q5.
 
   OPTIONAL {
     ?item wdt:P4985 ?tmdb_id.
@@ -131,10 +141,12 @@ _TV_TVDB_QUERY = """
 SELECT DISTINCT ?item ?tvdb_id ?tmdb_id WHERE {
   ?item wdt:P4835 ?tvdb_id.
 
-  VALUES ?classes {
-    wd:Q15416
+  # TMDb TV series ID subject type constraints
+  VALUES ?class {
+    wd:Q15416 # television program
+    wd:Q5398426 # television series
   }
-  ?item (wdt:P31/(wdt:P279*)) ?classes.
+  ?item (wdt:P31/(wdt:P279*)) ?class.
 
   FILTER(xsd:integer(?tvdb_id))
 
