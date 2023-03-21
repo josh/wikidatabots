@@ -164,7 +164,7 @@ class SlowQueryWarning(Warning):
     pass
 
 
-def sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
+def _sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
     start = time.time()
     r = session.post(url, data={"query": query}, headers={"Accept": "text/csv"})
 
@@ -194,7 +194,7 @@ def sparql_df(
     assert schema, "missing schema"
 
     def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
-        return pl.read_csv(sparql_csv(query, _stacklevel=2), dtypes=schema)
+        return pl.read_csv(_sparql_csv(query, _stacklevel=2), dtypes=schema)
 
     return pl.LazyFrame().map(sparql_df_inner, schema=schema)
 
