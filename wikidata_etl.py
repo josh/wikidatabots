@@ -2,8 +2,8 @@ import logging
 
 import polars as pl
 
-from sparql import sparql_df
 from polars_utils import assert_expression
+from sparql import sparql_df
 
 _PIDS: list[str] = [
     "P4947",
