@@ -75,6 +75,14 @@ def test_assert_count() -> None:
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
 
+    ldf = df.pipe(assert_expression, pl.count() > 0)
+    ldf.collect()
+
+    df = pl.LazyFrame({"a": []})
+    ldf = df.pipe(assert_expression, pl.count() > 0)
+    with pytest.raises(pl.ComputeError):  # type: ignore
+        ldf.collect()
+
 
 def test_update_ipc():
     filename = "/tmp/test_polars_utils.arrow"

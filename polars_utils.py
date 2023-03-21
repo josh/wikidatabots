@@ -43,12 +43,9 @@ def assert_expression(
     ldf: pl.LazyFrame, expr: pl.Expr, message: str = ""
 ) -> pl.LazyFrame:
     def assert_expression_inner(df: pl.DataFrame) -> None:
-        if len(df) == 0:
-            return
-
         for name, series in df.select(expr).to_dict().items():
             assert series.dtype == pl.Boolean
-            assert series.all(), message.format(name)
+            assert series.is_empty() or series.all(), message.format(name)
 
     return _check_ldf(ldf, assert_expression_inner)
 
