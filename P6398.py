@@ -2,10 +2,12 @@
 
 import logging
 
+import polars as pl
+
 import appletv
 from constants import APPLE_TV_MOVIE_ID_PID, INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID
 from page import blocked_qids
-from sparql import fetch_statements, sample_items, type_constraints
+from sparql import fetch_statements, sample_items
 from timeout import iter_until_deadline
 
 
@@ -19,7 +21,7 @@ def main():
 
     qids = sample_items(APPLE_TV_MOVIE_ID_PID, limit=1000)
 
-    allowed_classes = type_constraints(ITUNES_MOVIE_ID_PID)
+    allowed_classes = set(_fetch_allowed_classes())
     results = fetch_statements(
         qids, [INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID, APPLE_TV_MOVIE_ID_PID]
     )
@@ -43,6 +45,20 @@ def main():
             id = appletv.id(value)
             if itunes_id := appletv.appletv_to_itunes(id):
                 print(f'{qid},"""{itunes_id}"""')
+
+
+def _fetch_allowed_classes() -> list[str]:
+    return (
+        pl.scan_ipc(
+            "s3://wikidatabots/wikidata/property_class_constraints.arrow",
+            storage_options={"anon": True},
+        )
+        .filter(pl.col("numeric_pid") == 6398)
+        .select("class_qid")
+        .collect()
+        .to_series()
+        .to_list()
+    )
 
 
 if __name__ == "__main__":
