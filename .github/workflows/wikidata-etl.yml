@@ -9,6 +9,9 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
+
 jobs:
   run:
     runs-on: ubuntu-latest
