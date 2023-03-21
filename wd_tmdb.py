@@ -231,6 +231,7 @@ def find_tmdb_ids_not_found(
     return (
         df.join(tmdb_df, on="id", how="left")
         .filter(pl.col("success").is_not())
+        # .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
         .pipe(assert_expression, pl.count() < _CHECK_LIMIT, "Too many IDs to check")
         .with_columns(pl.col("tmdb_id").pipe(tmdb_exists, tmdb_type))
