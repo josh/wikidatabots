@@ -6,6 +6,7 @@ from collections import defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
 
+import polars as pl
 import pywikibot
 import pywikibot.config
 from rdflib import Graph
@@ -15,7 +16,6 @@ from actions import warn
 from constants import INSTANCE_OF_PID
 from page import blocked_qids
 from pwb import login
-from sparql import type_constraints
 from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
 
 SITE = pywikibot.Site("wikidata", "wikidata")
@@ -283,21 +283,36 @@ def get_property_page(pid: str) -> pywikibot.PropertyPage:
 @cache
 def get_property_type_constraints(
     property: pywikibot.PropertyPage,
-) -> list[pywikibot.ItemPage]:
-    qids = type_constraints(property.getID())
-    return [get_item_page(qid) for qid in qids]
+) -> set[str]:
+    pid: str = property.getID()
+    qids = (
+        pl.scan_ipc(
+            "s3://wikidatabots/wikidata/property_class_constraints.arrow",
+            storage_options={"anon": True},
+        )
+        .filter(pl.col("pid") == pid)
+        .select("class_qid")
+        .collect()["class_qid"]
+    )
+
+    if len(qids) == 0:
+        warn("ContraintsMissing", f"No type constraints: {pid}")
+
+    return set(qids.to_list())
 
 
 def check_item_property_constraints(
     item: pywikibot.ItemPage,
     property: pywikibot.PropertyPage,
 ) -> None:
-    valid_instance_of_items = get_property_type_constraints(property)
+    valid_instance_of_qids = get_property_type_constraints(property)
     ok = False
 
     if INSTANCE_OF_PID in item.claims:
         for claim in item.claims[INSTANCE_OF_PID]:
-            if claim.target in valid_instance_of_items:
+            if not isinstance(claim.target, pywikibot.ItemPage):
+                continue
+            if claim.target.getID() in valid_instance_of_qids:
                 ok = True
 
     if not ok:
