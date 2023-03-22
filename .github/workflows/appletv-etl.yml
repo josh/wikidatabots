@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "sitemap.arrow" "s3://wikidatabots/appletv/${TYPE}/sitemap.arrow"
+          aws s3 cp --acl public-read "sitemap.arrow" "s3://wikidatabots/appletv/${TYPE}/sitemap.arrow"
         env:
           TYPE: ${{ matrix.type }}
 
@@ -146,6 +146,6 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "jsonld.arrow" "s3://wikidatabots/appletv/${TYPE}/jsonld.arrow"
+          aws s3 cp --acl public-read "jsonld.arrow" "s3://wikidatabots/appletv/${TYPE}/jsonld.arrow"
         env:
           TYPE: ${{ matrix.type }}

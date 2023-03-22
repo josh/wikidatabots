@@ -54,4 +54,4 @@ jobs:
 
       - name: Upload to S3
         run: |
-          aws s3 cp "property_class_constraints.arrow" "s3://wikidatabots/wikidata/property_class_constraints.arrow"
+          aws s3 cp --acl public-read "property_class_constraints.arrow" "s3://wikidatabots/wikidata/property_class_constraints.arrow"
