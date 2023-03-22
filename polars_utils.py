@@ -9,10 +9,6 @@ from typing import Any, Callable, Iterator, TypeVar
 import polars as pl
 from tqdm import tqdm
 
-from actions import install_warnings_hook
-
-install_warnings_hook()
-
 
 def update_ipc(
     filename: str,

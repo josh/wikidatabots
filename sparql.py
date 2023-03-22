@@ -11,7 +11,6 @@ import math
 import os
 import platform
 import time
-import warnings
 from collections.abc import Iterable
 from io import BytesIO
 from typing import Any, Literal, TypedDict
@@ -22,10 +21,8 @@ import requests
 from rdflib import URIRef
 
 import timeout
-from actions import install_warnings_hook
+from actions import warn
 from wikidata import PID, QID
-
-install_warnings_hook()
 
 url = "https://query.wikidata.org/sparql"
 session = requests.Session()
@@ -41,7 +38,7 @@ if "WIKIDATA_USERNAME" in os.environ:
         )
     )
 else:
-    logging.warn("WARN: WIKIDATA_USERNAME unset")
+    warn("WIKIDATA_USERNAME unset")
 
 USER_AGENT.append(f"requests/{requests.__version__}")
 USER_AGENT.append(f"Python/{platform.python_version()}")
@@ -175,7 +172,7 @@ def _sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
     duration = time.time() - start
     if duration > 45:
         logging.warn(f"sparql: {duration:,.2f}s")
-        warnings.warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
+        warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
     elif duration > 5:
         logging.info(f"sparql: {duration:,.2f}s")
     else:

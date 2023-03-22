@@ -12,7 +12,7 @@ import pywikibot.config
 from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
-from actions import warn
+from actions import print_warning
 from constants import INSTANCE_OF_PID
 from page import blocked_qids
 from pwb import login
@@ -119,7 +119,9 @@ def process_graph(
             edit_summaries[item] = object.toPython()
 
         else:
-            warn("NotImplemented", f"Unknown wd triple: {subject} {predicate} {object}")
+            print_warning(
+                "NotImplemented", f"Unknown wd triple: {subject} {predicate} {object}"
+            )
 
     def visit_wds_subject(
         item: pywikibot.ItemPage,
@@ -174,7 +176,7 @@ def process_graph(
             edit_summaries[item] = object.toPython()
 
         else:
-            warn("NotImplemented", f"Unknown wds triple: {predicate} {object}")
+            print_warning("NotImplemented", f"Unknown wds triple: {predicate} {object}")
 
     for subject in subjects(graph):
         if isinstance(subject, BNode):
@@ -198,11 +200,11 @@ def process_graph(
                 visit_wds_subject(claim_item, claim, predicate, object)
 
         else:
-            warn("NotImplemented", f"Unknown subject: {subject}")
+            print_warning("NotImplemented", f"Unknown subject: {subject}")
 
     for item, claims in changed_claims.items():
         if item.id in blocked_qids():
-            warn("BadItem", f"Skipping edit, {item.id} is blocked")
+            print_warning("BadItem", f"Skipping edit, {item.id} is blocked")
             continue
 
         summary: str | None = edit_summaries.get(item)
@@ -296,7 +298,7 @@ def get_property_type_constraints(property: pywikibot.PropertyPage) -> set[str]:
     )
 
     if len(qids) == 0:
-        warn("ContraintsMissing", f"No type constraints: {pid}")
+        print_warning("ContraintsMissing", f"No type constraints: {pid}")
 
     return set(qids)
 
@@ -316,7 +318,7 @@ def check_item_property_constraints(
                 ok = True
 
     if not ok:
-        warn("BadClaim", f"Constraint violation: {item.id} / {property.id}")
+        print_warning("BadClaim", f"Constraint violation: {item.id} / {property.id}")
 
 
 @cache
