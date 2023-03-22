@@ -1,4 +1,4 @@
-# pyright: strict, reportUnknownMemberType=false
+# pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
 
 import sys
 from dataclasses import dataclass, field
