@@ -86,10 +86,12 @@ summary_df = (
 )
 
 pl.Config.set_fmt_str_lengths(100)
+pl.Config.set_tbl_cols(-1)
 pl.Config.set_tbl_column_data_type_inline(True)
 pl.Config.set_tbl_formatting("ASCII_MARKDOWN")
 pl.Config.set_tbl_hide_dataframe_shape(True)
-pl.Config.set_tbl_rows(20)
+pl.Config.set_tbl_rows(-1)
+pl.Config.set_tbl_width_chars(500)
 
 print(f"## {filename}")
 print(summary_df)
