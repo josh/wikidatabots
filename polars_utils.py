@@ -76,32 +76,6 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     ).join(df, on=name, how="left")
 
 
-def row_differences(df1: pl.LazyFrame, df2: pl.LazyFrame) -> tuple[int, int]:
-    count_colname = "__count"
-    count_col = pl.col(count_colname)
-
-    count_agg_expr = pl.count().alias(count_colname).cast(pl.Int32)
-    lf1x = df1.groupby(pl.all(), maintain_order=False).agg(count_agg_expr)
-    lf2x = df2.groupby(pl.all(), maintain_order=False).agg(count_agg_expr)
-
-    diff_counts = count_col.fill_null(0) - pl.col(f"{count_colname}_right").fill_null(0)
-    sum_negative_count = (
-        pl.when(count_col < 0).then(count_col.abs()).otherwise(0).sum().alias("removed")
-    )
-    sum_positive_count = (
-        pl.when(count_col > 0).then(count_col).otherwise(0).sum().alias("added")
-    )
-
-    stats = (
-        lf1x.join(lf2x, on=df1.columns, how="outer")
-        .select(diff_counts)
-        .select([sum_negative_count, sum_positive_count])
-        .collect()
-    )
-
-    return stats[0, "removed"], stats[0, "added"]
-
-
 def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
     df = (
         df.pipe(

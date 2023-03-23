@@ -13,7 +13,6 @@ from polars_utils import (
     assert_called_once,
     assert_expression,
     read_xml,
-    row_differences,
     unique_row_differences,
     update_ipc,
     update_or_append,
@@ -391,55 +390,6 @@ def test_update_or_append_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> No
     assert df3.height >= df2.height
     assert df3.height == 0 or df3["a"].is_not_null().all()
     assert df3.height == 0 or df3["a"].is_unique().all()
-
-
-def test_row_differences():
-    df1 = pl.LazyFrame({"a": [1, 2, 3]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [2, 3, 4]}).map(assert_called_once())
-    added, removed = row_differences(df1, df2)
-    assert added == 1
-    assert removed == 1
-
-    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [1, 2, 3, 4]}).map(assert_called_once())
-    added, removed = row_differences(df1, df2)
-    assert added == 3
-    assert removed == 0
-
-    df1 = pl.LazyFrame({"a": [1, 2, 3, 4]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
-    added, removed = row_differences(df1, df2)
-    assert added == 0
-    assert removed == 3
-
-    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [1, 1]}).map(assert_called_once())
-    added, removed = row_differences(df1, df2)
-    assert added == 1
-    assert removed == 0
-
-    df1 = pl.LazyFrame({"a": [1, 1]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
-    added, removed = row_differences(df1, df2)
-    assert added == 0
-    assert removed == 1
-
-
-df_st = dataframes(cols=[column("a", dtype=pl.Int64), column("b", dtype=pl.Boolean)])
-
-
-@given(df1=df_st, df2=df_st)
-def test_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
-    added, removed = row_differences(
-        df1.lazy().map(assert_called_once()),
-        df2.lazy().map(assert_called_once()),
-    )
-    assert added >= 0, "added should be >= 0"
-    assert added <= len(df2), "added should be <= len(df2)"
-    assert removed >= 0, "removed should be >= 0"
-    assert removed <= len(df1), "removed should be <= len(df1)"
-    assert df1.height - removed + added == df2.height, "df1 - removed + added == df2"
-    assert df2.height - added + removed == df1.height, "df2 - added + removed == df1"
 
 
 def test_unique_row_differences():
