@@ -311,7 +311,7 @@ def _interesting_refresh_exprs(tmdb_type: TMDB_TYPE) -> Iterator[tuple[pl.Expr, 
 
 def _interesting_refresh_expr(tmdb_type: TMDB_TYPE) -> pl.Expr:
     expr, count = random.choice(list(_interesting_refresh_exprs(tmdb_type)))
-    logging.info(f"Refreshing {count} row against `{expr}`")
+    logging.info(f"Refreshing {count:,} rows against `{expr}`")
     return expr
 
 
