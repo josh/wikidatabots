@@ -15,7 +15,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, read_xml, update_ipc
+from polars_utils import apply_with_tqdm, read_xml, update_ipc, update_or_append
 
 _APPLETV_SESSION = Session(
     connect_timeout=0.5,
@@ -266,8 +266,7 @@ def append_jsonld_changes(
     jsonld_df: pl.LazyFrame,
     limit: int,
 ) -> pl.LazyFrame:
-    sitemap_df, jsonld_df = sitemap_df.cache(), jsonld_df.cache()
-
+    jsonld_df = jsonld_df.cache()
     jsonld_new_df = (
         sitemap_df.join(jsonld_df, on="loc", how="left")
         .filter(pl.col("jsonld_success").is_null())
@@ -282,15 +281,7 @@ def append_jsonld_changes(
         .select(["loc"])
         .pipe(fetch_jsonld_columns)
     )
-
-    return (
-        pl.concat(
-            [jsonld_df, jsonld_new_df],
-            parallel=False,  # BUG: parallel caching is broken
-        )
-        .unique(subset="loc", keep="last")
-        .sort(by="loc")
-    )
+    return jsonld_df.pipe(update_or_append, jsonld_new_df, on="loc").sort(by="loc")
 
 
 _OUTDATED_EXPR = pl.lit(False).alias("in_latest_sitemap")
@@ -300,14 +291,12 @@ _LATEST_EXPR = pl.lit(True).alias("in_latest_sitemap")
 def main_sitemap(type: Type) -> None:
     def update_sitemap(df: pl.LazyFrame) -> pl.LazyFrame:
         return (
-            pl.concat(
-                [
-                    df.with_columns(_OUTDATED_EXPR),
-                    cleaned_sitemap(type).with_columns(_LATEST_EXPR),
-                ],
-                parallel=False,  # BUG: parallel caching is broken
+            df.with_columns(_OUTDATED_EXPR)
+            .pipe(
+                update_or_append,
+                cleaned_sitemap(type).with_columns(_LATEST_EXPR),
+                on="loc",
             )
-            .unique(subset="loc", keep="last")
             .sort(by="loc")
         )
 
