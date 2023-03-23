@@ -263,7 +263,7 @@ def tmdb_find(
 
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
-_REFRESH = pl.col("in_export") & pl.col("adult")
+_REFRESH = pl.col("adult") & pl.col("success").is_not()
 _OUTDATED = _CHANGED | _NEVER_FETCHED | _REFRESH
 _OUTDATED_LIMIT = 10_000
 
