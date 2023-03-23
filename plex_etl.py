@@ -12,7 +12,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, read_xml, update_ipc
+from polars_utils import apply_with_tqdm, read_xml, update_ipc, update_or_append
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
@@ -176,15 +176,11 @@ def plex_similar(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
-    df2 = df.filter(pl.col("retrieved_at").is_null()).pipe(fetch_metadata_guids)
-    return (
-        pl.concat(
-            [df, df2],
-            parallel=False,  # BUG: parallel caching is broken
-        )
-        .unique(subset="key", keep="last")
-        .sort(by=pl.col("key").bin.encode("hex"))
-    )
+    return update_or_append(
+        df,
+        df.filter(pl.col("retrieved_at").is_null()).pipe(fetch_metadata_guids),
+        on="key",
+    ).sort(by=pl.col("key").bin.encode("hex"))
 
 
 _METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
