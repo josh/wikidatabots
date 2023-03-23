@@ -176,8 +176,8 @@ def plex_similar(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
-    return update_or_append(
-        df,
+    return df.pipe(
+        update_or_append,
         df.filter(pl.col("retrieved_at").is_null()).pipe(fetch_metadata_guids),
         on="key",
     ).sort(by=pl.col("key").bin.encode("hex"))
