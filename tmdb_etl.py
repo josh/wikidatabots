@@ -370,7 +370,12 @@ def _insert_tmdb_export_flag(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
         pl.lit(True).alias("in_export"),
     )
 
-    return df.drop("in_export").join(export_df, on="id", how="left").select(_COLUMNS)
+    return (
+        df.drop("in_export")
+        .join(export_df, on="id", how="left")
+        .with_columns(pl.col("in_export").fill_null(False))
+        .select(_COLUMNS)
+    )
 
 
 def main() -> None:
