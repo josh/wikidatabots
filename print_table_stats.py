@@ -85,7 +85,7 @@ summary_df = (
     )
 )
 
-pl.Config.set_fmt_str_lengths(50)
+pl.Config.set_fmt_str_lengths(100)
 pl.Config.set_tbl_column_data_type_inline(True)
 pl.Config.set_tbl_formatting("ASCII_MARKDOWN")
 pl.Config.set_tbl_hide_dataframe_shape(True)
