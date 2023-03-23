@@ -58,7 +58,7 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py tmdb.arrow
+          python print_table_stats.py tmdb.arrow | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Print diff
         run: |
