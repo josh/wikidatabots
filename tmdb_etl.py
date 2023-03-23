@@ -25,12 +25,25 @@ SCHEMA = {
     "id": pl.UInt32,
     "date": pl.Date,
     "adult": pl.Boolean,
+    "in_export": pl.Boolean,
     "success": pl.Boolean,
     "retrieved_at": pl.Datetime(time_unit="ns"),
     "imdb_numeric_id": pl.UInt32,
     "tvdb_id": pl.UInt32,
     "wikidata_numeric_id": pl.UInt32,
 }
+
+_COLUMNS = [
+    "id",
+    "date",
+    "adult",
+    "in_export",
+    "success",
+    "retrieved_at",
+    "imdb_numeric_id",
+    "tvdb_id",
+    "wikidata_numeric_id",
+]
 
 CHANGES_SCHEMA = {
     "id": pl.UInt32,
@@ -338,15 +351,26 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
 
 
 def tmdb_export(
-    type: TMDB_TYPE,
+    tmdb_type: TMDB_TYPE,
     date: datetime.date = _export_date(),
 ) -> pl.LazyFrame:
-    if type == "movie":
+    if tmdb_type == "movie":
         return _tmdb_export(types=["movie", "collection"], date=date)
-    elif type == "tv":
+    elif tmdb_type == "tv":
         return _tmdb_export(types=["tv_series"], date=date)
-    elif type == "person":
+    elif tmdb_type == "person":
         return _tmdb_export(types=["person"], date=date)
+
+
+def _insert_tmdb_export_flag(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    assert df.schema == SCHEMA
+
+    export_df = tmdb_export(tmdb_type).select(
+        pl.col("id"),
+        pl.lit(True).alias("in_export"),
+    )
+
+    return df.drop("in_export").join(export_df, on="id", how="outer").select(_COLUMNS)
 
 
 def main() -> None:
@@ -354,8 +378,10 @@ def main() -> None:
     assert tmdb_type in _TMDB_TYPES
 
     def _update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.pipe(insert_tmdb_latest_changes, tmdb_type=tmdb_type).pipe(
-            insert_tmdb_external_ids, tmdb_type=tmdb_type
+        return (
+            df.pipe(insert_tmdb_latest_changes, tmdb_type)
+            .pipe(_insert_tmdb_export_flag, tmdb_type)
+            .pipe(insert_tmdb_external_ids, tmdb_type)
         )
 
     update_ipc("tmdb.arrow", _update)
