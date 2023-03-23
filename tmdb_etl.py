@@ -1,6 +1,7 @@
 # pyright: strict
 
 import datetime
+import gzip
 import logging
 import os
 import sys
@@ -266,6 +267,86 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     return df.pipe(update_or_append, new_external_ids_df, on="id").pipe(
         align_to_index, name="id"
     )
+
+
+def _decompress(data: bytes) -> str:
+    return gzip.decompress(data).decode("utf-8")
+
+
+def _export_date() -> datetime.date:
+    now = datetime.datetime.utcnow()
+    if now.hour >= 8:
+        return now.date()
+    else:
+        return (now - datetime.timedelta(days=1)).date()
+
+
+_EXPORT_TYPE = Literal["movie", "tv_series", "person", "collection"]
+
+
+def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame:
+    return (
+        pl.LazyFrame({"type": types}, schema={"type": pl.Categorical})
+        .with_columns(pl.lit(date).alias("date"))
+        .select(
+            pl.col("type"),
+            pl.format(
+                "http://files.tmdb.org/p/exports/{}_ids_{}.json.gz",
+                pl.col("type"),
+                pl.col("date").dt.strftime("%m_%d_%Y"),
+            )
+            .pipe(prepare_request)
+            .pipe(
+                urllib3_requests,
+                session=_SESSION,
+                log_group="files.tmdb.org/p/exports",
+            )
+            .struct.field("data")
+            .apply(_decompress)
+            .str.split("\n")
+            .alias("lines"),
+        )
+        .explode("lines")
+        .filter(pl.col("lines").str.starts_with("{"))
+        .select(
+            pl.col("type"),
+            pl.col("lines")
+            .str.json_extract(
+                dtype=pl.Struct(
+                    {
+                        "adult": pl.Boolean,
+                        "id": pl.UInt32,
+                        "original_title": pl.Utf8,
+                        "popularity": pl.Float64,
+                        "video": pl.Boolean,
+                    }
+                )
+            )
+            .alias("item"),
+        )
+        .select(
+            pl.col("item").struct.field("id").alias("id"),
+            pl.col("type"),
+            pl.col("item").struct.field("adult").alias("adult"),
+            pl.col("item").struct.field("original_title").alias("original_title"),
+            pl.col("item").struct.field("popularity").alias("popularity"),
+            pl.col("item").struct.field("video").alias("video"),
+        )
+        .sort(by="id")
+        .pipe(assert_expression, pl.col("id").is_unique())
+    )
+
+
+def tmdb_export(
+    type: TMDB_TYPE,
+    date: datetime.date = _export_date(),
+) -> pl.LazyFrame:
+    if type == "movie":
+        return _tmdb_export(types=["movie", "collection"], date=date)
+    elif type == "tv":
+        return _tmdb_export(types=["tv_series"], date=date)
+    elif type == "person":
+        return _tmdb_export(types=["person"], date=date)
 
 
 def main() -> None:

@@ -14,6 +14,7 @@ from tmdb_etl import (
     insert_tmdb_latest_changes,
     tmdb_changes,
     tmdb_exists,
+    tmdb_export,
     tmdb_external_ids,
     tmdb_find,
 )
@@ -108,3 +109,13 @@ def test_find() -> None:
     df2 = df.with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type="person"))
     df3 = df.with_columns(pl.Series("tmdb_id", [None, None, 1674162], dtype=pl.UInt32))
     assert_frame_equal(df2, df3)
+
+
+def test_tmdb_export() -> None:
+    pl.collect_all(
+        [
+            tmdb_export("movie"),
+            tmdb_export("tv"),
+            tmdb_export("person"),
+        ]
+    )
