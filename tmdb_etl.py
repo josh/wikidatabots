@@ -1,11 +1,14 @@
 # pyright: strict
 
 import datetime
+import functools
 import gzip
+import itertools
 import logging
 import os
+import random
 import sys
-from typing import Literal
+from typing import Iterator, Literal
 
 import polars as pl
 
@@ -261,10 +264,60 @@ def tmdb_find(
     )
 
 
+_DATE_EXPRS = [None, pl.col("date").is_not_null(), pl.col("date").is_null()]
+_ADULT_EXPRS = [
+    None,
+    pl.col("adult"),
+    pl.col("adult").is_not(),
+    pl.col("adult").is_null(),
+]
+_IN_EXPORT_EXPRS = [
+    None,
+    pl.col("in_export"),
+    pl.col("in_export").is_not(),
+    pl.col("in_export").is_null(),
+]
+_SUCCESS_EXPRS = [
+    None,
+    pl.col("success"),
+    pl.col("success").is_not(),
+    pl.col("success").is_null(),
+]
+_INTERESTING_EXPRS = [_DATE_EXPRS, _ADULT_EXPRS, _IN_EXPORT_EXPRS, _SUCCESS_EXPRS]
+
+
+def _combine_exprs(expr1: pl.Expr | None, expr2: pl.Expr | None) -> pl.Expr | None:
+    if expr1 is None:
+        return expr2
+    if expr2 is None:
+        return expr1
+    return expr1 & expr2
+
+
+def _interesting_refresh_exprs(tmdb_type: TMDB_TYPE) -> Iterator[tuple[pl.Expr, int]]:
+    df = pl.read_ipc(
+        f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
+        storage_options={"anon": True},
+    )
+
+    for exprs in itertools.product(*_INTERESTING_EXPRS):
+        expr = functools.reduce(_combine_exprs, exprs)
+        if expr is None:
+            continue
+        count = len(df.filter(expr))
+        if 0 < count and count < 1_000:
+            yield expr, count
+
+
+def _interesting_refresh_expr(tmdb_type: TMDB_TYPE) -> pl.Expr:
+    expr, count = random.choice(list(_interesting_refresh_exprs(tmdb_type)))
+    logging.info(f"Refreshing {count} row against `{expr}`")
+    return expr
+
+
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
-_REFRESH = pl.col("adult").is_null() & pl.col("in_export").is_not() & pl.col("success")
-_OUTDATED = _CHANGED | _NEVER_FETCHED | _REFRESH
+_OUTDATED = _CHANGED | _NEVER_FETCHED
 _OUTDATED_LIMIT = 10_000
 
 
@@ -273,7 +326,7 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     df = df.cache()
 
     new_external_ids_df = (
-        df.filter(_OUTDATED)
+        df.filter(_OUTDATED | _interesting_refresh_expr(tmdb_type))
         .pipe(assert_expression, pl.count() < _OUTDATED_LIMIT, "Too many outdated rows")
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
