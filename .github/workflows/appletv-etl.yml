@@ -80,9 +80,14 @@ jobs:
         run: |
           python print_table_diff.py sitemap.arrow~ sitemap.arrow loc
 
+      - name: Convert to Parquet
+        run: |
+          python arrow2parquet.py sitemap.arrow sitemap.parquet
+
       - name: Upload to S3
         run: |
           aws s3 cp --acl public-read "sitemap.arrow" "s3://wikidatabots/appletv/${TYPE}/sitemap.arrow"
+          aws s3 cp --acl public-read "sitemap.parquet" "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet"
         env:
           TYPE: ${{ matrix.type }}
 
@@ -144,8 +149,13 @@ jobs:
         run: |
           python print_table_diff.py jsonld.arrow~ jsonld.arrow loc
 
+      - name: Convert to Parquet
+        run: |
+          python arrow2parquet.py jsonld.arrow jsonld.parquet
+
       - name: Upload to S3
         run: |
           aws s3 cp --acl public-read "jsonld.arrow" "s3://wikidatabots/appletv/${TYPE}/jsonld.arrow"
+          aws s3 cp --acl public-read "jsonld.parquet" "s3://wikidatabots/appletv/${TYPE}/jsonld.parquet"
         env:
           TYPE: ${{ matrix.type }}

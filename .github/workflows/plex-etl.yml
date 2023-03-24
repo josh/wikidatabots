@@ -64,9 +64,14 @@ jobs:
         run: |
           python print_table_diff.py plex.arrow~ plex.arrow key
 
+      - name: Convert to Parquet
+        run: |
+          python arrow2parquet.py plex.arrow plex.parquet
+
       - name: Upload to S3
         run: |
           aws s3 cp --acl public-read "plex.arrow" "s3://wikidatabots/plex.arrow"
+          aws s3 cp --acl public-read "plex.parquet" "s3://wikidatabots/plex.parquet"
 
   metadata:
     needs: [discover_guids]
@@ -119,6 +124,11 @@ jobs:
         run: |
           python print_table_diff.py plex.arrow~ plex.arrow key
 
+      - name: Convert to Parquet
+        run: |
+          python arrow2parquet.py plex.arrow plex.parquet
+
       - name: Upload to S3
         run: |
           aws s3 cp --acl public-read "plex.arrow" "s3://wikidatabots/plex.arrow"
+          aws s3 cp --acl public-read "plex.parquet" "s3://wikidatabots/plex.parquet"

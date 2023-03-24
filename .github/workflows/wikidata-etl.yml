@@ -52,6 +52,11 @@ jobs:
         run: |
           python print_table_diff.py property_class_constraints.arrow~ property_class_constraints.arrow class_numeric_qid
 
+      - name: Convert to Parquet
+        run: |
+          python arrow2parquet.py property_class_constraints.arrow property_class_constraints.parquet
+
       - name: Upload to S3
         run: |
           aws s3 cp --acl public-read "property_class_constraints.arrow" "s3://wikidatabots/wikidata/property_class_constraints.arrow"
+          aws s3 cp --acl public-read "property_class_constraints.parquet" "s3://wikidatabots/wikidata/property_class_constraints.parquet"
