@@ -20,7 +20,6 @@ _PLEX_SESSION = Session(
     headers={"X-Plex-Token": os.environ.get("PLEX_TOKEN", "")},
     ok_statuses={200, 404},
 )
-_GITHUB_IO_SESSION = Session()
 
 _PLEX_DEVICE_SCHEMA: dict[str, pl.PolarsDataType] = {
     "name": pl.Utf8,
