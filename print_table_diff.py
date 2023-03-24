@@ -16,9 +16,9 @@ pl.toggle_string_cache(True)
 
 
 def read_df(filename: str) -> pl.LazyFrame:
-    if filename.endswith(".arrow"):
+    if filename.endswith(".arrow") or filename.endswith(".arrow~"):
         return pl.scan_ipc(filename, memory_map=False)
-    elif filename.endswith(".parquet"):
+    elif filename.endswith(".parquet") or filename.endswith(".parquet~"):
         return pl.scan_parquet(filename)
     else:
         raise ValueError(f"Unknown file extension: {filename}")
