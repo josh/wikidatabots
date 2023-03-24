@@ -1,6 +1,5 @@
 # pyright: strict
 
-import json
 import os
 
 import polars as pl
@@ -129,37 +128,6 @@ def wikidata_plex_guids() -> pl.LazyFrame:
         .select(["key"])
         .drop_nulls()
         .unique(subset="key")
-    )
-
-
-def _extract_pmdb_plex(df: pl.DataFrame) -> pl.DataFrame:
-    text = df[0, 0]
-    assert isinstance(text, str)
-
-    data = json.loads(text)
-
-    def keys():
-        yield from data["show"].keys()
-        yield from data["movie"].keys()
-
-    return pl.DataFrame({"key": keys()})
-
-
-def pmdb_plex_keys() -> pl.LazyFrame:
-    return (
-        pl.LazyFrame({"url": ["https://josh.github.io/pmdb/plex.json"]})
-        .select(
-            pl.col("url")
-            .pipe(prepare_request)
-            .pipe(
-                urllib3_requests,
-                session=_GITHUB_IO_SESSION,
-                log_group="josh.github.io/pmdb",
-            )
-            .pipe(response_text)
-        )
-        .map(_extract_pmdb_plex, schema={"key": pl.Utf8})
-        .select(pl.col("key").str.decode("hex").cast(pl.Binary))
     )
 
 
@@ -305,7 +273,6 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     dfs = [
         plex_library_guids(server_df),
         wikidata_plex_guids(),
-        pmdb_plex_keys(),
         (plex_df.select(["key"]).collect().sample(n=500).lazy().pipe(plex_similar)),
     ]
     df_new = pl.concat(
