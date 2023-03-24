@@ -13,8 +13,8 @@ _LIMIT = 25
 
 def _plex_guids() -> tuple[pl.LazyFrame, pl.LazyFrame]:
     df = (
-        pl.scan_ipc(
-            "s3://wikidatabots/plex.arrow",
+        pl.scan_parquet(
+            "s3://wikidatabots/plex.parquet",
             storage_options={"anon": True},
         )
         .select(["key", "type", "tmdb_id"])
