@@ -14,8 +14,18 @@ md_out = open(STEP_SUMMARY, "w")
 
 pl.toggle_string_cache(True)
 
-df_a = pl.scan_ipc(sys.argv[1], memory_map=False)
-df_b = pl.scan_ipc(sys.argv[2], memory_map=False)
+
+def read_df(filename: str) -> pl.LazyFrame:
+    if filename.endswith(".arrow"):
+        return pl.scan_ipc(filename, memory_map=False)
+    elif filename.endswith(".parquet"):
+        return pl.scan_parquet(filename)
+    else:
+        raise ValueError(f"Unknown file extension: {filename}")
+
+
+df_a = read_df(sys.argv[1])
+df_b = read_df(sys.argv[2])
 
 key = sys.argv[3]
 added, removed, updated = unique_row_differences(df_a, df_b, on=key)

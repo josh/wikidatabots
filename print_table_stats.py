@@ -8,7 +8,13 @@ filename = sys.argv[1]
 
 pl.toggle_string_cache(True)
 
-df = pl.read_ipc(filename, memory_map=False)
+if filename.endswith(".arrow"):
+    df = pl.read_ipc(filename, memory_map=False)
+elif filename.endswith(".parquet"):
+    df = pl.read_parquet(filename)
+else:
+    raise ValueError(f"Unknown file extension: {filename}")
+
 table = df.to_arrow()  # type: ignore
 count = len(df)
 
