@@ -123,6 +123,7 @@ def _urllib3_requests_series(
 
         for request in tqdm(requests, desc="Fetching URLs", unit="url"):
             if request:
+                assert isinstance(request["url"], str), f"No URL for request: {request}"
                 yield _urllib3_request(
                     session=session,
                     url=request["url"],
