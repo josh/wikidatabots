@@ -189,7 +189,11 @@ def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:
     return expr
 
 
-_EMPTY_LIST = pl.Series(values=[None], dtype=pl.List(_HTTP_DICT_DTYPE))
+# FIXME: Patch polars to allow empty lists
+# _EMPTY_LIST = pl.Series(values=[None], dtype=pl.List(_HTTP_DICT_DTYPE))
+_EMPTY_LIST = pl.concat_list([pl.lit(None, dtype=_HTTP_DICT_DTYPE)]).arr.eval(
+    pl.element().drop_nulls()
+)
 
 
 def _http_dict(pairs: dict[str, pl.Expr | str]) -> pl.Expr | pl.Series:
