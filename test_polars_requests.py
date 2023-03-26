@@ -259,6 +259,28 @@ def test_urllib3_requests_prepare() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
+def test_urllib3_requests_prepare_just_fields() -> None:
+    response_dtype = pl.Struct({"args": pl.Struct({"foo": pl.Utf8})})
+
+    ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
+        pl.col("url")
+        .pipe(prepare_request, fields={"foo": "bar"})
+        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
+        .pipe(response_text)
+        .str.json_extract(response_dtype)
+        .alias("data"),
+    )
+
+    ldf2 = pl.LazyFrame(
+        {
+            "url": ["https://httpbin.org/get"],
+            "data": [{"args": {"foo": "bar"}}],
+        }
+    )
+
+    assert_frame_equal(ldf, ldf2)
+
+
 def test_urllib3_requests_retry_status() -> None:
     session = Session(ok_statuses={200}, retry_statuses={500}, retry_count=10)
 
