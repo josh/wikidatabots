@@ -107,8 +107,8 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     ).alias("rdf_statement")
 
     tmdb_df = (
-        pl.scan_ipc(
-            f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
+        pl.scan_parquet(
+            f"s3://wikidatabots/tmdb/{tmdb_type}.parquet",
             storage_options={"anon": True},
         )
         .select(["id", "imdb_numeric_id"])
@@ -183,8 +183,8 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     ).alias("rdf_statement")
 
     tmdb_df = (
-        pl.scan_ipc(
-            f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
+        pl.scan_parquet(
+            f"s3://wikidatabots/tmdb/{tmdb_type}.parquet",
             storage_options={"anon": True},
         )
         .select(["id", "tvdb_id"])
@@ -232,8 +232,8 @@ def find_tmdb_ids_not_found(
         pl.lit(f"Deprecate removed TMDB {tmdb_type} ID"),
     ).alias("rdf_statement")
 
-    tmdb_df = pl.scan_ipc(
-        f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
+    tmdb_df = pl.scan_parquet(
+        f"s3://wikidatabots/tmdb/{tmdb_type}.parquet",
         storage_options={"anon": True},
     ).select(["id", "date", "success"])
 
