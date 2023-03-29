@@ -28,6 +28,24 @@ def update_ipc(
     os.rename(tmpfile, filename)
 
 
+def update_parquet(
+    filename: str,
+    transform: Callable[[pl.LazyFrame], pl.LazyFrame],
+) -> None:
+    assert filename.endswith(".parquet")
+    df = pl.scan_parquet(filename)
+    df2 = transform(df)
+    assert df2.schema == df.schema, "schema changed"
+    tmpfile = f"{filename}.{random.randint(0, 2**32)}"
+    df2.collect().write_parquet(
+        tmpfile,
+        compression="zstd",
+        compression_level=22,
+        statistics=True,
+    )
+    os.rename(tmpfile, filename)
+
+
 def _check_ldf(
     ldf: pl.LazyFrame,
     function: Callable[[pl.DataFrame], None],
