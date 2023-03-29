@@ -105,7 +105,7 @@ def _main() -> None:
     pl.toggle_string_cache(True)
 
     df = _fetch_all_property_class_constraints()
-    df.collect().write_ipc("property_class_constraints.arrow", compression="lz4")
+    df.collect().write_parquet("property_class_constraints.parquet")
 
 
 if __name__ == "__main__":

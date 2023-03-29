@@ -38,7 +38,7 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/wikidata/property_class_constraints.arrow" "property_class_constraints.arrow~"
+          aws s3 cp "s3://wikidatabots/wikidata/property_class_constraints.parquet" "property_class_constraints.parquet~"
 
       - name: Run ETL script
         run: |
@@ -46,17 +46,12 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py property_class_constraints.arrow | tee -a "$GITHUB_STEP_SUMMARY"
+          python print_table_stats.py property_class_constraints.parquet | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Print diff
         run: |
-          python print_table_diff.py property_class_constraints.arrow~ property_class_constraints.arrow class_numeric_qid
-
-      - name: Convert to Parquet
-        run: |
-          python arrow2parquet.py property_class_constraints.arrow property_class_constraints.parquet
+          python print_table_diff.py property_class_constraints.parquet~ property_class_constraints.parquet class_numeric_qid
 
       - name: Upload to S3
         run: |
-          aws s3 cp --acl public-read "property_class_constraints.arrow" "s3://wikidatabots/wikidata/property_class_constraints.arrow"
           aws s3 cp --acl public-read "property_class_constraints.parquet" "s3://wikidatabots/wikidata/property_class_constraints.parquet"
