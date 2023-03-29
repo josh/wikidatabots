@@ -144,8 +144,8 @@ def main():
     skip_ids = matched_appletv_ids()
 
     sitemap_df = (
-        pl.scan_ipc(
-            "s3://wikidatabots/appletv/movie/sitemap.arrow",
+        pl.scan_parquet(
+            "s3://wikidatabots/appletv/movie/sitemap.parquet",
             storage_options={"anon": True},
         )
         .filter(pl.col("country") == "us")
