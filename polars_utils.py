@@ -2,9 +2,13 @@
 
 import os
 import random
+import re
 import sys
 import xml.etree.ElementTree as ET
-from typing import Any, Callable, Iterator, TypeVar
+from functools import reduce
+from itertools import combinations
+from math import ceil
+from typing import Any, Callable, Iterable, Iterator, TypeVar
 
 import polars as pl
 from tqdm import tqdm
@@ -44,6 +48,17 @@ def assert_expression(
             assert series.is_empty() or series.all(), message.format(name)
 
     return _check_ldf(ldf, assert_expression_inner)
+
+
+def expr_repl(expr: pl.Expr, strip_alias: bool = False) -> str:
+    expr_s: str = str(expr)
+    if strip_alias:
+        expr_s = re.sub(r'\.alias\("\w+"\)', "", expr_s)
+    return f"pl.{expr_s}"
+
+
+def is_constant(expr: pl.Expr) -> pl.Expr:
+    return (expr == expr.first()).all()
 
 
 PL_INTEGERS = {
@@ -240,3 +255,66 @@ def assert_called_once() -> Callable[[T], T]:
         return value
 
     return mock
+
+
+def outlier_exprs(
+    df: pl.DataFrame,
+    exprs: Iterable[pl.Expr],
+    rmax: int = 10,
+    max_count: int | None = None,
+) -> list[tuple[str, pl.Expr, int]]:
+    results: list[tuple[str, pl.Expr, int]] = []
+
+    if not max_count:
+        max_count = ceil(len(df) * 0.003)
+
+    col_expr: dict[str, pl.Expr] = {}
+    for expr in _expand_expr(df, exprs):
+        col_expr[expr.meta.output_name()] = expr
+
+    ldf = df.lazy().select(col_expr.values())
+    orig_columns = ldf.columns
+
+    for r in range(2, min(len(orig_columns), rmax + 1)):
+        ldf = ldf.with_columns(
+            _combine_col_expr(list(cols)) for cols in combinations(orig_columns, r)
+        )
+
+    df_total = ldf.select(pl.all().sum()).collect()
+
+    if not len(df_total):
+        return results
+
+    row = df_total.row(0, named=True)
+
+    for col, count in sorted(row.items(), key=lambda a: a[1]):
+        if count > 0 and count < max_count:
+            exprs = [col_expr[col] for col in col.split(_POWERSET_COL_SEP)]
+            expr = reduce(pl.Expr.__and__, exprs)
+            expr_str = " & ".join(expr_repl(expr, strip_alias=True) for expr in exprs)
+            results.append((expr_str, expr, count))
+
+    return results
+
+
+_POWERSET_COL_SEP = "--7C69799--"
+
+
+def _combine_col_expr(cols: list[str]) -> pl.Expr:
+    expr1 = pl.col(_POWERSET_COL_SEP.join(cols[:-1]))
+    expr2 = pl.col(cols[-1])
+    name = _POWERSET_COL_SEP.join(cols)
+    return (expr1 & expr2).alias(name)
+
+
+def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr]:
+    for expr, s in zip(exprs, df.select(exprs), strict=True):
+        output_name = expr.meta.output_name()
+        if s.is_boolean() and (s.all() ^ s.any()):
+            yield expr
+            yield expr.is_not().alias(f"not_{output_name}")
+
+        null_count = s.null_count()
+        if null_count > 0 and null_count < s.len():
+            yield expr.is_null().alias(f"null_{output_name}")
+            yield expr.is_not_null().alias(f"not_null_{output_name}")

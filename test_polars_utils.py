@@ -12,6 +12,9 @@ from polars_utils import (
     apply_with_tqdm,
     assert_called_once,
     assert_expression,
+    expr_repl,
+    is_constant,
+    outlier_exprs,
     read_xml,
     unique_row_differences,
     update_ipc,
@@ -81,6 +84,58 @@ def test_assert_count() -> None:
     ldf = df.pipe(assert_expression, pl.count() > 0)
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
+
+
+def test_expr_repl() -> None:
+    assert expr_repl(pl.col("a")) == 'pl.col("a")'
+    assert expr_repl(pl.col("a").alias("b")) == 'pl.col("a").alias("b")'
+    assert expr_repl(pl.col("a").alias("b"), strip_alias=True) == 'pl.col("a")'
+
+    assert expr_repl(pl.col("a").is_not_null()) == 'pl.col("a").is_not_null()'
+    assert (
+        expr_repl(pl.col("a").is_not_null().alias("b"))
+        == 'pl.col("a").is_not_null().alias("b")'
+    )
+    assert (
+        expr_repl(pl.col("a").alias("b").is_not_null())
+        == 'pl.col("a").alias("b").is_not_null()'
+    )
+    assert (
+        expr_repl(pl.col("a").is_not_null().alias("b"), strip_alias=True)
+        == 'pl.col("a").is_not_null()'
+    )
+    assert (
+        expr_repl(pl.col("a").alias("b").is_not_null(), strip_alias=True)
+        == 'pl.col("a").is_not_null()'
+    )
+
+
+def test_is_constant() -> None:
+    df = pl.DataFrame(
+        {
+            "a": [1, 2, 3],
+            "b": [3, 3, 3],
+            "c": [2, 2, None],
+            "d": [True, True, False],
+            "e": [True, True, True],
+            "f": [False, False, False],
+            "g": [True, True, None],
+            "h": [None, None, None],
+        }
+    )
+    df2 = pl.DataFrame(
+        {
+            "a": [False],
+            "b": [True],
+            "c": [False],
+            "d": [False],
+            "e": [True],
+            "f": [True],
+            "g": [False],
+            "h": [True],
+        }
+    )
+    assert_frame_equal(df.select(pl.all().pipe(is_constant)), df2)
 
 
 def test_update_ipc():
@@ -463,3 +518,28 @@ def test_apply_with_tqdm_properties(s: pl.Series) -> None:
     )
     assert df.schema == {"a": pl.Int64}
     assert len(df) == len(s)
+
+
+@given(
+    df=dataframes(
+        cols=[
+            column("a", dtype=pl.Int64),
+            column("b", dtype=pl.Boolean),
+            column("c", dtype=pl.Boolean, null_probability=0.5),
+            column("d", dtype=pl.Boolean, null_probability=0.1),
+            column("e", dtype=pl.Boolean, null_probability=0.01),
+        ]
+    )
+)
+def test_outlier_exprs(df: pl.DataFrame) -> None:
+    outlier_exprs(
+        df,
+        [
+            pl.col("a").is_not_null().alias("a_not_null"),
+            (pl.col("a") < pl.col("a").mean()).alias("a_lt_mean"),
+            pl.col("b"),
+            pl.col("c"),
+            pl.col("d"),
+            pl.col("e"),
+        ],
+    )
