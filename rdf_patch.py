@@ -286,8 +286,8 @@ def get_property_page(pid: str) -> pywikibot.PropertyPage:
 def get_property_type_constraints(property: pywikibot.PropertyPage) -> set[str]:
     pid: str = property.getID()
     qids: list[str] = (
-        pl.scan_ipc(
-            "s3://wikidatabots/wikidata/property_class_constraints.arrow",
+        pl.scan_parquet(
+            "s3://wikidatabots/wikidata/property_class_constraints.parquet",
             storage_options={"anon": True},
         )
         .filter(pl.col("pid") == pid)
