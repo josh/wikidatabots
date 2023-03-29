@@ -49,8 +49,8 @@ def main():
 
 def _fetch_allowed_classes() -> list[str]:
     return (
-        pl.scan_ipc(
-            "s3://wikidatabots/wikidata/property_class_constraints.arrow",
+        pl.scan_parquet(
+            "s3://wikidatabots/wikidata/property_class_constraints.parquet",
             storage_options={"anon": True},
         )
         .filter(pl.col("numeric_pid") == 6398)
