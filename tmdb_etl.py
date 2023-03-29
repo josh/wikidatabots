@@ -1,14 +1,12 @@
 # pyright: strict
 
 import datetime
-import functools
 import gzip
-import itertools
 import logging
 import os
 import random
 import sys
-from typing import Iterator, Literal
+from typing import Literal
 
 import polars as pl
 
@@ -19,7 +17,13 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import align_to_index, assert_expression, update_ipc, update_or_append
+from polars_utils import (
+    align_to_index,
+    assert_expression,
+    outlier_exprs,
+    update_ipc,
+    update_or_append,
+)
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
 _TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
@@ -264,54 +268,29 @@ def tmdb_find(
     )
 
 
-_DATE_EXPRS = [None, pl.col("date").is_not_null(), pl.col("date").is_null()]
-_ADULT_EXPRS = [
-    None,
-    pl.col("adult"),
-    pl.col("adult").is_not(),
-    pl.col("adult").is_null(),
-]
-_IN_EXPORT_EXPRS = [
-    None,
-    pl.col("in_export"),
-    pl.col("in_export").is_not(),
-    pl.col("in_export").is_null(),
-]
-_SUCCESS_EXPRS = [
-    None,
-    pl.col("success"),
-    pl.col("success").is_not(),
-    pl.col("success").is_null(),
-]
-_INTERESTING_EXPRS = [_DATE_EXPRS, _ADULT_EXPRS, _IN_EXPORT_EXPRS, _SUCCESS_EXPRS]
+_TWO_WEEKS_AGO = datetime.date.today() - datetime.timedelta(weeks=2)
 
 
-def _combine_exprs(expr1: pl.Expr | None, expr2: pl.Expr | None) -> pl.Expr | None:
-    if expr1 is None:
-        return expr2
-    if expr2 is None:
-        return expr1
-    return expr1 & expr2
-
-
-def _interesting_refresh_exprs(tmdb_type: TMDB_TYPE) -> Iterator[tuple[pl.Expr, int]]:
-    df = pl.read_ipc(
-        f"s3://wikidatabots/tmdb/{tmdb_type}.arrow",
-        storage_options={"anon": True},
+def _outlier_expr(df: pl.DataFrame) -> pl.Expr:
+    exprs = df.pipe(
+        outlier_exprs,
+        [
+            pl.col("date"),
+            pl.col("adult"),
+            pl.col("in_export"),
+            pl.col("success"),
+            pl.col("retrieved_at") < _TWO_WEEKS_AGO,
+            pl.col("imdb_numeric_id"),
+            pl.col("tvdb_id"),
+            pl.col("wikidata_numeric_id"),
+        ],
+        rmax=3,
+        max_count=1000,
     )
 
-    for exprs in itertools.product(*_INTERESTING_EXPRS):
-        expr = functools.reduce(_combine_exprs, exprs)
-        if expr is None:
-            continue
-        count = len(df.filter(expr))
-        if 0 < count and count < 1_000:
-            yield expr, count
+    expr_str, expr, count = random.choice(exprs)
+    logging.info(f"Refreshing {count:,} outlier rows against `{expr_str}`")
 
-
-def _interesting_refresh_expr(tmdb_type: TMDB_TYPE) -> pl.Expr:
-    expr, count = random.choice(list(_interesting_refresh_exprs(tmdb_type)))
-    logging.info(f"Refreshing {count:,} rows against `{expr}`")
     return expr
 
 
@@ -321,12 +300,16 @@ _OUTDATED = _CHANGED | _NEVER_FETCHED
 _OUTDATED_LIMIT = 10_000
 
 
-def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+def insert_tmdb_external_ids(
+    df: pl.LazyFrame,
+    tmdb_type: TMDB_TYPE,
+    outdated_expr: pl.Expr = _OUTDATED,
+) -> pl.LazyFrame:
     assert df.schema == SCHEMA
     df = df.cache()
 
     new_external_ids_df = (
-        df.filter(_OUTDATED | _interesting_refresh_expr(tmdb_type))
+        df.filter(outdated_expr)
         .pipe(assert_expression, pl.count() < _OUTDATED_LIMIT, "Too many outdated rows")
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
@@ -438,10 +421,13 @@ def main() -> None:
     assert tmdb_type in _TMDB_TYPES
 
     def _update(df: pl.LazyFrame) -> pl.LazyFrame:
+        df = df.cache()
+        outdated_expr = _OUTDATED | _outlier_expr(df.collect())
+
         return (
             df.pipe(insert_tmdb_latest_changes, tmdb_type)
             .pipe(_insert_tmdb_export_flag, tmdb_type)
-            .pipe(insert_tmdb_external_ids, tmdb_type)
+            .pipe(insert_tmdb_external_ids, tmdb_type, outdated_expr)
         )
 
     update_ipc("tmdb.arrow", _update)
