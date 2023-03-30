@@ -40,7 +40,6 @@ def update_parquet(
     df2.collect().write_parquet(
         tmpfile,
         compression="zstd",
-        compression_level=22,
         statistics=True,
     )
     os.rename(tmpfile, filename)
