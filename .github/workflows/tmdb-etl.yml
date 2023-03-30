@@ -44,8 +44,8 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}.arrow" "tmdb.arrow"
-          cp tmdb.arrow tmdb.arrow~
+          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}.parquet" "tmdb.parquet"
+          cp tmdb.parquet tmdb.parquet~
         env:
           TYPE: ${{ matrix.type }}
 
@@ -58,19 +58,14 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py tmdb.arrow | tee -a "$GITHUB_STEP_SUMMARY"
+          python print_table_stats.py tmdb.parquet | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Print diff
         run: |
-          python print_table_diff.py tmdb.arrow~ tmdb.arrow id
-
-      - name: Convert to Parquet
-        run: |
-          python arrow2parquet.py tmdb.arrow tmdb.parquet
+          python print_table_diff.py tmdb.parquet~ tmdb.parquet id
 
       - name: Upload to S3
         run: |
-          aws s3 cp --acl public-read "tmdb.arrow" "s3://wikidatabots/tmdb/${TYPE}.arrow"
           aws s3 cp --acl public-read "tmdb.parquet" "s3://wikidatabots/tmdb/${TYPE}.parquet"
         env:
           TYPE: ${{ matrix.type }}

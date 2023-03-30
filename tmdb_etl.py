@@ -21,8 +21,8 @@ from polars_utils import (
     align_to_index,
     assert_expression,
     outlier_exprs,
-    update_ipc,
     update_or_append,
+    update_parquet,
 )
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
@@ -430,7 +430,7 @@ def main() -> None:
             .pipe(insert_tmdb_external_ids, tmdb_type, outdated_expr)
         )
 
-    update_ipc("tmdb.arrow", _update)
+    update_parquet("tmdb.parquet", _update)
 
 
 if __name__ == "__main__":
