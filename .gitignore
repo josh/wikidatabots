@@ -4,6 +4,7 @@ __pycache__/
 /.venv/
 /apicache-py3/
 *.arrow
+*.parquet
 pywikibot.lwp
 throttle.ctrl
 user-password.py
