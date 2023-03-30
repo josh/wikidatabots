@@ -15,7 +15,6 @@ elif filename.endswith(".parquet"):
 else:
     raise ValueError(f"Unknown file extension: {filename}")
 
-table = df.to_arrow()  # type: ignore
 count = len(df)
 
 
@@ -43,6 +42,10 @@ def _percent(value: float) -> str:
     return f"{value:.2%}"
 
 
+def _dtype(name: str) -> str:
+    return str(df.schema[name])
+
+
 summary_df = (
     (
         null_count_df.join(is_unique_df, on="column", how="left")
@@ -50,7 +53,7 @@ summary_df = (
         .join(false_count_df, on="column", how="left")
     )
     .with_columns(
-        pl.col("column").apply(lambda n: table[n].type).alias("dtype"),  # type: ignore
+        pl.col("column").apply(_dtype).alias("dtype"),
         pl.col("true_count").fill_null(0),
         pl.col("false_count").fill_null(0),
     )
