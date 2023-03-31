@@ -131,8 +131,8 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-_BACKFILL_OLD_COUNT = 25
-_BACKFILL_LIMIT = 250
+_BACKFILL_OLD_COUNT = 50
+_BACKFILL_LIMIT = 500
 
 
 def _backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
