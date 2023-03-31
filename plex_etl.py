@@ -12,13 +12,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import (
-    apply_with_tqdm,
-    head_mask,
-    read_xml,
-    update_or_append,
-    update_parquet,
-)
+from polars_utils import apply_with_tqdm, read_xml, update_or_append, update_parquet
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
@@ -145,8 +139,10 @@ def _backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.sort(by="retrieved_at", nulls_last=True)
-        .filter(head_mask(n=_BACKFILL_OLD_COUNT) | pl.col("retrieved_at").is_null())
+        df.filter(
+            (pl.col("retrieved_at").arg_sort(nulls_last=True) < _BACKFILL_OLD_COUNT)
+            | pl.col("retrieved_at").is_null()
+        )
         .head(_BACKFILL_LIMIT)
         .pipe(fetch_metadata_guids)
         .cache()
