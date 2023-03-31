@@ -131,7 +131,7 @@ def test_head_mask() -> None:
 
 @given(df=dataframes(), n=st.integers(0, 10_000))
 def test_head_mask_properties(df: pl.DataFrame, n: int) -> None:
-    df2 = df.filter(head_mask(n))
+    df2 = df.filter(head_mask(n))  # type: ignore
     df3 = df.head(n)
     assert_frame_equal(df2, df3)
 
