@@ -43,8 +43,8 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/plex.arrow" "plex.arrow"
-          cp plex.arrow plex.arrow~
+          aws s3 cp "s3://wikidatabots/plex.parquet" "plex.parquet"
+          cp plex.parquet plex.parquet~
 
       - name: Run script
         shell: python
@@ -58,19 +58,14 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py plex.arrow | tee -a "$GITHUB_STEP_SUMMARY"
+          python print_table_stats.py plex.parquet | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Print diff
         run: |
-          python print_table_diff.py plex.arrow~ plex.arrow key
-
-      - name: Convert to Parquet
-        run: |
-          python arrow2parquet.py plex.arrow plex.parquet
+          python print_table_diff.py plex.parquet~ plex.parquet key
 
       - name: Upload to S3
         run: |
-          aws s3 cp --acl public-read "plex.arrow" "s3://wikidatabots/plex.arrow"
           aws s3 cp --acl public-read "plex.parquet" "s3://wikidatabots/plex.parquet"
 
   metadata:
@@ -104,8 +99,8 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/plex.arrow" "plex.arrow"
-          cp plex.arrow plex.arrow~
+          aws s3 cp "s3://wikidatabots/plex.parquet" "plex.parquet"
+          cp plex.parquet plex.parquet~
 
       - name: Backfill missing metadata
         shell: python
@@ -118,17 +113,12 @@ jobs:
 
       - name: Print stats
         run: |
-          python print_table_stats.py plex.arrow | tee -a "$GITHUB_STEP_SUMMARY"
+          python print_table_stats.py plex.parquet | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Print diff
         run: |
-          python print_table_diff.py plex.arrow~ plex.arrow key
-
-      - name: Convert to Parquet
-        run: |
-          python arrow2parquet.py plex.arrow plex.parquet
+          python print_table_diff.py plex.parquet~ plex.parquet key
 
       - name: Upload to S3
         run: |
-          aws s3 cp --acl public-read "plex.arrow" "s3://wikidatabots/plex.arrow"
           aws s3 cp --acl public-read "plex.parquet" "s3://wikidatabots/plex.parquet"

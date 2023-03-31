@@ -11,7 +11,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, read_xml, update_ipc, update_or_append
+from polars_utils import apply_with_tqdm, read_xml, update_or_append, update_parquet
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
@@ -286,9 +286,9 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
 
 def main_discover_guids() -> None:
     with pl.StringCache():
-        update_ipc("plex.arrow", _discover_guids)
+        update_parquet("plex.parquet", _discover_guids)
 
 
 def main_metadata() -> None:
     with pl.StringCache():
-        update_ipc("plex.arrow", backfill_missing_metadata)
+        update_parquet("plex.parquet", backfill_missing_metadata)
