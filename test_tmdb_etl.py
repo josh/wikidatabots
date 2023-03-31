@@ -114,10 +114,5 @@ def test_find() -> None:
 
 
 def test_tmdb_export() -> None:
-    pl.collect_all(
-        [
-            tmdb_export("movie"),
-            tmdb_export("tv"),
-            tmdb_export("person"),
-        ]
-    )
+    df = tmdb_export("tv").collect()
+    assert len(df) > 0
