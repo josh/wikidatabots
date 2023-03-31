@@ -17,6 +17,7 @@ from polars_utils import (
     head_mask,
     is_constant,
     outlier_exprs,
+    rank_sort,
     read_xml,
     unique_row_differences,
     update_or_append,
@@ -162,6 +163,45 @@ def test_is_constant() -> None:
         }
     )
     assert_frame_equal(df.select(pl.all().pipe(is_constant)), df2)
+
+
+def test_rank_sort() -> None:
+    df1 = pl.DataFrame({"a": [1, 2, 3]}).select(pl.col("a").pipe(rank_sort).alias("b"))
+    df2 = pl.DataFrame({"b": [0, 1, 2]}, schema={"b": pl.UInt32})
+    assert_frame_equal(df1, df2)
+
+    df1 = pl.DataFrame({"a": [2, 3, 1]}).select(pl.col("a").pipe(rank_sort).alias("b"))
+    df2 = pl.DataFrame({"b": [1, 2, 0]}, schema={"b": pl.UInt32})
+    assert_frame_equal(df1, df2)
+
+    df1 = pl.DataFrame({"a": [3, 1, 2]}).select(pl.col("a").pipe(rank_sort).alias("b"))
+    df2 = pl.DataFrame({"b": [2, 0, 1]}, schema={"b": pl.UInt32})
+    assert_frame_equal(df1, df2)
+
+    df1 = pl.DataFrame({"a": [1, 3, 2]}).select(pl.col("a").pipe(rank_sort).alias("b"))
+    df2 = pl.DataFrame({"b": [0, 2, 1]}, schema={"b": pl.UInt32})
+    assert_frame_equal(df1, df2)
+
+
+@given(
+    df=dataframes(cols=[column("a", null_probability=0.1), column("b")]),
+    descending=st.booleans(),
+    nulls_last=st.booleans(),
+)
+def test_rank_sort_properties(
+    df: pl.DataFrame,
+    descending: bool,
+    nulls_last: bool,
+) -> None:
+    df = df.with_columns(
+        pl.col("a")
+        .pipe(rank_sort, descending=descending, nulls_last=nulls_last)
+        .alias("rank")
+    )
+    assert_frame_equal(
+        df.sort(by="a", descending=descending, nulls_last=nulls_last),
+        df.sort(by="rank"),
+    )
 
 
 XML_EXAMPLE = """
