@@ -13,7 +13,7 @@ env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  discover_guids:
+  run:
     runs-on: ubuntu-latest
     concurrency: plex
     timeout-minutes: 60
@@ -36,10 +36,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
       - name: Download from S3
         run: |
@@ -47,69 +43,11 @@ jobs:
           cp plex.parquet plex.parquet~
 
       - name: Run script
-        shell: python
         run: |
-          from plex_etl import main_discover_guids
-
-          main_discover_guids()
+          python plex_etl.py
         env:
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
           PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py plex.parquet | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: Print diff
-        run: |
-          python print_table_diff.py plex.parquet~ plex.parquet key
-
-      - name: Upload to S3
-        run: |
-          aws s3 cp --acl public-read "plex.parquet" "s3://wikidatabots/plex.parquet"
-
-  metadata:
-    needs: [discover_guids]
-    runs-on: ubuntu-latest
-    concurrency: plex
-    timeout-minutes: 60
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
-      - name: Download from S3
-        run: |
-          aws s3 cp "s3://wikidatabots/plex.parquet" "plex.parquet"
-          cp plex.parquet plex.parquet~
-
-      - name: Backfill missing metadata
-        shell: python
-        run: |
-          from plex_etl import main_metadata
-
-          main_metadata()
-        env:
-          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
 
       - name: Print stats
         run: |

@@ -1,5 +1,6 @@
 # pyright: strict
 
+import logging
 import os
 
 import polars as pl
@@ -140,7 +141,7 @@ _BACKFILL_OLD_COUNT = 10
 _BACKFILL_LIMIT = 250
 
 
-def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+def _backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
@@ -312,11 +313,14 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def main_discover_guids() -> None:
+def main() -> None:
+    def update(df: pl.LazyFrame) -> pl.LazyFrame:
+        return df.pipe(_discover_guids).pipe(_backfill_missing_metadata)
+
     with pl.StringCache():
-        update_parquet("plex.parquet", _discover_guids)
+        update_parquet("plex.parquet", update)
 
 
-def main_metadata() -> None:
-    with pl.StringCache():
-        update_parquet("plex.parquet", backfill_missing_metadata)
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    main()
