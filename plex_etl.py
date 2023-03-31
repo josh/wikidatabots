@@ -131,7 +131,7 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-_BACKFILL_OLD_COUNT = 10
+_BACKFILL_OLD_COUNT = 25
 _BACKFILL_LIMIT = 250
 
 
