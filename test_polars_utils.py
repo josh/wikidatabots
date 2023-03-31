@@ -4,6 +4,7 @@
 import polars as pl
 import pytest
 from hypothesis import assume, given
+from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes, series
 
@@ -13,6 +14,7 @@ from polars_utils import (
     assert_called_once,
     assert_expression,
     expr_repl,
+    head_mask,
     is_constant,
     outlier_exprs,
     read_xml,
@@ -107,6 +109,31 @@ def test_expr_repl() -> None:
         expr_repl(pl.col("a").alias("b").is_not_null(), strip_alias=True)
         == 'pl.col("a").is_not_null()'
     )
+
+
+def test_head_mask() -> None:
+    df1 = pl.LazyFrame({"a": [1, 2, 3]}).select(head_mask(n=1).alias("b"))
+    df2 = pl.LazyFrame({"b": [True, False, False]})
+    assert_frame_equal(df1, df2)
+
+    df1 = pl.LazyFrame({"a": [1, 2, 3]}).select(head_mask(n=2).alias("b"))
+    df2 = pl.LazyFrame({"b": [True, True, False]})
+    assert_frame_equal(df1, df2)
+
+    df1 = pl.LazyFrame({"a": [1, 2, 3]}).select(head_mask(n=3).alias("b"))
+    df2 = pl.LazyFrame({"b": [True, True, True]})
+    assert_frame_equal(df1, df2)
+
+    df1 = pl.LazyFrame({"a": [1, 2, 3]}).select(head_mask(n=4).alias("b"))
+    df2 = pl.LazyFrame({"b": [True, True, True]})
+    assert_frame_equal(df1, df2)
+
+
+@given(df=dataframes(), n=st.integers(0, 10_000))
+def test_head_mask_properties(df: pl.DataFrame, n: int) -> None:
+    df2 = df.filter(head_mask(n))
+    df3 = df.head(n)
+    assert_frame_equal(df2, df3)
 
 
 def test_is_constant() -> None:

@@ -60,6 +60,15 @@ def expr_repl(expr: pl.Expr, strip_alias: bool = False) -> str:
     return f"pl.{expr_s}"
 
 
+def head_mask(n: int) -> pl.Expr:
+    expr = pl.arange(
+        low=0,
+        high=pl.count(),
+    )
+    assert isinstance(expr, pl.Expr)
+    return expr < n
+
+
 def is_constant(expr: pl.Expr) -> pl.Expr:
     return (expr == expr.first()).all()
 
