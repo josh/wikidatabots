@@ -268,7 +268,7 @@ def tmdb_find(
     )
 
 
-_TWO_WEEKS_AGO = datetime.date.today() - datetime.timedelta(weeks=2)
+_FOUR_WEEKS_AGO = datetime.date.today() - datetime.timedelta(weeks=4)
 
 
 def _outlier_expr(df: pl.DataFrame) -> pl.Expr:
@@ -279,7 +279,7 @@ def _outlier_expr(df: pl.DataFrame) -> pl.Expr:
             pl.col("adult"),
             pl.col("in_export"),
             pl.col("success"),
-            pl.col("retrieved_at") < _TWO_WEEKS_AGO,
+            pl.col("retrieved_at") < _FOUR_WEEKS_AGO,
             pl.col("imdb_numeric_id"),
             pl.col("tvdb_id"),
             pl.col("wikidata_numeric_id"),
