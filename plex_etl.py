@@ -12,7 +12,13 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, read_xml, update_or_append, update_parquet
+from polars_utils import (
+    apply_with_tqdm,
+    rank_sort,
+    read_xml,
+    update_or_append,
+    update_parquet,
+)
 from sparql import sparql_df
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
@@ -132,7 +138,9 @@ def wikidata_plex_guids() -> pl.LazyFrame:
 
 
 _BACKFILL_LIMIT = 1_000
-_OLD_METADATA = pl.col("retrieved_at").arg_sort(nulls_last=True) < _BACKFILL_LIMIT
+_OLD_METADATA = (
+    pl.col("retrieved_at").pipe(rank_sort, nulls_last=True) < _BACKFILL_LIMIT
+)
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
