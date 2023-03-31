@@ -131,7 +131,7 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-_BACKFILL_LIMIT = 250
+_BACKFILL_LIMIT = 500
 _OLD_METADATA = pl.col("retrieved_at").arg_sort(nulls_last=True) < _BACKFILL_LIMIT
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
