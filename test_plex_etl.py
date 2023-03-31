@@ -178,4 +178,6 @@ def test_fetch_metadata_guids() -> None:
             "tvdb_id": pl.Series([16721, 305, 75932, 108501, None], dtype=pl.UInt32),
         }
     )
-    assert_frame_equal(fetch_metadata_guids(df).drop(["retrieved_at"]), df2)
+    assert_frame_equal(
+        fetch_metadata_guids(df).drop(["retrieved_at", "similar_keys"]), df2
+    )

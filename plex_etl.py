@@ -130,30 +130,32 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-def plex_similar(df: pl.LazyFrame) -> pl.LazyFrame:
-    return (
-        df.pipe(fetch_metadata_text)
-        .select(pl.col("response_text").alias("text"))
-        .pipe(extract_guids)
-        .select(["key"])
-        .drop_nulls()
-        .unique(subset="key")
-    )
+_BACKFILL_LIMIT = 250
 
 
 def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
-    return df.pipe(
-        update_or_append,
-        df.filter(pl.col("retrieved_at").is_null()).pipe(fetch_metadata_guids),
-        on="key",
-    ).sort(by=pl.col("key").bin.encode("hex"))
 
+    df_updated = (
+        df.filter(pl.col("retrieved_at").is_null())
+        .head(_BACKFILL_LIMIT)
+        .pipe(fetch_metadata_guids)
+        .cache()
+    )
 
-_METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
-    "type": pl.Categorical,
-    "Guid": pl.List(pl.Struct({"id": pl.Utf8})),
-}
+    df_similar = (
+        df_updated.select("similar_keys")
+        .explode("similar_keys")
+        .rename({"similar_keys": "key"})
+        .drop_nulls()
+        .cache()
+    )
+
+    return (
+        df.pipe(update_or_append, df_updated.drop("similar_keys"), on="key")
+        .pipe(update_or_append, df_similar, on="key")
+        .sort(by=pl.col("key").bin.encode("hex"))
+    )
 
 
 def fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -178,6 +180,13 @@ def fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
         ),
         pl.col("response").pipe(response_text).alias("response_text"),
     )
+
+
+_METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "type": pl.Categorical,
+    "Guid": pl.List(pl.Struct({"id": pl.Utf8})),
+    "Similar": pl.List(pl.Struct({"guid": pl.Utf8})),
+}
 
 
 def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -211,6 +220,17 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             _extract_guid(r"imdb://(?:tt|nm)(\d+)").alias("imdb_numeric_id"),
             _extract_guid(r"tmdb://(\d+)").alias("tmdb_id"),
             _extract_guid(r"tvdb://(\d+)").alias("tvdb_id"),
+            (
+                pl.col("video")
+                .struct.field("Similar")
+                .arr.eval(
+                    pl.element()
+                    .struct.field("guid")
+                    .str.extract(_GUID_RE, 2)
+                    .str.decode("hex")
+                )
+                .alias("similar_keys")
+            ),
         )
     )
 
@@ -272,7 +292,6 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     dfs = [
         plex_library_guids(server_df),
         wikidata_plex_guids(),
-        (plex_df.select(["key"]).collect().sample(n=500).lazy().pipe(plex_similar)),
     ]
     df_new = pl.concat(
         dfs,
