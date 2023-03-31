@@ -156,6 +156,7 @@ def backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
         .explode("similar_keys")
         .rename({"similar_keys": "key"})
         .drop_nulls()
+        .unique(subset="key")
         .cache()
     )
 
