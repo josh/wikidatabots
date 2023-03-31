@@ -15,7 +15,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, read_xml, update_ipc, update_or_append
+from polars_utils import apply_with_tqdm, read_xml, update_or_append, update_parquet
 
 _APPLETV_SESSION = Session(
     connect_timeout=0.5,
@@ -309,12 +309,13 @@ def main_sitemap(type: Type) -> None:
         )
 
     with pl.StringCache():
-        update_ipc("sitemap.arrow", update_sitemap)
+        update_parquet("sitemap.parquet", update_sitemap)
 
 
 def main_jsonld() -> None:
+    def update_jsonld(jsonld_df: pl.LazyFrame) -> pl.LazyFrame:
+        sitemap_df = pl.scan_parquet("sitemap.parquet")
+        return append_jsonld_changes(sitemap_df, jsonld_df, limit=1000)
+
     with pl.StringCache():
-        sitemap_df = pl.scan_ipc("sitemap.arrow", memory_map=False)
-        jsonld_df = pl.scan_ipc("jsonld.arrow", memory_map=False)
-        df = append_jsonld_changes(sitemap_df, jsonld_df, limit=1000)
-        df.collect().write_ipc("jsonld.arrow", compression="lz4")
+        update_parquet("jsonld.parquet", update_jsonld)
