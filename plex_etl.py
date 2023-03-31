@@ -131,21 +131,16 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-_BACKFILL_OLD_COUNT = 50
-_BACKFILL_LIMIT = 500
+_BACKFILL_LIMIT = 250
+_OLD_METADATA = pl.col("retrieved_at").arg_sort(nulls_last=True) < _BACKFILL_LIMIT
+_MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
-def _backfill_missing_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+def _backfill_metadata(df: pl.LazyFrame, predicate: pl.Expr) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.filter(
-            (pl.col("retrieved_at").arg_sort(nulls_last=True) < _BACKFILL_OLD_COUNT)
-            | pl.col("retrieved_at").is_null()
-        )
-        .head(_BACKFILL_LIMIT)
-        .pipe(fetch_metadata_guids)
-        .cache()
+        df.filter(predicate).head(_BACKFILL_LIMIT).pipe(fetch_metadata_guids).cache()
     )
 
     df_similar = (
@@ -311,7 +306,11 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
 
 def main() -> None:
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.pipe(_discover_guids).pipe(_backfill_missing_metadata)
+        return (
+            df.pipe(_discover_guids)
+            .pipe(_backfill_metadata, _OLD_METADATA)
+            .pipe(_backfill_metadata, _MISSING_METADATA)
+        )
 
     with pl.StringCache():
         update_parquet("plex.parquet", update)
