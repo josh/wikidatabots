@@ -3,7 +3,6 @@ __pycache__/
 /.hypothesis/
 /.venv/
 /apicache-py3/
-*.arrow
 *.parquet
 pywikibot.lwp
 throttle.ctrl
