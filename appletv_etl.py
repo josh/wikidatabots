@@ -68,9 +68,17 @@ _SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
 _SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEMAP_SCHEMA))
 
 
-def sitemap(type: Type) -> pl.LazyFrame:
+def _head(df: pl.LazyFrame, n: int | None) -> pl.LazyFrame:
+    if n:
+        return df.head(n)
+    else:
+        return df
+
+
+def sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
     return (
         siteindex(type)
+        .pipe(_head, n=limit)
         .select(
             pl.col("loc")
             .pipe(prepare_request)
@@ -137,10 +145,10 @@ _LOC_PATTERN = (
 )
 
 
-def cleaned_sitemap(type: Type) -> pl.LazyFrame:
+def cleaned_sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
     # TODO: str.extract should return a struct
     return (
-        sitemap(type)
+        sitemap(type, limit=limit)
         .with_columns(
             (
                 pl.col("loc")

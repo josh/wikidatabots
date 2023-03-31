@@ -21,7 +21,7 @@ def test_siteindex():
 
 
 def test_sitemap():
-    ldf = sitemap(type="show")
+    ldf = sitemap(type="show", limit=5)
     assert ldf.schema == {
         "loc": pl.Utf8,
         "lastmod": pl.Datetime,
@@ -32,7 +32,7 @@ def test_sitemap():
 
 
 def test_cleaned_sitemap():
-    ldf = cleaned_sitemap(type="show")
+    ldf = cleaned_sitemap(type="show", limit=5)
     assert ldf.schema == {
         "id": pl.Utf8,
         "type": pl.Categorical,
