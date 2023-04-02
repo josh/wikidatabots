@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import Literal
 
 import polars as pl
 
@@ -20,6 +21,8 @@ from polars_utils import (
     update_parquet,
 )
 from sparql import sparql_df
+
+GUID_TYPE = Literal["movie", "show", "season", "episode"]
 
 _GUID_RE = r"plex://(?P<type>movie|show|season|episode)/(?P<key>[a-f0-9]{24})"
 
