@@ -50,7 +50,7 @@ def _parse_device_xml(text: str) -> pl.Series:
     return read_xml(text, schema=_PLEX_DEVICE_SCHEMA).to_struct("Device")
 
 
-def plex_server(name: str) -> pl.LazyFrame:
+def _plex_server(name: str) -> pl.LazyFrame:
     return (
         pl.LazyFrame({"url": ["https://plex.tv/api/resources"]})
         .select(
@@ -87,7 +87,7 @@ def plex_server(name: str) -> pl.LazyFrame:
     )
 
 
-def plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
+def _plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
     # TODO: Avoid collect
     server = server_df.collect().row(index=0, named=True)
     plex_server_session = Session(headers={"X-Plex-Token": server["accessToken"]})
@@ -167,7 +167,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
+def _fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.with_columns(
         pl.format(
             "https://metadata.provider.plex.tv/library/metadata/{}",
@@ -207,7 +207,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
         ).to_struct("video")
 
     return (
-        df.pipe(fetch_metadata_text)
+        df.pipe(_fetch_metadata_text)
         .with_columns(
             (
                 pl.col("response_text")
@@ -296,10 +296,10 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
-    server_df = plex_server(name=os.environ["PLEX_SERVER"])
+    server_df = _plex_server(name=os.environ["PLEX_SERVER"])
 
     dfs = [
-        plex_library_guids(server_df),
+        _plex_library_guids(server_df),
         wikidata_plex_guids(),
     ]
     df_new = pl.concat(
