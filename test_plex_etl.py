@@ -87,6 +87,7 @@ def test_fetch_metadata_guids() -> None:
                 ["movie", "movie", "show", "show", None], dtype=pl.Categorical
             ),
             "success": [True, True, True, True, False],
+            "year": pl.Series([2022, 1997, 1975, 2002, None], dtype=pl.UInt16),
             "imdb_numeric_id": pl.Series(
                 [1745960, 119116, 72500, 348896, None], dtype=pl.UInt32
             ),

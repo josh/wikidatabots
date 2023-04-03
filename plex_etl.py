@@ -165,7 +165,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return (
-        df.pipe(update_or_append, df_updated.drop("similar_keys"), on="key")
+        df.pipe(update_or_append, df_updated.drop("similar_keys", "year"), on="key")
         .pipe(update_or_append, df_similar, on="key")
         .sort(by=pl.col("key").bin.encode("hex"))
     )
@@ -197,6 +197,7 @@ def _fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
 
 _METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
     "type": pl.Categorical,
+    "year": pl.Utf8,
     "Guid": pl.List(pl.Struct({"id": pl.Utf8})),
     "Similar": pl.List(pl.Struct({"guid": pl.Utf8})),
 }
@@ -230,6 +231,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("video").struct.field("type").alias("type"),
             (pl.col("status_code") == 200).alias("success"),
             pl.col("retrieved_at"),
+            pl.col("video").struct.field("year").cast(pl.UInt16).alias("year"),
             _extract_guid(r"imdb://(?:tt|nm)(\d+)").alias("imdb_numeric_id"),
             _extract_guid(r"tmdb://(\d+)").alias("tmdb_id"),
             _extract_guid(r"tvdb://(\d+)").alias("tvdb_id"),
