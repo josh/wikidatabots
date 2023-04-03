@@ -6,12 +6,7 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from plex_etl import (
-    decode_plex_guids,
-    encode_plex_guids,
-    fetch_metadata_guids,
-    wikidata_plex_guids,
-)
+from plex_etl import encode_plex_guids, fetch_metadata_guids, wikidata_plex_guids
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
 
@@ -28,34 +23,6 @@ def test_wikidata_plex_guids() -> None:
     ldf = wikidata_plex_guids()
     assert ldf.schema == {"key": pl.Binary}
     assert len(ldf.collect()) > 0
-
-
-def test_decode_plex_guids() -> None:
-    df = pl.LazyFrame(
-        {
-            "guid": [
-                "plex://episode/5d9c11154eefaa001f6364e0",
-                "plex://movie/5d7768686f4521001eaa5cac",
-                "plex://season/5d9c09bd3c3f87001f361344",
-                "plex://show/5d9c08544eefaa001f5daa50",
-                "plex://movie/000000000000000000000000",
-                "plex://invalid/111111111111111111111111",
-            ],
-        }
-    )
-    df2 = pl.LazyFrame(
-        {
-            "key": [
-                b"]\x9c\x11\x15N\xef\xaa\x00\x1fcd\xe0",
-                b"]whhoE!\x00\x1e\xaa\\\xac",
-                b"]\x9c\t\xbd<?\x87\x00\x1f6\x13D",
-                b"]\x9c\x08TN\xef\xaa\x00\x1f]\xaaP",
-                b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
-                None,
-            ],
-        }
-    )
-    assert_frame_equal(decode_plex_guids(df), df2)
 
 
 def test_encode_plex_guids() -> None:

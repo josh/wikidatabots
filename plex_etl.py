@@ -120,8 +120,7 @@ def _plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
         .select(
             pl.col("item").struct.field("guid").alias("guid"),
         )
-        .pipe(decode_plex_guids)
-        .select(["key"])
+        .select(pl.col("guid").pipe(_decode_plex_guid).alias("key"))
         .drop_nulls()
         .unique(subset="key")
     )
@@ -133,11 +132,14 @@ def wikidata_plex_guids() -> pl.LazyFrame:
             "SELECT DISTINCT ?guid WHERE { ?item ps:P11460 ?guid. }",
             columns=["guid"],
         )
-        .pipe(decode_plex_guids)
-        .select(["key"])
+        .select(pl.col("guid").pipe(_decode_plex_guid).alias("key"))
         .drop_nulls()
         .unique(subset="key")
     )
+
+
+def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(_GUID_RE, 2).str.decode("hex").cast(pl.Binary)
 
 
 _OLD_METADATA = pl.col("success") & (
@@ -259,19 +261,6 @@ def _extract_guid(pattern: str) -> pl.Expr:
         )
         .arr.first()
     )
-
-
-def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
-    return (
-        expr.str.extract(_GUID_RE, 2)
-        .str.decode("hex")
-        .cast(pl.Binary)  # TODO: Binary dtype wrong on lazy frame
-        .alias("key")
-    )
-
-
-def decode_plex_guids(guids: pl.LazyFrame) -> pl.LazyFrame:
-    return guids.select(pl.col("guid").pipe(_decode_plex_guid))
 
 
 def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
