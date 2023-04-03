@@ -151,9 +151,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.filter(_OLD_METADATA | _MISSING_METADATA)
-        .pipe(fetch_metadata_guids)
-        .cache()
+        df.filter(_OLD_METADATA | _MISSING_METADATA).pipe(fetch_metadata_guids).cache()
     )
 
     df_similar = (
