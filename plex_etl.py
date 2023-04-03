@@ -267,17 +267,17 @@ def _extract_guid(pattern: str) -> pl.Expr:
     )
 
 
-def decode_plex_guids(guids: pl.LazyFrame) -> pl.LazyFrame:
-    return guids.select(
-        pl.col("guid").str.extract(_GUID_RE, 1).cast(pl.Categorical).alias("type"),
-        (
-            pl.col("guid")
-            .str.extract(_GUID_RE, 2)
-            .str.decode("hex")
-            .cast(pl.Binary)  # TODO: Binary dtype wrong on lazy frame
-            .alias("key")
-        ),
+def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
+    return (
+        expr.str.extract(_GUID_RE, 2)
+        .str.decode("hex")
+        .cast(pl.Binary)  # TODO: Binary dtype wrong on lazy frame
+        .alias("key")
     )
+
+
+def decode_plex_guids(guids: pl.LazyFrame) -> pl.LazyFrame:
+    return guids.select(pl.col("guid").pipe(_decode_plex_guid))
 
 
 def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:

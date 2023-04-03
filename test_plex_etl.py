@@ -45,17 +45,6 @@ def test_decode_plex_guids() -> None:
     )
     df2 = pl.LazyFrame(
         {
-            "type": pl.Series(
-                [
-                    "episode",
-                    "movie",
-                    "season",
-                    "show",
-                    "movie",
-                    None,
-                ],
-                dtype=pl.Categorical,
-            ),
             "key": [
                 b"]\x9c\x11\x15N\xef\xaa\x00\x1fcd\xe0",
                 b"]whhoE!\x00\x1e\xaa\\\xac",
