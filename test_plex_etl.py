@@ -179,5 +179,5 @@ def test_fetch_metadata_guids() -> None:
         }
     )
     assert_frame_equal(
-        fetch_metadata_guids(df).drop(["retrieved_at", "similar_keys"]), df2
+        fetch_metadata_guids(df).drop(["retrieved_at", "more_keys"]), df2
     )
