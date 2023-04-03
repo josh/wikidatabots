@@ -141,8 +141,8 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-_OLD_METADATA = (
-    pl.col("success") & pl.col("retrieved_at").pipe(rank_sort, nulls_last=True) < 1_000
+_OLD_METADATA = pl.col("success") & (
+    pl.col("retrieved_at").pipe(rank_sort, nulls_last=True) < 1_000
 )
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
