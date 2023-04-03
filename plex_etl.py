@@ -141,7 +141,9 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-_OLD_METADATA = pl.col("retrieved_at").pipe(rank_sort, nulls_last=True) < 1_000
+_OLD_METADATA = (
+    pl.col("success") & pl.col("retrieved_at").pipe(rank_sort, nulls_last=True) < 1_000
+)
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
@@ -149,8 +151,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.filter(_MISSING_METADATA)  # | _OLD_METADATA
-        .head(1_000)
+        df.filter(_OLD_METADATA | _MISSING_METADATA)
         .pipe(fetch_metadata_guids)
         .cache()
     )
