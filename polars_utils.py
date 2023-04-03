@@ -338,3 +338,7 @@ def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr
         if null_count > 0 and null_count < s.len():
             yield expr.is_null().alias(f"null_{output_name}")
             yield expr.is_not_null().alias(f"not_null_{output_name}")
+
+        if not s.is_boolean():
+            yield expr.is_duplicated().alias(f"duplicated_{output_name}")
+            yield expr.is_unique().alias(f"unique_{output_name}")
