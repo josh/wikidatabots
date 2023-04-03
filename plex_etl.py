@@ -22,10 +22,9 @@ from polars_utils import (
 )
 from sparql import sparql_df
 
-GUID_TYPE = Literal["movie", "show", "season", "episode", "person"]
+GUID_TYPE = Literal["episode", "movie", "person", "season", "show"]
 
-_GUID_RE = r"plex://(?P<type>movie|show|season|episode|person)/(?P<key>[a-f0-9]{24})"
-_KEY_RE = r"[a-f0-9]{24}"
+_GUID_RE = r"plex://(?P<type>episode|movie|person|season|show)/(?P<key>[a-f0-9]{24})"
 
 _PLEX_SESSION = Session(
     headers={"X-Plex-Token": os.environ.get("PLEX_TOKEN", "")},
@@ -243,13 +242,6 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 )
                 .alias("similar_keys")
             ),
-            # (
-            #     pl.col("response_text")
-            #     .str.extract_all(_KEY_RE)
-            #     .arr.eval(pl.element().str.decode("hex"))
-            #     .arr.unique()
-            #     .alias("more_keys")
-            # ),
         )
     )
 
