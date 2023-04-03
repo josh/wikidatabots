@@ -13,7 +13,9 @@ from polars_utils import (
     apply_with_tqdm,
     assert_called_once,
     assert_expression,
+    drop_columns,
     expr_repl,
+    filter_columns,
     head_mask,
     is_constant,
     outlier_exprs,
@@ -110,6 +112,27 @@ def test_expr_repl() -> None:
         expr_repl(pl.col("a").alias("b").is_not_null(), strip_alias=True)
         == 'pl.col("a").is_not_null()'
     )
+
+
+@given(
+    df=dataframes(),
+    predicate=st.one_of(
+        [
+            st.just(pl.all().is_duplicated().all()),
+            st.just(pl.all().is_duplicated().any()),
+            st.just(pl.all().is_null().all()),
+            st.just(pl.all().is_null().any()),
+            st.just(pl.all().null_count() > 0),
+            st.just(pl.all().null_count() > 10),
+        ]
+    ),
+)
+def test_filter_drop_columns_properties(df: pl.DataFrame, predicate: pl.Expr) -> None:
+    df2 = filter_columns(df, predicate)
+    assert set(df2.columns).issubset(set(df.columns))
+
+    df2 = drop_columns(df, predicate)
+    assert set(df2.columns).issubset(set(df.columns))
 
 
 def test_head_mask() -> None:

@@ -60,6 +60,24 @@ def expr_repl(expr: pl.Expr, strip_alias: bool = False) -> str:
     return f"pl.{expr_s}"
 
 
+def filter_columns(df: pl.DataFrame, predicate: pl.Expr) -> pl.DataFrame:
+    return df.select(_flagged_columns(df, predicate))
+
+
+def drop_columns(df: pl.DataFrame, predicate: pl.Expr) -> pl.DataFrame:
+    return df.drop(_flagged_columns(df, predicate))
+
+
+def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
+    df = df.select(predicate)
+    if df.is_empty():
+        return []
+    assert set(df.dtypes) == {pl.Boolean}, "predicate must return a boolean"
+    assert len(df) == 1, "predicate must return a single row"
+    row = df.row(0, named=True)
+    return [col for col, flag in row.items() if flag]
+
+
 def head_mask(n: int) -> pl.Expr:
     expr = pl.arange(
         low=0,
@@ -277,6 +295,9 @@ def assert_called_once() -> Callable[[T], T]:
     return mock
 
 
+_POWERSET_COL_SEP = "--7C69799--"
+
+
 def outlier_exprs(
     df: pl.DataFrame,
     exprs: Iterable[pl.Expr],
@@ -292,15 +313,26 @@ def outlier_exprs(
     for expr in _expand_expr(df, exprs):
         col_expr[expr.meta.output_name()] = expr
 
-    ldf = df.lazy().select(col_expr.values())
-    orig_columns = ldf.columns
+    is_const_expr = pl.all().pipe(is_constant)
+
+    df = df.select(col_expr.values()).pipe(drop_columns, is_const_expr)
+    orig_columns = df.columns
 
     for r in range(2, min(len(orig_columns), rmax + 1)):
-        ldf = ldf.with_columns(
-            _combine_col_expr(list(cols)) for cols in combinations(orig_columns, r)
-        )
+        col_exprs: list[pl.Expr] = []
 
-    df_total = ldf.select(pl.all().sum()).collect()
+        for cols in combinations(orig_columns, r):
+            col1 = _POWERSET_COL_SEP.join(cols[:-1])
+            col2 = cols[-1]
+            if (col1 in df.columns) and (col2 in df.columns):
+                col_exprs.append(
+                    (pl.col(col1) & pl.col(col2)).alias(_POWERSET_COL_SEP.join(cols))
+                )
+
+        if col_exprs:
+            df = df.with_columns(col_exprs).pipe(drop_columns, is_const_expr)
+
+    df_total = df.select(pl.all().sum())
 
     if not len(df_total):
         return results
@@ -315,16 +347,6 @@ def outlier_exprs(
             results.append((expr_str, expr, count))
 
     return results
-
-
-_POWERSET_COL_SEP = "--7C69799--"
-
-
-def _combine_col_expr(cols: list[str]) -> pl.Expr:
-    expr1 = pl.col(_POWERSET_COL_SEP.join(cols[:-1]))
-    expr2 = pl.col(cols[-1])
-    name = _POWERSET_COL_SEP.join(cols)
-    return (expr1 & expr2).alias(name)
 
 
 def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr]:
