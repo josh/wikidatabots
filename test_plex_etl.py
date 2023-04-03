@@ -9,7 +9,6 @@ from polars.testing import assert_frame_equal
 from plex_etl import (
     decode_plex_guids,
     encode_plex_guids,
-    extract_guids,
     fetch_metadata_guids,
     wikidata_plex_guids,
 )
@@ -104,45 +103,6 @@ def test_encode_plex_guids() -> None:
         }
     )
     assert_frame_equal(encode_plex_guids(df1), df2)
-
-
-def test_extract_guids() -> None:
-    df = pl.LazyFrame(
-        {
-            "text": [
-                """
-                1. plex://episode/5d9c11154eefaa001f6364e0
-                "plex://movie/5d7768686f4521001eaa5cac"
-                link='plex://season/5d9c09bd3c3f87001f361344'
-                <plex://show/5d9c08544eefaa001f5daa50>
-                """,
-                """
-                plex://movie/5d7768686f4521001eaa5cac
-                plex://invalid/111111111111111111111111
-                """,
-            ]
-        }
-    )
-    df2 = pl.LazyFrame(
-        {
-            "type": pl.Series(
-                [
-                    "movie",
-                    "show",
-                    "season",
-                    "episode",
-                ],
-                dtype=pl.Categorical,
-            ),
-            "key": [
-                bytes.fromhex("5d7768686f4521001eaa5cac"),
-                bytes.fromhex("5d9c08544eefaa001f5daa50"),
-                bytes.fromhex("5d9c09bd3c3f87001f361344"),
-                bytes.fromhex("5d9c11154eefaa001f6364e0"),
-            ],
-        }
-    )
-    assert_frame_equal(extract_guids(df), df2)
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")

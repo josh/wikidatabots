@@ -267,19 +267,6 @@ def _extract_guid(pattern: str) -> pl.Expr:
     )
 
 
-def extract_guids(df: pl.LazyFrame) -> pl.LazyFrame:
-    return (
-        df.select(
-            pl.col("text").str.extract_all(_GUID_RE).alias("guid"),
-        )
-        .explode("guid")
-        .pipe(decode_plex_guids)
-        .drop_nulls()
-        .unique()
-        .sort(by="key")
-    )
-
-
 def decode_plex_guids(guids: pl.LazyFrame) -> pl.LazyFrame:
     return guids.select(
         pl.col("guid").str.extract(_GUID_RE, 1).cast(pl.Categorical).alias("type"),
