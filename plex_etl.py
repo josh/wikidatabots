@@ -150,22 +150,22 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
 
     df_updated = (
         df.filter(_MISSING_METADATA)  # | _OLD_METADATA
-        .head(2_000)
+        .head(1_000)
         .pipe(fetch_metadata_guids)
         .cache()
     )
 
     df_similar = (
-        df_updated.select("more_keys")
-        .explode("more_keys")
-        .rename({"more_keys": "key"})
+        df_updated.select("similar_keys")
+        .explode("similar_keys")
+        .rename({"similar_keys": "key"})
         .drop_nulls()
         .unique(subset="key")
         .cache()
     )
 
     return (
-        df.pipe(update_or_append, df_updated.drop("more_keys"), on="key")
+        df.pipe(update_or_append, df_updated.drop("similar_keys"), on="key")
         .pipe(update_or_append, df_similar, on="key")
         .sort(by=pl.col("key").bin.encode("hex"))
     )
@@ -233,24 +233,24 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             _extract_guid(r"imdb://(?:tt|nm)(\d+)").alias("imdb_numeric_id"),
             _extract_guid(r"tmdb://(\d+)").alias("tmdb_id"),
             _extract_guid(r"tvdb://(\d+)").alias("tvdb_id"),
-            # (
-            #     pl.col("video")
-            #     .struct.field("Similar")
-            #     .arr.eval(
-            #         pl.element()
-            #         .struct.field("guid")
-            #         .str.extract(_GUID_RE, 2)
-            #         .str.decode("hex")
-            #     )
-            #     .alias("similar_keys")
-            # ),
             (
-                pl.col("response_text")
-                .str.extract_all(_KEY_RE)
-                .arr.eval(pl.element().str.decode("hex"))
-                .arr.unique()
-                .alias("more_keys")
+                pl.col("video")
+                .struct.field("Similar")
+                .arr.eval(
+                    pl.element()
+                    .struct.field("guid")
+                    .str.extract(_GUID_RE, 2)
+                    .str.decode("hex")
+                )
+                .alias("similar_keys")
             ),
+            # (
+            #     pl.col("response_text")
+            #     .str.extract_all(_KEY_RE)
+            #     .arr.eval(pl.element().str.decode("hex"))
+            #     .arr.unique()
+            #     .alias("more_keys")
+            # ),
         )
     )
 
