@@ -136,7 +136,7 @@ def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex").cast(pl.Binary)
 
 
-_OLD_METADATA = pl.col("success") & (pl.col("retrieved_at").rank("ordinal") < 1_000)
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < 1_000
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
@@ -144,7 +144,9 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.filter(_OLD_METADATA | _MISSING_METADATA).pipe(fetch_metadata_guids).cache()
+        df.filter(_OLDEST_METADATA | _MISSING_METADATA)
+        .pipe(fetch_metadata_guids)
+        .cache()
     )
 
     df_similar = (
