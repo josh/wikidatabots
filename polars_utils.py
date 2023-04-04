@@ -5,7 +5,7 @@ import random
 import re
 import sys
 import xml.etree.ElementTree as ET
-from functools import reduce
+from functools import partial, reduce
 from itertools import combinations
 from math import ceil
 from typing import Any, Callable, Iterable, Iterator, TypeVar
@@ -213,6 +213,33 @@ def read_xml(
     dtype = pl.Struct([pl.Field(k, schema[k]) for k in schema])
     rows = [_xml_element_struct_field(row, dtype) for row in tree.findall(xpath)]
     return pl.from_dicts(rows, schema=schema)
+
+
+def _parse_xml_to_series(
+    xml: str,
+    dtype: pl.Struct,
+    xpath: str = "./*",
+) -> pl.Series:
+    tree = ET.fromstring(xml)
+    rows = tree.findall(xpath)
+    values = [_xml_element_struct_field(row, dtype) for row in rows]
+    return pl.Series(values=values, dtype=dtype)
+
+
+def xml_extract(
+    expr: pl.Expr,
+    dtype: pl.List,
+    xpath: str = "./*",
+    log_group: str = "Parsing XML",
+) -> pl.Expr:
+    inner_dtype = dtype.inner
+    assert isinstance(inner_dtype, pl.Struct)
+    return apply_with_tqdm(
+        expr,
+        partial(_parse_xml_to_series, xpath=xpath, dtype=inner_dtype),
+        return_dtype=dtype,
+        log_group=log_group,
+    )
 
 
 XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None

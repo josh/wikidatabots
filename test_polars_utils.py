@@ -22,6 +22,7 @@ from polars_utils import (
     read_xml,
     unique_row_differences,
     update_or_append,
+    xml_extract,
     xml_to_dtype,
 )
 
@@ -328,6 +329,28 @@ def test_xml_to_dtype():
         },
     ]
     assert xml_to_dtype(XML_EXAMPLE, dtype=dtype) == obj
+
+
+def test_xml_extract() -> None:
+    dtype = pl.List(pl.Struct({"name": pl.Utf8, "year": pl.Int64}))
+
+    df = (
+        pl.DataFrame({"xml": [XML_EXAMPLE]})
+        .select(
+            pl.col("xml").pipe(xml_extract, dtype).alias("country"),
+        )
+        .explode("country")
+        .select(
+            pl.col("country").struct.field("name").alias("name"),
+            pl.col("country").struct.field("year").alias("year"),
+        )
+    )
+
+    df2 = pl.DataFrame(
+        {"name": ["Liechtenstein", "Singapore", "Panama"], "year": [2008, 2011, 2011]}
+    )
+
+    assert_frame_equal(df, df2)
 
 
 def test_align_to_index():
