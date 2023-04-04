@@ -13,13 +13,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import (
-    apply_with_tqdm,
-    rank_sort,
-    read_xml,
-    update_or_append,
-    update_parquet,
-)
+from polars_utils import apply_with_tqdm, read_xml, update_or_append, update_parquet
 from sparql import sparql_df
 
 GUID_TYPE = Literal["episode", "movie", "person", "season", "show"]
@@ -142,9 +136,7 @@ def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex").cast(pl.Binary)
 
 
-_OLD_METADATA = pl.col("success") & (
-    pl.col("retrieved_at").pipe(rank_sort, nulls_last=True) < 1_000
-)
+_OLD_METADATA = pl.col("success") & (pl.col("retrieved_at").rank("ordinal") < 1_000)
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
