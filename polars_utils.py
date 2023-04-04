@@ -159,6 +159,33 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
     ).unique(subset=on, keep="last")
 
 
+_INDICATOR_EXPR = (
+    pl.when(pl.col("_merge_left") & pl.col("_merge_right"))
+    .then(pl.lit("both", dtype=pl.Categorical))
+    .when(pl.col("_merge_left"))
+    .then(pl.lit("left_only", dtype=pl.Categorical))
+    .when(pl.col("_merge_right"))
+    .then(pl.lit("right_only", dtype=pl.Categorical))
+    .otherwise(None)
+    .alias("_merge")
+)
+
+
+def merge_with_indicator(
+    left_df: pl.LazyFrame,
+    right_df: pl.LazyFrame,
+    on: str | pl.Expr,
+    suffix: str = "_right",
+) -> pl.LazyFrame:
+    left_df = left_df.with_columns(pl.lit(True).alias("_merge_left"))
+    right_df = right_df.with_columns(pl.lit(True).alias("_merge_right"))
+    return (
+        left_df.join(right_df, on=on, how="outer", suffix=suffix)
+        .with_columns(_INDICATOR_EXPR)
+        .drop("_merge_left", "_merge_right")
+    )
+
+
 def unique_row_differences(
     df1: pl.LazyFrame, df2: pl.LazyFrame, on: str
 ) -> tuple[int, int, int]:

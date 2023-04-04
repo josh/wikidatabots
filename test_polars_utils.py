@@ -18,6 +18,7 @@ from polars_utils import (
     filter_columns,
     head_mask,
     is_constant,
+    merge_with_indicator,
     outlier_exprs,
     read_xml,
     unique_row_differences,
@@ -25,6 +26,14 @@ from polars_utils import (
     xml_extract,
     xml_to_dtype,
 )
+
+
+def setup_module() -> None:
+    pl.toggle_string_cache(True)
+
+
+def teardown_module() -> None:
+    pl.toggle_string_cache(False)
 
 
 def test_assert_not_null():
@@ -44,6 +53,28 @@ def test_assert_not_null():
     ldf = df.pipe(assert_expression, pl.all().is_not_null())
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
+
+
+def test_merge_with_indicator() -> None:
+    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 2, 3]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2, 3, 4], "b": [3, 3, 4]}).map(assert_called_once())
+
+    df3 = merge_with_indicator(df1, df2, on="a")
+    df4 = pl.LazyFrame(
+        {
+            "a": [2, 3, 4, 1],
+            "b": [2, 3, None, 1],
+            "b_right": [3, 3, 4, None],
+            "_merge": ["both", "both", "right_only", "left_only"],
+        },
+        schema={
+            "a": pl.Int64,
+            "b": pl.Int64,
+            "b_right": pl.Int64,
+            "_merge": pl.Categorical,
+        },
+    )
+    assert_frame_equal(df3, df4)
 
 
 def test_assert_unique():
