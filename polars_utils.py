@@ -189,19 +189,27 @@ def merge_with_indicator(
 def unique_row_differences(
     df1: pl.LazyFrame, df2: pl.LazyFrame, on: str
 ) -> tuple[int, int, int]:
-    # FIXME: cache() isn't working
-    # df1, df2 = df1.cache(), df2.cache()
-    df1, df2 = df1.collect().lazy(), df2.collect().lazy()
-    [removed, added, both_key, both_equal] = pl.collect_all(
-        [
-            df1.join(df2, on=on, how="anti"),
-            df2.join(df1, on=on, how="anti"),
-            df1.join(df2, on=on, how="semi"),
-            df1.join(df2, on=df2.columns, how="semi"),
-        ]
+    left_right_equal_exprs: list[pl.Expr] = []
+    for col in df1.columns:
+        if col == on:
+            continue
+        expr = pl.col(col) != pl.col(f"{col}_right")
+        left_right_equal_exprs.append(expr)
+    assert len(left_right_equal_exprs) >= 1
+    both_not_equal_expr = reduce(pl.Expr.__or__, left_right_equal_exprs)
+
+    row = (
+        df1.pipe(merge_with_indicator, df2, on=on)
+        .select(
+            (pl.col("_merge") == "right_only").sum().alias("added"),
+            (pl.col("_merge") == "left_only").sum().alias("removed"),
+            (both_not_equal_expr & (pl.col("_merge") == "both")).sum().alias("updated"),
+        )
+        .collect()
+        .row(0)
     )
-    updated = both_key.height - both_equal.height
-    return added.height, removed.height, updated
+    assert len(row) == 3
+    return row[0], row[1], row[2]
 
 
 def apply_with_tqdm(
