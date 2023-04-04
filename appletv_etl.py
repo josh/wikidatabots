@@ -15,7 +15,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, read_xml, update_or_append, update_parquet
+from polars_utils import apply_with_tqdm, update_or_append, update_parquet, xml_extract
 
 _APPLETV_SESSION = Session(
     connect_timeout=0.5,
@@ -45,7 +45,11 @@ def siteindex(type: Type) -> pl.LazyFrame:
                 log_group="tv.apple.com/sitemaps_tv_index_type_1.xml",
             )
             .pipe(response_text)
-            .apply(_parse_siteindex_xml, return_dtype=_SITEINDEX_DTYPE)
+            .pipe(
+                xml_extract,
+                dtype=_SITEINDEX_DTYPE,
+                log_group="parse_siteindex_xml",
+            )
             .alias("siteindex"),
         )
         .explode("siteindex")
@@ -53,10 +57,6 @@ def siteindex(type: Type) -> pl.LazyFrame:
             pl.col("siteindex").struct.field("loc").alias("loc"),
         )
     )
-
-
-def _parse_siteindex_xml(text: str) -> pl.Series:
-    return read_xml(text, schema=_SITEINDEX_SCHEMA).to_struct("siteindex")
 
 
 _SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
@@ -89,7 +89,11 @@ def sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
             )
             .struct.field("data")
             .pipe(_zlib_decompress_expr)
-            .apply(_parse_sitemap_xml, return_dtype=_SITEMAP_DTYPE)
+            .pipe(
+                xml_extract,
+                dtype=_SITEMAP_DTYPE,
+                log_group="parse_sitemap_xml",
+            )
             .alias("sitemap")
         )
         .explode("sitemap")
@@ -130,10 +134,6 @@ def _zlib_decompress_expr(expr: pl.Expr) -> pl.Expr:
         log_group="zlib_decompress",
         desc="Decompressing",
     )
-
-
-def _parse_sitemap_xml(text: str) -> pl.Series:
-    return read_xml(text, schema=_SITEMAP_SCHEMA).to_struct("sitemap")
 
 
 _LOC_PATTERN = (
