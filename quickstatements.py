@@ -8,6 +8,7 @@ Small API wrapper for submitting QuickStatements batches.
 
 from collections.abc import Iterable
 
+import polars as pl
 import requests
 
 
@@ -56,6 +57,27 @@ def import_batch(
         return resp["batch_id"]
     else:
         raise APIError(resp["status"])
+
+
+def df_to_csv(df: pl.LazyFrame, pid: str, filename: str) -> None:
+    if "qid" not in df.schema:
+        if "numeric_qid" in df.schema:
+            df = df.with_columns(pl.format("Q{}", pl.col("numeric_qid")).alias("qid"))
+        elif "item" in df.schema:
+            df = df.with_columns(
+                pl.col("item")
+                .str.replace("http://www.wikidata.org/entity/", "")
+                .alias("qid")
+            )
+
+    assert df.schema["qid"]
+    assert df.schema["value"]
+    assert pid.startswith("P")
+
+    df.select(
+        pl.col("qid"),
+        pl.format('"{}"', pl.col("value")).alias(pid),
+    ).collect().write_csv(filename, has_header=True)
 
 
 if __name__ == "__main__":
