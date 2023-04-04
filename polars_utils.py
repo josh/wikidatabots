@@ -230,7 +230,7 @@ def xml_extract(
     expr: pl.Expr,
     dtype: pl.List,
     xpath: str = "./*",
-    log_group: str = "Parsing XML",
+    log_group: str = "apply(xml_extract)",
 ) -> pl.Expr:
     inner_dtype = dtype.inner
     assert isinstance(inner_dtype, pl.Struct)
@@ -238,6 +238,7 @@ def xml_extract(
         expr,
         partial(_parse_xml_to_series, xpath=xpath, dtype=inner_dtype),
         return_dtype=dtype,
+        desc="Parsing XML",
         log_group=log_group,
     )
 
