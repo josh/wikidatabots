@@ -271,7 +271,7 @@ def tmdb_find(
 _FOUR_WEEKS_AGO = datetime.date.today() - datetime.timedelta(weeks=4)
 
 
-def _outlier_expr(df: pl.DataFrame) -> pl.Expr:
+def outlier_expr(df: pl.DataFrame) -> pl.Expr:
     exprs = df.pipe(
         outlier_exprs,
         [
@@ -422,7 +422,7 @@ def main() -> None:
 
     def _update(df: pl.LazyFrame) -> pl.LazyFrame:
         df = df.cache()
-        outdated_expr = _OUTDATED | _outlier_expr(df.collect())
+        outdated_expr = _OUTDATED  # | outlier_expr(df.collect())
 
         return (
             df.pipe(insert_tmdb_latest_changes, tmdb_type)
