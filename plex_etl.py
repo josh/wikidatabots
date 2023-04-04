@@ -13,7 +13,7 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, read_xml, update_or_append, update_parquet
+from polars_utils import update_or_append, update_parquet, xml_extract
 from sparql import sparql_df
 
 GUID_TYPE = Literal["episode", "movie", "person", "season", "show"]
@@ -25,23 +25,21 @@ _PLEX_SESSION = Session(
     ok_statuses={200, 404},
 )
 
-_PLEX_DEVICE_SCHEMA: dict[str, pl.PolarsDataType] = {
-    "name": pl.Utf8,
-    "publicAddress": pl.Utf8,
-    "accessToken": pl.Utf8,
-    "Connection": pl.List(
-        pl.Struct(
-            {
-                "uri": pl.Utf8,
-                "local": pl.Utf8,
-            }
-        )
-    ),
-}
-
-
-def _parse_device_xml(text: str) -> pl.Series:
-    return read_xml(text, schema=_PLEX_DEVICE_SCHEMA).to_struct("Device")
+_PLEX_DEVICE_DTYPE = pl.Struct(
+    {
+        "name": pl.Utf8,
+        "publicAddress": pl.Utf8,
+        "accessToken": pl.Utf8,
+        "Connection": pl.List(
+            pl.Struct(
+                {
+                    "uri": pl.Utf8,
+                    "local": pl.Utf8,
+                }
+            )
+        ),
+    }
+)
 
 
 def _plex_server(name: str) -> pl.LazyFrame:
@@ -57,9 +55,8 @@ def _plex_server(name: str) -> pl.LazyFrame:
             )
             .pipe(response_text)
             .pipe(
-                apply_with_tqdm,
-                _parse_device_xml,
-                return_dtype=pl.List(pl.Struct(_PLEX_DEVICE_SCHEMA)),
+                xml_extract,
+                dtype=pl.List(_PLEX_DEVICE_DTYPE),
                 log_group="parse_device_xml",
             )
             .alias("Device")
@@ -86,9 +83,6 @@ def _plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
     server = server_df.collect().row(index=0, named=True)
     plex_server_session = Session(headers={"X-Plex-Token": server["accessToken"]})
 
-    def _parse_xml(text: str) -> pl.Series:
-        return read_xml(text, schema={"guid": pl.Utf8}).to_struct("item")
-
     return (
         pl.LazyFrame({"section": [1, 2]})
         .select(
@@ -103,9 +97,8 @@ def _plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
             )
             .pipe(response_text)
             .pipe(
-                apply_with_tqdm,
-                _parse_xml,
-                return_dtype=pl.List(pl.Struct({"guid": pl.Utf8})),
+                xml_extract,
+                dtype=pl.List(pl.Struct({"guid": pl.Utf8})),
                 log_group="parse_xml",
             )
             .alias("item")
@@ -198,22 +191,14 @@ _METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
 
 
 def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
-    def parse_response_text(text: str) -> pl.Series:
-        return read_xml(
-            text,
-            schema=_METADATA_XML_SCHEMA,
-            xpath="./*",
-        ).to_struct("video")
-
     return (
         df.pipe(_fetch_metadata_text)
         .with_columns(
             (
                 pl.col("response_text")
                 .pipe(
-                    apply_with_tqdm,
-                    parse_response_text,
-                    return_dtype=pl.List(pl.Struct(_METADATA_XML_SCHEMA)),
+                    xml_extract,
+                    dtype=pl.List(pl.Struct(_METADATA_XML_SCHEMA)),
                     log_group="parse_response_text",
                 )
                 .arr.first()
