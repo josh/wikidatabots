@@ -200,14 +200,6 @@ def extract_qid(name: str = "item") -> pl.Expr:
     return pl.col(name).str.extract(r"^http://www.wikidata.org/entity/(Q\d+)$", 1)
 
 
-def extract_numeric_qid(name: str = "item") -> pl.Expr:
-    return (
-        pl.col(name)
-        .str.extract(r"^http://www.wikidata.org/entity/Q(\d+)$", 1)
-        .cast(pl.UInt32)
-    )
-
-
 def fetch_statements(
     qids: Iterable[QID],
     properties: Iterable[PID],
