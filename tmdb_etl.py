@@ -28,18 +28,6 @@ from polars_utils import (
 TMDB_TYPE = Literal["movie", "tv", "person"]
 _TMDB_EXTERNAL_SOURCE = Literal["imdb_id", "tvdb_id", "wikidata_id"]
 
-SCHEMA = {
-    "id": pl.UInt32,
-    "date": pl.Date,
-    "adult": pl.Boolean,
-    "in_export": pl.Boolean,
-    "success": pl.Boolean,
-    "retrieved_at": pl.Datetime(time_unit="ns"),
-    "imdb_numeric_id": pl.UInt32,
-    "tvdb_id": pl.UInt32,
-    "wikidata_numeric_id": pl.UInt32,
-}
-
 _COLUMNS = [
     "id",
     "date",
@@ -51,21 +39,6 @@ _COLUMNS = [
     "tvdb_id",
     "wikidata_numeric_id",
 ]
-
-CHANGES_SCHEMA = {
-    "id": pl.UInt32,
-    "date": pl.Date,
-    "adult": pl.Boolean,
-}
-
-EXTERNAL_IDS_SCHEMA = {
-    "id": pl.UInt32,
-    "success": pl.Boolean,
-    "retrieved_at": pl.Datetime(time_unit="ns"),
-    "imdb_numeric_id": pl.UInt32,
-    "tvdb_id": pl.UInt32,
-    "wikidata_numeric_id": pl.UInt32,
-}
 
 _SESSION = Session(
     ok_statuses={200, 404},
@@ -174,7 +147,6 @@ def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    assert df.schema == SCHEMA
     df = df.cache()
 
     dates_df = df.select(
@@ -305,7 +277,6 @@ def insert_tmdb_external_ids(
     tmdb_type: TMDB_TYPE,
     outdated_expr: pl.Expr = _OUTDATED,
 ) -> pl.LazyFrame:
-    assert df.schema == SCHEMA
     df = df.cache()
 
     new_external_ids_df = (
@@ -401,8 +372,6 @@ def tmdb_export(
 
 
 def _insert_tmdb_export_flag(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    assert df.schema == SCHEMA
-
     export_df = tmdb_export(tmdb_type).select(
         pl.col("id"),
         pl.lit(True).alias("in_export"),

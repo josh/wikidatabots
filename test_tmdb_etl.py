@@ -7,9 +7,6 @@ from polars.testing import assert_frame_equal
 
 from polars_utils import assert_called_once
 from tmdb_etl import (
-    CHANGES_SCHEMA,
-    EXTERNAL_IDS_SCHEMA,
-    SCHEMA,
     insert_tmdb_external_ids,
     insert_tmdb_latest_changes,
     tmdb_changes,
@@ -18,6 +15,18 @@ from tmdb_etl import (
     tmdb_external_ids,
     tmdb_find,
 )
+
+_SCHEMA = {
+    "id": pl.UInt32,
+    "date": pl.Date,
+    "adult": pl.Boolean,
+    "in_export": pl.Boolean,
+    "success": pl.Boolean,
+    "retrieved_at": pl.Datetime(time_unit="ns"),
+    "imdb_numeric_id": pl.UInt32,
+    "tvdb_id": pl.UInt32,
+    "wikidata_numeric_id": pl.UInt32,
+}
 
 
 def test_insert_tmdb_external_ids() -> None:
@@ -33,10 +42,10 @@ def test_insert_tmdb_external_ids() -> None:
             "tvdb_id": [None],
             "wikidata_numeric_id": [None],
         },
-        schema=SCHEMA,
+        schema=_SCHEMA,
     ).map(assert_called_once())
     ldf = insert_tmdb_external_ids(df1, tmdb_type="movie")
-    assert ldf.schema == SCHEMA
+    assert ldf.schema == _SCHEMA
     df2 = ldf.collect()
     assert len(df2) > 0
 
@@ -54,10 +63,10 @@ def test_insert_tmdb_latest_changes() -> None:
             "tvdb_id": [None],
             "wikidata_numeric_id": [None],
         },
-        schema=SCHEMA,
+        schema=_SCHEMA,
     ).map(assert_called_once())
     ldf = insert_tmdb_latest_changes(df1, tmdb_type="movie")
-    assert ldf.schema == SCHEMA
+    assert ldf.schema == _SCHEMA
     df2 = ldf.collect()
     assert len(df2) > 0
 
@@ -67,7 +76,11 @@ def test_tmdb_changes() -> None:
         {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
     )
     ldf = tmdb_changes(dates_df, tmdb_type="movie")
-    assert ldf.schema == CHANGES_SCHEMA
+    assert ldf.schema == {
+        "id": pl.UInt32,
+        "date": pl.Date,
+        "adult": pl.Boolean,
+    }
     ldf.collect()
 
 
@@ -93,7 +106,14 @@ def test_tmdb_external_ids() -> None:
             "imdb_numeric_id": pl.Series([None, 94675, 92149, None], dtype=pl.UInt32),
         }
     )
-    assert df.schema == EXTERNAL_IDS_SCHEMA
+    assert df.schema == {
+        "id": pl.UInt32,
+        "success": pl.Boolean,
+        "retrieved_at": pl.Datetime(time_unit="ns"),
+        "imdb_numeric_id": pl.UInt32,
+        "tvdb_id": pl.UInt32,
+        "wikidata_numeric_id": pl.UInt32,
+    }
     assert_frame_equal(df.select(["id", "success", "imdb_numeric_id"]), df2)
 
 
