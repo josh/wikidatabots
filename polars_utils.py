@@ -204,14 +204,6 @@ def apply_with_tqdm(
     return expr.map(map_function, return_dtype=return_dtype)
 
 
-def rank_sort(
-    expr: pl.Expr,
-    descending: bool = False,
-    nulls_last: bool = False,
-) -> pl.Expr:
-    return expr.arg_sort(descending=descending, nulls_last=nulls_last).arg_sort()
-
-
 def read_xml(
     xml: str,
     schema: dict[str, pl.PolarsDataType],
