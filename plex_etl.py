@@ -165,7 +165,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
     return (
-        df.pipe(update_or_append, df_updated.drop("similar_keys", "year"), on="key")
+        df.pipe(update_or_append, df_updated.drop("similar_keys"), on="key")
         .pipe(update_or_append, df_similar, on="key")
         .sort(by=pl.col("key").bin.encode("hex"))
     )
