@@ -222,16 +222,14 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.pipe(_fetch_metadata_text)
         .with_columns(
-            (
-                pl.col("response_text")
-                .pipe(
-                    xml_extract,
-                    dtype=pl.List(pl.Struct(_METADATA_XML_SCHEMA)),
-                    log_group="parse_response_text",
-                )
-                .arr.first()
-                .alias("video")
-            ),
+            pl.col("response_text")
+            .pipe(
+                xml_extract,
+                dtype=pl.List(pl.Struct(_METADATA_XML_SCHEMA)),
+                log_group="parse_response_text",
+            )
+            .arr.first()
+            .alias("video")
         )
         .select(
             pl.col("key"),
