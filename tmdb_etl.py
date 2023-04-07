@@ -19,11 +19,11 @@ from polars_requests import (
 )
 from polars_utils import (
     align_to_index,
+    apply_with_tqdm,
     assert_expression,
     outlier_exprs,
     update_or_append,
     update_parquet,
-    apply_with_tqdm,
 )
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
