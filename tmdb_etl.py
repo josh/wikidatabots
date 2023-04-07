@@ -23,6 +23,7 @@ from polars_utils import (
     outlier_exprs,
     update_or_append,
     update_parquet,
+    apply_with_tqdm,
 )
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
@@ -291,8 +292,14 @@ def insert_tmdb_external_ids(
     )
 
 
-def _decompress(data: bytes) -> str:
-    return gzip.decompress(data).decode("utf-8")
+def _gzip_decompress(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        gzip.decompress,
+        return_dtype=pl.Binary,
+        desc="Decompressing",
+        log_group="gzip_decompress",
+    )
 
 
 def _export_date() -> datetime.date:
@@ -324,7 +331,8 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
                 log_group="files.tmdb.org/p/exports",
             )
             .struct.field("data")
-            .apply(_decompress)
+            .pipe(_gzip_decompress)
+            .cast(pl.Utf8)
             .str.split("\n")
             .alias("lines"),
         )
