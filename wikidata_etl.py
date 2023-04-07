@@ -102,7 +102,7 @@ def _fetch_all_property_class_constraints() -> pl.LazyFrame:
 
 
 def _main() -> None:
-    pl.toggle_string_cache(True)
+    pl.enable_string_cache(True)
 
     df = _fetch_all_property_class_constraints()
     df.collect().write_parquet("property_class_constraints.parquet")
