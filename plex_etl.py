@@ -27,6 +27,8 @@ _PLEX_SESSION = Session(
     ok_statuses={200, 404},
 )
 
+_PLEX_SERVER_SESSION = Session()
+
 _PLEX_DEVICE_DTYPE = pl.Struct(
     {
         "name": pl.Utf8,
@@ -80,21 +82,17 @@ def _plex_server(name: str) -> pl.LazyFrame:
     )
 
 
-def _plex_library_guids(server_df: pl.LazyFrame) -> pl.LazyFrame:
-    # TODO: Avoid collect
-    server = server_df.collect().row(index=0, named=True)
-    plex_server_session = Session(headers={"X-Plex-Token": server["accessToken"]})
-
+def _plex_library_guids() -> pl.LazyFrame:
     return (
-        pl.LazyFrame({"section": [1, 2]})
+        _plex_server(name=os.environ["PLEX_SERVER"])
+        .with_columns(pl.lit([[1, 2]]).alias("section"))
+        .explode("section")
         .select(
-            pl.format(
-                "{}/library/sections/{}/all", pl.lit(server["uri"]), pl.col("section")
-            )
-            .pipe(prepare_request)
+            pl.format("{}/library/sections/{}/all", pl.col("uri"), pl.col("section"))
+            .pipe(prepare_request, headers={"X-Plex-Token": pl.col("accessToken")})
             .pipe(
                 urllib3_requests,
-                session=plex_server_session,
+                session=_PLEX_SERVER_SESSION,
                 log_group="plexserver/library/sections/all",
             )
             .pipe(response_text)
@@ -285,10 +283,8 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
-    server_df = _plex_server(name=os.environ["PLEX_SERVER"])
-
     dfs = [
-        _plex_library_guids(server_df),
+        _plex_library_guids(),
         wikidata_plex_guids(),
     ]
     df_new = pl.concat(
