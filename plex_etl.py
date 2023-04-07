@@ -129,6 +129,10 @@ def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex").cast(pl.Binary)
 
 
+def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
+    return df.sort(by=pl.col("key").bin.encode("hex"))
+
+
 _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < 1_000
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
@@ -154,7 +158,7 @@ def _backfill_metadata(df: pl.LazyFrame, predicate: pl.Expr) -> pl.LazyFrame:
     return (
         df.pipe(update_or_append, df_updated.drop("similar_keys"), on="key")
         .pipe(update_or_append, df_similar, on="key")
-        .sort(by=pl.col("key").bin.encode("hex"))
+        .pipe(_sort)
     )
 
 
@@ -281,17 +285,10 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
-    dfs = [
-        _plex_library_guids(),
-        wikidata_plex_guids(),
-    ]
-    df_new = pl.concat(
-        dfs,
-        parallel=False,  # BUG: parallel caching is broken
-    ).unique(subset="key")
-
-    return plex_df.join(df_new, on="key", how="outer").sort(
-        by=pl.col("key").bin.encode("hex")
+    return (
+        plex_df.pipe(update_or_append, _plex_library_guids(), on="key")
+        .pipe(update_or_append, wikidata_plex_guids(), on="key")
+        .pipe(_sort)
     )
 
 
