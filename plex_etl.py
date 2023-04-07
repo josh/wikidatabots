@@ -18,9 +18,9 @@ from polars_requests import (
 from polars_utils import outlier_exprs, update_or_append, update_parquet, xml_extract
 from sparql import sparql_df
 
-GUID_TYPE = Literal["episode", "movie", "person", "season", "show"]
+GUID_TYPE = Literal["episode", "movie", "season", "show"]
 
-_GUID_RE = r"plex://(?P<type>episode|movie|person|season|show)/(?P<key>[a-f0-9]{24})"
+_GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
 
 _PLEX_SESSION = Session(
     headers={"X-Plex-Token": os.environ.get("PLEX_TOKEN", "")},
