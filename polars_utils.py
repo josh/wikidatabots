@@ -79,10 +79,7 @@ def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
 
 
 def head_mask(n: int) -> pl.Expr:
-    expr = pl.arange(
-        low=0,
-        high=pl.count(),
-    )
+    expr = pl.arange(0, pl.count())
     assert isinstance(expr, pl.Expr)
     return expr < n
 
@@ -114,8 +111,8 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
 
     return df.select(
         pl.arange(
-            low=0,
-            high=pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
+            0,
+            pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
             dtype=df.schema[name],
         ).alias(name)
     ).join(df, on=name, how="left")
