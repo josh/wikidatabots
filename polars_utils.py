@@ -78,12 +78,6 @@ def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
     return [col for col, flag in row.items() if flag]
 
 
-def head_mask(n: int) -> pl.Expr:
-    expr = pl.arange(0, pl.count())
-    assert isinstance(expr, pl.Expr)
-    return expr < n
-
-
 def is_constant(expr: pl.Expr) -> pl.Expr:
     return (expr == expr.first()).all()
 
