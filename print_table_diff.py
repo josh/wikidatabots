@@ -32,4 +32,6 @@ print(f"total: +{added:,} -{removed:,} ~{updated:,}")
 for col in changes:
     if not col.endswith("_updated"):
         continue
-    print(f"{col[:-8]}: ~{changes[col]:,}")
+    count = changes[col]
+    if count:
+        print(f"{col[:-8]}: ~{count:,}")
