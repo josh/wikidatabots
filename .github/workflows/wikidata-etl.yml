@@ -50,7 +50,7 @@ jobs:
 
       - name: Print diff
         run: |
-          python print_table_diff.py property_class_constraints.parquet~ property_class_constraints.parquet class_numeric_qid
+          python print_table_diff.py property_class_constraints.parquet~ property_class_constraints.parquet class_numeric_qid | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload to S3
         run: |

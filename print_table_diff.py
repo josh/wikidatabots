@@ -1,16 +1,10 @@
 # pyright: strict
 
-import os
 import sys
 
 import polars as pl
 
 from polars_utils import frame_diff
-
-STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
-
-txt_out = sys.stdout
-md_out = open(STEP_SUMMARY, "w")
 
 pl.toggle_string_cache(True)
 
@@ -30,7 +24,6 @@ df_b = read_df(sys.argv[2])
 key = sys.argv[3]
 changes = frame_diff(df_a, df_b, on=key).collect().row(0, named=True)
 added, removed, updated = changes["added"], changes["removed"], changes["updated"]
-print(f"+{added:,} -{removed:,} ~{updated:,}", file=txt_out)
 
-print(f"## {sys.argv[1]} vs {sys.argv[2]}", file=md_out)
-print(f"+{added:,} -{removed:,} ~{updated:,}", file=md_out)
+print(f"## {sys.argv[1]} vs {sys.argv[2]}")
+print(f"+{added:,} -{removed:,} ~{updated:,}")
