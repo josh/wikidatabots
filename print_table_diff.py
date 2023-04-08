@@ -5,7 +5,7 @@ import sys
 
 import polars as pl
 
-from polars_utils import unique_row_differences
+from polars_utils import frame_diff
 
 STEP_SUMMARY = os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null")
 
@@ -28,7 +28,8 @@ df_a = read_df(sys.argv[1])
 df_b = read_df(sys.argv[2])
 
 key = sys.argv[3]
-added, removed, updated = unique_row_differences(df_a, df_b, on=key)
+changes = frame_diff(df_a, df_b, on=key).collect().row(0, named=True)
+added, removed, updated = changes["added"], changes["removed"], changes["updated"]
 print(f"+{added:,} -{removed:,} ~{updated:,}", file=txt_out)
 
 print(f"## {sys.argv[1]} vs {sys.argv[2]}", file=md_out)

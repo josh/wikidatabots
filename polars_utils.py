@@ -177,30 +177,39 @@ def merge_with_indicator(
     )
 
 
-def unique_row_differences(
-    df1: pl.LazyFrame, df2: pl.LazyFrame, on: str
-) -> tuple[int, int, int]:
-    left_right_equal_exprs: list[pl.Expr] = []
-    for col in df1.columns:
-        if col == on:
-            continue
-        expr = pl.col(col) != pl.col(f"{col}_right")
-        left_right_equal_exprs.append(expr)
-    assert len(left_right_equal_exprs) >= 1
-    both_not_equal_expr = reduce(pl.Expr.__or__, left_right_equal_exprs)
+def frame_diff(
+    df1: pl.LazyFrame,
+    df2: pl.LazyFrame,
+    on: str,
+    suffix: str = "_updated",
+) -> pl.LazyFrame:
+    cols = [col for col in df1.columns if col != on]
+    assert len(cols) >= 1
 
-    row = (
-        df1.pipe(merge_with_indicator, df2, on=on)
-        .select(
-            (pl.col("_merge") == "right_only").sum().alias("added"),
-            (pl.col("_merge") == "left_only").sum().alias("removed"),
-            (both_not_equal_expr & (pl.col("_merge") == "both")).sum().alias("updated"),
+    compute_col_updated_exprs = [
+        (
+            pl.col(col)
+            .pipe(pl.Expr.__ne__, pl.col(f"{col}_right"))
+            .pipe(pl.Expr.__and__, pl.col("_merge") == "both")
+            .alias(f"{col}{suffix}")
         )
-        .collect()
-        .row(0)
+        for col in cols
+    ]
+
+    updated_cols = [pl.col(f"{col}{suffix}") for col in cols]
+    any_updated_col = reduce(pl.Expr.__or__, updated_cols)
+
+    return (
+        df1.pipe(merge_with_indicator, df2, on=on)
+        .with_columns(compute_col_updated_exprs)
+        .select(
+            (pl.col("_merge") == "right_only").alias("added"),
+            (pl.col("_merge") == "left_only").alias("removed"),
+            any_updated_col.alias("updated"),
+            *updated_cols,
+        )
+        .select(pl.all().sum().cast(pl.UInt32))
     )
-    assert len(row) == 3
-    return row[0], row[1], row[2]
 
 
 def apply_with_tqdm(

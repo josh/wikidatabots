@@ -16,11 +16,11 @@ from polars_utils import (
     drop_columns,
     expr_repl,
     filter_columns,
+    frame_diff,
     is_constant,
     merge_with_indicator,
     outlier_exprs,
     read_xml,
-    unique_row_differences,
     update_or_append,
     xml_extract,
     xml_to_dtype,
@@ -513,17 +513,18 @@ def test_update_or_append_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> No
     assert df3.height == 0 or df3["a"].is_unique().all()
 
 
-def test_unique_row_differences():
+def test_frame_diff() -> None:
     df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map(
         assert_called_once()
     )
     df2 = pl.LazyFrame({"a": [2, 3, 4], "b": [True, False, False]}).map(
         assert_called_once()
     )
-    added, removed, updated = unique_row_differences(df1, df2, on="a")
+    added, removed, updated, b_updated = frame_diff(df1, df2, on="a").collect().row(0)
     assert added == 1
     assert removed == 1
     assert updated == 1
+    assert b_updated == 1
 
     df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map(
         assert_called_once()
@@ -531,30 +532,52 @@ def test_unique_row_differences():
     df2 = pl.LazyFrame({"a": [1, 2, 3], "b": [True, True, False]}).map(
         assert_called_once()
     )
-    added, removed, updated = unique_row_differences(df1, df2, on="a")
+    added, removed, updated, b_updated = frame_diff(df1, df2, on="a").collect().row(0)
     assert added == 0
     assert removed == 0
     assert updated == 2
+    assert b_updated == 2
 
 
 df_st = dataframes(
-    cols=[column("a", dtype=pl.Int64, unique=True), column("b", dtype=pl.Boolean)]
+    cols=[
+        column("a", dtype=pl.Int64, unique=True),
+        column("b", dtype=pl.Boolean),
+        column("c", dtype=pl.Boolean),
+    ]
 )
 
 
 @given(df1=df_st, df2=df_st)
-def test_unique_row_differences_properties(df1: pl.DataFrame, df2: pl.DataFrame):
-    added, removed, updated = unique_row_differences(
+def test_frame_diff_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
+    ldf = frame_diff(
         df1.lazy().map(assert_called_once()),
         df2.lazy().map(assert_called_once()),
         on="a",
     )
+    assert ldf.columns[0:3] == ["added", "removed", "updated"]
+    assert ldf.schema == {
+        "added": pl.UInt32,
+        "removed": pl.UInt32,
+        "updated": pl.UInt32,
+        "b_updated": pl.UInt32,
+        "c_updated": pl.UInt32,
+    }
+    df = ldf.collect()
+    assert len(df) == 1
+    row = df.row(0)
+    assert len(row) == 5
+    added, removed, updated, b_updated, c_updated = row
     assert added >= 0, "added should be >= 0"
     assert added <= len(df2), "added should be <= len(df2)"
     assert removed >= 0, "removed should be >= 0"
     assert removed <= len(df1), "removed should be <= len(df1)"
     assert updated >= 0, "updated should be >= 0"
     assert updated <= len(df1), "updated should be <= len(df1)"
+    assert b_updated >= 0, "b_updated should be >= 0"
+    assert b_updated <= updated, "b_updated should be <= updated"
+    assert c_updated >= 0, "b_updated should be >= 0"
+    assert c_updated <= updated, "b_updated should be <= updated"
     assert df1.height - removed + added == df2.height, "df1 - removed + added == df2"
     assert df2.height - added + removed == df1.height, "df2 - added + removed == df1"
 
