@@ -121,7 +121,7 @@ def _urllib3_requests_series(
     def _values() -> Iterator[_HTTPResponse | None]:
         print(f"::group::{log_group}", file=sys.stderr)
 
-        for request in tqdm(requests, desc="Fetching URLs", unit="url"):
+        for request in tqdm(requests, unit="url"):
             if request:
                 assert isinstance(request["url"], str), f"No URL for request: {request}"
                 yield _urllib3_request(

@@ -297,7 +297,6 @@ def _gzip_decompress(expr: pl.Expr) -> pl.Expr:
         expr,
         gzip.decompress,
         return_dtype=pl.Binary,
-        desc="Decompressing",
         log_group="gzip_decompress",
     )
 

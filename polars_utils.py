@@ -216,7 +216,6 @@ def apply_with_tqdm(
     expr: pl.Expr,
     function: Callable[[Any], Any],
     return_dtype: pl.PolarsDataType | None = None,
-    desc: str | None = None,
     log_group: str = "apply(unknown)",
 ) -> pl.Expr:
     def apply_function(s: pl.Series) -> Iterator[Any]:
@@ -225,7 +224,7 @@ def apply_with_tqdm(
 
         try:
             print(f"::group::{log_group}", file=sys.stderr)
-            for item in tqdm(s, desc=desc, unit="row"):
+            for item in tqdm(s, unit="row"):
                 if item:
                     yield function(item)
                 else:
@@ -273,7 +272,6 @@ def xml_extract(
         expr,
         partial(_parse_xml_to_series, xpath=xpath, dtype=inner_dtype),
         return_dtype=dtype,
-        desc="Parsing XML",
         log_group=log_group,
     )
 

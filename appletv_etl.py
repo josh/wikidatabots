@@ -132,7 +132,6 @@ def _zlib_decompress_expr(expr: pl.Expr) -> pl.Expr:
         _zlib_decompress,
         return_dtype=pl.Utf8,
         log_group="zlib_decompress",
-        desc="Decompressing",
     )
 
 
@@ -248,7 +247,6 @@ def _extract_jsonld_expr(expr: pl.Expr) -> pl.Expr:
         _extract_jsonld,
         return_dtype=pl.Utf8,
         log_group="extract_jsonld",
-        desc="Extracting JSON-LD",
     )
 
 
