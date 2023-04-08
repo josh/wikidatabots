@@ -46,14 +46,6 @@ jobs:
         run: |
           echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
 
-      - name: Load cache
-        uses: actions/cache@v3
-        with:
-          path: .cache/
-          key: cache-${{ github.job }}-${{ matrix.type }}-${{ github.run_id }}
-          restore-keys: |
-            cache-${{ github.job }}-${{ matrix.type }}-
-
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet" "sitemap.parquet"
