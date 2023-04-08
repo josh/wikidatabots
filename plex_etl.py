@@ -190,62 +190,66 @@ def outlier_expr(df: pl.DataFrame) -> pl.Expr:
     return expr
 
 
-def _fetch_metadata_text(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.with_columns(
-        pl.format(
-            "https://metadata.provider.plex.tv/library/metadata/{}",
-            pl.col("key").bin.encode("hex"),
-        )
-        .pipe(prepare_request)
-        .pipe(
-            urllib3_requests,
-            session=_PLEX_SESSION,
-            log_group="metadata.provider.plex.tv/library/metadata",
-        ),
-    ).with_columns(
-        pl.col("response").struct.field("status").alias("status_code"),
-        (
-            pl.col("response")
-            .pipe(response_date)
-            .cast(pl.Datetime(time_unit="ns"))
-            .alias("retrieved_at")
-        ),
-        pl.col("response").pipe(response_text).alias("response_text"),
-    )
+_METADATA_DTYPE = pl.Struct(
+    {
+        "guid": pl.Utf8,
+        "ratingKey": pl.Utf8,
+        "type": pl.Categorical,
+        "title": pl.Utf8,
+        "year": pl.UInt16,
+        "Similar": pl.List(pl.Struct({"guid": pl.Utf8})),
+        "Guid": pl.List(pl.Struct({"id": pl.Utf8})),
+    }
+)
 
-
-_METADATA_XML_SCHEMA: dict[str, pl.PolarsDataType] = {
-    "type": pl.Categorical,
-    "year": pl.Utf8,
-    "Guid": pl.List(pl.Struct({"id": pl.Utf8})),
-    "Similar": pl.List(pl.Struct({"guid": pl.Utf8})),
-}
+_METACONTAINER_JSON_DTYPE: pl.PolarsDataType = pl.Struct(
+    {"MediaContainer": pl.Struct({"Metadata": pl.List(_METADATA_DTYPE)})}
+)
 
 
 def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.pipe(_fetch_metadata_text)
-        .with_columns(
-            pl.col("response_text")
-            .pipe(
-                xml_extract,
-                dtype=pl.List(pl.Struct(_METADATA_XML_SCHEMA)),
-                log_group="parse_response_text",
+        df.with_columns(
+            pl.format(
+                "https://metadata.provider.plex.tv/library/metadata/{}",
+                pl.col("key").bin.encode("hex"),
             )
-            .arr.first()
-            .alias("video")
+            .pipe(prepare_request, headers={"Accept": "application/json"})
+            .pipe(
+                urllib3_requests,
+                session=_PLEX_SESSION,
+                log_group="metadata.provider.plex.tv/library/metadata",
+            ),
+        )
+        .with_columns(
+            pl.col("response").struct.field("status").alias("status_code"),
+            (
+                pl.col("response")
+                .pipe(response_date)
+                .cast(pl.Datetime(time_unit="ns"))
+                .alias("retrieved_at")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_text)
+                .str.json_extract(_METACONTAINER_JSON_DTYPE)
+                .struct.field("MediaContainer")
+                .struct.field("Metadata")
+                .arr.first()
+                .alias("metadata")
+            ),
         )
         .select(
             pl.col("key"),
-            pl.col("video").struct.field("type").alias("type"),
+            pl.col("metadata").struct.field("type").alias("type"),
             (pl.col("status_code") == 200).alias("success"),
             pl.col("retrieved_at"),
-            pl.col("video").struct.field("year").cast(pl.UInt16).alias("year"),
+            pl.col("metadata").struct.field("year").alias("year"),
             _extract_guid(r"imdb://(?:tt|nm)(\d+)").alias("imdb_numeric_id"),
             _extract_guid(r"tmdb://(\d+)").alias("tmdb_id"),
             _extract_guid(r"tvdb://(\d+)").alias("tvdb_id"),
             (
-                pl.col("video")
+                pl.col("metadata")
                 .struct.field("Similar")
                 .arr.eval(
                     pl.element()
@@ -261,7 +265,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def _extract_guid(pattern: str) -> pl.Expr:
     return (
-        pl.col("video")
+        pl.col("metadata")
         .struct.field("Guid")
         .arr.eval(
             pl.element()
