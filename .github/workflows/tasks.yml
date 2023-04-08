@@ -14,94 +14,6 @@ env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  itunes:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        property:
-          - "P6398"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Load cache
-        uses: actions/cache@v3
-        with:
-          path: .cache/
-          key: cache-${{ github.job }}-${{ matrix.property }}-${{ github.run_id }}
-          restore-keys: |
-            cache-${{ github.job }}-${{ matrix.property }}-
-
-      - name: Run script
-        run: |
-          set -o pipefail
-          python "$PROPERTY_ID.py" | tee output.csv
-        env:
-          PROPERTY_ID: ${{ matrix.property }}
-
-      - name: Submit QuickStatements batch
-        env:
-          QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
-        run: |
-          python quickstatements.py --batchname iTunesIDs <output.csv
-
-  appletv:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        property:
-          - "P9586"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Load cache
-        uses: actions/cache@v3
-        with:
-          path: .cache/
-          key: cache-${{ github.job }}-${{ matrix.property }}-${{ github.run_id }}
-          restore-keys: |
-            cache-${{ github.job }}-${{ matrix.property }}-
-
-      - name: Run script
-        run: |
-          set -o pipefail
-          python "$PROPERTY_ID.py" | tee output.csv
-        env:
-          PROPERTY_ID: ${{ matrix.property }}
-
-      - name: Submit QuickStatements batch
-        env:
-          QUICKSTATEMENTS_TOKEN: ${{ secrets.QUICKSTATEMENTS_TOKEN }}
-        run: |
-          python quickstatements.py --batchname AppleTVIDs <output.csv
-
   pywikibot:
     runs-on: ubuntu-latest
 
@@ -157,6 +69,8 @@ jobs:
         script:
           - "not_found_P6398"
           - "not_found_P9586"
+          - "P6398"
+          - "P9586"
           - "wd_plex"
           - "wd_tmdb"
 

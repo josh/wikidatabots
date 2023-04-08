@@ -166,14 +166,13 @@ def main():
                 continue
             yield (url, id)
 
-    print("qid,P9586")
     for url, id in iter_until_deadline(itertools.islice(candiate_urls(), limit)):
         info = fetch_movie(url)
         if not info:
             continue
         result = wikidata_search(*info)
         if result and not result["appletv"]:
-            print(f'{result["qid"]},"""{id}"""')
+            print(f'wd:{result["qid"]} wdt:P9586 "{id}" .')
 
 
 if __name__ == "__main__":

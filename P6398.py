@@ -15,8 +15,6 @@ def main():
     """
     Find Wikidata items that are missing a iTunes movie ID (P6398) but have a
     Apple TV movie ID (P9586).
-
-    Outputs QuickStatements CSV commands.
     """
 
     qids = sample_items(APPLE_TV_MOVIE_ID_PID, limit=1000)
@@ -26,7 +24,8 @@ def main():
         qids, [INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID, APPLE_TV_MOVIE_ID_PID]
     )
 
-    print("qid,P6398")
+    edit_summary = "Add iTunes movie ID via Apple TV movie ID"
+
     for qid in iter_until_deadline(results):
         item = results[qid]
 
@@ -44,7 +43,10 @@ def main():
         for _statement, value in item.get(APPLE_TV_MOVIE_ID_PID, []):
             id = appletv.id(value)
             if itunes_id := appletv.appletv_to_itunes(id):
-                print(f'{qid},"""{itunes_id}"""')
+                print(
+                    f'wd:{qid} wdt:P6398 "{itunes_id}" ; '
+                    f'wikidatabots:editSummary "{edit_summary}" . '
+                )
 
 
 def _fetch_allowed_classes() -> list[str]:
