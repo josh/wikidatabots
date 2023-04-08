@@ -119,6 +119,9 @@ def _urllib3_requests_series(
     assert len(requests) < 50_000, f"Too many requests: {len(requests):,}"
 
     def _values() -> Iterator[_HTTPResponse | None]:
+        if len(requests) == 0:
+            return
+
         print(f"::group::{log_group}", file=sys.stderr)
 
         for request in tqdm(requests, unit="url"):
