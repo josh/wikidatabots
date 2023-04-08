@@ -133,7 +133,7 @@ def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.sort(by=pl.col("key").bin.encode("hex"))
 
 
-_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < 1_000
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < 2_000
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
@@ -181,7 +181,7 @@ def outlier_expr(df: pl.DataFrame) -> pl.Expr:
             pl.col("tvdb_id"),
         ],
         rmax=3,
-        max_count=500,
+        max_count=1_000,
     )
 
     expr_str, expr, count = random.choice(exprs)
