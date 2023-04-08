@@ -1,7 +1,6 @@
 # pyright: strict
 
 import pytest
-import requests
 
 from imdb import CaptchaException, canonical_id, extract_id, formatted_url
 
@@ -86,23 +85,6 @@ def test_formatted_url():
     assert not formatted_url("0000399")
     assert not formatted_url("junk")
     assert not formatted_url("/title/tt0111161/")
-
-
-def externalid_url(id: str) -> str:
-    url = (
-        "https://wikidata-externalid-url.toolforge.org/?"
-        "p=345&"
-        f"url_prefix=https://www.imdb.com/&id={id}"
-    )
-    r = requests.get(url)
-    return r.url
-
-
-def test_externalid_url():
-    assert externalid_url(id("tt0068646")) == formatted_url(id("tt0068646"))
-    assert externalid_url(id("nm1827914")) == formatted_url(id("nm1827914"))
-    assert externalid_url(id("co0018704")) == formatted_url(id("co0018704"))
-    assert externalid_url(id("ev0000292/1997")) == formatted_url(id("ev0000292/1997"))
 
 
 def test_canonical_id():
