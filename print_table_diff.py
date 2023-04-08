@@ -26,4 +26,10 @@ changes = frame_diff(df_a, df_b, on=key).collect().row(0, named=True)
 added, removed, updated = changes["added"], changes["removed"], changes["updated"]
 
 print(f"## {sys.argv[1]} vs {sys.argv[2]}")
-print(f"+{added:,} -{removed:,} ~{updated:,}")
+print("")
+print(f"total: +{added:,} -{removed:,} ~{updated:,}")
+
+for col in changes:
+    if not col.endswith("_updated"):
+        continue
+    print(f"{col[:-8]}: ~{changes[col]:,}")
