@@ -75,10 +75,12 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
             .alias("class_qid")
         )
         .with_columns(
+            pl.format("{}-{}", pl.lit(pid), pl.col("class_qid")).alias("key"),
             pl.lit(pid).cast(pl.Categorical).alias("pid"),
             pl.lit(numeric_pid, dtype=pl.UInt32).alias("numeric_pid"),
         )
         .select(
+            "key",
             "numeric_pid",
             "pid",
             "class_numeric_qid",
