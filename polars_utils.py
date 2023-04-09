@@ -90,6 +90,18 @@ def is_constant(expr: pl.Expr) -> pl.Expr:
     return (expr == expr.first()).all()
 
 
+def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
+    assert n > 0
+    groups_count = (pl.count() / n).ceil()
+
+    return (
+        expr.extend_constant(None, n)
+        .slice(0, groups_count * n)
+        .reshape((-1, n))
+        .arr.eval(pl.element().drop_nulls())
+    )
+
+
 PL_INTEGERS = {
     pl.Int8,
     pl.Int16,

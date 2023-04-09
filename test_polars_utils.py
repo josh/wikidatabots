@@ -1,6 +1,8 @@
 # pyright: strict
 
 
+from math import ceil
+
 import polars as pl
 import pytest
 from hypothesis import assume, given
@@ -17,6 +19,7 @@ from polars_utils import (
     expr_repl,
     filter_columns,
     frame_diff,
+    groups_of,
     is_constant,
     merge_with_indicator,
     outlier_exprs,
@@ -692,3 +695,35 @@ def test_lazy_cache_nested_parallel() -> None:
     df.collect()
     assert df_inner_evaluated == 1
     assert df_outer_evaluated == 1
+
+
+def test_groups_of() -> None:
+    df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+    df2 = df1.select(pl.col("a").pipe(groups_of, n=2))
+    df3 = pl.DataFrame({"a": [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]})
+    assert_frame_equal(df2, df3)
+
+    df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+    df2 = df1.select(pl.col("a").pipe(groups_of, n=3))
+    df3 = pl.DataFrame({"a": [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]})
+    assert_frame_equal(df2, df3)
+
+    df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
+    df2 = df1.select(pl.col("a").pipe(groups_of, n=100))
+    df3 = pl.DataFrame({"a": [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]})
+    assert_frame_equal(df2, df3)
+
+
+@given(
+    df=dataframes(cols=[column("a", dtype=pl.Int64)], max_size=10),
+    n=st.integers(min_value=1, max_value=15),
+)
+def test_groups_of_properties(df: pl.DataFrame, n: int) -> None:
+    df2 = df.select(pl.col("a").pipe(groups_of, n=n))
+
+    assert len(df2) == ceil(len(df) / n)
+
+    for row in df2.to_dicts():
+        assert row["a"]
+        assert len(row["a"]) > 0
+        assert len(row["a"]) <= n
