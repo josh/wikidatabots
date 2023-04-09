@@ -59,10 +59,10 @@ jobs:
       fail-fast: false
       matrix:
         script:
-          - "not_found_P6398"
           - "not_found_P9586"
           - "P6398"
           - "P9586"
+          - "wd_itunes"
           - "wd_plex"
           - "wd_tmdb"
 

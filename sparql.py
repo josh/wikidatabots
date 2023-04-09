@@ -241,6 +241,38 @@ def fetch_statements(
     return items
 
 
+_STATEMENTS_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "statement": pl.Utf8,
+    "item": pl.Utf8,
+    "property": pl.Utf8,
+    "value": pl.Utf8,
+}
+
+
+def fetch_statements_df(
+    qids: Iterable[QID],
+    properties: Iterable[PID],
+    deprecated: bool = False,
+) -> pl.LazyFrame:
+    query = "SELECT ?statement ?item ?property ?value WHERE { "
+    query += values_query(qids)
+    query += """
+    OPTIONAL {
+      ?item ?property ?statement.
+      ?statement ?ps ?value.
+      ?statement wikibase:rank ?rank.
+    """
+    if deprecated:
+        query += "  FILTER(?rank = wikibase:DeprecatedRank)"
+    else:
+        query += "  FILTER(?rank != wikibase:DeprecatedRank)"
+    query += "}"
+    query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
+    query += "}"
+
+    return sparql_df(query, schema=_STATEMENTS_SCHEMA)
+
+
 SampleType = Literal["created", "updated", "random"]
 
 

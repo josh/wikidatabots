@@ -4,7 +4,9 @@ from collections.abc import Iterable, Iterator
 from typing import Literal, TypedDict
 
 import backoff
+import polars as pl
 import requests
+from tqdm import tqdm
 
 from utils import batches
 
@@ -27,7 +29,7 @@ Country = Literal[
     "cn",
 ]
 
-countries: set[Country] = {
+COUNTRIES: set[Country] = {
     "us",
     "gb",
     "au",
@@ -91,10 +93,23 @@ def batch_lookup(
             yield (id, results.get(id))
 
 
-def all_not_found(id: ID) -> bool:
-    for country in countries:
-        (id2, found) = next(batch_lookup([id], country=country))
-        assert id == id2
-        if found:
-            return False
-    return True
+def _id_series_ok(ids: pl.Series, country: Country) -> pl.Series:
+    def _values():
+        for _, obj in tqdm(
+            batch_lookup(ids, country=country),
+            desc="itunes_lookup",
+            total=len(ids),
+        ):
+            if obj:
+                yield True
+            else:
+                yield False
+
+    return pl.Series(name=ids.name, values=_values(), dtype=pl.Boolean)
+
+
+def id_expr_ok(ids: pl.Expr, country: Country) -> pl.Expr:
+    def _inner(s: pl.Series) -> pl.Series:
+        return _id_series_ok(s, country=country)
+
+    return ids.map(_inner, return_dtype=pl.Boolean).alias(f"country_{country}")

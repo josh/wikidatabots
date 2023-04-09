@@ -14,6 +14,14 @@ import polars as pl
 from tqdm import tqdm
 
 
+def all_exprs(exprs: Iterable[pl.Expr]) -> pl.Expr:
+    return reduce(pl.Expr.__and__, exprs)
+
+
+def any_exprs(exprs: Iterable[pl.Expr]) -> pl.Expr:
+    return reduce(pl.Expr.__or__, exprs)
+
+
 def update_parquet(
     filename: str,
     transform: Callable[[pl.LazyFrame], pl.LazyFrame],
