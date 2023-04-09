@@ -4,7 +4,7 @@ import polars as pl
 
 from constants import ITUNES_MOVIE_ID_PID
 from itunes import COUNTRIES, id_expr_ok
-from polars_utils import all_exprs
+from polars_utils import any_exprs
 from sparql import fetch_statements_df, sample_items
 
 _EDIT_SUMMARY = "Deprecate iTunes movie ID delisted from store"
@@ -37,17 +37,17 @@ def _delisted_itunes_ids() -> pl.LazyFrame:
         )
         .filter(pl.col("country_us").is_not())
         .with_columns(
-            all_exprs(
+            any_exprs(
                 pl.col("itunes_id").pipe(id_expr_ok, country=country)
                 for country in COUNTRIES
-            ).alias("country_all"),
+            ).alias("country_any"),
         )
-        .filter(pl.col("country_all").is_not())
+        .filter(pl.col("country_any").is_not())
         .select(_deprecated_rdf_statement())
     )
 
 
-def main():
+def main() -> None:
     df = _delisted_itunes_ids()
 
     for (line,) in df.collect().iter_rows():
