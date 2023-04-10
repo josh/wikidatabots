@@ -169,13 +169,11 @@ def outlier_expr(df: pl.DataFrame) -> pl.Expr:
     exprs = df.pipe(
         outlier_exprs,
         [
-            pl.col("type"),
             (pl.col("type") == "movie").alias("type_movie"),
             (pl.col("type") == "show").alias("type_show"),
             pl.col("success"),
             pl.col("retrieved_at"),
-            (pl.col("year") == _THIS_YEAR).alias("this_year"),
-            (pl.col("year") > _THIS_YEAR).alias("future_year"),
+            (pl.col("year") < _THIS_YEAR).alias("past_year"),
             pl.col("imdb_numeric_id"),
             pl.col("tmdb_id"),
             pl.col("tvdb_id"),
