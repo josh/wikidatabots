@@ -11,7 +11,6 @@ def test_fetch_property_class_constraints() -> None:
         "pid": pl.Categorical,
         "class_numeric_qid": pl.UInt32,
         "class_qid": pl.Categorical,
-        "class_label": pl.Utf8,
     }
     df = ldf.collect()
     assert len(df) > 10
