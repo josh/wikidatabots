@@ -18,31 +18,28 @@ _PIDS: list[str] = [
 ]
 
 _CONSTRAINT_INSTANCE_OF_QUERY = """
-SELECT DISTINCT ?class ?classLabel WHERE {
+SELECT DISTINCT ?class WHERE {
   wd:P0000 p:P2302 [
     ps:P2302 wd:Q21503250;
     pq:P2309 wd:Q21503252;
     pq:P2308 ?class
   ].
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 """
 
 _CONSTRAINT_SUBCLASS_OF_QUERY = """
-SELECT DISTINCT ?class ?classLabel WHERE {
+SELECT DISTINCT ?class WHERE {
   wd:P0000 p:P2302 [
     ps:P2302 wd:Q21503250;
     pq:P2309 wd:Q30208840;
     pq:P2308 ?class_
   ].
   ?class (wdt:P279*) ?class_.
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 """
 
 _CONSTRAINT_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
     "class": pl.Utf8,
-    "classLabel": pl.Utf8,
 }
 
 
@@ -60,7 +57,7 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
             parallel=False,  # BUG: parallel caching is broken
         )
         .unique(subset=["class"])
-        .rename({"class": "class_uri", "classLabel": "class_label"})
+        .rename({"class": "class_uri"})
         .with_columns(
             pl.col("class_uri")
             .str.extract(r"^http://www.wikidata.org/entity/Q(\d+)$", 1)
@@ -85,7 +82,6 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
             "pid",
             "class_numeric_qid",
             "class_qid",
-            "class_label",
         )
         .pipe(
             assert_expression,
