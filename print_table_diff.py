@@ -6,7 +6,7 @@ import polars as pl
 
 from polars_utils import frame_diff
 
-pl.toggle_string_cache(True)
+pl.enable_string_cache(True)
 
 
 def read_df(filename: str) -> pl.LazyFrame:

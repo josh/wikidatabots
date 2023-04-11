@@ -12,11 +12,11 @@ PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
 
 
 def setup_module() -> None:
-    pl.toggle_string_cache(True)
+    pl.enable_string_cache(True)
 
 
 def teardown_module() -> None:
-    pl.toggle_string_cache(False)
+    pl.enable_string_cache(False)
 
 
 def test_wikidata_plex_guids() -> None:

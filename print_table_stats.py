@@ -6,7 +6,7 @@ import polars as pl
 
 filename = sys.argv[1]
 
-pl.toggle_string_cache(True)
+pl.enable_string_cache(True)
 
 if filename.endswith(".arrow"):
     df = pl.read_ipc(filename, memory_map=False)

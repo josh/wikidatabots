@@ -31,11 +31,11 @@ from polars_utils import (
 
 
 def setup_module() -> None:
-    pl.toggle_string_cache(True)
+    pl.enable_string_cache(True)
 
 
 def teardown_module() -> None:
-    pl.toggle_string_cache(False)
+    pl.enable_string_cache(False)
 
 
 def test_assert_not_null():
