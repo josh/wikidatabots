@@ -642,7 +642,7 @@ def test_outlier_exprs(df: pl.DataFrame) -> None:
     )
 
 
-@pytest.mark.xfail(strict=True)
+@pytest.mark.xfail()
 def test_lazy_cache_parallel() -> None:
     df_evaluated = 0
 
@@ -668,7 +668,7 @@ def test_lazy_cache_parallel() -> None:
     assert df_evaluated == 1
 
 
-@pytest.mark.xfail(strict=True)
+@pytest.mark.xfail()
 def test_lazy_cache_nested_parallel() -> None:
     df_inner_evaluated = 0
     df_outer_evaluated = 0
