@@ -96,7 +96,7 @@ def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
 
     return (
         expr.extend_constant(None, n)
-        .slice(0, groups_count * n)
+        .head(groups_count * n)
         .reshape((-1, n))
         .arr.eval(pl.element().drop_nulls())
     )
