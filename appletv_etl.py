@@ -274,7 +274,7 @@ def append_jsonld_changes(
 ) -> pl.LazyFrame:
     jsonld_df = jsonld_df.cache()
     jsonld_new_df = (
-        sitemap_df.join(jsonld_df, on="loc", how="left")
+        sitemap_df.join(jsonld_df, on="loc", how="left", allow_parallel=False)
         .filter(pl.col("jsonld_success").is_null())
         .with_columns(
             pl.when(pl.col("country").eq("us"))

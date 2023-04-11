@@ -129,7 +129,7 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
             pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
             dtype=df.schema[name],
         ).alias(name)
-    ).join(df, on=name, how="left")
+    ).join(df, on=name, how="left", allow_parallel=False)
 
 
 def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
@@ -163,7 +163,9 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
     other_cols = list(other.columns)
     other_cols.remove(on)
 
-    other = other.join(df.drop(other_cols), on=on, how="left").select(df.columns)
+    other = other.join(
+        df.drop(other_cols), on=on, how="left", allow_parallel=False
+    ).select(df.columns)
     return pl.concat(
         [df, other],
         parallel=False,  # BUG: parallel caching is broken
@@ -191,7 +193,7 @@ def merge_with_indicator(
     left_df = left_df.with_columns(pl.lit(True).alias("_merge_left"))
     right_df = right_df.with_columns(pl.lit(True).alias("_merge_right"))
     return (
-        left_df.join(right_df, on=on, how="outer", suffix=suffix)
+        left_df.join(right_df, on=on, how="outer", suffix=suffix, allow_parallel=False)
         .with_columns(_INDICATOR_EXPR)
         .drop("_merge_left", "_merge_right")
     )

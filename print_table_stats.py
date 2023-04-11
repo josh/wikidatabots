@@ -48,9 +48,9 @@ def _dtype(name: str) -> str:
 
 summary_df = (
     (
-        null_count_df.join(is_unique_df, on="column", how="left")
-        .join(true_count_df, on="column", how="left")
-        .join(false_count_df, on="column", how="left")
+        null_count_df.join(is_unique_df, on="column", how="left", allow_parallel=False)
+        .join(true_count_df, on="column", how="left", allow_parallel=False)
+        .join(false_count_df, on="column", how="left", allow_parallel=False)
     )
     .with_columns(
         pl.col("column").apply(_dtype).alias("dtype"),
