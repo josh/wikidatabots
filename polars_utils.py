@@ -228,7 +228,7 @@ def frame_diff(
             any_updated_col.alias("updated"),
             *updated_cols,
         )
-        .select(pl.all().sum().cast(pl.UInt32))
+        .select(pl.all().sum())
     )
 
 
