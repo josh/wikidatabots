@@ -167,7 +167,7 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
     return pl.concat(
         [df, other],
         parallel=False,  # BUG: parallel caching is broken
-    ).unique(subset=on, keep="last")
+    ).unique(subset=on, keep="last", maintain_order=True)
 
 
 _INDICATOR_EXPR = (

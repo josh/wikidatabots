@@ -114,7 +114,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         .select(["id", "imdb_numeric_id"])
         .rename({"id": "tmdb_id"})
         .drop_nulls()
-        .unique(subset=["imdb_numeric_id"])
+        .unique(subset=["imdb_numeric_id"], maintain_order=True)
     )
 
     wd_df = (
@@ -190,7 +190,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
         .select(["id", "tvdb_id"])
         .rename({"id": "tmdb_id"})
         .drop_nulls()
-        .unique(subset=["tvdb_id"])
+        .unique(subset=["tvdb_id"], maintain_order=True)
     )
 
     wd_df = (

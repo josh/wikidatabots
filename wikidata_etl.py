@@ -56,7 +56,7 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
             ],
             parallel=False,  # BUG: parallel caching is broken
         )
-        .unique(subset=["class"])
+        .unique(subset=["class"], maintain_order=True)
         .rename({"class": "class_uri"})
         .with_columns(
             pl.col("class_uri")

@@ -109,7 +109,7 @@ def _plex_library_guids() -> pl.LazyFrame:
         )
         .select(pl.col("guid").pipe(_decode_plex_guid).alias("key"))
         .drop_nulls()
-        .unique(subset="key")
+        .unique(subset="key", maintain_order=True)
     )
 
 
@@ -121,7 +121,7 @@ def wikidata_plex_guids() -> pl.LazyFrame:
         )
         .select(pl.col("guid").pipe(_decode_plex_guid).alias("key"))
         .drop_nulls()
-        .unique(subset="key")
+        .unique(subset="key", maintain_order=True)
     )
 
 
@@ -151,7 +151,7 @@ def _backfill_metadata(df: pl.LazyFrame, predicate: pl.Expr) -> pl.LazyFrame:
         .explode("similar_keys")
         .rename({"similar_keys": "key"})
         .drop_nulls()
-        .unique(subset="key")
+        .unique(subset="key", maintain_order=True)
         .cache()
     )
 
