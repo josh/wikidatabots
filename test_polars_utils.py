@@ -474,6 +474,11 @@ def test_update_or_append() -> None:
     df3 = pl.LazyFrame({"a": [1, 2], "b": [True, False]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
+    df1 = pl.LazyFrame({"a": [1, 2], "b": [True, True]}).map(assert_called_once())
+    df2 = pl.LazyFrame({"a": [3], "b": [False]}).map(assert_called_once())
+    df3 = pl.LazyFrame({"a": [1, 2, 3], "b": [True, True, False]})
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
     df1 = pl.LazyFrame({"a": [1], "b": [1], "c": [True]}).map(assert_called_once())
     df2 = pl.LazyFrame({"a": [1], "b": [2]}).map(assert_called_once())
     df3 = pl.LazyFrame({"a": [1], "b": [2], "c": [True]})
