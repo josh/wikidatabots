@@ -126,7 +126,7 @@ def wikidata_plex_guids() -> pl.LazyFrame:
 
 
 def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract(_GUID_RE, 2).str.decode("hex").cast(pl.Binary)
+    return expr.str.extract(_GUID_RE, 2).str.decode("hex")
 
 
 def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
