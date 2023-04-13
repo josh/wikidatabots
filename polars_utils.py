@@ -102,6 +102,24 @@ def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
     )
 
 
+def series_indicies(a: pl.Series, b: pl.Series) -> pl.Series:
+    return (
+        a.arg_sort()
+        .take(a.sort().search_sorted(b, side="left").clip_max(a.len() - 1))
+        .zip_with(b.is_in(a), pl.Series([None], dtype=pl.UInt32))
+    )
+
+
+def series_indicies_sorted(a: pl.Series, b: pl.Series) -> pl.Series:
+    return a.search_sorted(b, side="left").zip_with(
+        b.is_in(a), pl.Series([None], dtype=pl.UInt32)
+    )
+
+
+def expr_indicies_sorted(a: pl.Expr, b: pl.Expr) -> pl.Expr:
+    return pl.when(b.is_in(a)).then(a.search_sorted(b, side="left")).otherwise(None)
+
+
 PL_INTEGERS = {
     pl.Int8,
     pl.Int16,

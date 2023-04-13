@@ -2,6 +2,7 @@
 
 
 from math import ceil
+from typing import Iterator
 
 import polars as pl
 import pytest
@@ -16,6 +17,7 @@ from polars_utils import (
     assert_called_once,
     assert_expression,
     drop_columns,
+    expr_indicies_sorted,
     expr_repl,
     filter_columns,
     frame_diff,
@@ -24,6 +26,8 @@ from polars_utils import (
     merge_with_indicator,
     outlier_exprs,
     read_xml,
+    series_indicies,
+    series_indicies_sorted,
     update_or_append,
     xml_extract,
     xml_to_dtype,
@@ -732,3 +736,54 @@ def test_groups_of_properties(df: pl.DataFrame, n: int) -> None:
         assert row["a"]
         assert len(row["a"]) > 0
         assert len(row["a"]) <= n
+
+
+def _lst_indicies(a: list[int], b: list[int]) -> Iterator[int | None]:
+    for e in b:
+        try:
+            yield a.index(e)
+        except ValueError:
+            yield None
+
+
+@given(
+    a=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
+    b=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
+)
+def test_indices(a: list[int], b: list[int]) -> None:
+    c = list(_lst_indicies(a, b))
+
+    a_s = pl.Series(a, dtype=pl.UInt32)
+    b_s = pl.Series(b, dtype=pl.UInt32)
+
+    s = series_indicies(a_s, b_s)
+    assert s.dtype == pl.UInt32
+    assert len(s) == len(b)
+    assert c == s.to_list()
+
+
+@given(
+    a=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
+    b=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
+)
+def test_indices_sorted(a: list[int], b: list[int]) -> None:
+    a = sorted(a)
+    c = list(_lst_indicies(a, b))
+
+    a_s = pl.Series(a, dtype=pl.UInt32)
+    b_s = pl.Series(b, dtype=pl.UInt32)
+
+    s = series_indicies(a_s, b_s)
+    assert s.dtype == pl.UInt32
+    assert len(s) == len(b)
+    assert c == s.to_list()
+
+    s = series_indicies_sorted(a_s, b_s)
+    assert s.dtype == pl.UInt32
+    assert len(s) == len(b)
+    assert c == s.to_list()
+
+    s = pl.select(expr_indicies_sorted(pl.lit(a_s), pl.lit(b_s))).to_series()
+    assert s.dtype == pl.UInt32
+    assert len(s) == len(b)
+    assert c == s.to_list()
