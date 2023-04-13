@@ -21,7 +21,7 @@ def _deprecated_rdf_statement() -> pl.Expr:
 
 def _delisted_itunes_ids() -> pl.LazyFrame:
     # TODO: Fetch lazily
-    qids = sample_items(ITUNES_MOVIE_ID_PID, limit=1_000)
+    qids = sample_items(ITUNES_MOVIE_ID_PID, limit=5_000)
 
     return (
         fetch_statements_df(qids, [ITUNES_MOVIE_ID_PID])
