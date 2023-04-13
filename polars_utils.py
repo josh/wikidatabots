@@ -104,7 +104,7 @@ def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
 
 def series_indicies(a: pl.Series, b: pl.Series) -> pl.Series:
     return (
-        a.arg_sort()
+        a.arg_sort()  # type: ignore
         .take(a.sort().search_sorted(b, side="left").clip_max(a.len() - 1))
         .zip_with(b.is_in(a), pl.Series([None], dtype=pl.UInt32))
     )
