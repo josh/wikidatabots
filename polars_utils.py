@@ -104,14 +104,18 @@ def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
 
 def series_indicies(a: pl.Series, b: pl.Series) -> pl.Series:
     return (
-        a.arg_sort()  # type: ignore
-        .take(a.sort().search_sorted(b, side="left").clip_max(a.len() - 1))
+        a.arg_sort()
+        .take(
+            a.sort()
+            .search_sorted(b, side="left")  # type: ignore
+            .clip_max(a.len() - 1),
+        )
         .zip_with(b.is_in(a), pl.Series([None], dtype=pl.UInt32))
     )
 
 
 def series_indicies_sorted(a: pl.Series, b: pl.Series) -> pl.Series:
-    return a.search_sorted(b, side="left").zip_with(
+    return a.search_sorted(b, side="left").zip_with(  # type: ignore
         b.is_in(a), pl.Series([None], dtype=pl.UInt32)
     )
 
