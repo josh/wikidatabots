@@ -739,16 +739,16 @@ def test_groups_of_properties(df: pl.DataFrame, n: int) -> None:
 
 
 def _lst_indicies(a: list[int], b: list[int]) -> Iterator[int | None]:
-    for e in b:
+    for e in a:
         try:
-            yield a.index(e)
+            yield b.index(e)
         except ValueError:
             yield None
 
 
 @given(
-    a=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
-    b=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
+    a=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
+    b=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
 )
 def test_indices(a: list[int], b: list[int]) -> None:
     c = list(_lst_indicies(a, b))
@@ -758,16 +758,16 @@ def test_indices(a: list[int], b: list[int]) -> None:
 
     s = series_indicies(a_s, b_s)
     assert s.dtype == pl.UInt32
-    assert len(s) == len(b)
+    assert len(s) == len(a)
     assert c == s.to_list()
 
 
 @given(
-    a=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
-    b=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
+    a=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
+    b=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
 )
 def test_indices_sorted(a: list[int], b: list[int]) -> None:
-    a = sorted(a)
+    b = sorted(b)
     c = list(_lst_indicies(a, b))
 
     a_s = pl.Series(a, dtype=pl.UInt32)
@@ -775,15 +775,15 @@ def test_indices_sorted(a: list[int], b: list[int]) -> None:
 
     s = series_indicies(a_s, b_s)
     assert s.dtype == pl.UInt32
-    assert len(s) == len(b)
+    assert len(s) == len(a)
     assert c == s.to_list()
 
     s = series_indicies_sorted(a_s, b_s)
     assert s.dtype == pl.UInt32
-    assert len(s) == len(b)
+    assert len(s) == len(a)
     assert c == s.to_list()
 
     s = pl.select(expr_indicies_sorted(pl.lit(a_s), pl.lit(b_s))).to_series()
     assert s.dtype == pl.UInt32
-    assert len(s) == len(b)
+    assert len(s) == len(a)
     assert c == s.to_list()

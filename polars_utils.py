@@ -104,24 +104,24 @@ def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
 
 def series_indicies(a: pl.Series, b: pl.Series) -> pl.Series:
     return (
-        a.arg_sort()
+        b.arg_sort()
         .take(  # type: ignore
-            a.sort()
-            .search_sorted(b, side="left")  # type: ignore
-            .clip_max(a.len() - 1),
+            b.sort()
+            .search_sorted(a, side="left")  # type: ignore
+            .clip_max(b.len() - 1),
         )
-        .zip_with(b.is_in(a), pl.Series([None], dtype=pl.UInt32))
+        .zip_with(a.is_in(b), pl.Series([None], dtype=pl.UInt32))
     )
 
 
 def series_indicies_sorted(a: pl.Series, b: pl.Series) -> pl.Series:
-    return a.search_sorted(b, side="left").zip_with(  # type: ignore
-        b.is_in(a), pl.Series([None], dtype=pl.UInt32)
+    return b.search_sorted(a, side="left").zip_with(  # type: ignore
+        a.is_in(b), pl.Series([None], dtype=pl.UInt32)
     )
 
 
 def expr_indicies_sorted(a: pl.Expr, b: pl.Expr) -> pl.Expr:
-    return pl.when(b.is_in(a)).then(a.search_sorted(b, side="left")).otherwise(None)
+    return pl.when(a.is_in(b)).then(b.search_sorted(a, side="left")).otherwise(None)
 
 
 PL_INTEGERS = {
