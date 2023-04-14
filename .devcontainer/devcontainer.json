@@ -1,10 +1,21 @@
 {
-	"image": "mcr.microsoft.com/devcontainers/universal:2",
-	"features": {
-		"ghcr.io/devcontainers/features/python:1": {
-			"version": "3.11"
-		},
-		"ghcr.io/devcontainers/features/aws-cli:1": {}
-	},
-	"postCreateCommand": "pip install --user -r requirements.txt"
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.copilot",
+        "github.vscode-github-actions",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "ms-python.isort"
+      ]
+    }
+  },
+  "postCreateCommand": "pip install --user -r requirements.txt"
 }
