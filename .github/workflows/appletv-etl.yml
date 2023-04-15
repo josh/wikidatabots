@@ -49,7 +49,6 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet" "sitemap.parquet"
-          cp sitemap.parquet sitemap.parquet~
         env:
           TYPE: ${{ matrix.type }}
 
@@ -63,10 +62,6 @@ jobs:
           main_sitemap(os.environ["TYPE"])
         env:
           TYPE: ${{ matrix.type }}
-
-      - name: Print diff
-        run: |
-          python print_table_diff.py sitemap.parquet~ sitemap.parquet loc | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload to S3
         run: |
@@ -113,7 +108,6 @@ jobs:
         run: |
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet" "sitemap.parquet"
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/jsonld.parquet" "jsonld.parquet"
-          cp jsonld.parquet jsonld.parquet~
         env:
           TYPE: ${{ matrix.type }}
 
@@ -123,10 +117,6 @@ jobs:
           from appletv_etl import main_jsonld
 
           main_jsonld()
-
-      - name: Print diff
-        run: |
-          python print_table_diff.py jsonld.parquet~ jsonld.parquet loc | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Upload to S3
         run: |

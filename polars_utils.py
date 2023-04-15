@@ -24,14 +24,25 @@ def github_step_summary() -> TextIO:
 def update_parquet(
     filename: str,
     transform: Callable[[pl.LazyFrame], pl.LazyFrame],
+    key: str,
 ) -> None:
     assert filename.endswith(".parquet")
-    df = pl.scan_parquet(filename)
-    df2 = transform(df)
-    assert df2.schema == df.schema, "schema changed"
+    df = pl.read_parquet(filename)
+
+    lf2 = transform(df.lazy())
+    assert lf2.schema == df.schema, "schema changed"
+    df2 = lf2.collect()
+
+    describe_frame_with_diff(
+        df,
+        df2,
+        key=key,
+        source=filename,
+        output=github_step_summary(),
+    )
+
     tmpfile = f"{filename}.{random.randint(0, 2**32)}"
-    df2 = df2.pipe(describe_lazy, source=filename, output=github_step_summary())
-    df2.collect().write_parquet(
+    df2.write_parquet(
         tmpfile,
         compression="zstd",
         statistics=True,
@@ -530,6 +541,32 @@ def describe_frame(df: pl.DataFrame, source: str, output: TextIO) -> pl.DataFram
             print(f"rss: {kb:,.1f}KB", file=output)
 
     return df
+
+
+def describe_frame_with_diff(
+    df_old: pl.DataFrame,
+    df_new: pl.DataFrame,
+    key: str,
+    source: str,
+    output: TextIO,
+) -> pl.DataFrame:
+    changes = (
+        frame_diff(df_old.lazy(), df_new.lazy(), on=key).collect().row(0, named=True)
+    )
+    added, removed, updated = changes["added"], changes["removed"], changes["updated"]
+
+    describe_frame(df_new, source=source, output=output)
+    print("", file=output)
+    print(f"changes: +{added:,} -{removed:,} ~{updated:,}", file=output)
+
+    for col in changes:
+        if not col.endswith("_updated"):
+            continue
+        count = changes[col]
+        if count:
+            print(f"{col[:-8]}: ~{count:,}", file=output)
+
+    return df_new
 
 
 def describe_lazy(df: pl.LazyFrame, source: str, output: TextIO) -> pl.LazyFrame:

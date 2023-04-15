@@ -101,7 +101,7 @@ def _main() -> None:
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         return _fetch_all_property_class_constraints()
 
-    update_parquet("property_class_constraints.parquet", update)
+    update_parquet("property_class_constraints.parquet", update, key="key")
 
 
 if __name__ == "__main__":

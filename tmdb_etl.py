@@ -406,7 +406,7 @@ def main() -> None:
             .pipe(insert_tmdb_external_ids, tmdb_type, outdated_expr)
         )
 
-    update_parquet("tmdb.parquet", _update)
+    update_parquet("tmdb.parquet", _update, key="id")
 
 
 if __name__ == "__main__":

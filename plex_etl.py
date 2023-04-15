@@ -300,7 +300,7 @@ def main() -> None:
         )
 
     with pl.StringCache():
-        update_parquet("plex.parquet", update)
+        update_parquet("plex.parquet", update, key="key")
 
 
 if __name__ == "__main__":

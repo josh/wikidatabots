@@ -307,7 +307,7 @@ def main_sitemap(type: Type) -> None:
         )
 
     with pl.StringCache():
-        update_parquet("sitemap.parquet", update_sitemap)
+        update_parquet("sitemap.parquet", update_sitemap, key="loc")
 
 
 def main_jsonld() -> None:
@@ -316,4 +316,4 @@ def main_jsonld() -> None:
         return append_jsonld_changes(sitemap_df, jsonld_df, limit=1000)
 
     with pl.StringCache():
-        update_parquet("jsonld.parquet", update_jsonld)
+        update_parquet("jsonld.parquet", update_jsonld, key="loc")
