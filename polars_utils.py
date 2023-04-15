@@ -5,7 +5,7 @@ import random
 import re
 import sys
 import xml.etree.ElementTree as ET
-from functools import partial, reduce
+from functools import partial
 from itertools import combinations
 from math import ceil
 from typing import Any, Callable, Iterable, Iterator, TypeVar
@@ -228,7 +228,7 @@ def frame_diff(
     ]
 
     updated_cols = [pl.col(f"{col}{suffix}") for col in cols]
-    any_updated_col = reduce(pl.Expr.__or__, updated_cols)
+    any_updated_col = pl.Expr.or_(*updated_cols)
 
     return (
         df1.pipe(merge_with_indicator, df2, on=on)
@@ -426,7 +426,7 @@ def outlier_exprs(
     for col, count in sorted(row.items(), key=lambda a: a[1]):
         if count > 0 and count < max_count:
             exprs = [col_expr[col] for col in col.split(_POWERSET_COL_SEP)]
-            expr = reduce(pl.Expr.__and__, exprs)
+            expr = pl.Expr.and_(*exprs)
             expr_str = " & ".join(expr_repl(expr, strip_alias=True) for expr in exprs)
             results.append((expr_str, expr, count))
 
