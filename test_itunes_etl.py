@@ -7,13 +7,22 @@ from polars.testing import assert_frame_equal
 
 from itunes_etl import check_itunes_id, lookup_itunes_id
 
+_RESULT_DTYPE = pl.Struct(
+    [
+        pl.Field("id", pl.UInt64),
+        pl.Field("type", pl.Utf8),
+        pl.Field("name", pl.Utf8),
+        pl.Field("kind", pl.Utf8),
+    ]
+)
+
 
 @given(
     batch_size=st.integers(min_value=1, max_value=11),
 )
 @settings(deadline=None)
 def test_lookup_itunes_id(batch_size: int) -> None:
-    df1 = pl.DataFrame(
+    lf1 = pl.LazyFrame(
         {
             "id": [
                 909253,
@@ -34,7 +43,7 @@ def test_lookup_itunes_id(batch_size: int) -> None:
         .pipe(lookup_itunes_id, country="us", batch_size=batch_size)
         .alias("result"),
     )
-    df2 = pl.DataFrame(
+    lf2 = pl.LazyFrame(
         {
             "id": [
                 909253,
@@ -97,9 +106,10 @@ def test_lookup_itunes_id(batch_size: int) -> None:
                 },
             ],
         },
-        schema={"id": pl.UInt64, "result": df1.schema["result"]},
+        schema={"id": pl.UInt64, "result": _RESULT_DTYPE},
     )
-    assert_frame_equal(df1, df2)
+    assert lf1.schema["result"] == _RESULT_DTYPE
+    assert_frame_equal(lf1, lf2)
 
 
 def test_lookup_itunes_id_empty() -> None:
