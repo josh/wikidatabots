@@ -310,17 +310,6 @@ def xml_extract(
 XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None
 
 
-def xml_to_dtype(
-    xml: str,
-    dtype: pl.List,
-    xpath: str = "./*",
-) -> list[XMLValue]:
-    inner_dtype = dtype.inner
-    assert isinstance(inner_dtype, pl.Struct)
-    root = ET.fromstring(xml)
-    return [_xml_element_struct_field(el, inner_dtype) for el in root.findall(xpath)]
-
-
 def _xml_element_struct_field(
     element: ET.Element,
     dtype: pl.Struct,

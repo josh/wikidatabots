@@ -30,7 +30,6 @@ from polars_utils import (
     series_indicies_sorted,
     update_or_append,
     xml_extract,
-    xml_to_dtype,
 )
 
 
@@ -311,36 +310,6 @@ def test_read_xml_with_missing():
 
     df = pl.DataFrame({"name": [], "price": []}, schema=schema)
     assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema, xpath="./foo"), df)
-
-
-def test_xml_to_dtype():
-    dtype = pl.List(
-        pl.Struct(
-            {
-                "name": pl.Utf8,
-                "rank": pl.Int64,
-                "neighbor": pl.List(pl.Struct({"name": pl.Utf8})),
-            }
-        )
-    )
-    obj = [
-        {
-            "name": "Liechtenstein",
-            "rank": 1,
-            "neighbor": [{"name": "Austria"}, {"name": "Switzerland"}],
-        },
-        {
-            "name": "Singapore",
-            "rank": 4,
-            "neighbor": [{"name": "Malaysia"}],
-        },
-        {
-            "name": "Panama",
-            "rank": 68,
-            "neighbor": [{"name": "Costa Rica"}, {"name": "Colombia"}],
-        },
-    ]
-    assert xml_to_dtype(XML_EXAMPLE, dtype=dtype) == obj
 
 
 def test_xml_extract() -> None:
