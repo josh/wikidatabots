@@ -2,7 +2,7 @@ import logging
 
 import polars as pl
 
-from polars_utils import assert_expression
+from polars_utils import assert_expression, describe_lazy, github_step_summary
 from sparql import sparql_df
 
 _PIDS: list[str] = [
@@ -98,7 +98,11 @@ def _fetch_all_property_class_constraints() -> pl.LazyFrame:
 def _main() -> None:
     pl.enable_string_cache(True)
 
-    df = _fetch_all_property_class_constraints()
+    df = _fetch_all_property_class_constraints().pipe(
+        describe_lazy,
+        source="property_class_constraints.parquet",
+        output=github_step_summary(),
+    )
     df.collect().write_parquet("property_class_constraints.parquet")
 
 
