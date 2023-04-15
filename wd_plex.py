@@ -90,7 +90,7 @@ def _rdf_statements(
     df = plex_df.filter(pl.col("type") == guid_type).select(["guid", "tmdb_id"])
     return (
         _wikidata_tmdb_ids(guid_type)
-        .join(df, on="tmdb_id", allow_parallel=False)
+        .join(df, on="tmdb_id")
         .select(_rdf_statement(source_label))
         .head(_LIMIT)
     )
@@ -111,8 +111,7 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
                 guid_type="show",
                 source_label="TMDb TV series ID",
             ),
-        ],
-        parallel=False,  # BUG: parallel caching is broken
+        ]
     )
 
 
