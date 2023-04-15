@@ -194,7 +194,7 @@ def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:
 
 def _http_dict(pairs: dict[str, pl.Expr | str]) -> pl.Expr | pl.Series:
     if len(pairs) == 0:
-        return pl.lit([[]])
+        return pl.Series(values=[[]], dtype=pl.List(_HTTP_DICT_DTYPE))
     return pl.concat_list([_http_dict_struct(n, v) for n, v in pairs.items()])
 
 
