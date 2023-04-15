@@ -458,7 +458,10 @@ def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr
             yield expr.is_unique().alias(f"unique_{output_name}")
 
 
-def compute_stats(df: pl.DataFrame) -> pl.DataFrame:
+def compute_stats(
+    df: pl.DataFrame,
+    changes_df: pl.DataFrame | None = None,
+) -> pl.DataFrame:
     def _count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
         df2 = df.select(expr)
         if df2.is_empty():
@@ -497,29 +500,42 @@ def compute_stats(df: pl.DataFrame) -> pl.DataFrame:
             .alias(name)
         )
 
-    return (
-        (
-            null_count_df.join(is_unique_df, on="column", how="left")
-            .join(true_count_df, on="column", how="left")
-            .join(false_count_df, on="column", how="left")
-        )
-        .with_columns(
-            pl.col("column").apply(_dtype).alias("dtype"),
-            pl.col("true_count").fill_null(0),
-            pl.col("false_count").fill_null(0),
-        )
-        .select(
-            pl.col("column").alias("name"),
-            pl.col("dtype").alias("dtype"),
-            _percent_col("null"),
-            _percent_col("true"),
-            _percent_col("false"),
-            pl.when(pl.col("is_unique")).then("true").otherwise("").alias("unique"),
-        )
+    joined_df = (
+        null_count_df.join(is_unique_df, on="column", how="left")
+        .join(true_count_df, on="column", how="left")
+        .join(false_count_df, on="column", how="left")
+    )
+
+    if changes_df is not None:
+        updated_count_df = changes_df.select(
+            pl.col("^.+_updated$").map_alias(lambda n: n.replace("_updated", ""))
+        ).transpose(include_header=True, column_names=["updated_count"])
+        joined_df = joined_df.join(updated_count_df, on="column", how="left")
+    else:
+        joined_df = joined_df.with_columns(pl.lit(0).alias("updated_count"))
+
+    return joined_df.with_columns(
+        pl.col("column").apply(_dtype).alias("dtype"),
+        pl.col("true_count").fill_null(0),
+        pl.col("false_count").fill_null(0),
+        pl.col("updated_count").fill_null(0),
+    ).select(
+        pl.col("column").alias("name"),
+        pl.col("dtype").alias("dtype"),
+        _percent_col("null"),
+        _percent_col("true"),
+        _percent_col("false"),
+        pl.when(pl.col("is_unique")).then("true").otherwise("").alias("unique"),
+        _percent_col("updated"),
     )
 
 
-def describe_frame(df: pl.DataFrame, source: str, output: TextIO) -> pl.DataFrame:
+def describe_frame(
+    df: pl.DataFrame,
+    source: str,
+    output: TextIO,
+    changes_df: pl.DataFrame | None = None,
+) -> pl.DataFrame:
     with pl.Config() as cfg:
         cfg.set_fmt_str_lengths(100)
         cfg.set_tbl_cols(-1)
@@ -530,8 +546,17 @@ def describe_frame(df: pl.DataFrame, source: str, output: TextIO) -> pl.DataFram
         cfg.set_tbl_width_chars(500)
 
         print(f"## {source}", file=output)
-        print(compute_stats(df), file=output)
+        print(compute_stats(df, changes_df=changes_df), file=output)
         print(f"\nshape: ({df.shape[0]:,}, {df.shape[1]:,})", file=output)
+
+        if changes_df is not None:
+            changes = changes_df.row(0, named=True)
+            added, removed, updated = (
+                changes["added"],
+                changes["removed"],
+                changes["updated"],
+            )
+            print(f"changes: +{added:,} -{removed:,} ~{updated:,}", file=output)
 
         mb = df.estimated_size("mb")
         if mb > 2:
@@ -550,23 +575,13 @@ def describe_frame_with_diff(
     source: str,
     output: TextIO,
 ) -> pl.DataFrame:
-    changes = (
-        frame_diff(df_old.lazy(), df_new.lazy(), on=key).collect().row(0, named=True)
+    changes_df = frame_diff(df_old.lazy(), df_new.lazy(), on=key).collect()
+    return describe_frame(
+        df_new,
+        changes_df=changes_df,
+        source=source,
+        output=output,
     )
-    added, removed, updated = changes["added"], changes["removed"], changes["updated"]
-
-    describe_frame(df_new, source=source, output=output)
-    print("", file=output)
-    print(f"changes: +{added:,} -{removed:,} ~{updated:,}", file=output)
-
-    for col in changes:
-        if not col.endswith("_updated"):
-            continue
-        count = changes[col]
-        if count:
-            print(f"{col[:-8]}: ~{count:,}", file=output)
-
-    return df_new
 
 
 def describe_lazy(df: pl.LazyFrame, source: str, output: TextIO) -> pl.LazyFrame:
