@@ -16,6 +16,7 @@ from polars_utils import (
     apply_with_tqdm,
     assert_called_once,
     assert_expression,
+    compute_stats,
     drop_columns,
     expr_indicies_sorted,
     expr_repl,
@@ -697,3 +698,11 @@ def test_indices_sorted(a: list[int], b: list[int]) -> None:
     assert s.dtype == pl.UInt32
     assert len(s) == len(a)
     assert c == s.to_list()
+
+
+@given(
+    df=dataframes(max_cols=20, max_size=10, null_probability=0.1),
+)
+def test_compute_stats(df: pl.DataFrame) -> None:
+    stats_df = compute_stats(df)
+    assert len(stats_df) == len(df.columns)

@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from functools import partial
 from itertools import combinations
 from math import ceil
-from typing import Any, Callable, Iterable, Iterator, TypeVar
+from typing import Any, Callable, Iterable, Iterator, TextIO, TypeVar
 
 import polars as pl
 from tqdm import tqdm
@@ -437,3 +437,92 @@ def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr
         if not s.is_boolean():
             yield expr.is_duplicated().alias(f"duplicated_{output_name}")
             yield expr.is_unique().alias(f"unique_{output_name}")
+
+
+def compute_stats(df: pl.DataFrame) -> pl.DataFrame:
+    def _count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
+        df2 = df.select(expr)
+        if df2.is_empty():
+            schema = {"column": pl.Utf8, column_name: pl.UInt32}
+            return pl.DataFrame(schema=schema)
+        return df2.transpose(include_header=True, column_names=[column_name])
+
+    count = len(df)
+    null_count_df = _count_columns("null_count", pl.all().null_count())
+    is_unique_df = _count_columns("is_unique", pl.all().drop_nulls().is_unique().all())
+    true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
+    false_count_df = _count_columns(
+        "false_count", pl.col(pl.Boolean).drop_nulls().is_not().sum()
+    )
+
+    def _dtype(name: str) -> str:
+        return str(df.schema[name])
+
+    def _percent_col(name: str) -> pl.Expr:
+        return (
+            pl.when(pl.col(f"{name}_count") > 0)
+            .then(
+                pl.format(
+                    "{} ({})",
+                    pl.col(f"{name}_count").apply(
+                        lambda v: f"{v:,}",
+                        return_dtype=pl.Utf8,
+                    ),
+                    (pl.col(f"{name}_count") / count).apply(
+                        lambda v: f"{v:.2%}",
+                        return_dtype=pl.Utf8,
+                    ),
+                )
+            )
+            .otherwise("")
+            .alias(name)
+        )
+
+    return (
+        (
+            null_count_df.join(is_unique_df, on="column", how="left")
+            .join(true_count_df, on="column", how="left")
+            .join(false_count_df, on="column", how="left")
+        )
+        .with_columns(
+            pl.col("column").apply(_dtype).alias("dtype"),
+            pl.col("true_count").fill_null(0),
+            pl.col("false_count").fill_null(0),
+        )
+        .select(
+            pl.col("column").alias("name"),
+            pl.col("dtype").alias("dtype"),
+            _percent_col("null"),
+            _percent_col("true"),
+            _percent_col("false"),
+            pl.when(pl.col("is_unique")).then("true").otherwise("").alias("unique"),
+        )
+    )
+
+
+def describe_frame(df: pl.DataFrame, source: str, output: TextIO) -> pl.DataFrame:
+    with pl.Config() as cfg:
+        cfg.set_fmt_str_lengths(100)
+        cfg.set_tbl_cols(-1)
+        cfg.set_tbl_column_data_type_inline(True)
+        cfg.set_tbl_formatting("ASCII_MARKDOWN")
+        cfg.set_tbl_hide_dataframe_shape(True)
+        cfg.set_tbl_rows(-1)
+        cfg.set_tbl_width_chars(500)
+
+        print(f"## {source}", file=output)
+        print(compute_stats(df), file=output)
+        print(f"\nshape: ({df.shape[0]:,}, {df.shape[1]:,})", file=output)
+
+        mb = df.estimated_size("mb")
+        if mb > 2:
+            print(f"rss: {mb:,.1f}MB", file=output)
+        else:
+            kb = df.estimated_size("kb")
+            print(f"rss: {kb:,.1f}KB", file=output)
+
+    return df
+
+
+def describe_lazy(df: pl.LazyFrame, source: str, output: TextIO) -> pl.LazyFrame:
+    return df.map(partial(describe_frame, source=source, output=output))
