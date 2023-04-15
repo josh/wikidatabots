@@ -14,6 +14,13 @@ import polars as pl
 from tqdm import tqdm
 
 
+def github_step_summary() -> TextIO:
+    if "GITHUB_STEP_SUMMARY" in os.environ:
+        return open(os.environ["GITHUB_STEP_SUMMARY"], "a")
+    else:
+        return sys.stderr
+
+
 def update_parquet(
     filename: str,
     transform: Callable[[pl.LazyFrame], pl.LazyFrame],
@@ -23,6 +30,7 @@ def update_parquet(
     df2 = transform(df)
     assert df2.schema == df.schema, "schema changed"
     tmpfile = f"{filename}.{random.randint(0, 2**32)}"
+    df2 = df2.pipe(describe_lazy, source=filename, output=github_step_summary())
     df2.collect().write_parquet(
         tmpfile,
         compression="zstd",
