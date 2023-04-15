@@ -82,11 +82,13 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
             .pipe(response_text)
             .str.json_extract(_RESULTS_DTYPE)
             .struct.field("results")
-            .arr.eval(pl.element().pipe(_lookup_result))
-            .flatten()
-            .sort()
             .alias("result")
         )
+        .explode("result")
+        .select(
+            pl.col("result").pipe(_lookup_result).alias("result"),
+        )
+        .sort("result")
         .select(
             pl.col("result").take(  # type: ignore
                 expr_indicies_sorted(
