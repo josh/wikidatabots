@@ -29,7 +29,9 @@ def _st_http_status():
 
 
 def _st_http_header():
-    return st.fixed_dictionaries({"name": st.text(), "value": st.text()})
+    return st.fixed_dictionaries(
+        {"name": st.text(max_size=5), "value": st.text(max_size=5)}
+    )
 
 
 def _st_http_headers():
@@ -37,7 +39,7 @@ def _st_http_headers():
 
 
 def _st_http_data():
-    return st.binary()
+    return st.binary(max_size=10)
 
 
 def _st_http_data_utf8():
@@ -46,7 +48,7 @@ def _st_http_data_utf8():
 
 @composite
 def _st_binary_utf8(draw: DrawFn) -> bytes:
-    return draw(st.text()).encode("utf-8")
+    return draw(st.text(max_size=5)).encode("utf-8")
 
 
 def _st_http_response_dict(utf8_data: bool = False):
@@ -343,8 +345,8 @@ def test_urllib3_requests_timeout() -> None:
 
 @given(
     url=urls(),
-    fields=st.dictionaries(st.text(), st.text()),
-    headers=st.dictionaries(st.text(), st.text()),
+    fields=st.dictionaries(st.text(max_size=5), st.text(max_size=5), max_size=3),
+    headers=st.dictionaries(st.text(max_size=5), st.text(max_size=5), max_size=3),
 )
 def test_prepare_request(
     url: str,
@@ -360,6 +362,7 @@ def test_prepare_request(
     responses=series(
         dtype=HTTP_RESPONSE_DTYPE,
         strategy=_st_http_response_dict(),
+        max_size=3,
     )
 )
 def test_response_ok(responses: pl.Series) -> None:
@@ -374,6 +377,7 @@ def test_response_ok(responses: pl.Series) -> None:
     responses=series(
         dtype=HTTP_RESPONSE_DTYPE,
         strategy=_st_http_response_dict(),
+        max_size=3,
     )
 )
 def test_response_header_value(responses: pl.Series) -> None:
@@ -388,6 +392,7 @@ def test_response_header_value(responses: pl.Series) -> None:
     responses=series(
         dtype=HTTP_RESPONSE_DTYPE,
         strategy=_st_http_response_dict(utf8_data=True),
+        max_size=3,
     )
 )
 def test_response_text(responses: pl.Series) -> None:

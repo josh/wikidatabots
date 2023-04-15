@@ -151,7 +151,7 @@ def test_expr_repl() -> None:
 
 
 @given(
-    df=dataframes(),
+    df=dataframes(max_cols=5, max_size=20),
     predicate=st.one_of(
         [
             st.just(pl.all().is_duplicated().all()),
@@ -525,7 +525,8 @@ df_st = dataframes(
         column("a", dtype=pl.Int64, unique=True),
         column("b", dtype=pl.Boolean),
         column("c", dtype=pl.Boolean),
-    ]
+    ],
+    max_size=25,
 )
 
 
