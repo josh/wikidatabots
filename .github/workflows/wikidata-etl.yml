@@ -44,10 +44,6 @@ jobs:
         run: |
           python wikidata_etl.py
 
-      - name: Print stats
-        run: |
-          python print_table_stats.py property_class_constraints.parquet | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Print diff
         run: |
           python print_table_diff.py property_class_constraints.parquet~ property_class_constraints.parquet key | tee -a "$GITHUB_STEP_SUMMARY"

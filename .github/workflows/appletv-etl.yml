@@ -64,10 +64,6 @@ jobs:
         env:
           TYPE: ${{ matrix.type }}
 
-      - name: Print stats
-        run: |
-          python print_table_stats.py sitemap.parquet | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Print diff
         run: |
           python print_table_diff.py sitemap.parquet~ sitemap.parquet loc | tee -a "$GITHUB_STEP_SUMMARY"
@@ -127,10 +123,6 @@ jobs:
           from appletv_etl import main_jsonld
 
           main_jsonld()
-
-      - name: Print stats
-        run: |
-          python print_table_stats.py jsonld.parquet | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Print diff
         run: |

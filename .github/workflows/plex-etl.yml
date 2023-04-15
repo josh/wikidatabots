@@ -49,10 +49,6 @@ jobs:
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
           PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
 
-      - name: Print stats
-        run: |
-          python print_table_stats.py plex.parquet | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Print diff
         run: |
           python print_table_diff.py plex.parquet~ plex.parquet key | tee -a "$GITHUB_STEP_SUMMARY"

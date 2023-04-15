@@ -56,10 +56,6 @@ jobs:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
 
-      - name: Print stats
-        run: |
-          python print_table_stats.py tmdb.parquet | tee -a "$GITHUB_STEP_SUMMARY"
-
       - name: Print diff
         run: |
           python print_table_diff.py tmdb.parquet~ tmdb.parquet id | tee -a "$GITHUB_STEP_SUMMARY"
