@@ -646,66 +646,6 @@ def test_outlier_exprs(df: pl.DataFrame) -> None:
     )
 
 
-@pytest.mark.xfail()
-def test_lazy_cache_parallel() -> None:
-    df_evaluated = 0
-
-    def map_df(df: pl.DataFrame) -> pl.DataFrame:
-        nonlocal df_evaluated
-        df_evaluated += 1
-        return df
-
-    df = pl.LazyFrame({"a": [1]}).map(map_df).cache()
-
-    df = pl.concat(
-        [
-            df.select(pl.col("a") + 1),
-            df.select(pl.col("a") + 2),
-            df.select(pl.col("a") + 3),
-        ],
-        parallel=True,
-    )
-
-    assert df_evaluated == 0
-
-    df.collect()
-    assert df_evaluated == 1
-
-
-@pytest.mark.xfail()
-def test_lazy_cache_nested_parallel() -> None:
-    df_inner_evaluated = 0
-    df_outer_evaluated = 0
-
-    def map_df_inner(df: pl.DataFrame) -> pl.DataFrame:
-        nonlocal df_inner_evaluated
-        df_inner_evaluated += 1
-        return df
-
-    def map_df_outer(df: pl.DataFrame) -> pl.DataFrame:
-        nonlocal df_outer_evaluated
-        df_outer_evaluated += 1
-        return df
-
-    df_inner = pl.LazyFrame({"a": [1]}).map(map_df_inner).cache()
-    df_outer = df_inner.select(pl.col("a") + 1).map(map_df_outer).cache()
-
-    df = pl.concat(
-        [
-            df_outer.select(pl.col("a") + 2),
-            df_outer.select(pl.col("a") + 3),
-        ],
-        parallel=True,
-    )
-
-    assert df_inner_evaluated == 0
-    assert df_outer_evaluated == 0
-
-    df.collect()
-    assert df_inner_evaluated == 1
-    assert df_outer_evaluated == 1
-
-
 def test_groups_of() -> None:
     df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
     df2 = df1.select(pl.col("a").pipe(groups_of, n=2))

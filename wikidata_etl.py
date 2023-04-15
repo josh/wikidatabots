@@ -53,8 +53,7 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
             [
                 sparql_df(query1, schema=_CONSTRAINT_QUERY_SCHEMA),
                 sparql_df(query2, schema=_CONSTRAINT_QUERY_SCHEMA),
-            ],
-            parallel=False,  # BUG: parallel caching is broken
+            ]
         )
         .unique(subset=["class"], maintain_order=True)
         .rename({"class": "class_uri"})
@@ -93,10 +92,7 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
 
 
 def _fetch_all_property_class_constraints() -> pl.LazyFrame:
-    return pl.concat(
-        [fetch_property_class_constraints(pid) for pid in _PIDS],
-        parallel=False,  # BUG: parallel caching is broken
-    )
+    return pl.concat([fetch_property_class_constraints(pid) for pid in _PIDS])
 
 
 def _main() -> None:

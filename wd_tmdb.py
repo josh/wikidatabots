@@ -126,7 +126,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
     return (
-        wd_df.join(tmdb_df, on="imdb_numeric_id", how="left", allow_parallel=False)
+        wd_df.join(tmdb_df, on="imdb_numeric_id", how="left")
         .drop_nulls()
         .select(["item", "imdb_id"])
         .pipe(assert_expression, pl.count() < _CHECK_LIMIT, "Too many IDs to check")
@@ -201,7 +201,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     )
 
     return (
-        wd_df.join(tmdb_df, on="tvdb_id", how="left", allow_parallel=False)
+        wd_df.join(tmdb_df, on="tvdb_id", how="left")
         .drop_nulls()
         .select(["item", "tvdb_id"])
         .pipe(assert_expression, pl.count() < _CHECK_LIMIT, "Too many IDs to check")
@@ -241,7 +241,7 @@ def find_tmdb_ids_not_found(
     df = sparql_df(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
 
     return (
-        df.join(tmdb_df, on="id", how="left", allow_parallel=False)
+        df.join(tmdb_df, on="id", how="left")
         .filter(pl.col("success").is_not())
         # .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
@@ -262,8 +262,7 @@ def main() -> None:
             find_tmdb_ids_not_found("movie"),
             find_tmdb_ids_not_found("tv"),
             find_tmdb_ids_not_found("person"),
-        ],
-        parallel=False,  # BUG: parallel caching is broken
+        ]
     ).head(_STATEMENT_LIMIT)
 
     for (line,) in df.collect().iter_rows():

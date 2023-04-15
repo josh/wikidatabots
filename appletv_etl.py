@@ -102,7 +102,7 @@ def sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
             (
                 pl.col("sitemap")
                 .struct.field("lastmod")
-                .str.strptime(datatype=pl.Datetime(time_unit="ns"), fmt="%+")
+                .str.strptime(dtype=pl.Datetime(time_unit="ns"), format="%+")
                 .cast(pl.Datetime(time_unit="ns"))
                 .alias("lastmod")
             ),
@@ -201,7 +201,7 @@ _JSONLD_TITLE_EXPR = (
 _JSONLD_PUBLISHED_AT_EXPR = (
     pl.col("jsonld")
     .struct.field("datePublished")
-    .str.strptime(datatype=pl.Date, fmt="%+")
+    .str.strptime(dtype=pl.Date, format="%+")
 )
 _JSONLD_DIRECTOR_EXPR = (
     pl.col("jsonld")
@@ -274,7 +274,7 @@ def append_jsonld_changes(
 ) -> pl.LazyFrame:
     jsonld_df = jsonld_df.cache()
     jsonld_new_df = (
-        sitemap_df.join(jsonld_df, on="loc", how="left", allow_parallel=False)
+        sitemap_df.join(jsonld_df, on="loc", how="left")
         .filter(pl.col("jsonld_success").is_null())
         .with_columns(
             pl.when(pl.col("country").eq("us"))
