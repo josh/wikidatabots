@@ -500,6 +500,19 @@ def compute_stats(
             .alias(name)
         )
 
+    def _int_col(name: str) -> pl.Expr:
+        return (
+            pl.when(pl.col(f"{name}_count") > 0)
+            .then(
+                pl.col(f"{name}_count").apply(
+                    lambda v: f"{v:,}",
+                    return_dtype=pl.Utf8,
+                )
+            )
+            .otherwise("")
+            .alias(name)
+        )
+
     joined_df = (
         null_count_df.join(is_unique_df, on="column", how="left")
         .join(true_count_df, on="column", how="left")
@@ -526,7 +539,7 @@ def compute_stats(
         _percent_col("true"),
         _percent_col("false"),
         pl.when(pl.col("is_unique")).then("true").otherwise("").alias("unique"),
-        _percent_col("updated"),
+        _int_col("updated"),
     )
 
 
