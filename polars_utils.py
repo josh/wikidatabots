@@ -458,6 +458,27 @@ def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr
             yield expr.is_unique().alias(f"unique_{output_name}")
 
 
+def _format_int_comma(expr: pl.Expr) -> pl.Expr:
+    return expr.apply(
+        lambda v: f"{v:,}",
+        return_dtype=pl.Utf8,
+    )
+
+
+def _format_float_percent(expr: pl.Expr) -> pl.Expr:
+    return expr.apply(
+        lambda v: f"{v:.2%}",
+        return_dtype=pl.Utf8,
+    )
+
+
+def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:
+    if isinstance(dtype, pl.DataType):
+        return dtype._string_repr()  # type: ignore
+    else:
+        return dtype._string_repr(dtype)  # type: ignore
+
+
 def compute_stats(
     df: pl.DataFrame,
     changes_df: pl.DataFrame | None = None,
@@ -477,39 +498,25 @@ def compute_stats(
         "false_count", pl.col(pl.Boolean).drop_nulls().is_not().sum()
     )
 
-    def _dtype(name: str) -> str:
-        return str(df.schema[name])
-
     def _percent_col(name: str) -> pl.Expr:
         return (
             pl.when(pl.col(f"{name}_count") > 0)
             .then(
                 pl.format(
                     "{} ({})",
-                    pl.col(f"{name}_count").apply(
-                        lambda v: f"{v:,}",
-                        return_dtype=pl.Utf8,
-                    ),
-                    (pl.col(f"{name}_count") / count).apply(
-                        lambda v: f"{v:.2%}",
-                        return_dtype=pl.Utf8,
-                    ),
+                    pl.col(f"{name}_count").pipe(_format_int_comma),
+                    (pl.col(f"{name}_count") / count).pipe(_format_float_percent),
                 )
             )
-            .otherwise("")
+            .otherwise(None)
             .alias(name)
         )
 
     def _int_col(name: str) -> pl.Expr:
         return (
             pl.when(pl.col(f"{name}_count") > 0)
-            .then(
-                pl.col(f"{name}_count").apply(
-                    lambda v: f"{v:,}",
-                    return_dtype=pl.Utf8,
-                )
-            )
-            .otherwise("")
+            .then(pl.col(f"{name}_count").pipe(_format_int_comma))
+            .otherwise(None)
             .alias(name)
         )
 
@@ -527,20 +534,15 @@ def compute_stats(
     else:
         joined_df = joined_df.with_columns(pl.lit(0).alias("updated_count"))
 
-    return joined_df.with_columns(
-        pl.col("column").apply(_dtype).alias("dtype"),
-        pl.col("true_count").fill_null(0),
-        pl.col("false_count").fill_null(0),
-        pl.col("updated_count").fill_null(0),
-    ).select(
+    return joined_df.select(
         pl.col("column").alias("name"),
-        pl.col("dtype").alias("dtype"),
+        pl.col("column").apply(df.schema.get).apply(_dtype_str_repr).alias("dtype"),
         _percent_col("null"),
         _percent_col("true"),
         _percent_col("false"),
         pl.when(pl.col("is_unique")).then("true").otherwise("").alias("unique"),
         _int_col("updated"),
-    )
+    ).fill_null("")
 
 
 def describe_frame(
