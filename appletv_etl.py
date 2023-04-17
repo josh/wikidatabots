@@ -183,6 +183,7 @@ def cleaned_sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
                 "type",
             ]
         )
+        .unique("loc")
     )
 
 
