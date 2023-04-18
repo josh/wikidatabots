@@ -1,12 +1,19 @@
 # pyright: strict
 
+import logging
 from functools import partial
 from typing import Literal
 
 import polars as pl
 
 from polars_requests import Session, prepare_request, response_text, urllib3_requests
-from polars_utils import assert_expression, expr_indicies_sorted, groups_of
+from polars_utils import (
+    assert_expression,
+    expr_indicies_sorted,
+    groups_of,
+    update_or_append,
+    update_parquet,
+)
 from sparql import sparql_df
 
 _LOOKUP_BATCH_SIZE = 150
@@ -178,8 +185,27 @@ def _wikidata_itunes_ids(pid: _ITUNES_PROPERTY_ID) -> pl.LazyFrame:
 
 
 def wikidata_itunes_all_ids() -> pl.LazyFrame:
+    return pl.concat(_wikidata_itunes_ids(pid) for pid in ITUNES_PROPERTY_IDS).unique(
+        "id"
+    )
+
+
+def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        pl.concat(_wikidata_itunes_ids(pid) for pid in ITUNES_PROPERTY_IDS)
+        df.pipe(update_or_append, wikidata_itunes_all_ids(), on="id")
         .sort("id")
         .unique("id")
     )
+
+
+def main() -> None:
+    def update(df: pl.LazyFrame) -> pl.LazyFrame:
+        return df.pipe(_discover_ids)
+
+    with pl.StringCache():
+        update_parquet("itunes.parquet", update, key="id")
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    main()
