@@ -1,0 +1,50 @@
+name: Plex ETL
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    concurrency: itunes
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download from S3
+        run: |
+          aws s3 cp "s3://wikidatabots/itunes.parquet" "itunes.parquet"
+
+      - name: Run script
+        run: |
+          python itunes_etl.py
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp --acl public-read "itunes.parquet" "s3://wikidatabots/itunes.parquet"
