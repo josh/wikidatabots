@@ -5,7 +5,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 
-from itunes_etl import check_itunes_id, lookup_itunes_id
+from itunes_etl import check_itunes_id, lookup_itunes_id, wikidata_itunes_all_ids
 
 _RESULT_DTYPE = pl.Struct(
     [
@@ -135,3 +135,9 @@ def test_check_itunes_id() -> None:
         schema={"id": pl.UInt64, "country_us": pl.Boolean},
     )
     assert_frame_equal(df1, df2)
+
+
+def test_wikidata_itunes_all_ids() -> None:
+    ldf = wikidata_itunes_all_ids()
+    assert ldf.schema == {"id": pl.UInt64}
+    ldf.collect()

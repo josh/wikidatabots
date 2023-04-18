@@ -1,11 +1,13 @@
 # pyright: strict
 
 from functools import partial
+from typing import Literal
 
 import polars as pl
 
 from polars_requests import Session, prepare_request, response_text, urllib3_requests
-from polars_utils import expr_indicies_sorted, groups_of
+from polars_utils import assert_expression, expr_indicies_sorted, groups_of
+from sparql import sparql_df
 
 _LOOKUP_BATCH_SIZE = 150
 
@@ -130,4 +132,54 @@ def _lookup_result(expr: pl.Expr) -> pl.Expr:
                 expr.struct.field("kind").alias("kind"),
             )
         )
+    )
+
+
+_ITUNES_PROPERTY_ID = Literal[
+    "P2281",
+    "P2850",
+    "P3861",
+    "P5260",
+    "P5655",
+    "P5842",
+    "P6250",
+    "P6381",
+    "P6395",
+    "P6998",
+]
+
+ITUNES_PROPERTY_IDS: set[_ITUNES_PROPERTY_ID] = {
+    "P2281",
+    "P2850",
+    "P3861",
+    "P5260",
+    "P5655",
+    "P5842",
+    "P6250",
+    "P6381",
+    "P6395",
+    "P6998",
+}
+
+_QUERY = """
+SELECT DISTINCT ?id WHERE {
+  _:b0 ps:P0000 ?id.
+  FILTER(xsd:integer(?id))
+}
+"""
+
+
+def _wikidata_itunes_ids(pid: _ITUNES_PROPERTY_ID) -> pl.LazyFrame:
+    return (
+        sparql_df(_QUERY.replace("P0000", pid), schema={"id": pl.UInt64})
+        .pipe(assert_expression, pl.col("id").is_unique())
+        .pipe(assert_expression, pl.col("id").is_not_null())
+    )
+
+
+def wikidata_itunes_all_ids() -> pl.LazyFrame:
+    return (
+        pl.concat(_wikidata_itunes_ids(pid) for pid in ITUNES_PROPERTY_IDS)
+        .sort("id")
+        .unique("id")
     )
