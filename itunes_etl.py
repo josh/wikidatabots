@@ -109,8 +109,8 @@ _LOOKUP_DTYPE = pl.Struct(
 
 _SESSION = Session(
     connect_timeout=1.0,
-    read_timeout=10.0,
-    retry_count=2,
+    read_timeout=5.0,
+    retry_count=3,
 )
 
 
