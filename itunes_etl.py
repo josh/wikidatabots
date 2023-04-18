@@ -1,5 +1,6 @@
 # pyright: strict
 
+import datetime
 import logging
 from functools import partial
 from typing import Literal
@@ -15,6 +16,48 @@ from polars_utils import (
     update_parquet,
 )
 from sparql import sparql_df
+
+_COUNTRY = Literal[
+    "au",
+    "au",
+    "br",
+    "ca",
+    "cn",
+    "de",
+    "dk",
+    "es",
+    "fr",
+    "gb",
+    "ie",
+    "in",
+    "it",
+    "jp",
+    "mx",
+    "nl",
+    "nz",
+    "pl",
+    "pr",
+    "sw",
+    "tw",
+    "us",
+    "vg",
+    "vi",
+]
+
+_COUNTRIES: set[_COUNTRY] = {
+    "au",
+    "br",
+    "ca",
+    "cn",
+    "de",
+    "es",
+    "fr",
+    "gb",
+    "in",
+    "it",
+    "jp",
+    "us",
+}
 
 _LOOKUP_BATCH_SIZE = 150
 
@@ -142,6 +185,51 @@ def _lookup_result(expr: pl.Expr) -> pl.Expr:
     )
 
 
+def _timestamp() -> pl.Expr:
+    return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
+
+
+def fetch_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+    country_results: list[pl.Expr] = []
+    country_types: list[pl.Expr] = []
+    country_kinds: list[pl.Expr] = []
+    country_available_flags: list[pl.Expr] = []
+    any_country_available_flags: list[pl.Expr] = []
+
+    for country in _COUNTRIES:
+        result_colname = f"{country}_result"
+        country_colname = f"{country}_country"
+        result_col = pl.col(result_colname)
+
+        country_results.append(
+            pl.col("id").pipe(lookup_itunes_id, country=country).alias(result_colname)
+        )
+        country_types.append(result_col.struct.field("type"))
+        country_kinds.append(result_col.struct.field("kind"))
+        country_available_flags.append(
+            result_col.struct.field("id").is_not_null().alias(country_colname)
+        )
+        any_country_available_flags.append(pl.col(country_colname))
+
+    return (
+        df.select(
+            pl.col("id"),
+            _timestamp().alias("retrieved_at"),
+            *country_results,
+        )
+        .select(
+            pl.col("id"),
+            pl.col("retrieved_at"),
+            pl.coalesce(*country_types).cast(pl.Categorical).alias("type"),
+            pl.coalesce(*country_kinds).cast(pl.Categorical).alias("kind"),
+            *country_available_flags,
+        )
+        .with_columns(
+            pl.Expr.or_(*any_country_available_flags).alias("any_country"),
+        )
+    )
+
+
 _ITUNES_PROPERTY_ID = Literal[
     "P2281",
     "P2850",
@@ -198,9 +286,26 @@ def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < 1_000
+_MISSING_METADATA = pl.col("retrieved_at").is_null()
+_TMP_LIMIT = 500
+
+
+def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+    df = df.cache()
+
+    df_updated = (
+        df.filter(_OLDEST_METADATA | _MISSING_METADATA)
+        .head(_TMP_LIMIT)
+        .pipe(fetch_metadata)
+    )
+
+    return df.pipe(update_or_append, df_updated, on="id").sort("id")
+
+
 def main() -> None:
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.pipe(_discover_ids)
+        return df.pipe(_discover_ids).pipe(_backfill_metadata)
 
     with pl.StringCache():
         update_parquet("itunes.parquet", update, key="id")

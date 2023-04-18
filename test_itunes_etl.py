@@ -5,7 +5,21 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 
-from itunes_etl import check_itunes_id, lookup_itunes_id, wikidata_itunes_all_ids
+from itunes_etl import (
+    check_itunes_id,
+    fetch_metadata,
+    lookup_itunes_id,
+    wikidata_itunes_all_ids,
+)
+
+
+def setup_module() -> None:
+    pl.enable_string_cache(True)
+
+
+def teardown_module() -> None:
+    pl.enable_string_cache(False)
+
 
 _RESULT_DTYPE = pl.Struct(
     [
@@ -135,6 +149,104 @@ def test_check_itunes_id() -> None:
         schema={"id": pl.UInt64, "country_us": pl.Boolean},
     )
     assert_frame_equal(df1, df2)
+
+
+def test_fetch_metadata() -> None:
+    lf1 = (
+        pl.LazyFrame(
+            {
+                "id": [
+                    909253,
+                    1,
+                    1440768692,
+                    1440768764,
+                    909253,
+                    102225079,
+                    1438674900,
+                    284910350,
+                    1676858107,
+                    6446905902,
+                ]
+            },
+            schema={"id": pl.UInt64},
+        )
+        .pipe(fetch_metadata)
+        .select("id", "type", "kind", "us_country", "ca_country", "any_country")
+    )
+    lf2 = pl.LazyFrame(
+        {
+            "id": [
+                909253,
+                1,
+                1440768692,
+                1440768764,
+                909253,
+                102225079,
+                1438674900,
+                284910350,
+                1676858107,
+                6446905902,
+            ],
+            "type": [
+                "Artist",
+                None,
+                "Album",
+                None,
+                "Artist",
+                "TV Show",
+                "TV Season",
+                None,
+                None,
+                None,
+            ],
+            "kind": [
+                None,
+                None,
+                None,
+                "song",
+                None,
+                None,
+                None,
+                "software",
+                "feature-movie",
+                "ebook",
+            ],
+            "us_country": [True, False, True, True, True, True, True, True, True, True],
+            "ca_country": [
+                True,
+                False,
+                True,
+                True,
+                True,
+                True,
+                False,
+                True,
+                True,
+                True,
+            ],
+            "any_country": [
+                True,
+                False,
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+                True,
+            ],
+        },
+        schema={
+            "id": pl.UInt64,
+            "type": pl.Categorical,
+            "kind": pl.Categorical,
+            "us_country": pl.Boolean,
+            "ca_country": pl.Boolean,
+            "any_country": pl.Boolean,
+        },
+    )
+    assert_frame_equal(lf1, lf2)
 
 
 def test_wikidata_itunes_all_ids() -> None:
