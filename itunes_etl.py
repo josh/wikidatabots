@@ -130,7 +130,9 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
                     "country": country,
                 },
             )
-            .pipe(urllib3_requests, session=_SESSION, log_group="itunes_lookup")
+            .pipe(
+                urllib3_requests, session=_SESSION, log_group=f"itunes_lookup_{country}"
+            )
             .pipe(response_text)
             .str.json_extract(_RESULTS_DTYPE)
             .struct.field("results")
