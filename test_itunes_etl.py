@@ -5,12 +5,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 
-from itunes_etl import (
-    check_itunes_id,
-    fetch_metadata,
-    lookup_itunes_id,
-    wikidata_itunes_all_ids,
-)
+from itunes_etl import fetch_metadata, lookup_itunes_id, wikidata_itunes_all_ids
 
 
 def setup_module() -> None:
@@ -131,23 +126,6 @@ def test_lookup_itunes_id_empty() -> None:
         pl.col("id").pipe(lookup_itunes_id, country="us").alias("result")
     )
     df2 = pl.DataFrame({"id": [], "result": []}, schema=df1.schema)
-    assert_frame_equal(df1, df2)
-
-
-def test_check_itunes_id() -> None:
-    df1 = pl.DataFrame(
-        {"id": [1440768692, 909253, 1, 1440768764, 2, 909253]},
-        schema={"id": pl.UInt64},
-    ).with_columns(
-        pl.col("id").pipe(check_itunes_id, country="us").alias("country_us"),
-    )
-    df2 = pl.DataFrame(
-        {
-            "id": [1440768692, 909253, 1, 1440768764, 2, 909253],
-            "country_us": [True, True, False, True, False, True],
-        },
-        schema={"id": pl.UInt64, "country_us": pl.Boolean},
-    )
     assert_frame_equal(df1, df2)
 
 

@@ -62,16 +62,6 @@ _COUNTRIES: set[_COUNTRY] = {
 _LOOKUP_BATCH_SIZE = 150
 
 
-def check_itunes_id(
-    expr: pl.Expr, country: str, batch_size: int = _LOOKUP_BATCH_SIZE
-) -> pl.Expr:
-    return (
-        expr.pipe(lookup_itunes_id, country=country, batch_size=batch_size)
-        .struct.field("id")
-        .is_not_null()
-    )
-
-
 def lookup_itunes_id(
     expr: pl.Expr, country: str, batch_size: int = _LOOKUP_BATCH_SIZE
 ) -> pl.Expr:
