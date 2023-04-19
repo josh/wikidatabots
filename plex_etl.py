@@ -25,6 +25,8 @@ _GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
 _PLEX_SESSION = Session(
     headers={"X-Plex-Token": os.environ.get("PLEX_TOKEN", "")},
     ok_statuses={200, 404},
+    read_timeout=15.0,
+    retry_count=2,
 )
 
 _PLEX_SERVER_SESSION = Session()
