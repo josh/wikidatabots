@@ -2,10 +2,8 @@
 
 import polars as pl
 
-from constants import ITUNES_MOVIE_ID_PID
-from itunes import COUNTRIES
-from itunes_etl import check_itunes_id
-from sparql import fetch_statements_df, sample_items
+from itunes_etl import lookup_itunes_id
+from sparql import sparql_df
 
 _EDIT_SUMMARY = "Deprecate iTunes movie ID delisted from store"
 
@@ -19,32 +17,33 @@ def _deprecated_rdf_statement() -> pl.Expr:
     ).alias("rdf_statement")
 
 
+_QUERY = """
+SELECT ?statement ?id WHERE {
+  ?statement ps:P6398 ?id;
+    wikibase:rank ?rank.
+  FILTER(?rank != wikibase:DeprecatedRank)
+  FILTER(xsd:integer(?id))
+}
+"""
+
+
 def _delisted_itunes_ids() -> pl.LazyFrame:
-    # TODO: Fetch lazily
-    qids = sample_items(ITUNES_MOVIE_ID_PID, limit=5_000)
+    df = pl.scan_parquet(
+        "s3://wikidatabots/itunes.parquet", storage_options={"anon": True}
+    ).select(["id", "any_country"])
 
     return (
-        fetch_statements_df(qids, [ITUNES_MOVIE_ID_PID])
+        sparql_df(_QUERY, schema={"statement": pl.Utf8, "id": pl.UInt64})
+        .join(df, on="id")
+        .filter(pl.col("any_country").is_not())
         .with_columns(
-            pl.col("value")
-            .str.parse_int(10, strict=False)
-            .cast(pl.UInt64)
-            .alias("itunes_id")
+            pl.col("id")
+            .pipe(lookup_itunes_id, country="us")
+            .struct.field("id")
+            .is_not_null()
+            .alias("any_country"),
         )
-        .filter(pl.col("itunes_id").is_not_null())
-        .with_columns(
-            pl.col("itunes_id").pipe(check_itunes_id, country="us").alias("country_us"),
-        )
-        .filter(pl.col("country_us").is_not())
-        .with_columns(
-            pl.Expr.or_(
-                *[
-                    pl.col("itunes_id").pipe(check_itunes_id, country=country)
-                    for country in COUNTRIES
-                ]
-            ).alias("country_any"),
-        )
-        .filter(pl.col("country_any").is_not())
+        .filter(pl.col("any_country").is_not())
         .select(_deprecated_rdf_statement())
     )
 
