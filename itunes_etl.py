@@ -109,7 +109,7 @@ _LOOKUP_DTYPE = pl.Struct(
 
 _SESSION = Session(
     connect_timeout=1.0,
-    read_timeout=15.0,
+    read_timeout=20.0,
     retry_count=3,
 )
 
