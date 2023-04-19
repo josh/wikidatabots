@@ -111,6 +111,7 @@ _SESSION = Session(
     connect_timeout=1.0,
     read_timeout=20.0,
     retry_count=3,
+    retry_statuses={413, 429, 500, 503},
 )
 
 
