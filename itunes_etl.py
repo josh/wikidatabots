@@ -242,6 +242,7 @@ _ITUNES_PROPERTY_ID = Literal[
     "P6250",
     "P6381",
     "P6395",
+    "P6398",
     "P6998",
 ]
 
@@ -255,6 +256,7 @@ ITUNES_PROPERTY_IDS: set[_ITUNES_PROPERTY_ID] = {
     "P6250",
     "P6381",
     "P6395",
+    "P6398",
     "P6998",
 }
 
