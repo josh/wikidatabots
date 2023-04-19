@@ -293,18 +293,11 @@ def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < (10 * _LOOKUP_BATCH_SIZE)
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
-_BACKFILL_LIMIT = 10_000
 
 
 def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
-
-    df_updated = (
-        df.filter(_MISSING_METADATA | _OLDEST_METADATA)
-        .head(_BACKFILL_LIMIT)
-        .pipe(fetch_metadata)
-    )
-
+    df_updated = df.filter(_MISSING_METADATA | _OLDEST_METADATA).pipe(fetch_metadata)
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
