@@ -161,6 +161,12 @@ class SlowQueryWarning(Warning):
     pass
 
 
+@backoff.on_exception(
+    backoff.expo,
+    TimeoutException,
+    max_tries=3,
+    max_time=timeout.max_time,
+)
 def _sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
     start = time.time()
     r = session.post(url, data={"query": query}, headers={"Accept": "text/csv"})
