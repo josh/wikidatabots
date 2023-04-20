@@ -41,7 +41,7 @@ def parse_movie_url(url: str) -> ID | None:
     return None
 
 
-def appletv_to_itunes(appletv_id: ID) -> itunes.ID | None:
+def appletv_to_itunes(appletv_id: ID) -> int | None:
     soup = fetch(f"https://tv.apple.com/us/movie/{appletv_id}")
     if not soup:
         return None
@@ -122,7 +122,7 @@ def extract_shoebox(soup: BeautifulSoup) -> list[Any]:
     return json.loads(script.text).values()
 
 
-def extract_itunes_id(soup: BeautifulSoup) -> itunes.ID | None:
+def extract_itunes_id(soup: BeautifulSoup) -> int | None:
     for data in extract_shoebox(soup):
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:

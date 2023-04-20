@@ -1,7 +1,7 @@
 # pyright: strict
 
 import random
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Iterable, Sequence
 from typing import Any, TypeVar
 
 T = TypeVar("T")
@@ -13,20 +13,6 @@ def first(iterable: Iterable[T] | None) -> T | None:
     for el in iterable:
         return el
     return None
-
-
-def batches(iterable: Iterable[T], size: int) -> Iterator[list[T]]:
-    assert size > 0
-    batch: list[T] = []
-
-    for element in iterable:
-        batch.append(element)
-        if len(batch) == size:
-            yield batch
-            batch = []
-
-    if batch:
-        yield batch
 
 
 def shuffled(seq: Iterable[T]) -> Sequence[T]:
