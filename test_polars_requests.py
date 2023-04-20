@@ -21,7 +21,7 @@ from polars_requests import (
     urllib3_requests,
 )
 
-_HTTPBIN_SESSION = Session(connect_timeout=1.0, read_timeout=2.0)
+_POSTMAN_SESSION = Session(connect_timeout=1.0, read_timeout=2.0)
 
 
 def _st_http_status():
@@ -67,16 +67,16 @@ def test_urllib3_requests() -> None:
         pl.LazyFrame(
             {
                 "url": [
-                    "https://httpbin.org/get?foo=1",
-                    "https://httpbin.org/get?foo=2",
-                    "https://httpbin.org/get?foo=3",
+                    "https://postman-echo.com/get?foo=1",
+                    "https://postman-echo.com/get?foo=2",
+                    "https://postman-echo.com/get?foo=3",
                 ]
             }
         )
         .with_columns(
             pl.col("url")
             .pipe(prepare_request)
-            .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin"),
+            .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman"),
         )
         .with_columns(
             pl.col("response").pipe(response_ok),
@@ -115,7 +115,7 @@ def test_urllib3_requests_empty() -> None:
     ldf = pl.LazyFrame({"url": []}, schema={"url": pl.Utf8}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin"),
+        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman"),
     )
     ldf2 = pl.LazyFrame({"url": [], "response": []}).with_columns(
         pl.col("url").cast(pl.Utf8),
@@ -125,17 +125,17 @@ def test_urllib3_requests_empty() -> None:
 
 
 def test_urllib3_requests_with_defaults() -> None:
-    session = Session(fields={"foo": "bar"}, headers={"X-Foo": "baz"})
+    session = Session(fields={"foo": "bar"}, headers={"x-foo": "baz"})
     response_dtype = pl.Struct(
         {
             "args": pl.Struct({"foo": pl.Utf8}),
-            "headers": pl.Struct({"X-Foo": pl.Utf8}),
+            "headers": pl.Struct({"x-foo": pl.Utf8}),
         }
     )
-    ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
+    ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=session, log_group="httpbin")
+        .pipe(urllib3_requests, session=session, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -143,8 +143,8 @@ def test_urllib3_requests_with_defaults() -> None:
 
     ldf2 = pl.LazyFrame(
         {
-            "url": ["https://httpbin.org/get"],
-            "data": [{"args": {"foo": "bar"}, "headers": {"X-Foo": "baz"}}],
+            "url": ["https://postman-echo.com/get"],
+            "data": [{"args": {"foo": "bar"}, "headers": {"x-foo": "baz"}}],
         }
     )
 
@@ -155,23 +155,23 @@ def test_urllib3_requests_raw() -> None:
     response_dtype = pl.Struct(
         {
             "args": pl.Struct({"foo": pl.Utf8}),
-            "headers": pl.Struct({"X-Foo": pl.Utf8}),
+            "headers": pl.Struct({"x-foo": pl.Utf8}),
         }
     )
 
     requests = pl.Series(
         [
             {
-                "url": "https://httpbin.org/get",
+                "url": "https://postman-echo.com/get",
                 "fields": [{"name": "foo", "value": "bar"}],
-                "headers": [{"name": "X-Foo", "value": "baz"}],
+                "headers": [{"name": "x-foo", "value": "baz"}],
             }
         ],
     )
 
     ldf = pl.LazyFrame({"request": requests}).select(
         pl.col("request")
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
+        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -179,7 +179,7 @@ def test_urllib3_requests_raw() -> None:
 
     ldf2 = pl.LazyFrame(
         {
-            "data": [{"args": {"foo": "bar"}, "headers": {"X-Foo": "baz"}}],
+            "data": [{"args": {"foo": "bar"}, "headers": {"x-foo": "baz"}}],
         }
     )
 
@@ -187,15 +187,15 @@ def test_urllib3_requests_raw() -> None:
 
 
 def test_urllib3_requests_prepare_empty_headers() -> None:
-    ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
+    ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
+        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
         {
-            "url": ["https://httpbin.org/get"],
+            "url": ["https://postman-echo.com/get"],
             "status": pl.Series([200], dtype=pl.UInt16),
         }
     )
@@ -205,8 +205,8 @@ def test_urllib3_requests_prepare_empty_headers() -> None:
 def test_urllib3_requests_prepare_empty_df() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
-        .pipe(prepare_request, fields={"foo": "bar"}, headers={"X-Foo": "baz"})
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
+        .pipe(prepare_request, fields={"foo": "bar"}, headers={"x-foo": "baz"})
+        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -222,7 +222,7 @@ def test_urllib3_requests_prepare_empty_df_and_headers() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
+        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -238,14 +238,14 @@ def test_urllib3_requests_prepare() -> None:
     response_dtype = pl.Struct(
         {
             "args": pl.Struct({"foo": pl.Utf8}),
-            "headers": pl.Struct({"X-Foo": pl.Utf8}),
+            "headers": pl.Struct({"x-foo": pl.Utf8}),
         }
     )
 
-    ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
+    ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
-        .pipe(prepare_request, fields={"foo": "bar"}, headers={"X-Foo": "baz"})
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
+        .pipe(prepare_request, fields={"foo": "bar"}, headers={"x-foo": "baz"})
+        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -253,8 +253,8 @@ def test_urllib3_requests_prepare() -> None:
 
     ldf2 = pl.LazyFrame(
         {
-            "url": ["https://httpbin.org/get"],
-            "data": [{"args": {"foo": "bar"}, "headers": {"X-Foo": "baz"}}],
+            "url": ["https://postman-echo.com/get"],
+            "data": [{"args": {"foo": "bar"}, "headers": {"x-foo": "baz"}}],
         }
     )
 
@@ -264,10 +264,10 @@ def test_urllib3_requests_prepare() -> None:
 def test_urllib3_requests_prepare_just_fields() -> None:
     response_dtype = pl.Struct({"args": pl.Struct({"foo": pl.Utf8})})
 
-    ldf = pl.LazyFrame({"url": ["https://httpbin.org/get"]}).with_columns(
+    ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"})
-        .pipe(urllib3_requests, session=_HTTPBIN_SESSION, log_group="httpbin")
+        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -275,7 +275,7 @@ def test_urllib3_requests_prepare_just_fields() -> None:
 
     ldf2 = pl.LazyFrame(
         {
-            "url": ["https://httpbin.org/get"],
+            "url": ["https://postman-echo.com/get"],
             "data": [{"args": {"foo": "bar"}}],
         }
     )
@@ -290,16 +290,16 @@ def test_urllib3_requests_retry_status() -> None:
         pl.LazyFrame(
             {
                 "url": [
-                    "https://httpbin.org/status/200,500",
-                    "https://httpbin.org/status/200,500",
-                    "https://httpbin.org/status/200,500",
+                    "https://postman-echo.com/status/200,500",
+                    "https://postman-echo.com/status/200,500",
+                    "https://postman-echo.com/status/200,500",
                 ]
             }
         )
         .with_columns(
             pl.col("url")
             .pipe(prepare_request)
-            .pipe(urllib3_requests, session=session, log_group="httpbin"),
+            .pipe(urllib3_requests, session=session, log_group="postman"),
         )
         .select(
             pl.col("url"), pl.col("response").struct.field("status").alias("status")
@@ -308,9 +308,9 @@ def test_urllib3_requests_retry_status() -> None:
     ldf2 = pl.LazyFrame(
         {
             "url": [
-                "https://httpbin.org/status/200,500",
-                "https://httpbin.org/status/200,500",
-                "https://httpbin.org/status/200,500",
+                "https://postman-echo.com/status/200,500",
+                "https://postman-echo.com/status/200,500",
+                "https://postman-echo.com/status/200,500",
             ],
             "status": pl.Series([200, 200, 200], dtype=pl.UInt16),
         }
@@ -324,14 +324,14 @@ def test_urllib3_requests_timeout() -> None:
     ldf = pl.LazyFrame(
         {
             "url": [
-                "https://httpbin.org/delay/1",
-                "https://httpbin.org/delay/5",
+                "https://postman-echo.com/delay/1",
+                "https://postman-echo.com/delay/5",
             ]
         }
     ).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=session, log_group="httpbin"),
+        .pipe(urllib3_requests, session=session, log_group="postman"),
     )
 
     assert ldf.schema == {
