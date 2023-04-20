@@ -1,6 +1,6 @@
 backoff==2.2.1
 beautifulsoup4==4.12.2
-hypothesis==6.72.0
+hypothesis==6.72.1
 lxml==4.9.2
 polars==0.17.3
 pytest==7.3.1
