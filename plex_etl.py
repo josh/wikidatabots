@@ -79,7 +79,7 @@ def _plex_server(name: str) -> pl.LazyFrame:
     )
 
 
-def _plex_library_guids() -> pl.LazyFrame:
+def plex_library_guids() -> pl.LazyFrame:
     return (
         _plex_server(name=os.environ["PLEX_SERVER"])
         .with_columns(pl.lit([[1, 2]]).alias("section"))
@@ -102,9 +102,12 @@ def _plex_library_guids() -> pl.LazyFrame:
         )
         .explode("item")
         .unnest("item")
-        .select(pl.col("guid").pipe(_decode_plex_guid).alias("key"))
+        .select(
+            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
+        )
         .drop_nulls()
-        .unique(subset="key", maintain_order=True)
+        .unique(subset="key")
     )
 
 
@@ -114,9 +117,12 @@ def wikidata_plex_guids() -> pl.LazyFrame:
             "SELECT DISTINCT ?guid WHERE { ?item ps:P11460 ?guid. }",
             columns=["guid"],
         )
-        .select(pl.col("guid").pipe(_decode_plex_guid).alias("key"))
+        .select(
+            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
+        )
         .drop_nulls()
-        .unique(subset="key", maintain_order=True)
+        .unique(subset="key")
     )
 
 
@@ -139,35 +145,47 @@ _SEARCH_METACONTAINER_JSON_DTYPE: pl.PolarsDataType = pl.Struct(
 )
 
 
-def plex_search_guids(expr: pl.Expr) -> pl.Expr:
+def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        prepare_request(
-            url=pl.lit("https://metadata.provider.plex.tv/library/search"),
-            fields={
-                "query": expr,
-                "limit": "100",
-                "searchTypes": "movie,tv",
-                "includeMetadata": "1",
-            },
-            headers={
-                "Accept": "application/json",
-                "X-Plex-Token": os.environ["PLEX_TOKEN"],
-            },
-        )
-        .pipe(urllib3_requests, session=_PLEX_SESSION, log_group="plex_metadata_search")
-        .pipe(response_text)
-        .str.json_extract(_SEARCH_METACONTAINER_JSON_DTYPE)
-        .struct.field("MediaContainer")
-        .struct.field("SearchResults")
-        .arr.eval(
-            pl.element()
-            .struct.field("SearchResult")
-            .arr.eval(pl.element().struct.field("Metadata").struct.field("guid"))
+        df.select(
+            prepare_request(
+                url=pl.lit("https://metadata.provider.plex.tv/library/search"),
+                fields={
+                    "query": pl.col("query"),
+                    "limit": "100",
+                    "searchTypes": "movie,tv",
+                    "includeMetadata": "1",
+                },
+                headers={
+                    "Accept": "application/json",
+                    "X-Plex-Token": os.environ["PLEX_TOKEN"],
+                },
+            )
+            .pipe(
+                urllib3_requests,
+                session=_PLEX_SESSION,
+                log_group="plex_metadata_search",
+            )
+            .pipe(response_text)
+            .str.json_extract(_SEARCH_METACONTAINER_JSON_DTYPE)
+            .struct.field("MediaContainer")
+            .struct.field("SearchResults")
+            .arr.eval(
+                pl.element()
+                .struct.field("SearchResult")
+                .arr.eval(pl.element().struct.field("Metadata").struct.field("guid"))
+                .flatten()
+            )
             .flatten()
+            .alias("guid")
         )
-        .flatten()
-        .unique()
-        .pipe(_decode_plex_guid)
+        .unique("guid")
+        .select(
+            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
+        )
+        .drop_nulls()
+        .unique(subset="key")
     )
 
 
@@ -196,13 +214,16 @@ def wikidata_search_guids() -> pl.LazyFrame:
     return (
         _wd_random_titles(limit=_SEARCH_LIMIT)
         .rename({"title": "query"})
-        .select(pl.col("query").pipe(plex_search_guids).alias("key"))
-        .drop_nulls()
+        .pipe(plex_search_guids)
     )
 
 
-def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
+def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex")
+
+
+def _decode_plex_guid_type(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(_GUID_RE, 1).cast(pl.Categorical)
 
 
 def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -223,16 +244,21 @@ def _backfill_metadata(df: pl.LazyFrame, predicate: pl.Expr) -> pl.LazyFrame:
     )
 
     df_similar = (
-        df_updated.select("similar_keys")
-        .explode("similar_keys")
-        .rename({"similar_keys": "key"})
+        df_updated.select("similar_guids")
+        .explode("similar_guids")
+        .rename({"similar_guids": "guid"})
+        .select(
+            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
+        )
         .drop_nulls()
-        .unique(subset="key", maintain_order=True)
+        .unique(subset="key")
         .cache()
     )
+    assert df_similar.schema == {"key": pl.Binary, "type": pl.Categorical}
 
     return (
-        df.pipe(update_or_append, df_updated.drop("similar_keys"), on="key")
+        df.pipe(update_or_append, df_updated.drop("similar_guids"), on="key")
         .pipe(update_or_append, df_similar, on="key")
         .pipe(_sort)
     )
@@ -324,13 +350,8 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             (
                 pl.col("metadata")
                 .struct.field("Similar")
-                .arr.eval(
-                    pl.element()
-                    .struct.field("guid")
-                    .str.extract(_GUID_RE, 2)
-                    .str.decode("hex")
-                )
-                .alias("similar_keys")
+                .arr.eval(pl.element().struct.field("guid"))
+                .alias("similar_guids")
             ),
         )
     )
@@ -364,12 +385,12 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     df_new = pl.concat(
         [
-            _plex_library_guids(),
+            plex_library_guids(),
             wikidata_plex_guids(),
             wikidata_search_guids(),
         ]
-    ).unique()
-    assert df_new.schema == {"key": pl.Binary}
+    ).unique(subset="key")
+    assert df_new.schema == {"key": pl.Binary, "type": pl.Categorical}
     return plex_df.pipe(update_or_append, df_new, on="key").pipe(_sort)
 
 

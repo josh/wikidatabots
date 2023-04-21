@@ -27,7 +27,7 @@ def teardown_module() -> None:
 
 def test_wikidata_plex_guids() -> None:
     ldf = wikidata_plex_guids()
-    assert ldf.schema == {"key": pl.Binary}
+    assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
     assert len(ldf.collect()) > 0
 
 
@@ -102,24 +102,20 @@ def test_fetch_metadata_guids() -> None:
         }
     )
     assert_frame_equal(
-        fetch_metadata_guids(df).drop(["retrieved_at", "similar_keys"]), df2
+        fetch_metadata_guids(df).drop(["retrieved_at", "similar_guids"]), df2
     )
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_plex_search_guids() -> None:
-    df = (
-        pl.LazyFrame({"query": ["Top Gun"]})
-        .select(pl.col("query").pipe(plex_search_guids).alias("key"))
-        .collect()
-    )
-    assert df.schema == {"key": pl.Binary}
+    df = pl.LazyFrame({"query": ["Top Gun"]}).pipe(plex_search_guids).collect()
+    assert df.schema == {"key": pl.Binary, "type": pl.Categorical}
     assert len(df) > 0
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_wikidata_search_guids() -> None:
     ldf = wikidata_search_guids()
-    assert ldf.schema == {"key": pl.Binary}
+    assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
     df = ldf.collect()
     assert len(df) > 0
