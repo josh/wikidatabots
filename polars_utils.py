@@ -199,7 +199,9 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
     other_cols.remove(on)
 
     other = other.join(df.drop(other_cols), on=on, how="left").select(df.columns)
-    return pl.concat([df, other]).unique(subset=on, keep="last", maintain_order=True)
+    return pl.concat([df, other], parallel=False).unique(
+        subset=on, keep="last", maintain_order=True
+    )
 
 
 _INDICATOR_EXPR = (
