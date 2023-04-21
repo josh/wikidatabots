@@ -6,7 +6,12 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from plex_etl import encode_plex_guids, fetch_metadata_guids, wikidata_plex_guids
+from plex_etl import (
+    encode_plex_guids,
+    fetch_metadata_guids,
+    plex_search_guids,
+    wikidata_plex_guids,
+)
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
 
@@ -98,3 +103,14 @@ def test_fetch_metadata_guids() -> None:
     assert_frame_equal(
         fetch_metadata_guids(df).drop(["retrieved_at", "similar_keys"]), df2
     )
+
+
+@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
+def test_plex_search_guids() -> None:
+    df = (
+        pl.LazyFrame({"query": ["Top Gun"]})
+        .select(pl.col("query").pipe(plex_search_guids).alias("key"))
+        .collect()
+    )
+    assert df.schema == {"key": pl.Binary}
+    assert len(df) > 0

@@ -127,6 +127,86 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
+_SEARCH_METACONTAINER_JSON_DTYPE: pl.PolarsDataType = pl.Struct(
+    {
+        "MediaContainer": pl.Struct(
+            {
+                "SearchResults": pl.List(
+                    pl.Struct(
+                        {
+                            "SearchResult": pl.List(
+                                pl.Struct({"Metadata": pl.Struct({"guid": pl.Utf8})})
+                            ),
+                        }
+                    )
+                )
+            }
+        )
+    }
+)
+
+
+def plex_search_guids(expr: pl.Expr) -> pl.Expr:
+    return (
+        prepare_request(
+            url=pl.lit("https://metadata.provider.plex.tv/library/search"),
+            fields={
+                "query": expr,
+                "limit": "100",
+                "searchTypes": "movie,tv",
+                "includeMetadata": "1",
+            },
+            headers={
+                "Accept": "application/json",
+                "X-Plex-Token": os.environ["PLEX_TOKEN"],
+            },
+        )
+        .pipe(urllib3_requests, session=_PLEX_SESSION, log_group="plex_metadata_search")
+        .pipe(response_text)
+        .str.json_extract(_SEARCH_METACONTAINER_JSON_DTYPE)
+        .struct.field("MediaContainer")
+        .struct.field("SearchResults")
+        .arr.eval(
+            pl.element()
+            .struct.field("SearchResult")
+            .arr.eval(pl.element().struct.field("Metadata").struct.field("guid"))
+            .flatten()
+        )
+        .flatten()
+        .unique()
+        .pipe(_decode_plex_guid)
+    )
+
+
+_TITLE_QUERY = """
+SELECT ?title WHERE {
+  SERVICE bd:sample {
+    ?item wdt:P4947 _:b1.
+    bd:serviceParam bd:sample.limit ?limit ;
+      bd:sample.sampleType "RANDOM".
+  }
+  ?item wdt:P1476 ?title.
+  OPTIONAL { ?item wdt:P11460 ?plex_guid. }
+  FILTER(!(BOUND(?plex_guid)))
+}
+"""
+
+
+def _wd_random_titles(limit: int) -> pl.LazyFrame:
+    return sparql_df(_TITLE_QUERY.replace("?limit", str(limit)), columns=["title"])
+
+
+_SEARCH_LIMIT = 10
+
+
+def _search_guids() -> pl.LazyFrame:
+    return (
+        _wd_random_titles(limit=_SEARCH_LIMIT)
+        .rename({"title": "query"})
+        .select(pl.col("query").pipe(plex_search_guids).alias("key"))
+    )
+
+
 def _decode_plex_guid(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex")
 
@@ -291,6 +371,7 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         plex_df.pipe(update_or_append, _plex_library_guids(), on="key")
         .pipe(update_or_append, wikidata_plex_guids(), on="key")
+        .pipe(update_or_append, _search_guids(), on="key")
         .pipe(_sort)
     )
 
