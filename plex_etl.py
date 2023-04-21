@@ -197,6 +197,7 @@ def wikidata_search_guids() -> pl.LazyFrame:
         _wd_random_titles(limit=_SEARCH_LIMIT)
         .rename({"title": "query"})
         .select(pl.col("query").pipe(plex_search_guids).alias("key"))
+        .drop_nulls()
     )
 
 
