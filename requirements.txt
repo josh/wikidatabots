@@ -11,4 +11,4 @@ requests==2.28.2
 s3fs==2023.4.0
 tqdm==4.65.0
 urllib3==1.26.15
-wikitextparser==0.51.1
+wikitextparser==0.51.2
