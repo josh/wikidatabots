@@ -372,7 +372,7 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
         [
             _plex_library_guids(),
             wikidata_plex_guids(),
-            wikidata_search_guids(),
+            # wikidata_search_guids(),
         ]
     ).unique()
     assert df_new.schema == {"key": pl.Binary}
