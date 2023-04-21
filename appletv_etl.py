@@ -106,7 +106,6 @@ def sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
             pl.col("changefreq").cast(pl.Categorical),
             pl.col("priority").cast(pl.Float32),
         )
-        .inspect()
     )
 
 
