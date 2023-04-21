@@ -11,6 +11,7 @@ from plex_etl import (
     fetch_metadata_guids,
     plex_search_guids,
     wikidata_plex_guids,
+    wikidata_search_guids,
 )
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
@@ -113,4 +114,12 @@ def test_plex_search_guids() -> None:
         .collect()
     )
     assert df.schema == {"key": pl.Binary}
+    assert len(df) > 0
+
+
+@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
+def test_wikidata_search_guids() -> None:
+    ldf = wikidata_search_guids()
+    assert ldf.schema == {"key": pl.Binary}
+    df = ldf.collect()
     assert len(df) > 0

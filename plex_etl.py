@@ -199,7 +199,7 @@ def _wd_random_titles(limit: int) -> pl.LazyFrame:
 _SEARCH_LIMIT = 10
 
 
-def _search_guids() -> pl.LazyFrame:
+def wikidata_search_guids() -> pl.LazyFrame:
     return (
         _wd_random_titles(limit=_SEARCH_LIMIT)
         .rename({"title": "query"})
@@ -371,7 +371,7 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         plex_df.pipe(update_or_append, _plex_library_guids(), on="key")
         .pipe(update_or_append, wikidata_plex_guids(), on="key")
-        .pipe(update_or_append, _search_guids(), on="key")
+        .pipe(update_or_append, wikidata_search_guids(), on="key")
         .pipe(_sort)
     )
 
