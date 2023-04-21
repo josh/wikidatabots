@@ -161,6 +161,10 @@ class SlowQueryWarning(Warning):
     pass
 
 
+class TimeoutWarning(Warning):
+    pass
+
+
 @backoff.on_exception(
     backoff.expo,
     TimeoutException,
@@ -170,12 +174,14 @@ class SlowQueryWarning(Warning):
 def _sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
     start = time.time()
     r = session.post(url, data={"query": query}, headers={"Accept": "text/csv"})
+    duration = time.time() - start
 
     if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
+        logging.warn(f"sparql timeout: {duration:,.2f}s")
+        warn(query, TimeoutWarning, stacklevel=2 + _stacklevel)
         raise TimeoutException(query)
     r.raise_for_status()
 
-    duration = time.time() - start
     if duration > 45:
         logging.warn(f"sparql: {duration:,.2f}s")
         warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
