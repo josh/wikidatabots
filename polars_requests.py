@@ -4,11 +4,14 @@ import sys
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Iterable, Iterator, TypedDict
+from urllib.parse import urlencode
 
 import polars as pl
 import urllib3
 from tqdm import tqdm
 from urllib3.exceptions import ResponseError
+
+from actions import warn
 
 
 class _HTTPDict(TypedDict):
@@ -75,6 +78,8 @@ class Session:
     retry_raise_on_status: bool = True
     retry_respect_retry_after_header: bool = True
 
+    raise_on_duplicate_request: bool = False
+
     def __post_init__(self) -> None:
         timeout = urllib3.Timeout(
             connect=self.connect_timeout,
@@ -100,8 +105,26 @@ class Session:
             retries=retries,
         )
 
+        self._previous_urls = set([])
+
     def poolmanager(self) -> urllib3.PoolManager:
         return self._poolmanager
+
+    def record_request(self, url: str) -> None:
+        if "pytest" in sys.modules:
+            return
+
+        if url in self._previous_urls:
+            if self.raise_on_duplicate_request:
+                raise DuplicateRequest(url)
+            else:
+                warn(url, DuplicateRequest, stacklevel=8)
+
+        self._previous_urls.add(url)
+
+
+class DuplicateRequest(Warning):
+    pass
 
 
 def urllib3_requests(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
@@ -158,6 +181,11 @@ def _urllib3_request(
     if headers:
         for h in headers:
             headers_dict[h["name"]] = h["value"]
+
+    trace_url = url
+    if fields_dict:
+        trace_url = f"{url}?{urlencode(fields_dict)}"
+    session.record_request(trace_url)
 
     response: urllib3.HTTPResponse = http.request(
         method="GET",
