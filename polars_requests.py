@@ -2,7 +2,7 @@
 
 import sys
 from dataclasses import dataclass, field
-from multiprocessing import Lock
+from functools import partial
 from typing import Iterable, TypedDict
 from urllib.parse import urlencode
 
@@ -11,6 +11,7 @@ import urllib3
 from tqdm import tqdm
 from urllib3.exceptions import ResponseError
 
+from actions import log_group as _log_group
 from actions import warn
 
 
@@ -105,8 +106,6 @@ class Session:
             retries=retries,
         )
 
-        self.lock = Lock()
-
         self._previous_urls = set([])
 
     def poolmanager(self) -> urllib3.PoolManager:
@@ -130,12 +129,8 @@ class DuplicateRequest(Warning):
 
 
 def urllib3_requests(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
-    def urllib3_requests_inner(s: pl.Series) -> pl.Series:
-        with session.lock:
-            return _urllib3_requests_series(s, session=session, log_group=log_group)
-
     return requests.map(
-        urllib3_requests_inner,
+        partial(_urllib3_requests_series, session=session, log_group=log_group),
         return_dtype=HTTP_RESPONSE_DTYPE,
     ).alias("response")
 
@@ -152,8 +147,7 @@ def _urllib3_requests_series(
 
     values: list[_HTTPResponse | None] = []
 
-    try:
-        print(f"::group::{log_group}", file=sys.stderr)
+    with _log_group(log_group):
         for request in tqdm(requests, unit="url"):
             if request:
                 assert isinstance(request["url"], str), f"No URL for request: {request}"
@@ -166,8 +160,6 @@ def _urllib3_requests_series(
                 values.append(response)
             else:
                 values.append(None)
-    finally:
-        print("::endgroup::", file=sys.stderr)
 
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
 

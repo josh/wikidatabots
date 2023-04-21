@@ -13,6 +13,8 @@ from typing import Any, Callable, Iterable, Iterator, TextIO, TypeVar
 import polars as pl
 from tqdm import tqdm
 
+from actions import log_group as _log_group
+
 
 def github_step_summary() -> TextIO:
     if "GITHUB_STEP_SUMMARY" in os.environ:
@@ -274,15 +276,12 @@ def apply_with_tqdm(
         if len(s) == 0:
             return values
 
-        try:
-            print(f"::group::{log_group}", file=sys.stderr)
+        with _log_group(log_group):
             for item in tqdm(s, unit="row"):
                 if item:
                     values.append(function(item))
                 else:
                     values.append(None)
-        finally:
-            print("::endgroup::", file=sys.stderr)
 
         return values
 

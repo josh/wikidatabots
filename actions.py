@@ -1,7 +1,24 @@
 import sys
 import warnings
-from typing import Type
+from contextlib import contextmanager
+from threading import Lock
+from typing import Generator, Type
 from warnings import warn
+
+_GROUP_LOCK = Lock()
+
+
+@contextmanager
+def log_group(name: str) -> Generator[None, None, None]:
+    if _GROUP_LOCK.locked():
+        raise RuntimeError("Can't nest log groups")
+
+    with _GROUP_LOCK:
+        try:
+            print(f"::group::{name}", file=sys.stderr)
+            yield
+        finally:
+            print("::endgroup::", file=sys.stderr)
 
 
 def print_warning(title: str, message: str) -> None:
@@ -25,4 +42,4 @@ def _formatwarning(
 warnings.formatwarning = _formatwarning
 
 
-__all__ = ["warn", "print_warning"]
+__all__ = ["log_group", "print_warning", "warn"]
