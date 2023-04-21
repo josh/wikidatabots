@@ -3,7 +3,7 @@
 import sys
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Iterable, Iterator, TypedDict
+from typing import Iterable, TypedDict
 from urllib.parse import urlencode
 
 import polars as pl
@@ -141,27 +141,29 @@ def _urllib3_requests_series(
 ) -> pl.Series:
     assert len(requests) < 50_000, f"Too many requests: {len(requests):,}"
 
-    def _values() -> Iterator[_HTTPResponse | None]:
-        if len(requests) == 0:
-            return
+    if len(requests) == 0:
+        return pl.Series(name="response", values=[], dtype=HTTP_RESPONSE_DTYPE)
 
+    values: list[_HTTPResponse | None] = []
+
+    try:
         print(f"::group::{log_group}", file=sys.stderr)
-
         for request in tqdm(requests, unit="url"):
             if request:
                 assert isinstance(request["url"], str), f"No URL for request: {request}"
-                yield _urllib3_request(
+                response = _urllib3_request(
                     session=session,
                     url=request["url"],
                     fields=request["fields"],
                     headers=request["headers"],
                 )
+                values.append(response)
             else:
-                yield None
-
+                values.append(None)
+    finally:
         print("::endgroup::", file=sys.stderr)
 
-    return pl.Series(name="response", values=_values(), dtype=HTTP_RESPONSE_DTYPE)
+    return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
 
 
 def _urllib3_request(

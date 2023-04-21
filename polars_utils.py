@@ -268,19 +268,23 @@ def apply_with_tqdm(
     return_dtype: pl.PolarsDataType | None = None,
     log_group: str = "apply(unknown)",
 ) -> pl.Expr:
-    def apply_function(s: pl.Series) -> Iterator[Any]:
+    def apply_function(s: pl.Series) -> list[Any]:
+        values: list[Any] = []
+
         if len(s) == 0:
-            return
+            return values
 
         try:
             print(f"::group::{log_group}", file=sys.stderr)
             for item in tqdm(s, unit="row"):
                 if item:
-                    yield function(item)
+                    values.append(function(item))
                 else:
-                    yield None
+                    values.append(None)
         finally:
             print("::endgroup::", file=sys.stderr)
+
+        return values
 
     def map_function(s: pl.Series) -> pl.Series:
         return pl.Series(values=apply_function(s), dtype=return_dtype)
