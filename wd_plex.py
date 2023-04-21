@@ -7,7 +7,7 @@ import polars as pl
 from plex_etl import GUID_TYPE, encode_plex_guids
 from sparql import sparql_df
 
-_LIMIT = 50
+_LIMIT = 100
 
 
 def _plex_guids() -> pl.LazyFrame:
@@ -16,7 +16,7 @@ def _plex_guids() -> pl.LazyFrame:
             "s3://wikidatabots/plex.parquet",
             storage_options={"anon": True},
         )
-        .select(["key", "type", "tmdb_id"])
+        .select(["type", "tmdb_id", "key"])
         .pipe(encode_plex_guids)
     )
 
@@ -70,56 +70,46 @@ def _wikidata_tmdb_ids(guid_type: GUID_TYPE) -> pl.LazyFrame:
         sparql_df(_TMDB_QUERY[guid_type], schema=_TMDB_QUERY_SCHEMA)
         .filter(pl.col("tmdb_id").is_unique() & pl.col("plex_guid").is_null())
         .drop("plex_guid")
+        .with_columns(pl.lit(guid_type).cast(pl.Categorical).alias("type"))
     )
 
 
-def _rdf_statement(source_label: str) -> pl.Expr:
-    return pl.format(
-        '<{}> wdt:P11460 "{}" ; wikidatabots:editSummary "{}" .',
-        pl.col("item"),
-        pl.col("guid"),
-        pl.lit(f"Add Plex GUID claim via associated {source_label}"),
-    ).alias("rdf_statement")
+def _wikidata_all_tmdb_ids() -> pl.LazyFrame:
+    return pl.concat([_wikidata_tmdb_ids("movie"), _wikidata_tmdb_ids("show")])
 
 
-def _rdf_statements(
-    plex_df: pl.LazyFrame,
-    guid_type: GUID_TYPE,
-    source_label: str,
-) -> pl.LazyFrame:
-    df = plex_df.filter(pl.col("type") == guid_type).select(["guid", "tmdb_id"])
-    return (
-        _wikidata_tmdb_ids(guid_type)
-        .join(df, on="tmdb_id")
-        .select(_rdf_statement(source_label))
-        .head(_LIMIT)
-    )
+_RDF_STATEMENT = pl.format(
+    '<{}> wdt:P11460 "{}" ; '
+    'wikidatabots:editSummary "Add Plex GUID claim via associated {}" .',
+    pl.col("item"),
+    pl.col("guid"),
+    pl.col("source_label"),
+).alias("rdf_statement")
 
 
 def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
-    plex_df = _plex_guids().cache()
-
-    return pl.concat(
-        [
-            _rdf_statements(
-                plex_df,
-                guid_type="movie",
-                source_label="TMDb movie ID",
-            ),
-            _rdf_statements(
-                plex_df,
-                guid_type="show",
-                source_label="TMDb TV series ID",
-            ),
-        ]
+    return (
+        _wikidata_all_tmdb_ids()
+        .join(_plex_guids(), on=["type", "tmdb_id"])
+        .with_columns(
+            pl.when(pl.col("type") == "movie")
+            .then(pl.lit("TMDb movie ID"))
+            .when(pl.col("type") == "show")
+            .then(pl.lit("TMDb TV series ID"))
+            .otherwise(None)
+            .alias("source_label")
+        )
+        .select(
+            _RDF_STATEMENT.shuffle().head(_LIMIT),
+        )
     )
 
 
 def main() -> None:
-    df = find_plex_guids_via_tmdb_id()
-
-    for (line,) in df.collect().iter_rows():
-        print(line)
+    with pl.StringCache():
+        df = find_plex_guids_via_tmdb_id()
+        for (line,) in df.collect().iter_rows():
+            print(line)
 
 
 if __name__ == "__main__":
