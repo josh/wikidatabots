@@ -368,16 +368,11 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
-    df_new = pl.concat(
-        [
-            _plex_library_guids(),
-            wikidata_plex_guids(),
-            wikidata_search_guids(),
-        ],
-        parallel=False,
-    ).unique()
-    assert df_new.schema == {"key": pl.Binary}
-    return plex_df.pipe(update_or_append, df_new, on="key").pipe(_sort)
+    return (
+        plex_df.pipe(update_or_append, _plex_library_guids(), on="key")
+        .pipe(update_or_append, wikidata_plex_guids(), on="key")
+        .pipe(_sort)
+    )
 
 
 def main() -> None:
