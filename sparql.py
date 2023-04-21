@@ -12,7 +12,6 @@ import os
 import platform
 import time
 from collections.abc import Iterable
-from io import BytesIO
 from threading import Lock
 from typing import Any, Literal, TypedDict
 
@@ -179,7 +178,7 @@ class TimeoutWarning(Warning):
     max_tries=3,
     max_time=timeout.max_time,
 )
-def _sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
+def _sparql_csv(query: str, _stacklevel: int = 0) -> bytes:
     with _LOCK:
         start = time.time()
         r = session.post(
@@ -204,7 +203,7 @@ def _sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
     else:
         logging.debug(f"sparql: {duration:,.2f}s")
 
-    return BytesIO(r.content)
+    return r.content
 
 
 def sparql_df(
