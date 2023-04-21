@@ -268,9 +268,10 @@ def _wikidata_itunes_ids(pid: _ITUNES_PROPERTY_ID) -> pl.LazyFrame:
 
 
 def wikidata_itunes_all_ids() -> pl.LazyFrame:
-    return pl.concat(_wikidata_itunes_ids(pid) for pid in ITUNES_PROPERTY_IDS).unique(
-        "id"
-    )
+    return pl.concat(
+        [_wikidata_itunes_ids(pid) for pid in ITUNES_PROPERTY_IDS],
+        parallel=False,
+    ).unique("id")
 
 
 def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
