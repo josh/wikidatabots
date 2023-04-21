@@ -322,10 +322,7 @@ def test_xml_extract() -> None:
             pl.col("xml").pipe(xml_extract, dtype).alias("country"),
         )
         .explode("country")
-        .select(
-            pl.col("country").struct.field("name").alias("name"),
-            pl.col("country").struct.field("year").alias("year"),
-        )
+        .unnest("country")
     )
 
     df2 = pl.DataFrame(

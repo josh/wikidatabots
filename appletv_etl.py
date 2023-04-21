@@ -53,9 +53,7 @@ def siteindex(type: Type) -> pl.LazyFrame:
             .alias("siteindex"),
         )
         .explode("siteindex")
-        .select(
-            pl.col("siteindex").struct.field("loc").alias("loc"),
-        )
+        .unnest("siteindex")
     )
 
 
@@ -97,28 +95,18 @@ def sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
             .alias("sitemap")
         )
         .explode("sitemap")
+        .unnest("sitemap")
         .select(
-            pl.col("sitemap").struct.field("loc").alias("loc"),
+            pl.col("loc"),
             (
-                pl.col("sitemap")
-                .struct.field("lastmod")
+                pl.col("lastmod")
                 .str.strptime(dtype=pl.Datetime(time_unit="ns"), format="%+")
                 .cast(pl.Datetime(time_unit="ns"))
-                .alias("lastmod")
             ),
-            (
-                pl.col("sitemap")
-                .struct.field("changefreq")
-                .cast(pl.Categorical)  # BUG: Workaround string to category panic
-                .alias("changefreq")
-            ),
-            (
-                pl.col("sitemap")
-                .struct.field("priority")
-                .cast(pl.Float32)
-                .alias("priority")
-            ),
+            pl.col("changefreq").cast(pl.Categorical),
+            pl.col("priority").cast(pl.Float32),
         )
+        .inspect()
     )
 
 

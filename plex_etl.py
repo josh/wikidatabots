@@ -68,12 +68,7 @@ def _plex_server(name: str) -> pl.LazyFrame:
             .alias("Device")
         )
         .explode("Device")
-        .select(
-            pl.col("Device").struct.field("name").alias("name"),
-            pl.col("Device").struct.field("publicAddress").alias("publicAddress"),
-            pl.col("Device").struct.field("accessToken").alias("accessToken"),
-            pl.col("Device").struct.field("Connection").alias("Connection"),
-        )
+        .unnest("Device")
         .filter(pl.col("name") == name)
         .explode("Connection")
         .filter(pl.col("Connection").struct.field("local") == "0")
@@ -106,9 +101,7 @@ def _plex_library_guids() -> pl.LazyFrame:
             .alias("item")
         )
         .explode("item")
-        .select(
-            pl.col("item").struct.field("guid").alias("guid"),
-        )
+        .unnest("item")
         .select(pl.col("guid").pipe(_decode_plex_guid).alias("key"))
         .drop_nulls()
         .unique(subset="key", maintain_order=True)

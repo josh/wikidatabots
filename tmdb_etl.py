@@ -187,11 +187,8 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
             .alias("results")
         )
         .explode("results")
-        .select(
-            pl.col("results").struct.field("id").alias("id"),
-            pl.col("date"),
-            pl.col("results").struct.field("adult").alias("adult"),
-        )
+        .unnest("results")
+        .select("id", "date", "adult")
         .drop_nulls(subset=["id"])
         .unique(subset=["id"], keep="last", maintain_order=True)
     )
