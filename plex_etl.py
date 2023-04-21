@@ -369,10 +369,9 @@ def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        plex_df.pipe(update_or_append, _plex_library_guids(), on="key").pipe(
-            update_or_append, wikidata_plex_guids(), on="key"
-        )
-        # .pipe(update_or_append, wikidata_search_guids(), on="key")
+        plex_df.pipe(update_or_append, _plex_library_guids(), on="key")
+        .pipe(update_or_append, wikidata_plex_guids(), on="key")
+        .pipe(update_or_append, wikidata_search_guids(), on="key")
         .pipe(_sort)
     )
 
