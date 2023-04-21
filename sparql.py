@@ -13,6 +13,7 @@ import platform
 import time
 from collections.abc import Iterable
 from io import BytesIO
+from threading import Lock
 from typing import Any, Literal, TypedDict
 
 import backoff
@@ -28,6 +29,8 @@ url = "https://query.wikidata.org/sparql"
 session = requests.Session()
 
 session.headers.update({"Accept": "application/sparql-results+json"})
+
+_LOCK = Lock()
 
 USER_AGENT: list[str] = []
 
@@ -110,11 +113,12 @@ def sparql(query: str) -> list[Any]:
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
 
-    r = session.post(
-        url,
-        data={"query": query},
-        timeout=90,
-    )
+    with _LOCK:
+        r = session.post(
+            url,
+            data={"query": query},
+            timeout=90,
+        )
 
     if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
         raise TimeoutException(query)
@@ -176,14 +180,15 @@ class TimeoutWarning(Warning):
     max_time=timeout.max_time,
 )
 def _sparql_csv(query: str, _stacklevel: int = 0) -> BytesIO:
-    start = time.time()
-    r = session.post(
-        url,
-        data={"query": query},
-        headers={"Accept": "text/csv"},
-        timeout=90,
-    )
-    duration = time.time() - start
+    with _LOCK:
+        start = time.time()
+        r = session.post(
+            url,
+            data={"query": query},
+            headers={"Accept": "text/csv"},
+            timeout=90,
+        )
+        duration = time.time() - start
 
     if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
         logging.warn(f"sparql timeout: {duration:,.2f}s")
