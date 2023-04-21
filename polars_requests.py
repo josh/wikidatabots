@@ -2,7 +2,7 @@
 
 import sys
 from dataclasses import dataclass, field
-from functools import partial
+from multiprocessing import Lock
 from typing import Iterable, TypedDict
 from urllib.parse import urlencode
 
@@ -105,6 +105,8 @@ class Session:
             retries=retries,
         )
 
+        self.lock = Lock()
+
         self._previous_urls = set([])
 
     def poolmanager(self) -> urllib3.PoolManager:
@@ -128,8 +130,12 @@ class DuplicateRequest(Warning):
 
 
 def urllib3_requests(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
+    def urllib3_requests_inner(s: pl.Series) -> pl.Series:
+        with session.lock:
+            return _urllib3_requests_series(s, session=session, log_group=log_group)
+
     return requests.map(
-        partial(_urllib3_requests_series, session=session, log_group=log_group),
+        urllib3_requests_inner,
         return_dtype=HTTP_RESPONSE_DTYPE,
     ).alias("response")
 
