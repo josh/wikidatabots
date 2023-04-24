@@ -5,7 +5,14 @@ from rdflib import URIRef
 
 import wikidata
 from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
-from sparql import extract_qid, fetch_statements, sample_items, sparql, sparql_df
+from sparql import (
+    extract_qid,
+    fetch_statements,
+    sample_items,
+    sparql,
+    sparql_df,
+    fetch_property_statements,
+)
 
 
 def test_sparql():
@@ -99,3 +106,10 @@ def test_sparql_df():
     assert lf.schema == {"item": pl.Utf8, "itemLabel": pl.Utf8, "qid": pl.Utf8}
     df = lf.collect()
     assert len(df) == 10
+
+
+def test_fetch_property_statements() -> None:
+    ldf = fetch_property_statements(pid="P9750")
+    assert ldf.schema == {"subject": pl.Utf8, "object": pl.Utf8}
+    df = ldf.collect()
+    assert len(df) > 1
