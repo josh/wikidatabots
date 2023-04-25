@@ -6,7 +6,6 @@ import polars as pl
 
 import appletv
 from constants import APPLE_TV_MOVIE_ID_PID, INSTANCE_OF_PID, ITUNES_MOVIE_ID_PID
-from page import blocked_qids
 from sparql import fetch_statements, sample_items
 from timeout import iter_until_deadline
 
@@ -28,10 +27,6 @@ def main():
 
     for qid in iter_until_deadline(results):
         item = results[qid]
-
-        if qid in blocked_qids():
-            logging.debug(f"{qid} is blocked")
-            continue
 
         if not item.get(INSTANCE_OF_PID) or item.get(ITUNES_MOVIE_ID_PID):
             continue
