@@ -23,7 +23,6 @@ GUID_TYPE = Literal["episode", "movie", "season", "show"]
 _GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
 
 _PLEX_SESSION = Session(
-    headers={"X-Plex-Token": os.environ.get("PLEX_TOKEN", "")},
     ok_statuses={200, 404},
     read_timeout=15.0,
     retry_count=2,
@@ -53,7 +52,7 @@ def _plex_server(name: str) -> pl.LazyFrame:
         pl.LazyFrame({"url": ["https://plex.tv/api/resources"]})
         .select(
             pl.col("url")
-            .pipe(prepare_request)
+            .pipe(prepare_request, headers={"X-Plex-Token": os.environ["PLEX_TOKEN"]})
             .pipe(
                 urllib3_requests,
                 session=_PLEX_SESSION,
@@ -313,7 +312,13 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 "https://metadata.provider.plex.tv/library/metadata/{}",
                 pl.col("key").bin.encode("hex"),
             )
-            .pipe(prepare_request, headers={"Accept": "application/json"})
+            .pipe(
+                prepare_request,
+                headers={
+                    "Accept": "application/json",
+                    "X-Plex-Token": os.environ["PLEX_TOKEN"],
+                },
+            )
             .pipe(
                 urllib3_requests,
                 session=_PLEX_SESSION,

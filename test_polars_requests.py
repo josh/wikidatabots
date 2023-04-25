@@ -124,33 +124,6 @@ def test_urllib3_requests_empty() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_with_defaults() -> None:
-    session = Session(fields={"foo": "bar"}, headers={"x-foo": "baz"})
-    response_dtype = pl.Struct(
-        {
-            "args": pl.Struct({"foo": pl.Utf8}),
-            "headers": pl.Struct({"x-foo": pl.Utf8}),
-        }
-    )
-    ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
-        pl.col("url")
-        .pipe(prepare_request)
-        .pipe(urllib3_requests, session=session, log_group="postman")
-        .pipe(response_text)
-        .str.json_extract(response_dtype)
-        .alias("data"),
-    )
-
-    ldf2 = pl.LazyFrame(
-        {
-            "url": ["https://postman-echo.com/get"],
-            "data": [{"args": {"foo": "bar"}, "headers": {"x-foo": "baz"}}],
-        }
-    )
-
-    assert_frame_equal(ldf, ldf2)
-
-
 def test_urllib3_requests_raw() -> None:
     response_dtype = pl.Struct(
         {

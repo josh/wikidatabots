@@ -47,7 +47,6 @@ _SESSION = Session(
     read_timeout=3.0,
     retry_count=3,
     retry_backoff_factor=1.0,
-    fields={"api_key": os.environ["TMDB_API_KEY"]},
 )
 
 _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
@@ -96,7 +95,7 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 pl.lit(tmdb_type),
                 pl.col("id"),
             )
-            .pipe(prepare_request)
+            .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
             .pipe(
                 urllib3_requests,
                 session=_SESSION,
@@ -173,6 +172,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 fields={
                     "start_date": pl.col("date"),
                     "end_date": pl.col("date").dt.offset_by("1d"),
+                    "api_key": os.environ["TMDB_API_KEY"],
                 },
             )
             .pipe(
@@ -197,7 +197,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
 def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
     return (
         pl.format("https://api.themoviedb.org/3/{}/{}", pl.lit(tmdb_type), expr)
-        .pipe(prepare_request)
+        .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
         .pipe(
             urllib3_requests,
             session=_SESSION,
@@ -223,7 +223,13 @@ def tmdb_find(
 
     return (
         pl.format("https://api.themoviedb.org/3/find/{}", expr)
-        .pipe(prepare_request, fields={"external_source": external_id_type})
+        .pipe(
+            prepare_request,
+            fields={
+                "external_source": external_id_type,
+                "api_key": os.environ["TMDB_API_KEY"],
+            },
+        )
         .pipe(
             urllib3_requests,
             session=_SESSION,

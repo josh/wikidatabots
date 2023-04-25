@@ -63,9 +63,6 @@ class Session:
     maxsize: int = 1
     block: bool = True
 
-    fields: dict[str, str] = field(default_factory=dict)
-    headers: dict[str, str] = field(default_factory=dict)
-
     connect_timeout: float = 1.0
     read_timeout: float = 10.0
 
@@ -102,7 +99,6 @@ class Session:
             timeout=timeout,
             maxsize=self.maxsize,
             block=self.block,
-            headers=self.headers,
             retries=retries,
         )
 
@@ -172,12 +168,12 @@ def _urllib3_request(
 ) -> _HTTPResponse:
     http = session.poolmanager()
 
-    fields_dict = session.fields.copy()
+    fields_dict = {}
     if fields:
         for f in fields:
             fields_dict[f["name"]] = f["value"]
 
-    headers_dict = session.headers.copy()
+    headers_dict = {}
     if headers:
         for h in headers:
             headers_dict[h["name"]] = h["value"]
