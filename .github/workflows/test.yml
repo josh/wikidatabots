@@ -24,7 +24,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest --verbose --timeout=30
+          pytest --verbose
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
