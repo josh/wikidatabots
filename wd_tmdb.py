@@ -9,6 +9,7 @@ from polars_utils import assert_expression
 from sparql import sparql_df
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
+_STATEMENT_LIMIT = 100
 _CHECK_LIMIT = 1000
 _TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
@@ -262,7 +263,7 @@ def main() -> None:
             find_tmdb_ids_not_found("tv"),
             find_tmdb_ids_not_found("person"),
         ]
-    )
+    ).head(_STATEMENT_LIMIT)
 
     for (line,) in df.collect().iter_rows():
         print(line)
