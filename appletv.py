@@ -7,11 +7,8 @@ from collections.abc import Iterator
 from typing import Any, Literal, NewType
 
 import backoff
-import polars as pl
 import requests
 from bs4 import BeautifulSoup
-
-from itunes_etl import lookup_itunes_id
 
 session = requests.Session()
 
@@ -39,27 +36,6 @@ def parse_movie_url(url: str) -> ID | None:
     if m:
         assert m.group(1) == "movie"
         return ID(m.group(3))
-    return None
-
-
-def appletv_to_itunes(appletv_id: ID) -> int | None:
-    soup = fetch(f"https://tv.apple.com/us/movie/{appletv_id}")
-    if not soup:
-        return None
-
-    possible_itunes_id = extract_itunes_id(soup)
-    if not possible_itunes_id:
-        return None
-
-    itunes_id: int = (
-        pl.Series([possible_itunes_id], dtype=pl.UInt64)
-        .to_frame("id")
-        .select(pl.col("id").pipe(lookup_itunes_id, country="us").struct.field("id"))
-        .item()
-    )
-    if possible_itunes_id == itunes_id:
-        return itunes_id
-
     return None
 
 

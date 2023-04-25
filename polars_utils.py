@@ -99,6 +99,13 @@ def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
     return [col for col, flag in row.items() if flag]
 
 
+def sample(df: pl.LazyFrame, n: int) -> pl.LazyFrame:
+    def _sample(df: pl.DataFrame) -> pl.DataFrame:
+        return df.sample(n=n)
+
+    return df.map(_sample)
+
+
 def is_constant(expr: pl.Expr) -> pl.Expr:
     return (expr == expr.first()).all()
 

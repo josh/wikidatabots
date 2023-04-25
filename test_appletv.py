@@ -19,10 +19,3 @@ def test_parse_movie_url():
         "https://tv.apple.com/us/person/tom-cruise/umc.cpc.2eayi4unvl6pjq6kneojy16dk"
     )
     assert id is None
-
-
-def test_appletv_to_itunes():
-    itunes_id = appletv.appletv_to_itunes(
-        appletv.id("umc.cmc.459n4f98t82t8ommdoa7ebnny")
-    )
-    assert itunes_id == 282875479

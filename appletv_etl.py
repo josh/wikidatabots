@@ -8,6 +8,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
+import appletv
 from polars_requests import (
     Session,
     prepare_request,
@@ -253,6 +254,31 @@ def _extract_jsonld(html: str) -> str | None:
         return script.text
 
     return None
+
+
+def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
+    return (
+        s.to_frame("id")
+        .select(
+            pl.format("https://tv.apple.com/us/movie/{}", pl.col("id"))
+            # TODO: Use polars_request
+            .pipe(
+                apply_with_tqdm,
+                appletv.fetch,
+                return_dtype=pl.Object,
+                log_group="appletv_fetch",
+            )
+            .pipe(
+                apply_with_tqdm,
+                appletv.extract_itunes_id,
+                return_dtype=pl.Int64,
+                log_group="extract_itunes_id",
+            )
+            .cast(pl.UInt64),
+        )
+        .to_series()
+        .alias(s.name)
+    )
 
 
 def append_jsonld_changes(

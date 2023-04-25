@@ -2,22 +2,55 @@
 
 import polars as pl
 
+from appletv_etl import appletv_to_itunes_series
 from itunes_etl import lookup_itunes_id
+from polars_utils import sample
 from sparql import sparql_df
 
-_EDIT_SUMMARY = "Deprecate iTunes movie ID delisted from store"
+_ADD_RDF_STATEMENT = pl.format(
+    '<{}> wdt:P6398 "{}" ; '
+    'wikidatabots:editSummary "Add iTunes movie ID via Apple TV movie ID" . ',
+    pl.col("item"),
+    pl.col("itunes_id"),
+).alias("rdf_statement")
 
 
-def _deprecated_rdf_statement() -> pl.Expr:
-    return pl.format(
-        "<{}> wikibase:rank wikibase:DeprecatedRank ; "
-        "pq:P2241 wd:Q21441764 ; "
-        f'wikidatabots:editSummary "{_EDIT_SUMMARY}" . ',
-        pl.col("statement"),
-    ).alias("rdf_statement")
+_APPLETV_QUERY = """
+SELECT ?item ?appletv_id WHERE {
+  ?item wdt:P9586 ?appletv_id.
+
+  # iTunes movie ID subject type constraints
+  VALUES ?class {
+    wd:Q11424
+    wd:Q1261214
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?class.
+
+  OPTIONAL { ?item wdt:P6398 ?itunes_id. }
+  FILTER(!(BOUND(?itunes_id)))
+}
+"""
+
+_LOOKUP_LIMIT = 100
 
 
-_QUERY = """
+def _itunes_from_appletv_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
+    return (
+        sparql_df(_APPLETV_QUERY, columns=["item", "appletv_id"])
+        # TODO: Remove limits
+        .pipe(sample, n=_LOOKUP_LIMIT)
+        .with_columns(
+            pl.col("appletv_id")
+            .map(appletv_to_itunes_series, return_dtype=pl.UInt64)
+            .alias("itunes_id")
+        )
+        .join(itunes_df, left_on="itunes_id", right_on="id", how="left")
+        .filter(pl.col("any_country"))
+        .select(_ADD_RDF_STATEMENT)
+    )
+
+
+_DEPRECATED_QUERY = """
 SELECT ?statement ?id WHERE {
   ?statement ps:P6398 ?id;
     wikibase:rank ?rank.
@@ -26,15 +59,18 @@ SELECT ?statement ?id WHERE {
 }
 """
 
+_DEPRECATE_RDF_STATEMENT = pl.format(
+    "<{}> wikibase:rank wikibase:DeprecatedRank ; "
+    "pq:P2241 wd:Q21441764 ; "
+    'wikidatabots:editSummary "Deprecate iTunes movie ID delisted from store" . ',
+    pl.col("statement"),
+).alias("rdf_statement")
 
-def _delisted_itunes_ids() -> pl.LazyFrame:
-    df = pl.scan_parquet(
-        "s3://wikidatabots/itunes.parquet", storage_options={"anon": True}
-    ).select(["id", "any_country"])
 
+def _delisted_itunes_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        sparql_df(_QUERY, schema={"statement": pl.Utf8, "id": pl.UInt64})
-        .join(df, on="id")
+        sparql_df(_DEPRECATED_QUERY, schema={"statement": pl.Utf8, "id": pl.UInt64})
+        .join(itunes_df, on="id")
         .filter(pl.col("any_country").is_not())
         .with_columns(
             pl.col("id")
@@ -44,12 +80,26 @@ def _delisted_itunes_ids() -> pl.LazyFrame:
             .alias("any_country"),
         )
         .filter(pl.col("any_country").is_not())
-        .select(_deprecated_rdf_statement())
+        .select(_DEPRECATE_RDF_STATEMENT)
     )
 
 
 def main() -> None:
-    df = _delisted_itunes_ids()
+    itunes_df = (
+        pl.scan_parquet(
+            "s3://wikidatabots/itunes.parquet",
+            storage_options={"anon": True},
+        )
+        .select(["id", "any_country"])
+        .cache()
+    )
+
+    df = pl.concat(
+        [
+            _itunes_from_appletv_ids(itunes_df),
+            _delisted_itunes_ids(itunes_df),
+        ]
+    )
 
     for (line,) in df.collect().iter_rows():
         print(line)

@@ -3,10 +3,11 @@
 from datetime import date, datetime
 
 import polars as pl
-from polars.testing import assert_frame_equal
+from polars.testing import assert_frame_equal, assert_series_equal
 
 from appletv_etl import (
     append_jsonld_changes,
+    appletv_to_itunes_series,
     cleaned_sitemap,
     fetch_jsonld_columns,
     siteindex,
@@ -123,3 +124,9 @@ def test_append_jsonld_changes():
         }
     )
     assert_frame_equal(df, df2)
+
+
+def test_appletv_to_itunes_series() -> None:
+    s1 = pl.Series(["umc.cmc.459n4f98t82t8ommdoa7ebnny"])
+    s2 = pl.Series([282875479], dtype=pl.UInt64)
+    assert_series_equal(appletv_to_itunes_series(s1), s2)
