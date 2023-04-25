@@ -10,7 +10,7 @@ from sparql import sparql_df
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
 _STATEMENT_LIMIT = 100
-_CHECK_LIMIT = 1000
+_CHECK_LIMIT = 2500
 _TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
 _TMDB_TYPE_TO_WD_PID: dict[TMDB_TYPE, _TMDB_ID_PID] = {
