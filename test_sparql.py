@@ -7,11 +7,11 @@ import wikidata
 from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
 from sparql import (
     extract_qid,
+    fetch_property_statements,
     fetch_statements,
     sample_items,
     sparql,
     sparql_df,
-    fetch_property_statements,
 )
 
 

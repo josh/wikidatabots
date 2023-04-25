@@ -1,4 +1,4 @@
-# pyright: strict
+# pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
 
 """
 Small API wrapper for interacting with Wikidata's SPARQL query service.
@@ -15,29 +15,29 @@ from collections.abc import Iterable
 from threading import Lock
 from typing import Any, Literal, TypedDict
 
-import backoff
 import polars as pl
 import rdflib
-import requests
 from rdflib import URIRef
 
-import timeout
 from actions import warn
 from polars_requests import Session, prepare_request, urllib3_requests
-from wikidata import PID, QID
 from polars_utils import apply_with_tqdm
-
-url = "https://query.wikidata.org/sparql"
-session = requests.Session()
-
-session.headers.update({"Accept": "application/sparql-results+json"})
+from wikidata import PID, QID
 
 _LOCK = Lock()
+_WIKIDATA_SPARQL_SESSION = Session(
+    read_timeout=90,
+    retry_statuses={500},
+    retry_count=10,
+    retry_allowed_methods=["GET", "POST"],
+    retry_raise_on_status=True,
+)
 
-USER_AGENT: list[str] = []
+
+_USER_AGENT_PARTS: list[str] = []
 
 if "WIKIDATA_USERNAME" in os.environ:
-    USER_AGENT.append(
+    _USER_AGENT_PARTS.append(
         "{username}/1.0 (User:{username})".format(
             username=os.environ["WIKIDATA_USERNAME"]
         )
@@ -45,13 +45,8 @@ if "WIKIDATA_USERNAME" in os.environ:
 else:
     warn("WIKIDATA_USERNAME unset")
 
-USER_AGENT.append(f"requests/{requests.__version__}")
-USER_AGENT.append(f"Python/{platform.python_version()}")
-session.headers.update({"User-Agent": " ".join(USER_AGENT)})
-
-
-class TimeoutException(Exception):
-    pass
+_USER_AGENT_PARTS.append(f"Python/{platform.python_version()}")
+_USER_AGENT_STR = " ".join(_USER_AGENT_PARTS)
 
 
 class SPARQLHead(TypedDict):
@@ -98,44 +93,50 @@ class SPARQLDocument(TypedDict):
     results: SPARQLResults
 
 
-@backoff.on_exception(
-    backoff.expo,
-    TimeoutException,
-    max_tries=14,
-    max_time=timeout.max_time,
-)
-@backoff.on_exception(
-    backoff.expo,
-    json.decoder.JSONDecodeError,
-    max_tries=3,
-    max_time=timeout.max_time,
-)
+class SlowQueryWarning(Warning):
+    pass
+
+
+class TimeoutWarning(Warning):
+    pass
+
+
+class SPARQLQueryError(Exception):
+    pass
+
+
 def sparql(query: str) -> list[Any]:
     """
     Execute SPARQL query on Wikidata. Returns simplified results array.
     """
 
     with _LOCK:
-        r = session.post(
-            url,
-            data={"query": query},
-            timeout=90,
+        start = time.time()
+        http = _WIKIDATA_SPARQL_SESSION.poolmanager()
+        r = http.request(
+            "POST",
+            "https://query.wikidata.org/sparql",
+            fields={"query": query},
+            headers={
+                "Accept": "application/sparql-results+json",
+                "User-Agent": _USER_AGENT_STR,
+            },
+            encode_multipart=False,
         )
+        duration = time.time() - start
 
-    if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
-        raise TimeoutException(query)
+    response_data = r.data
+    assert isinstance(response_data, bytes)
 
-    r.raise_for_status()
+    if r.status != 200:
+        raise SPARQLQueryError(f"Query errored with status {r.status}:\n{query}")
 
-    data: SPARQLDocument = r.json()
+    data: SPARQLDocument = json.loads(response_data)
     vars = data["head"]["vars"]
     bindings = data["results"]["bindings"]
 
-    logging.info(
-        "sparql: {} results in {} ms".format(
-            len(bindings), math.floor(r.elapsed.total_seconds() * 1000)
-        )
-    )
+    result_count = len(bindings)
+    logging.info(f"sparql: {result_count:,} results in {duration:,.2f}s")
 
     def results():
         for binding in bindings:
@@ -167,36 +168,21 @@ def sparql(query: str) -> list[Any]:
     return list(results())
 
 
-class SlowQueryWarning(Warning):
-    pass
-
-
-class TimeoutWarning(Warning):
-    pass
-
-
-@backoff.on_exception(
-    backoff.expo,
-    TimeoutException,
-    max_tries=3,
-    max_time=timeout.max_time,
-)
 def _sparql_csv(query: str, _stacklevel: int = 0) -> bytes:
     with _LOCK:
         start = time.time()
-        r = session.post(
-            url,
-            data={"query": query},
-            headers={"Accept": "text/csv"},
-            timeout=90,
+        http = _WIKIDATA_SPARQL_SESSION.poolmanager()
+        r = http.request(
+            "POST",
+            "https://query.wikidata.org/sparql",
+            fields={"query": query},
+            headers={"Accept": "text/csv", "User-Agent": _USER_AGENT_STR},
+            encode_multipart=False,
         )
         duration = time.time() - start
 
-    if r.status_code == 500 and "java.util.concurrent.TimeoutException" in r.text:
-        logging.warn(f"sparql timeout: {duration:,.2f}s")
-        warn(query, TimeoutWarning, stacklevel=2 + _stacklevel)
-        raise TimeoutException(query)
-    r.raise_for_status()
+    if r.status != 200:
+        raise SPARQLQueryError(f"Query errored with status {r.status}:\n{query}")
 
     if duration > 45:
         logging.warn(f"sparql: {duration:,.2f}s")
@@ -206,7 +192,7 @@ def _sparql_csv(query: str, _stacklevel: int = 0) -> bytes:
     else:
         logging.debug(f"sparql: {duration:,.2f}s")
 
-    return r.content
+    return r.data
 
 
 def sparql_df(
@@ -478,7 +464,6 @@ def _parse_page(data: bytes) -> list[dict[str, str]]:
 
 
 if __name__ == "__main__":
-    import json
     import sys
 
     logging.basicConfig(level=logging.INFO)
