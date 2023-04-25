@@ -4,7 +4,6 @@ import sys
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Iterable, TypedDict
-from urllib.parse import urlencode
 
 import polars as pl
 import urllib3
@@ -20,12 +19,6 @@ class _HTTPDict(TypedDict):
     value: str
 
 
-# class _HTTPRequest(TypedDict):
-#     url: str
-#     fields: list[_HTTPDict]
-#     headers: list[_HTTPDict]
-
-
 class _HTTPResponse(TypedDict):
     status: int
     headers: list[_HTTPDict]
@@ -39,7 +32,6 @@ _HTTP_DICT_SCHEMA = _HTTP_DICT_DTYPE.to_schema()
 HTTP_REQUEST_DTYPE = pl.Struct(
     [
         pl.Field("url", pl.Utf8),
-        pl.Field("fields", pl.List(_HTTP_DICT_DTYPE)),
         pl.Field("headers", pl.List(_HTTP_DICT_DTYPE)),
     ]
 )
@@ -53,8 +45,6 @@ HTTP_RESPONSE_DTYPE = pl.Struct(
         pl.Field("data", pl.Binary),
     ]
 )
-
-# _HTTP_RESPONSE_SCHEMA = HTTP_RESPONSE_DTYPE.to_schema()
 
 
 @dataclass
@@ -150,7 +140,6 @@ def _urllib3_requests_series(
                 response = _urllib3_request(
                     session=session,
                     url=request["url"],
-                    fields=request["fields"],
                     headers=request["headers"],
                 )
                 values.append(response)
@@ -163,30 +152,20 @@ def _urllib3_requests_series(
 def _urllib3_request(
     session: Session,
     url: str,
-    fields: list[_HTTPDict] | None = None,
     headers: list[_HTTPDict] | None = None,
 ) -> _HTTPResponse:
     http = session.poolmanager()
-
-    fields_dict = {}
-    if fields:
-        for f in fields:
-            fields_dict[f["name"]] = f["value"]
 
     headers_dict = {}
     if headers:
         for h in headers:
             headers_dict[h["name"]] = h["value"]
 
-    trace_url = url
-    if fields_dict:
-        trace_url = f"{url}?{urlencode(fields_dict)}"
-    session.record_request(trace_url)
+    session.record_request(url)
 
     response: urllib3.HTTPResponse = http.request(
         method="GET",
         url=url,
-        fields=fields_dict,
         headers=headers_dict,
     )
 
@@ -222,18 +201,27 @@ def _http_dict(pairs: dict[str, pl.Expr | str]) -> pl.Expr | pl.Series:
     return pl.concat_list([_http_dict_struct(n, v) for n, v in pairs.items()])
 
 
+def _wrap_lit_expr(value: str | pl.Expr) -> pl.Expr:
+    if isinstance(value, str):
+        return pl.lit(value)
+    return value
+
+
 def prepare_request(
     url: pl.Expr | str,
     fields: dict[str, pl.Expr | str] = {},
     headers: dict[str, pl.Expr | str] = {},
 ) -> pl.Expr:
-    if isinstance(url, str):
-        url = pl.lit(url)
+    url = _wrap_lit_expr(url)
+
+    if fields:
+        f_string = "{}?" + "&".join(name + "={}" for name in fields)
+        field_values = [_wrap_lit_expr(v) for v in fields.values()]
+        url = pl.format(f_string, url, *field_values)
 
     expr = pl.struct(
         [
             url.alias("url"),
-            _http_dict(fields).alias("fields"),
             _http_dict(headers).alias("headers"),
         ],
         schema=_HTTP_REQUEST_SCHEMA,

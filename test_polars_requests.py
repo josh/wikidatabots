@@ -135,8 +135,7 @@ def test_urllib3_requests_raw() -> None:
     requests = pl.Series(
         [
             {
-                "url": "https://postman-echo.com/get",
-                "fields": [{"name": "foo", "value": "bar"}],
+                "url": "https://postman-echo.com/get?foo=bar",
                 "headers": [{"name": "x-foo", "value": "baz"}],
             }
         ],
@@ -240,6 +239,7 @@ def test_urllib3_requests_prepare_just_fields() -> None:
     ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"})
+        .inspect()
         .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
