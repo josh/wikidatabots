@@ -14,7 +14,7 @@ jobs:
   sitemap:
     runs-on: ubuntu-latest
     if: github.event.schedule == '0 16 * * 1' || github.event_name == 'workflow_dispatch'
-    concurrency: appletv_sitemap
+    concurrency: appletv_sitemap_${{ matrix.type }}
     timeout-minutes: 60
 
     strategy:
@@ -73,7 +73,7 @@ jobs:
   jsonld:
     runs-on: ubuntu-latest
     if: github.event.schedule == '0 1,9,17 * * *' || github.event_name == 'workflow_dispatch'
-    concurrency: appletv_jsonld
+    concurrency: appletv_jsonld_${{ matrix.type }}
     timeout-minutes: 60
 
     strategy:
