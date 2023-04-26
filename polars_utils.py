@@ -109,6 +109,7 @@ def limit(
     n: tuple[int, int] = (sys.maxsize, sys.maxsize),
     soft: int = sys.maxsize,
     hard: int = sys.maxsize,
+    sample: bool = True,
     desc: str = "frame",
 ) -> pl.LazyFrame:
     soft = min(soft, n[0])
@@ -121,7 +122,10 @@ def limit(
             raise AssertionError(f"{desc} exceeded hard limit: {total:,}/{hard:,}")
         elif total > soft:
             warn(f"{desc} exceeded soft limit: {total:,}/{soft:,}", LimitWarning)
-            return df.sample(soft)
+            if sample:
+                return df.sample(soft)
+            else:
+                return df.head(soft)
         else:
             return df
 

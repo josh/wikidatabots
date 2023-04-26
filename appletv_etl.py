@@ -303,7 +303,7 @@ def append_jsonld_changes(
             .alias("priority")
         )
         .sort(by="priority", descending=True)
-        .pipe(limit, soft=soft_limit, desc="jsonld")
+        .pipe(limit, sample=False, soft=soft_limit, desc="jsonld")
         .select(["loc"])
         .pipe(fetch_jsonld_columns)
     )
