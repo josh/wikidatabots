@@ -100,6 +100,10 @@ def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
     return [col for col, flag in row.items() if flag]
 
 
+class LimitWarning(Warning):
+    pass
+
+
 def limit(
     df: pl.LazyFrame,
     n: tuple[int, int] = (sys.maxsize, sys.maxsize),
@@ -116,7 +120,7 @@ def limit(
         if total > hard:
             raise AssertionError(f"{desc} exceeded hard limit: {total:,}/{hard:,}")
         elif total > soft:
-            warn(f"{desc} exceeded soft limit: {total:,}/{soft:,}")
+            warn(f"{desc} exceeded soft limit: {total:,}/{soft:,}", LimitWarning)
             return df.sample(soft)
         else:
             return df
