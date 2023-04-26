@@ -43,6 +43,7 @@ def test_lookup_itunes_id(batch_size: int) -> None:
                 1438674900,
                 284910350,
                 1676858107,
+                None,
                 6446905902,
             ]
         },
@@ -64,6 +65,7 @@ def test_lookup_itunes_id(batch_size: int) -> None:
                 1438674900,
                 284910350,
                 1676858107,
+                None,
                 6446905902,
             ],
             "result": [
@@ -108,6 +110,7 @@ def test_lookup_itunes_id(batch_size: int) -> None:
                     "kind": "feature-movie",
                     "name": "Avatar: The Way of Water",
                 },
+                None,
                 {
                     "id": 6446905902,
                     "kind": "ebook",
