@@ -30,6 +30,7 @@ from polars_utils import (
     series_indicies,
     series_indicies_sorted,
     update_or_append,
+    with_outlier_column,
     xml_extract,
 )
 
@@ -601,7 +602,7 @@ def test_apply_with_tqdm_properties(s: pl.Series) -> None:
     )
 )
 def test_outlier_exprs(df: pl.DataFrame) -> None:
-    outlier_exprs(
+    exprs = outlier_exprs(
         df,
         [
             pl.col("a").is_not_null().alias("a_not_null"),
@@ -611,7 +612,49 @@ def test_outlier_exprs(df: pl.DataFrame) -> None:
             pl.col("d"),
             pl.col("e"),
         ],
+        max_count=len(df),
     )
+
+    for expr_str, s, count in exprs:
+        assert expr_str
+        assert count > 0
+        assert s.sum() == count
+
+
+@given(
+    df=dataframes(
+        cols=[
+            column("a", dtype=pl.Int64),
+            column("b", dtype=pl.Boolean),
+            column("c", dtype=pl.Boolean, null_probability=0.5),
+            column("d", dtype=pl.Boolean, null_probability=0.1),
+            column("e", dtype=pl.Boolean, null_probability=0.01),
+        ]
+    )
+)
+def test_with_outlier_column(df: pl.DataFrame) -> None:
+    ldf = with_outlier_column(
+        df.lazy(),
+        [
+            pl.col("a").is_not_null().alias("a_not_null"),
+            (pl.col("a") < pl.col("a").mean()).alias("a_lt_mean"),
+            pl.col("b"),
+            pl.col("c"),
+            pl.col("d"),
+            pl.col("e"),
+        ],
+        max_count=len(df),
+    )
+    assert ldf.schema == {
+        "a": pl.Int64,
+        "b": pl.Boolean,
+        "c": pl.Boolean,
+        "d": pl.Boolean,
+        "e": pl.Boolean,
+        "is_outlier": pl.Boolean,
+    }
+    df2 = ldf.collect()
+    assert len(df2) == len(df)
 
 
 def test_groups_of() -> None:

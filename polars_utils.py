@@ -1,5 +1,6 @@
 # pyright: strict
 
+import logging
 import os
 import random
 import re
@@ -7,7 +8,6 @@ import sys
 import xml.etree.ElementTree as ET
 from functools import partial
 from itertools import combinations
-from math import ceil
 from typing import Any, Callable, Iterable, Iterator, TextIO, TypeVar
 
 import polars as pl
@@ -421,20 +421,52 @@ def assert_called_once() -> Callable[[T], T]:
     return mock
 
 
+def with_outlier_column(
+    df: pl.LazyFrame,
+    exprs: Iterable[pl.Expr],
+    max_count: int,
+    outlier_name: str = "is_outlier",
+    rmax: int = 3,
+) -> pl.LazyFrame:
+    schema: dict[str, pl.PolarsDataType] = {}
+    for name in df.columns:
+        schema[name] = df.schema[name]
+    schema[outlier_name] = pl.Boolean
+
+    def _with_outlier_column(df: pl.DataFrame) -> pl.DataFrame:
+        flag_exprs = list(
+            outlier_exprs(
+                df,
+                exprs,
+                rmax=rmax,
+                max_count=max_count,
+            )
+        )
+
+        if flag_exprs:
+            expr_repr, s, count = random.choice(flag_exprs)
+            logging.info(f"Detected `{expr_repr}` outlier pattern with {count:,} rows")
+            return df.with_columns(s.alias(outlier_name))
+        else:
+            logging.info("No outlier patterns found")
+            return df.with_columns(pl.lit(False).alias(outlier_name))
+
+    return df.map(
+        _with_outlier_column,
+        schema=schema,
+        projection_pushdown=False,  # Disable optimization to keep all columns
+    )
+
+
 _POWERSET_COL_SEP = "--7C69799--"
 
 
 def outlier_exprs(
     df: pl.DataFrame,
     exprs: Iterable[pl.Expr],
-    rmax: int = 10,
-    max_count: int | None = None,
-) -> list[tuple[str, pl.Expr, int]]:
-    results: list[tuple[str, pl.Expr, int]] = []
-
-    if not max_count:
-        max_count = ceil(len(df) * 0.003)
-
+    max_count: int,
+    rmax: int = 3,
+) -> Iterator[tuple[str, pl.Series, int]]:
     col_expr: dict[str, pl.Expr] = {}
     for expr in _expand_expr(df, exprs):
         col_expr[expr.meta.output_name()] = expr
@@ -458,21 +490,15 @@ def outlier_exprs(
         if col_exprs:
             df = df.with_columns(col_exprs).pipe(drop_columns, is_const_expr)
 
-    df_total = df.select(pl.all().sum())
-
-    if not len(df_total):
-        return results
-
-    row = df_total.row(0, named=True)
-
-    for col, count in sorted(row.items(), key=lambda a: a[1]):
+    for col in df.columns:
+        s = df[col]
+        count = int(s.sum())
         if count > 0 and count < max_count:
-            exprs = [col_expr[col] for col in col.split(_POWERSET_COL_SEP)]
-            expr = pl.Expr.and_(*exprs)
-            expr_str = " & ".join(expr_repl(expr, strip_alias=True) for expr in exprs)
-            results.append((expr_str, expr, count))
-
-    return results
+            expr_str = " & ".join(
+                expr_repl(col_expr[col], strip_alias=True)
+                for col in col.split(_POWERSET_COL_SEP)
+            )
+            yield expr_str, s, count
 
 
 def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr]:

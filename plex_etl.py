@@ -3,7 +3,6 @@
 import datetime
 import logging
 import os
-import random
 from typing import Literal
 
 import polars as pl
@@ -15,7 +14,12 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import outlier_exprs, update_or_append, update_parquet, xml_extract
+from polars_utils import (
+    update_or_append,
+    update_parquet,
+    with_outlier_column,
+    xml_extract,
+)
 from sparql import sparql_df
 
 GUID_TYPE = Literal["episode", "movie", "season", "show"]
@@ -233,11 +237,13 @@ _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < 1_000
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
-def _backfill_metadata(df: pl.LazyFrame, predicate: pl.Expr) -> pl.LazyFrame:
+def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.filter(_OLDEST_METADATA | _MISSING_METADATA | predicate)
+        df.pipe(_with_outlier_column)
+        .filter(_OLDEST_METADATA | _MISSING_METADATA | pl.col("is_outlier"))
+        .drop("is_outlier")
         .pipe(fetch_metadata_guids)
         .cache()
     )
@@ -266,9 +272,9 @@ def _backfill_metadata(df: pl.LazyFrame, predicate: pl.Expr) -> pl.LazyFrame:
 _THIS_YEAR = datetime.date.today().year
 
 
-def outlier_expr(df: pl.DataFrame) -> pl.Expr:
-    exprs = df.pipe(
-        outlier_exprs,
+def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
+    return with_outlier_column(
+        df,
         [
             (pl.col("type") == "movie").alias("type_movie"),
             (pl.col("type") == "show").alias("type_show"),
@@ -278,14 +284,8 @@ def outlier_expr(df: pl.DataFrame) -> pl.Expr:
             pl.col("tmdb_id"),
             pl.col("tvdb_id"),
         ],
-        rmax=3,
         max_count=1_000,
     )
-
-    expr_str, expr, count = random.choice(exprs)
-    logging.info(f"Refreshing {count:,} outlier rows against `{expr_str}`")
-
-    return expr
 
 
 _METADATA_DTYPE = pl.Struct(
@@ -401,9 +401,7 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
 
 def main() -> None:
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.pipe(_discover_guids).pipe(
-            _backfill_metadata, predicate=outlier_expr(df.collect())
-        )
+        return df.pipe(_discover_guids).pipe(_backfill_metadata)
 
     with pl.StringCache():
         update_parquet("plex.parquet", update, key="key")

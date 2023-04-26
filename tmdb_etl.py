@@ -4,7 +4,6 @@ import datetime
 import gzip
 import logging
 import os
-import random
 import sys
 from typing import Literal
 
@@ -22,9 +21,9 @@ from polars_utils import (
     apply_with_tqdm,
     assert_expression,
     limit,
-    outlier_exprs,
     update_or_append,
     update_parquet,
+    with_outlier_column,
 )
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
@@ -248,9 +247,9 @@ def tmdb_find(
 _FOUR_WEEKS_AGO = datetime.date.today() - datetime.timedelta(weeks=4)
 
 
-def outlier_expr(df: pl.DataFrame) -> pl.Expr:
-    exprs = df.pipe(
-        outlier_exprs,
+def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
+    return with_outlier_column(
+        df,
         [
             pl.col("date"),
             pl.col("adult"),
@@ -261,31 +260,22 @@ def outlier_expr(df: pl.DataFrame) -> pl.Expr:
             pl.col("tvdb_id"),
             pl.col("wikidata_numeric_id"),
         ],
-        rmax=3,
-        max_count=1000,
+        max_count=1_000,
     )
-
-    expr_str, expr, count = random.choice(exprs)
-    logging.info(f"Refreshing {count:,} outlier rows against `{expr_str}`")
-
-    return expr
 
 
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
-_OUTDATED = _CHANGED | _NEVER_FETCHED
 _OUTDATED_LIMIT = (2_500, 10_000)
 
 
-def insert_tmdb_external_ids(
-    df: pl.LazyFrame,
-    tmdb_type: TMDB_TYPE,
-    outdated_expr: pl.Expr = _OUTDATED,
-) -> pl.LazyFrame:
+def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     df = df.cache()
 
     new_external_ids_df = (
-        df.filter(outdated_expr)
+        df.pipe(_with_outlier_column)
+        .filter(_CHANGED | _NEVER_FETCHED | pl.col("is_outlier"))
+        .drop("is_outlier")
         .pipe(limit, _OUTDATED_LIMIT, desc="outdated")
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
@@ -401,13 +391,10 @@ def main() -> None:
     assert tmdb_type in _TMDB_TYPES
 
     def _update(df: pl.LazyFrame) -> pl.LazyFrame:
-        df = df.cache()
-        outdated_expr = _OUTDATED  # | outlier_expr(df.collect())
-
         return (
             df.pipe(insert_tmdb_latest_changes, tmdb_type)
             .pipe(_insert_tmdb_export_flag, tmdb_type)
-            .pipe(insert_tmdb_external_ids, tmdb_type, outdated_expr)
+            .pipe(insert_tmdb_external_ids, tmdb_type)
         )
 
     update_parquet("tmdb.parquet", _update, key="id")
