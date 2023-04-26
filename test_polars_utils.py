@@ -697,9 +697,13 @@ def _lst_indicies(a: list[int], b: list[int]) -> Iterator[int | None]:
             yield None
 
 
+_1_TO_10 = st.integers(min_value=0, max_value=10)
+_1_TO_10_OR_NONE = st.one_of(st.none(), _1_TO_10)
+
+
 @given(
-    a=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
-    b=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
+    a=st.lists(_1_TO_10_OR_NONE, min_size=0, max_size=10),
+    b=st.lists(_1_TO_10_OR_NONE, min_size=1, max_size=10),
 )
 def test_indices(a: list[int], b: list[int]) -> None:
     c = list(_lst_indicies(a, b))
@@ -714,8 +718,8 @@ def test_indices(a: list[int], b: list[int]) -> None:
 
 
 @given(
-    a=st.lists(st.integers(min_value=0, max_value=10), min_size=0, max_size=10),
-    b=st.lists(st.integers(min_value=0, max_value=10), min_size=1, max_size=10),
+    a=st.lists(_1_TO_10_OR_NONE, min_size=0, max_size=10),
+    b=st.lists(_1_TO_10, min_size=1, max_size=10),
 )
 def test_indices_sorted(a: list[int], b: list[int]) -> None:
     b = sorted(b)
