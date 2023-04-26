@@ -101,13 +101,15 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
             .alias("source_label")
         )
         .select(_RDF_STATEMENT)
-        .pipe(limit, soft=_STATEMENT_LIMIT, desc="rdf_statements")
     )
 
 
 def main() -> None:
     with pl.StringCache():
-        df = find_plex_guids_via_tmdb_id()
+        df = find_plex_guids_via_tmdb_id().pipe(
+            limit, soft=_STATEMENT_LIMIT, desc="rdf_statements"
+        )
+
         for (line,) in df.collect().iter_rows():
             print(line)
 

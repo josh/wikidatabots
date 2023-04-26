@@ -7,6 +7,8 @@ from itunes_etl import lookup_itunes_id
 from polars_utils import limit
 from sparql import sparql_df
 
+_STATEMENT_LIMIT = (100, 10_000)
+
 _ADD_RDF_STATEMENT = pl.format(
     '<{}> wdt:P6398 "{}" ; '
     'wikidatabots:editSummary "Add iTunes movie ID via Apple TV movie ID" . ',
@@ -98,7 +100,7 @@ def main() -> None:
             _itunes_from_appletv_ids(itunes_df),
             _delisted_itunes_ids(itunes_df),
         ]
-    )
+    ).pipe(limit, _STATEMENT_LIMIT, desc="rdf_statements")
 
     for (line,) in df.collect().iter_rows():
         print(line)
