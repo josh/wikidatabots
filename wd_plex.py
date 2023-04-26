@@ -5,9 +5,10 @@ import logging
 import polars as pl
 
 from plex_etl import GUID_TYPE, encode_plex_guids
+from polars_utils import limit
 from sparql import sparql_df
 
-_LIMIT = 100
+_STATEMENT_LIMIT = 100
 
 
 def _plex_guids() -> pl.LazyFrame:
@@ -99,9 +100,8 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
             .otherwise(None)
             .alias("source_label")
         )
-        .select(
-            _RDF_STATEMENT.shuffle().head(_LIMIT),
-        )
+        .select(_RDF_STATEMENT)
+        .pipe(limit, soft=_STATEMENT_LIMIT, desc="rdf_statements")
     )
 
 

@@ -21,6 +21,7 @@ from polars_utils import (
     align_to_index,
     apply_with_tqdm,
     assert_expression,
+    limit,
     outlier_exprs,
     update_or_append,
     update_parquet,
@@ -273,7 +274,7 @@ def outlier_expr(df: pl.DataFrame) -> pl.Expr:
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
 _OUTDATED = _CHANGED | _NEVER_FETCHED
-_OUTDATED_LIMIT = 10_000
+_OUTDATED_LIMIT = (2_500, 10_000)
 
 
 def insert_tmdb_external_ids(
@@ -285,7 +286,7 @@ def insert_tmdb_external_ids(
 
     new_external_ids_df = (
         df.filter(outdated_expr)
-        .pipe(assert_expression, pl.count() < _OUTDATED_LIMIT, "Too many outdated rows")
+        .pipe(limit, _OUTDATED_LIMIT, desc="outdated")
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
     )

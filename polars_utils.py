@@ -14,6 +14,7 @@ import polars as pl
 from tqdm import tqdm
 
 from actions import log_group as _log_group
+from actions import warn
 
 
 def github_step_summary() -> TextIO:
@@ -99,11 +100,28 @@ def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
     return [col for col, flag in row.items() if flag]
 
 
-def sample(df: pl.LazyFrame, n: int) -> pl.LazyFrame:
-    def _sample(df: pl.DataFrame) -> pl.DataFrame:
-        return df.sample(n=n)
+def limit(
+    df: pl.LazyFrame,
+    n: tuple[int, int] = (sys.maxsize, sys.maxsize),
+    soft: int = sys.maxsize,
+    hard: int = sys.maxsize,
+    desc: str = "frame",
+) -> pl.LazyFrame:
+    soft = min(soft, n[0])
+    hard = min(hard, n[1])
+    soft = min(soft, hard)
 
-    return df.map(_sample)
+    def _limit(df: pl.DataFrame) -> pl.DataFrame:
+        total = len(df)
+        if total > hard:
+            raise AssertionError(f"{desc} exceeded hard limit: {total:,}/{hard:,}")
+        elif total > soft:
+            warn(f"{desc} exceeded soft limit: {total:,}/{soft:,}")
+            return df.sample(soft)
+        else:
+            return df
+
+    return df.map(_limit)
 
 
 def is_constant(expr: pl.Expr) -> pl.Expr:
