@@ -16,7 +16,13 @@ from polars_requests import (
     response_text,
     urllib3_requests,
 )
-from polars_utils import apply_with_tqdm, update_or_append, update_parquet, xml_extract
+from polars_utils import (
+    apply_with_tqdm,
+    limit,
+    update_or_append,
+    update_parquet,
+    xml_extract,
+)
 
 _APPLETV_SESSION = Session(
     connect_timeout=0.5,
@@ -284,7 +290,7 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
 def append_jsonld_changes(
     sitemap_df: pl.LazyFrame,
     jsonld_df: pl.LazyFrame,
-    limit: int,
+    soft_limit: int,
 ) -> pl.LazyFrame:
     jsonld_df = jsonld_df.cache()
     jsonld_new_df = (
@@ -297,7 +303,7 @@ def append_jsonld_changes(
             .alias("priority")
         )
         .sort(by="priority", descending=True)
-        .head(limit)
+        .pipe(limit, soft=soft_limit, desc="jsonld")
         .select(["loc"])
         .pipe(fetch_jsonld_columns)
     )
@@ -324,10 +330,13 @@ def main_sitemap(type: Type) -> None:
         update_parquet("sitemap.parquet", update_sitemap, key="loc")
 
 
+_JSONLD_LIMIT = 2_500
+
+
 def main_jsonld() -> None:
     def update_jsonld(jsonld_df: pl.LazyFrame) -> pl.LazyFrame:
         sitemap_df = pl.scan_parquet("sitemap.parquet")
-        return append_jsonld_changes(sitemap_df, jsonld_df, limit=1000)
+        return append_jsonld_changes(sitemap_df, jsonld_df, _JSONLD_LIMIT)
 
     with pl.StringCache():
         update_parquet("jsonld.parquet", update_jsonld, key="loc")

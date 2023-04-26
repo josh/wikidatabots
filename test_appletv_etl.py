@@ -107,7 +107,7 @@ def test_append_jsonld_changes():
         }
     )
 
-    df = append_jsonld_changes(sitemap_df, jsonld_df, limit=3).drop("retrieved_at")
+    df = append_jsonld_changes(sitemap_df, jsonld_df, 3).drop("retrieved_at")
     df2 = pl.LazyFrame(
         {
             "loc": [
