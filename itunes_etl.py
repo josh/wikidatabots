@@ -362,11 +362,12 @@ def _backfill_appletv_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.select("id", "type", "kind", "appletv_redirect_url")
-        .filter(
+        df.filter(
             (pl.col("kind") == "feature-movie")
+            & pl.col("any_country")
             & pl.col("appletv_redirect_url").is_null()
         )
+        .select("id", "type", "kind", "appletv_redirect_url")
         .pipe(
             limit, soft=_REDIRECT_CHECK_LIMIT, desc="missing appletv_redirect_url frame"
         )
