@@ -109,8 +109,7 @@ _SESSION = Session(
     connect_timeout=1.0,
     read_timeout=30.0,
     retry_count=5,
-    retry_statuses={413, 429, 500, 503},
-    follow_redirects=True,
+    retry_statuses={429, 500, 503},
 )
 
 
