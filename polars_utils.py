@@ -61,7 +61,11 @@ def _check_ldf(
         function(df)
         return df
 
-    return ldf.map(_inner_check)
+    return ldf.map(
+        _inner_check,
+        validate_output_schema=False,
+        streamable=False,
+    )
 
 
 def assert_expression(
@@ -150,7 +154,7 @@ def limit(
         else:
             return df
 
-    return df.map(_limit)
+    return df.map(_limit, streamable=False)
 
 
 def expr_mask(expr: pl.Expr, mask: pl.Expr) -> pl.Expr:
@@ -693,7 +697,3 @@ def describe_frame_with_diff(
         source=source,
         output=output,
     )
-
-
-def describe_lazy(df: pl.LazyFrame, source: str, output: TextIO) -> pl.LazyFrame:
-    return df.map(partial(describe_frame, source=source, output=output))
