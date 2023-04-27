@@ -21,6 +21,7 @@ from polars_utils import (
     limit,
     update_or_append,
     update_parquet,
+    expr_mask,
 )
 from sparql import sparql_df
 
@@ -286,20 +287,7 @@ def appletv_redirect_url(id: pl.Expr, type: pl.Expr, kind: pl.Expr) -> pl.Expr:
             log_group="itunes.apple.com",
         )
         .pipe(response_header_value, name="Location")
-        .map(_mask_urls, return_dtype=pl.Utf8)
-    )
-
-
-# TODO: Extract this pattern into utils
-def _mask_urls(s: pl.Series) -> pl.Series:
-    return (
-        pl.DataFrame({"url": s})
-        .select(
-            pl.when(pl.col("url").str.starts_with("https://tv.apple.com/"))
-            .then(pl.col("url"))
-            .otherwise(None)
-        )
-        .to_series()
+        .pipe(expr_mask, pl.element().str.starts_with("https://tv.apple.com/"))
     )
 
 
