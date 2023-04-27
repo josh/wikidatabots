@@ -30,9 +30,10 @@ _PLEX_SESSION = Session(
     ok_statuses={200, 404},
     read_timeout=15.0,
     retry_count=2,
+    follow_redirects=True,
 )
 
-_PLEX_SERVER_SESSION = Session()
+_PLEX_SERVER_SESSION = Session(follow_redirects=True)
 
 _PLEX_DEVICE_DTYPE = pl.Struct(
     {

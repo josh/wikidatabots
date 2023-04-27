@@ -47,6 +47,7 @@ _SESSION = Session(
     read_timeout=3.0,
     retry_count=3,
     retry_backoff_factor=1.0,
+    follow_redirects=True,
 )
 
 _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {

@@ -17,11 +17,11 @@ from polars_requests import (
 from polars_utils import (
     assert_expression,
     expr_indicies_sorted,
+    expr_mask,
     groups_of,
     limit,
     update_or_append,
     update_parquet,
-    expr_mask,
 )
 from sparql import sparql_df
 
@@ -110,6 +110,7 @@ _SESSION = Session(
     read_timeout=30.0,
     retry_count=5,
     retry_statuses={413, 429, 500, 503},
+    follow_redirects=True,
 )
 
 
@@ -271,7 +272,6 @@ def itunes_legacy_view_url(
 
 
 _ITUNES_REDIRECT_SESSION = Session(
-    follow_redirects=False,
     ok_statuses={200, 301, 404},
     retry_count=3,
 )

@@ -56,7 +56,7 @@ class Session:
 
     ok_statuses: set[int] = field(default_factory=lambda: {200})
     retry_statuses: set[int] = field(default_factory=lambda: {413, 429, 503})
-    follow_redirects: bool = True
+    follow_redirects: bool = False
 
     retry_count: int = 0
     retry_allowed_methods: list[str] = field(default_factory=lambda: ["HEAD", "GET"])
