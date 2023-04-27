@@ -79,6 +79,7 @@ def process_graph(
 ) -> Iterator[tuple[pywikibot.ItemPage, list[dict[str, Any]], str | None]]:
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = "user-password.py"
+    pywikibot.config.maxlag = 10
     pywikibot.config.put_throttle = 0
 
     graph = Graph()
