@@ -297,8 +297,10 @@ def test_appletv_redirect_url() -> None:
     df3 = df.with_columns(
         pl.lit(
             [
-                "https://tv.apple.com/us/movie/get-out/umc.cmc.2nh80sbq32nedy9rm09gtv8rb",
-                "https://tv.apple.com/us/movie/avatar-the-way-of-water/umc.cmc.5k5xo2espahvd6kcswi2b5oe9",
+                "https://tv.apple.com/us/movie/get-out/"
+                "umc.cmc.2nh80sbq32nedy9rm09gtv8rb",
+                "https://tv.apple.com/us/movie/avatar-the-way-of-water/"
+                "umc.cmc.5k5xo2espahvd6kcswi2b5oe9",
                 None,
                 None,
             ]
