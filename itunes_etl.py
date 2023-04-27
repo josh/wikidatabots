@@ -1,6 +1,5 @@
 # pyright: strict
 
-import datetime
 import logging
 from functools import partial
 from typing import Literal
@@ -20,6 +19,7 @@ from polars_utils import (
     expr_mask,
     groups_of,
     limit,
+    now,
     update_or_append,
     update_parquet,
 )
@@ -187,10 +187,6 @@ def _lookup_result(expr: pl.Expr) -> pl.Expr:
     )
 
 
-def _timestamp() -> pl.Expr:
-    return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
-
-
 def fetch_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     country_results: list[pl.Expr] = []
     country_types: list[pl.Expr] = []
@@ -216,7 +212,7 @@ def fetch_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.select(
             pl.col("id"),
-            _timestamp().alias("retrieved_at"),
+            now().alias("retrieved_at"),
             *country_results,
         )
         .select(

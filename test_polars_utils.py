@@ -26,6 +26,7 @@ from polars_utils import (
     groups_of,
     is_constant,
     merge_with_indicator,
+    now,
     outlier_exprs,
     read_xml,
     sample,
@@ -173,6 +174,14 @@ def test_filter_drop_columns_properties(df: pl.DataFrame, predicate: pl.Expr) ->
 
     df2 = drop_columns(df, predicate)
     assert set(df2.columns).issubset(set(df.columns))
+
+
+def test_now() -> None:
+    df = pl.LazyFrame({"a": [1, 2, 3]}).with_columns(
+        now().alias("timestamp"),
+    )
+    assert df.schema == {"a": pl.Int64, "timestamp": pl.Datetime}
+    df.collect()
 
 
 @given(df=dataframes(lazy=True, max_cols=5, min_size=3, max_size=20))

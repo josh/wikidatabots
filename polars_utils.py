@@ -1,5 +1,6 @@
 # pyright: strict
 
+import datetime
 import logging
 import os
 import random
@@ -102,6 +103,10 @@ def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
     assert len(df) == 1, "predicate must return a single row"
     row = df.row(0, named=True)
     return [col for col, flag in row.items() if flag]
+
+
+def now() -> pl.Expr:
+    return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
 
 
 # TODO: Try to upstream this to polars
