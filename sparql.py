@@ -31,7 +31,6 @@ _WIKIDATA_SPARQL_SESSION = Session(
     retry_count=10,
     retry_allowed_methods=["GET", "POST"],
     retry_raise_on_status=True,
-    follow_redirects=True,
 )
 
 
@@ -364,7 +363,7 @@ _HYDRA = rdflib.Namespace("http://www.w3.org/ns/hydra/core#")
 _WD = rdflib.Namespace("http://www.wikidata.org/")
 _RDF = rdflib.Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 
-_WIKIDATA_LDF_SESSION = Session(follow_redirects=True)
+_WIKIDATA_LDF_SESSION = Session()
 
 
 def fetch_property_statements(pid: str) -> pl.LazyFrame:
