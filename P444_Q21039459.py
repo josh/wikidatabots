@@ -100,14 +100,12 @@ def main():
             pl.col("opencritic_id").pipe(fetch_opencritic_game).alias("metadata"),
         )
         .unnest("metadata")
-        .inspect()
         .filter(
             pl.col("top_critic_score").is_not_null()
             & pl.col("latest_review_date").is_not_null()
             & pl.col("reviews_count")
             > 0
         )
-        .inspect()
         .collect()
     )
 
