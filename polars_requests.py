@@ -114,8 +114,7 @@ def _urllib3_requests_series(
 
     with _log_group(log_group):
         for request in tqdm(requests, unit="url"):
-            if request:
-                assert isinstance(request["url"], str), f"No URL for request: {request}"
+            if request and request["url"]:
                 response = _urllib3_request(
                     session=session,
                     url=request["url"],
