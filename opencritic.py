@@ -1,39 +1,151 @@
 # pyright: strict
 
 import os
-from typing import TypedDict
 
-import requests
+import polars as pl
 
-RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
+from polars_requests import (
+    Session,
+    prepare_request,
+    response_header_value,
+    response_text,
+    urllib3_requests,
+)
 
-session = requests.Session()
-session.headers.update({"X-RapidAPI-Host": "opencritic-api.p.rapidapi.com"})
-
-request_count = 0
-
-
-class RatelimitException(Exception):
-    pass
+_SESSION = Session(retry_count=3, retry_backoff_factor=3)
 
 
-class OpenCriticGame(TypedDict):
-    id: int
-    name: str
-    url: str
-    numReviews: int
-    topCriticScore: float
-    latestReviewDate: str
+def opencritic_ratelimits() -> pl.LazyFrame:
+    return (
+        pl.LazyFrame()
+        .select(
+            prepare_request(
+                url="https://opencritic-api.p.rapidapi.com/score-format",
+                headers={
+                    "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
+                    "X-RapidAPI-Key": os.environ["RAPIDAPI_KEY"],
+                },
+            )
+            .pipe(
+                urllib3_requests,
+                session=_SESSION,
+                log_group="opencritic-api.p.rapidapi.com",
+            )
+            .alias("response")
+        )
+        .select(
+            (
+                pl.col("response")
+                .pipe(response_header_value, name="X-RateLimit-Searches-Limit")
+                .cast(pl.UInt32)
+                .alias("searches_limit")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_header_value, name="X-RateLimit-Searches-Remaining")
+                .cast(pl.UInt32)
+                .alias("searches_remaining")
+            ),
+            (
+                (
+                    pl.col("response")
+                    .pipe(response_header_value, name="X-RateLimit-Searches-Reset")
+                    .cast(pl.UInt32)
+                    * 1000
+                )
+                .cast(pl.Duration(time_unit="ms"))
+                .alias("searches_reset")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_header_value, name="X-RateLimit-Requests-Limit")
+                .cast(pl.UInt32)
+                .alias("requests_limit")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_header_value, name="X-RateLimit-Requests-Remaining")
+                .cast(pl.UInt32)
+                .alias("requests_remaining")
+            ),
+            (
+                (
+                    pl.col("response")
+                    .pipe(response_header_value, name="X-RateLimit-Requests-Reset")
+                    .cast(pl.UInt32)
+                    * 1000
+                )
+                .cast(pl.Duration(time_unit="ms"))
+                .alias("requests_reset")
+            ),
+        )
+    )
 
 
-def fetch_game(game_id: int, api_key: str | None = RAPIDAPI_KEY) -> OpenCriticGame:
-    global request_count
-    assert api_key, "No RapidAPI key provided"
-    url = f"https://opencritic-api.p.rapidapi.com/game/{game_id}"
-    headers = {"X-RapidAPI-Key": api_key}
-    response = session.get(url, headers=headers, timeout=5)
-    if response.status_code == 429:
-        raise RatelimitException(f"Ratelimited exceeded after {request_count} requests")
-    response.raise_for_status()
-    request_count += 1
-    return response.json()
+_OPENCRITIC_GAME_DTYPE = pl.Struct(
+    {
+        "id": pl.UInt32,
+        "name": pl.Utf8,
+        "url": pl.Utf8,
+        "reviews_count": pl.UInt32,
+        "top_critic_score": pl.Float64,
+        "latest_review_date": pl.Date,
+    }
+)
+
+
+_OPENCRITIC_GAME_API_DTYPE = pl.Struct(
+    {
+        "id": pl.UInt32,
+        "name": pl.Utf8,
+        "url": pl.Utf8,
+        "numReviews": pl.UInt32,
+        "topCriticScore": pl.Float64,
+        "latestReviewDate": pl.Utf8,
+    }
+)
+
+
+def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
+    return (
+        prepare_request(
+            url=pl.format("https://opencritic-api.p.rapidapi.com/game/{}", expr),
+            headers={
+                "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
+                "X-RapidAPI-Key": os.environ["RAPIDAPI_KEY"],
+            },
+        )
+        .pipe(
+            urllib3_requests,
+            session=_SESSION,
+            log_group="opencritic-api.p.rapidapi.com",
+        )
+        .pipe(response_text)
+        .str.json_extract(dtype=_OPENCRITIC_GAME_API_DTYPE)
+        .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
+    )
+
+
+def _tidy_game(s: pl.Series) -> pl.Series:
+    return (
+        s.to_frame(name=s.name)
+        .unnest(s.name)
+        .select(
+            pl.col("id"),
+            pl.col("name"),
+            pl.col("url"),
+            pl.col("numReviews").alias("reviews_count"),
+            (
+                pl.when(pl.col("topCriticScore") < 0)
+                .then(None)
+                .otherwise(pl.col("topCriticScore"))
+                .alias("top_critic_score")
+            ),
+            (
+                pl.col("latestReviewDate")
+                .str.strptime(pl.Date, "%+")
+                .alias("latest_review_date")
+            ),
+        )
+        .to_struct(s.name)
+    )

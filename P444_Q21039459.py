@@ -1,17 +1,16 @@
 # pyright: reportGeneralTypeIssues=false
 
-import itertools
 import logging
 import os
 from collections import OrderedDict
 from datetime import date
 from typing import TypedDict, TypeVar
 
+import polars as pl
 import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
-import opencritic
 import wikidata
 from constants import (
     CRITIC_REVIEW_QID,
@@ -26,10 +25,9 @@ from constants import (
     REVIEW_SCORE_PID,
     STATED_IN_PID,
 )
-from opencritic import fetch_game
+from opencritic import fetch_opencritic_game, opencritic_ratelimits
 from page import filter_blocked_qids
 from sparql import sparql
-from timeout import iter_until_deadline
 from utils import position_weighted_shuffled, tryint
 
 SITE = pywikibot.Site("wikidata", "wikidata")
@@ -75,17 +73,52 @@ pywikibot.config.put_throttle = 0
 
 
 def main():
+    ratelimits_df = opencritic_ratelimits().collect()
+    requests_limit = ratelimits_df["requests_limit"].item()
+    requests_remaining = ratelimits_df["requests_remaining"].item()
+    logging.info(f"OpenCritic API requests remaining: {requests_remaining}")
+
+    if requests_remaining < 1:
+        logging.warn("No available API requests for the day")
+        return
+
     qids = fetch_game_qids()
     qids = position_weighted_shuffled(qids)
-    qids = itertools.islice(qids, 500)
 
-    for qid in iter_until_deadline(qids):
-        item = ItemPage(SITE, qid)
-        try:
-            update_review_score_claim(item)
-        except opencritic.RatelimitException as e:
-            logging.error(e)
-            break
+    df = (
+        pl.LazyFrame({"qid": qids})
+        .head(requests_limit)
+        .with_columns(
+            pl.col("qid")
+            .apply(find_opencritic_id)
+            .cast(pl.UInt32)
+            .alias("opencritic_id"),
+        )
+        .filter(pl.col("opencritic_id").is_not_null())
+        .head(requests_remaining)
+        .with_columns(
+            pl.col("opencritic_id").pipe(fetch_opencritic_game).alias("metadata"),
+        )
+        .unnest("metadata")
+        .inspect()
+        .filter(
+            pl.col("top_critic_score").is_not_null()
+            & pl.col("latest_review_date").is_not_null()
+            & pl.col("reviews_count")
+            > 0
+        )
+        .inspect()
+        .collect()
+    )
+
+    for row in df.iter_rows(named=True):
+        _update_review_score_claim(
+            item=ItemPage(SITE, row["qid"]),
+            opencritic_id=row["opencritic_id"],
+            number_of_reviews=row["reviews_count"],
+            top_critic_score=row["top_critic_score"],
+            latest_review_date=row["latest_review_date"],
+        )
 
 
 def fetch_game_qids() -> list[wikidata.QID]:
@@ -111,15 +144,13 @@ def fetch_game_qids() -> list[wikidata.QID]:
     return list(filter_blocked_qids(qids))
 
 
-def update_review_score_claim(item: ItemPage):
-    opencritic_id = find_opencritic_id(item)
-    if not opencritic_id:
-        logging.warning(f"Skipping {item.id}, has no OpenCritic ID")
-        return
-
-    # Fetch latest data from OpenCritic API
-    data = fetch_game(opencritic_id)
-
+def _update_review_score_claim(
+    item: ItemPage,
+    opencritic_id: int,
+    top_critic_score: float,
+    number_of_reviews: int,
+    latest_review_date: date,
+):
     claim: Claim = REVIEW_SCORE_CLAIM.copy()
     orig_claim: Claim | None = None
 
@@ -129,12 +160,8 @@ def update_review_score_claim(item: ItemPage):
             claim = c
             orig_claim = c.copy()
 
-    if data["topCriticScore"] <= 0:
-        logging.debug(f"Skipping {item.id}, has no score")
-        return
-
     # Update review score value top OpenCritic top-critic score
-    claim.setTarget("{}/100".format(round(data["topCriticScore"])))
+    claim.setTarget("{}/100".format(round(top_critic_score)))
 
     # Set determination method to "top critic average"
     claim.qualifiers[DETERMINATION_METHOD_PID] = [DETERMINATION_METHOD_CLAIM.copy()]
@@ -144,7 +171,7 @@ def update_review_score_claim(item: ItemPage):
         claim, POINT_IN_TIME_PROPERTY
     )
     point_in_time_wbtime = WbTime.fromTimestr(
-        data["latestReviewDate"][0:10] + "T00:00:00Z", precision=11
+        f"{latest_review_date}T00:00:00Z", precision=11
     )
     point_in_time_qualifier.setTarget(point_in_time_wbtime)
 
@@ -153,7 +180,7 @@ def update_review_score_claim(item: ItemPage):
         claim, NUMBER_OF_REVIEWS_RATINGS_PROPERTY
     )
     number_of_reviews_quantity = WbQuantity(
-        amount=data["numReviews"], unit=CRITIC_REVIEW_ITEM, site=item.repo
+        amount=number_of_reviews, unit=CRITIC_REVIEW_ITEM, site=item.repo
     )
     number_of_reviews_qualifier.setTarget(number_of_reviews_quantity)
 
@@ -189,7 +216,8 @@ def update_review_score_claim(item: ItemPage):
     )
 
 
-def find_opencritic_id(item: ItemPage) -> int | None:
+def find_opencritic_id(qid: str) -> int | None:
+    item = ItemPage(SITE, qid)
     claim = get_dict_value(item.claims, OPENCRITIC_ID_PID)
     if not claim:
         return None
