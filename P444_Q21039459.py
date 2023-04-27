@@ -72,7 +72,7 @@ pywikibot.config.password_file = "user-password.py"
 pywikibot.config.put_throttle = 0
 
 
-def main():
+def main() -> None:
     ratelimits_df = opencritic_ratelimits().collect()
     requests_limit = ratelimits_df["requests_limit"].item()
     requests_remaining = ratelimits_df["requests_remaining"].item()
