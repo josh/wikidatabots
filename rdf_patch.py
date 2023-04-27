@@ -136,9 +136,9 @@ def process_graph(
             property = get_property_page(predicate_local_name)
 
             if graph_empty_node(graph, object):
-                did_change = predicate_local_name in claim.qualifiers
-                del claim.qualifiers[predicate_local_name]
-                mark_changed(item, claim, did_change)
+                if predicate_local_name in claim.qualifiers:
+                    del claim.qualifiers[predicate_local_name]
+                    mark_changed(item, claim, True)
             else:
                 target = object_to_target(object)
                 did_change, _ = claim_append_qualifer(claim, property, target)
