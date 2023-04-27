@@ -27,6 +27,7 @@ from polars_utils import (
     merge_with_indicator,
     outlier_exprs,
     read_xml,
+    sample,
     series_indicies,
     series_indicies_sorted,
     update_or_append,
@@ -171,6 +172,11 @@ def test_filter_drop_columns_properties(df: pl.DataFrame, predicate: pl.Expr) ->
 
     df2 = drop_columns(df, predicate)
     assert set(df2.columns).issubset(set(df.columns))
+
+
+@given(df=dataframes(lazy=True, max_cols=5, max_size=20))
+def test_sample(df: pl.LazyFrame) -> None:
+    pass
 
 
 def test_is_constant() -> None:

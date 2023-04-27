@@ -100,6 +100,27 @@ def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
     return [col for col, flag in row.items() if flag]
 
 
+# TODO: Try to upstream this to polars
+def sample(
+    df: pl.LazyFrame,
+    n: int | None = None,
+    fraction: float | None = None,
+    with_replacement: bool = False,
+    shuffle: bool = False,
+    seed: int | None = None,
+) -> pl.LazyFrame:
+    def _sample(df: pl.DataFrame) -> pl.DataFrame:
+        return df.sample(
+            n=n,
+            fraction=fraction,
+            with_replacement=with_replacement,
+            shuffle=shuffle,
+            seed=seed,
+        )
+
+    return df.map(_sample, streamable=False)
+
+
 class LimitWarning(Warning):
     pass
 
