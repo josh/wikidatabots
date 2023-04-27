@@ -269,7 +269,11 @@ def itunes_legacy_view_url(
     )
 
 
-_ITUNES_REDIRECT_SESSION = Session(follow_redirects=False, ok_statuses={200, 301, 404})
+_ITUNES_REDIRECT_SESSION = Session(
+    follow_redirects=False,
+    ok_statuses={200, 301, 404},
+    retry_count=3,
+)
 
 
 def appletv_redirect_url(id: pl.Expr, type: pl.Expr, kind: pl.Expr) -> pl.Expr:
