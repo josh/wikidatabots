@@ -67,7 +67,7 @@ _COUNTRIES: set[_COUNTRY] = {
     "us",
 }
 
-_LOOKUP_BATCH_SIZE = 150
+_LOOKUP_BATCH_SIZE = 180
 
 
 def lookup_itunes_id(
