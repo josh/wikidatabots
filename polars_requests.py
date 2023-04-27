@@ -63,7 +63,6 @@ class Session:
     retry_backoff_factor: float = 0.0
     retry_raise_on_redirect: bool = True
     retry_raise_on_status: bool = True
-    retry_respect_retry_after_header: bool = True
 
     def __post_init__(self) -> None:
         timeout = urllib3.Timeout(
@@ -78,7 +77,7 @@ class Session:
             backoff_factor=self.retry_backoff_factor,
             raise_on_redirect=self.retry_raise_on_redirect,
             raise_on_status=self.retry_raise_on_status,
-            respect_retry_after_header=self.retry_respect_retry_after_header,
+            respect_retry_after_header=True,
         )
 
         self._poolmanager = urllib3.PoolManager(
