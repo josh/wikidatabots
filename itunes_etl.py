@@ -7,11 +7,18 @@ from typing import Literal
 
 import polars as pl
 
-from polars_requests import Session, prepare_request, response_text, urllib3_requests
+from polars_requests import (
+    Session,
+    prepare_request,
+    response_header_value,
+    response_text,
+    urllib3_requests,
+)
 from polars_utils import (
     assert_expression,
     expr_indicies_sorted,
     groups_of,
+    limit,
     update_or_append,
     update_parquet,
 )
@@ -223,6 +230,75 @@ def fetch_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def itunes_legacy_kind(type: pl.Expr, kind: pl.Expr) -> pl.Expr:
+    return (
+        pl.when(type == "Album")
+        .then("album")
+        .when(type == "TV Show")
+        .then("tv-show")
+        .when(type == "TV Season")
+        .then("tv-season")
+        .when(type == "Movie Bundle")
+        .then("movie-collection")
+        .when(kind == "ebook")
+        .then("book")
+        .when(kind == "feature-movie")
+        .then("movie")
+        .when(kind == "software")
+        .then("app")
+        .when(kind == "podcast")
+        .then("podcast")
+        .otherwise(None)
+    )
+
+
+def itunes_legacy_view_url(
+    id: pl.Expr, type: pl.Expr, kind: pl.Expr, region: str = "us"
+) -> pl.Expr:
+    return (
+        pl.when(itunes_legacy_kind(type=type, kind=kind).is_not_null())
+        .then(
+            pl.format(
+                "https://itunes.apple.com/{}/{}/id{}",
+                pl.lit(region),
+                itunes_legacy_kind(type=type, kind=kind),
+                id,
+            )
+        )
+        .otherwise(None)
+    )
+
+
+_ITUNES_REDIRECT_SESSION = Session(follow_redirects=False, ok_statuses={200, 301, 404})
+
+
+def appletv_redirect_url(id: pl.Expr, type: pl.Expr, kind: pl.Expr) -> pl.Expr:
+    return (
+        itunes_legacy_view_url(id=id, type=type, kind=kind)
+        .pipe(prepare_request)
+        .pipe(
+            urllib3_requests,
+            session=_ITUNES_REDIRECT_SESSION,
+            log_group="itunes.apple.com",
+        )
+        .pipe(response_header_value, name="Location")
+        .map(_mask_urls, return_dtype=pl.Utf8)
+    )
+
+
+# TODO: Extract this pattern into utils
+def _mask_urls(s: pl.Series) -> pl.Series:
+    return (
+        pl.DataFrame({"url": s})
+        .select(
+            pl.when(pl.col("url").str.starts_with("https://tv.apple.com/"))
+            .then(pl.col("url"))
+            .otherwise(None)
+        )
+        .to_series()
+    )
+
+
 _ITUNES_PROPERTY_ID = Literal[
     "P2281",
     "P2850",
@@ -282,7 +358,7 @@ def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < (25 * _LOOKUP_BATCH_SIZE)
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < (1 * _LOOKUP_BATCH_SIZE)
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
@@ -292,9 +368,40 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
+_REDIRECT_CHECK_LIMIT = 10
+
+
+def _backfill_appletv_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
+    df = df.cache()
+
+    df_updated = (
+        df.select("id", "type", "kind", "appletv_redirect_url")
+        .filter(
+            (pl.col("kind") == "feature-movie")
+            & pl.col("appletv_redirect_url").is_null()
+        )
+        .pipe(
+            limit, soft=_REDIRECT_CHECK_LIMIT, desc="missing appletv_redirect_url frame"
+        )
+        .with_columns(
+            appletv_redirect_url(
+                id=pl.col("id"),
+                type=pl.col("type"),
+                kind=pl.col("kind"),
+            ).alias("appletv_redirect_url")
+        )
+    )
+
+    return df.pipe(update_or_append, df_updated, on="id").sort("id")
+
+
 def main() -> None:
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.pipe(_discover_ids).pipe(_backfill_metadata)
+        return (
+            df.pipe(_discover_ids)
+            .pipe(_backfill_metadata)
+            .pipe(_backfill_appletv_redirect_url)
+        )
 
     with pl.StringCache():
         update_parquet("itunes.parquet", update, key="id")
