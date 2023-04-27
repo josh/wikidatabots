@@ -30,7 +30,6 @@ _APPLETV_SESSION = Session(
     retry_statuses={502},
     retry_count=3,
     retry_backoff_factor=1.0,
-    follow_redirects=True,
 )
 
 Type = Literal["episode", "movie", "show"]
