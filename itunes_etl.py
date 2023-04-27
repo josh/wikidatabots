@@ -358,7 +358,7 @@ def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < (1 * _LOOKUP_BATCH_SIZE)
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < (25 * _LOOKUP_BATCH_SIZE)
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
