@@ -14,7 +14,6 @@ from polars_requests import (
     urllib3_resolve_redirects,
 )
 from polars_utils import (
-    assert_expression,
     expr_indicies_sorted,
     groups_of,
     limit,
@@ -446,11 +445,7 @@ SELECT DISTINCT ?id WHERE {
 
 
 def _wikidata_itunes_ids(pid: _ITUNES_PROPERTY_ID) -> pl.LazyFrame:
-    return (
-        sparql_df(_QUERY.replace("P0000", pid), schema={"id": pl.UInt64})
-        .pipe(assert_expression, pl.col("id").is_unique())
-        .pipe(assert_expression, pl.col("id").is_not_null())
-    )
+    return sparql_df(_QUERY.replace("P0000", pid), schema={"id": pl.UInt64})
 
 
 def wikidata_itunes_all_ids() -> pl.LazyFrame:
