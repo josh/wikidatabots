@@ -334,17 +334,6 @@ def apply_with_tqdm(
     return expr.map(map_function, return_dtype=return_dtype)
 
 
-def read_xml(
-    xml: str,
-    schema: dict[str, pl.PolarsDataType],
-    xpath: str = "./*",
-) -> pl.DataFrame:
-    tree = ET.fromstring(xml)
-    dtype = pl.Struct([pl.Field(k, schema[k]) for k in schema])
-    rows = [_xml_element_struct_field(row, dtype) for row in tree.findall(xpath)]
-    return pl.from_dicts(rows, schema=schema)
-
-
 def _parse_xml_to_series(
     xml: str,
     dtype: pl.Struct,

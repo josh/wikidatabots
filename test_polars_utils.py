@@ -25,7 +25,6 @@ from polars_utils import (
     merge_with_indicator,
     now,
     outlier_exprs,
-    read_xml,
     sample,
     update_or_append,
     with_outlier_column,
@@ -249,93 +248,6 @@ XML_EXAMPLE = """
     </country>
 </data>
 """
-
-
-def test_read_xml():
-    schema: dict[str, pl.PolarsDataType] = {
-        "name": pl.Utf8,
-        "rank": pl.Int64,
-        "year": pl.Int64,
-        "gdppc": pl.Int64,
-        "neighbor": pl.List(
-            pl.Struct(
-                [
-                    pl.Field("name", pl.Utf8),
-                    pl.Field("direction", pl.Utf8),
-                ]
-            )
-        ),
-    }
-
-    df = pl.DataFrame(
-        {
-            "name": ["Liechtenstein", "Singapore", "Panama"],
-            "rank": [1, 4, 68],
-            "year": [2008, 2011, 2011],
-            "gdppc": [141100, 59900, 13600],
-            "neighbor": [
-                [
-                    {"name": "Austria", "direction": "E"},
-                    {"name": "Switzerland", "direction": "W"},
-                ],
-                [{"name": "Malaysia", "direction": "N"}],
-                [
-                    {"name": "Costa Rica", "direction": "W"},
-                    {"name": "Colombia", "direction": "E"},
-                ],
-            ],
-        },
-        schema=schema,
-    )
-
-    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
-
-
-def test_read_xml_with_overrides():
-    schema: dict[str, pl.PolarsDataType] = {
-        "name": pl.Utf8,
-        "rank": pl.Int64,
-        "neighbor": pl.List(pl.Struct({"name": pl.Utf8})),
-    }
-
-    df = pl.DataFrame(
-        {
-            "name": ["Liechtenstein", "Singapore", "Panama"],
-            "rank": [1, 4, 68],
-            "neighbor": [
-                [
-                    {"name": "Austria"},
-                    {"name": "Switzerland"},
-                ],
-                [{"name": "Malaysia"}],
-                [
-                    {"name": "Costa Rica"},
-                    {"name": "Colombia"},
-                ],
-            ],
-        },
-        schema=schema,
-    )
-
-    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
-
-
-def test_read_xml_with_missing():
-    schema: dict[str, pl.PolarsDataType] = {
-        "name": pl.Utf8,
-        "price": pl.UInt32,
-    }
-    df = pl.DataFrame(
-        {
-            "name": ["Liechtenstein", "Singapore", "Panama"],
-            "price": [None, None, None],
-        },
-        schema=schema,
-    )
-    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema), df)
-
-    df = pl.DataFrame({"name": [], "price": []}, schema=schema)
-    assert_frame_equal(read_xml(XML_EXAMPLE, schema=schema, xpath="./foo"), df)
 
 
 def test_xml_extract() -> None:
