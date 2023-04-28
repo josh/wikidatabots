@@ -126,6 +126,17 @@ def sample(
     return df.map(_sample, streamable=False)
 
 
+def position_weighted_shuffled(expr: pl.Expr) -> pl.Expr:
+    return expr.map(_position_weighted_shuffled)
+
+
+def _position_weighted_shuffled(s: pl.Series) -> pl.Series:
+    size = len(s)
+    values = (random.uniform(0, i) for i in range(size))
+    weights = pl.Series("weight", values, dtype=pl.Float64)
+    return pl.DataFrame({"s": s}).sort(by=weights).to_series()
+
+
 class LimitWarning(Warning):
     pass
 

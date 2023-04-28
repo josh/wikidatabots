@@ -27,8 +27,9 @@ from constants import (
 )
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
 from page import filter_blocked_qids
+from polars_utils import position_weighted_shuffled
 from sparql import sparql
-from utils import position_weighted_shuffled, tryint
+from utils import tryint
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -83,10 +84,10 @@ def main() -> None:
         return
 
     qids = fetch_game_qids()
-    qids = position_weighted_shuffled(qids)
 
     df = (
         pl.LazyFrame({"qid": qids})
+        .select(pl.col("qid").pipe(position_weighted_shuffled))
         .head(requests_limit)
         .with_columns(
             pl.col("qid")
