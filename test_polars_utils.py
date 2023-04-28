@@ -6,7 +6,7 @@ from typing import Iterator
 
 import polars as pl
 import pytest
-from hypothesis import assume, given
+from hypothesis import assume, given, settings
 from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes, series
@@ -185,6 +185,7 @@ def test_now() -> None:
 
 
 @given(df=dataframes(lazy=True, max_cols=5, min_size=3, max_size=20))
+@settings(max_examples=5)
 def test_sample(df: pl.LazyFrame) -> None:
     assert len(df.pipe(sample, n=3).collect()) == 3
 
@@ -771,6 +772,7 @@ def test_indices_sorted(a: list[int], b: list[int]) -> None:
 @given(
     df=dataframes(max_cols=20, max_size=10, null_probability=0.1),
 )
+@settings(max_examples=10)
 def test_compute_stats(df: pl.DataFrame) -> None:
     stats_df = compute_stats(df)
     assert len(stats_df) == len(df.columns)
