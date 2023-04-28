@@ -2,3 +2,7 @@
 name = "wikidatabots"
 
 [tool.pyright]
+
+[tool.vulture]
+exclude = ["*test_*.py"]
+ignore_names = ["xxx_*", "main_*", "encoding", "formatwarning", "put_throttle", "maxlag"]
