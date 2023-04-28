@@ -28,7 +28,6 @@ from polars_utils import (
     outlier_exprs,
     read_xml,
     sample,
-    series_indicies,
     update_or_append,
     with_outlier_column,
     xml_extract,
@@ -737,22 +736,6 @@ _1_TO_10_OR_NONE = st.one_of(st.none(), _1_TO_10)
 
 @given(
     a=st.lists(_1_TO_10_OR_NONE, min_size=0, max_size=10),
-    b=st.lists(_1_TO_10_OR_NONE, min_size=1, max_size=10),
-)
-def test_indices(a: list[int], b: list[int]) -> None:
-    c = list(_lst_indicies(a, b))
-
-    a_s = pl.Series(a, dtype=pl.UInt32)
-    b_s = pl.Series(b, dtype=pl.UInt32)
-
-    s = series_indicies(a_s, b_s)
-    assert s.dtype == pl.UInt32
-    assert len(s) == len(a)
-    assert c == s.to_list()
-
-
-@given(
-    a=st.lists(_1_TO_10_OR_NONE, min_size=0, max_size=10),
     b=st.lists(_1_TO_10, min_size=1, max_size=10),
 )
 def test_indices_sorted(a: list[int], b: list[int]) -> None:
@@ -761,11 +744,6 @@ def test_indices_sorted(a: list[int], b: list[int]) -> None:
 
     a_s = pl.Series(a, dtype=pl.UInt32)
     b_s = pl.Series(b, dtype=pl.UInt32)
-
-    s = series_indicies(a_s, b_s)
-    assert s.dtype == pl.UInt32
-    assert len(s) == len(a)
-    assert c == s.to_list()
 
     s = pl.select(expr_indicies_sorted(pl.lit(a_s), pl.lit(b_s))).to_series()
     assert s.dtype == pl.UInt32
