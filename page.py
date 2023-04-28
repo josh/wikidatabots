@@ -12,8 +12,6 @@ from collections.abc import Iterable, Iterator
 
 import requests
 
-import wikidata
-
 
 def page_text(page_title: str) -> str | None:
     params = {
@@ -40,8 +38,8 @@ def page_text(page_title: str) -> str | None:
     return None
 
 
-def page_qids(page_title: str, blocked: bool = False) -> set[wikidata.QID]:
-    qids: set[wikidata.QID] = set()
+def page_qids(page_title: str, blocked: bool = False) -> set[str]:
+    qids: set[str] = set()
 
     text = page_text(page_title)
     if not text:
@@ -49,7 +47,7 @@ def page_qids(page_title: str, blocked: bool = False) -> set[wikidata.QID]:
         return qids
 
     for m in re.findall(r"(Q[0-9]+)", text):
-        qids.add(wikidata.qid(m))
+        qids.add(m)
 
     if not blocked:
         qids = qids - blocked_qids()
@@ -62,14 +60,14 @@ def page_qids(page_title: str, blocked: bool = False) -> set[wikidata.QID]:
 _blocked_qids = None
 
 
-def blocked_qids() -> set[wikidata.QID]:
+def blocked_qids() -> set[str]:
     global _blocked_qids
     if not _blocked_qids:
         _blocked_qids = page_qids("User:Josh404Bot/Blocklist", blocked=True)
     return _blocked_qids
 
 
-def filter_blocked_qids(qids: Iterable[wikidata.QID]) -> Iterator[wikidata.QID]:
+def filter_blocked_qids(qids: Iterable[str]) -> Iterator[str]:
     blocked = blocked_qids()
     for qid in qids:
         if qid in blocked:

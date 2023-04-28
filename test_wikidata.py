@@ -2,11 +2,7 @@
 
 from rdflib.term import URIRef
 
-from wikidata import NS_MANAGER, qid
-
-
-def test_qid():
-    assert qid("Q42")
+from wikidata import NS_MANAGER
 
 
 def test_namespace_manager():

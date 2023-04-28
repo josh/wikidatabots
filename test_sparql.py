@@ -3,7 +3,6 @@
 import polars as pl
 from rdflib import URIRef
 
-import wikidata
 from sparql import (
     fetch_property_statements,
     fetch_statements,
@@ -12,8 +11,8 @@ from sparql import (
     sparql_df,
 )
 
-IMDB_ID_PID = wikidata.PID("P345")
-TMDB_MOVIE_ID_PID = wikidata.PID("P4947")
+_IMDB_ID_PID = "P345"
+_TMDB_MOVIE_ID_PID = "P4947"
 
 
 def test_sparql():
@@ -52,25 +51,25 @@ def test_sparql_property():
 
 
 def test_sample_items():
-    results = sample_items(IMDB_ID_PID, limit=5, type="random")
+    results = sample_items(_IMDB_ID_PID, limit=5, type="random")
     assert len(results) == 5
 
-    results = sample_items(IMDB_ID_PID, limit=5, type="created")
+    results = sample_items(_IMDB_ID_PID, limit=5, type="created")
     assert len(results) == 5
 
-    results = sample_items(IMDB_ID_PID, limit=5, type="updated")
+    results = sample_items(_IMDB_ID_PID, limit=5, type="updated")
     assert len(results) == 5
 
 
 def test_fetch_statements():
-    qid = wikidata.qid("Q172241")
-    items = fetch_statements([qid], [IMDB_ID_PID, TMDB_MOVIE_ID_PID])
+    qid = "Q172241"
+    items = fetch_statements([qid], [_IMDB_ID_PID, _TMDB_MOVIE_ID_PID])
     assert len(items) == 1
 
     item = items[qid]
     assert item
-    assert item[IMDB_ID_PID]
-    assert item[TMDB_MOVIE_ID_PID]
+    assert item[_IMDB_ID_PID]
+    assert item[_TMDB_MOVIE_ID_PID]
 
 
 def test_sparql_some_value():

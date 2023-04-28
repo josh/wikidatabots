@@ -22,7 +22,6 @@ from rdflib import URIRef
 from actions import warn
 from polars_requests import Session, prepare_request, urllib3_requests
 from polars_utils import apply_with_tqdm
-from wikidata import PID, QID
 
 _LOCK = Lock()
 _WIKIDATA_SPARQL_SESSION = Session(
@@ -207,10 +206,10 @@ def sparql_df(
 
 
 def fetch_statements(
-    qids: Iterable[QID],
-    properties: Iterable[PID],
+    qids: Iterable[str],
+    properties: Iterable[str],
     deprecated: bool = False,
-) -> dict[QID, dict[PID, list[tuple[URIRef, str]]]]:
+) -> dict[str, dict[str, list[tuple[URIRef, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
     query += values_query(qids)
     query += """
@@ -228,11 +227,11 @@ def fetch_statements(
     query += "}"
 
     Result = TypedDict(
-        "Result", {"statement": URIRef, "item": QID, "property": PID, "value": str}
+        "Result", {"statement": URIRef, "item": str, "property": str, "value": str}
     )
     results: list[Result] = sparql(query)
 
-    items: dict[QID, dict[PID, list[tuple[URIRef, str]]]] = {}
+    items: dict[str, dict[str, list[tuple[URIRef, str]]]] = {}
     for result in results:
         statement = result["statement"]
         qid = result["item"]
@@ -259,12 +258,12 @@ SampleType = Literal["created", "updated", "random"]
 
 
 def sample_items(
-    property: PID,
+    property: str,
     limit: int,
     type: SampleType | None = None,
-) -> set[QID]:
+) -> set[str]:
     if type is None:
-        items: set[QID] = set()
+        items: set[str] = set()
         items |= sample_items(property, type="created", limit=math.floor(limit / 3))
         items |= sample_items(property, type="updated", limit=math.floor(limit / 3))
         items |= sample_items(property, type="random", limit=limit - len(items))
@@ -316,13 +315,13 @@ def sample_items(
     query = query.replace("?property", property)
     query = query.replace("?limit", str(limit))
 
-    Result = TypedDict("Result", {"item": QID})
+    Result = TypedDict("Result", {"item": str})
     results: list[Result] = sparql(query)
 
     return set([result["item"] for result in results])
 
 
-def values_query(qids: Iterable[QID], binding: str = "item") -> str:
+def values_query(qids: Iterable[str], binding: str = "item") -> str:
     values = " ".join(f"wd:{qid}" for qid in qids)
     return "VALUES ?" + binding + " { " + values + " }"
 

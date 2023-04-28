@@ -136,7 +136,7 @@ def fetch_game_qids() -> list[wikidata.QID]:
     """
 
     class Result(TypedDict):
-        item: wikidata.QID
+        item: str
 
     results: list[Result] = sparql(query)
     qids = [result["item"] for result in results]

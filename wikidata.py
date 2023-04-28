@@ -1,8 +1,5 @@
 # pyright: strict
 
-import re
-from typing import Any, NewType
-
 from rdflib import Graph
 from rdflib.namespace import Namespace, NamespaceManager
 
@@ -35,21 +32,3 @@ NS_MANAGER.bind("ps", PS)
 NS_MANAGER.bind("psv", PSV)
 NS_MANAGER.bind("pq", PQ)
 NS_MANAGER.bind("pr", PR)
-
-PID = NewType("PID", str)
-QID = NewType("QID", str)
-
-PIDPattern = re.compile("Q[1-9][0-9]*")
-QIDPattern = re.compile("Q[1-9][0-9]*")
-
-
-def pid(id: Any) -> PID:
-    assert type(id) is str, f"'{repr(id)}' is not a valid PID"
-    assert re.fullmatch(PIDPattern, id), f"'{id}' is not a valid PID"
-    return PID(id)
-
-
-def qid(id: Any) -> QID:
-    assert type(id) is str, f"'{repr(id)}' is not a valid QID"
-    assert re.fullmatch(QIDPattern, id), f"'{id}' is not a valid QID"
-    return QID(id)

@@ -12,7 +12,6 @@ import requests
 from bs4 import BeautifulSoup
 
 import appletv
-import wikidata
 from sparql import sparql
 from timeout import iter_until_deadline
 from utils import shuffled, tryint
@@ -54,7 +53,7 @@ def find_ld(soup: BeautifulSoup) -> dict[str, Any] | None:
 
 
 class WikidataSearchResult(TypedDict):
-    qid: wikidata.QID
+    qid: str
     appletv: appletv.ID | None
 
 
@@ -119,7 +118,7 @@ def wikidata_search(
 
     query += "\n} LIMIT 2"
 
-    Result = TypedDict("Result", {"item": wikidata.QID, "appletv": str})
+    Result = TypedDict("Result", {"item": str, "appletv": str})
     results: list[Result] = sparql(query)
 
     if len(results) == 1:
