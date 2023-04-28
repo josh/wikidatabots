@@ -29,7 +29,6 @@ from polars_utils import (
     read_xml,
     sample,
     series_indicies,
-    series_indicies_sorted,
     update_or_append,
     with_outlier_column,
     xml_extract,
@@ -764,11 +763,6 @@ def test_indices_sorted(a: list[int], b: list[int]) -> None:
     b_s = pl.Series(b, dtype=pl.UInt32)
 
     s = series_indicies(a_s, b_s)
-    assert s.dtype == pl.UInt32
-    assert len(s) == len(a)
-    assert c == s.to_list()
-
-    s = series_indicies_sorted(a_s, b_s)
     assert s.dtype == pl.UInt32
     assert len(s) == len(a)
     assert c == s.to_list()
