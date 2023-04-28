@@ -4,7 +4,6 @@ import polars as pl
 from rdflib import URIRef
 
 import wikidata
-from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
 from sparql import (
     fetch_property_statements,
     fetch_statements,
@@ -12,6 +11,9 @@ from sparql import (
     sparql,
     sparql_df,
 )
+
+IMDB_ID_PID = wikidata.PID("P345")
+TMDB_MOVIE_ID_PID = wikidata.PID("P4947")
 
 
 def test_sparql():
