@@ -211,7 +211,7 @@ def fetch_statements(
     deprecated: bool = False,
 ) -> dict[str, dict[str, list[tuple[URIRef, str]]]]:
     query = "SELECT ?statement ?item ?property ?value WHERE { "
-    query += values_query(qids)
+    query += _values_query(qids)
     query += """
     OPTIONAL {
       ?item ?property ?statement.
@@ -321,7 +321,7 @@ def sample_items(
     return set([result["item"] for result in results])
 
 
-def values_query(qids: Iterable[str], binding: str = "item") -> str:
+def _values_query(qids: Iterable[str], binding: str = "item") -> str:
     values = " ".join(f"wd:{qid}" for qid in qids)
     return "VALUES ?" + binding + " { " + values + " }"
 
