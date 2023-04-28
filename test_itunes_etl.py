@@ -27,6 +27,7 @@ _RESULT_DTYPE = pl.Struct(
         pl.Field("id", pl.UInt64),
         pl.Field("type", pl.Utf8),
         pl.Field("name", pl.Utf8),
+        pl.Field("url", pl.Utf8),
         pl.Field("kind", pl.Utf8),
     ]
 )
@@ -79,48 +80,57 @@ def test_lookup_itunes_id(batch_size: int) -> None:
                     "id": 909253,
                     "type": "Artist",
                     "name": "Jack Johnson",
+                    "url": "https://music.apple.com/us/artist/jack-johnson/909253?uo=4",
                 },
                 None,
                 {
                     "id": 1440768692,
                     "type": "Album",
                     "name": "In Between Dreams",
+                    "url": "https://music.apple.com/us/album/in-between-dreams/1440768692?uo=4",
                 },
                 {
                     "id": 1440768764,
                     "kind": "song",
                     "name": "Banana Pancakes",
+                    "url": "https://music.apple.com/us/album/banana-pancakes/1440768692?i=1440768764&uo=4",
                 },
                 {
                     "id": 909253,
                     "type": "Artist",
                     "name": "Jack Johnson",
+                    "url": "https://music.apple.com/us/artist/jack-johnson/909253?uo=4",
                 },
                 {
                     "id": 102225079,
                     "type": "TV Show",
                     "name": "The Office",
+                    "url": "https://itunes.apple.com/us/tv-show/the-office/id102225079?uo=4",
                 },
                 {
                     "id": 1438674900,
                     "type": "TV Season",
                     "name": "The Office: The Complete Series",
+                    "url": "https://itunes.apple.com/us/tv-season/the-office-the-complete-series/id1438674900?uo=4",
                 },
                 {
                     "id": 284910350,
                     "kind": "software",
                     "name": "Yelp: Food, Delivery & Reviews",
+                    "url": "https://apps.apple.com/us/app/yelp-food-delivery-reviews/id284910350?uo=4",
                 },
                 {
                     "id": 1676858107,
                     "kind": "feature-movie",
                     "name": "Avatar: The Way of Water",
+                    "url": "https://itunes.apple.com/us/movie/avatar-the-way-of-water/id1676858107?uo=4",
                 },
                 None,
                 {
                     "id": 6446905902,
                     "kind": "ebook",
                     "name": "Make Something Wonderful",
+                    "url": "https://books.apple.com/us/book/make-something-wonderful/id6446905902?uo=4",
                 },
             ],
         },
@@ -158,7 +168,7 @@ def test_fetch_metadata() -> None:
             schema={"id": pl.UInt64},
         )
         .pipe(fetch_metadata)
-        .select("id", "type", "kind", "us_country", "ca_country", "any_country")
+        .select("id", "type", "kind", "url", "us_country", "ca_country", "any_country")
     )
     lf2 = pl.LazyFrame(
         {
@@ -198,6 +208,18 @@ def test_fetch_metadata() -> None:
                 "feature-movie",
                 "ebook",
             ],
+            "url": [
+                "https://music.apple.com/us/artist/jack-johnson/909253?uo=4",
+                None,
+                "https://music.apple.com/us/album/in-between-dreams/1440768692?uo=4",
+                "https://music.apple.com/us/album/banana-pancakes/1440768692?i=1440768764&uo=4",
+                "https://music.apple.com/us/artist/jack-johnson/909253?uo=4",
+                "https://itunes.apple.com/us/tv-show/the-office/id102225079?uo=4",
+                "https://itunes.apple.com/us/tv-season/the-office-the-complete-series/id1438674900?uo=4",
+                "https://apps.apple.com/us/app/yelp-food-delivery-reviews/id284910350?uo=4",
+                "https://itunes.apple.com/us/movie/avatar-the-way-of-water/id1676858107?uo=4",
+                "https://books.apple.com/us/book/make-something-wonderful/id6446905902?uo=4",
+            ],
             "us_country": [True, False, True, True, True, True, True, True, True, True],
             "ca_country": [
                 True,
@@ -228,6 +250,7 @@ def test_fetch_metadata() -> None:
             "id": pl.UInt64,
             "type": pl.Categorical,
             "kind": pl.Categorical,
+            "url": pl.Utf8,
             "us_country": pl.Boolean,
             "ca_country": pl.Boolean,
             "any_country": pl.Boolean,
