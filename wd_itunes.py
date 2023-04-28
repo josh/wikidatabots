@@ -3,7 +3,7 @@
 import polars as pl
 
 from appletv_etl import appletv_to_itunes_series
-from itunes_etl import lookup_itunes_id
+from itunes_etl import itunes_id_redirects_to_apple_tv, lookup_itunes_id
 from polars_utils import limit
 from sparql import sparql_df
 
@@ -82,6 +82,36 @@ def xxx_delisted_itunes_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
         )
         .filter(pl.col("any_country").is_not())
         .select(_DEPRECATE_RDF_STATEMENT)
+    )
+
+
+_UNDEPRECATED_QUERY = """
+SELECT ?statement ?id WHERE {
+  ?statement ps:P6398 ?id;
+    pq:P2241 wd:Q21441764;
+    wikibase:rank ?rank.
+  FILTER(?rank = wikibase:DeprecatedRank)
+  FILTER(xsd:integer(?id))
+}
+"""
+
+_UNDEPRECATED_RDF_STATEMENT = pl.format(
+    "<{}> wikibase:rank wikibase:NormalRank ; pq:P2241 [] ; . ",
+    pl.col("statement"),
+).alias("rdf_statement")
+
+
+def xxx_relisted_itunes_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
+    return (
+        sparql_df(_UNDEPRECATED_QUERY, schema={"statement": pl.Utf8, "id": pl.UInt64})
+        .join(itunes_df, on="id")
+        .with_columns(
+            pl.col("id")
+            .pipe(itunes_id_redirects_to_apple_tv)
+            .alias("redirects_to_tv_apple")
+        )
+        .filter(pl.col("redirects_to_tv_apple"))
+        .select(_UNDEPRECATED_RDF_STATEMENT)
     )
 
 
