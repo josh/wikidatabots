@@ -432,13 +432,3 @@ def _parse_page(data: bytes) -> list[dict[str, str]]:
         if isinstance(predicate, str) and predicate.startswith(_WD):
             results.append({"subject": str(subject), "object": str(object)})
     return results
-
-
-if __name__ == "__main__":
-    import sys
-
-    logging.basicConfig(level=logging.INFO)
-
-    query = sys.stdin.read()
-    result = sparql(query)
-    json.dump(result, sys.stdout, indent=2)
