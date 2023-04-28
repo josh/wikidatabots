@@ -12,6 +12,7 @@ from polars_requests import (
     response_header_value,
     response_text,
     urllib3_requests,
+    urllib3_resolve_redirects,
 )
 from polars_utils import (
     assert_expression,
@@ -529,10 +530,10 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
-_REDIRECT_CHECK_LIMIT = 500
+_REDIRECT_CHECK_LIMIT = 250
 
 
-def _backfill_appletv_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
+def xxx_backfill_appletv_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
@@ -557,6 +558,29 @@ def _backfill_appletv_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
+def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
+    df = df.cache()
+
+    df_updated = (
+        df.filter(
+            pl.col("url").is_not_null() & pl.col("redirect_url").is_null(),
+        )
+        .select("id", "url", "redirect_url")
+        .pipe(limit, soft=_REDIRECT_CHECK_LIMIT, desc="missing redirect_url frame")
+        .with_columns(
+            pl.col("url")
+            .pipe(
+                urllib3_resolve_redirects,
+                session=_SESSION,
+                log_group="apple.com redirect",
+            )
+            .alias("redirect_url")
+        )
+    )
+
+    return df.pipe(update_or_append, df_updated, on="id").sort("id")
+
+
 def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
     return with_outlier_column(
         df,
@@ -565,32 +589,40 @@ def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("kind"),
             (pl.col("kind") == "feature-movie").alias("type_movie"),
             pl.col("url"),
+            pl.col("redirect_url"),
             pl.col("appletv_redirect_url"),
             pl.col("any_country"),
-            *[pl.col(f"{c}_country") for c in _COUNTRIES],
+            pl.col("us_country"),
+            # *[pl.col(f"{c}_country") for c in _COUNTRIES],
         ],
         max_count=1_000,
     )
 
 
+_COLUMN_ORDER: list[str] = [
+    "id",
+    "retrieved_at",
+    "type",
+    "kind",
+    "url",
+    "redirect_url",
+    "appletv_redirect_url",
+    "any_country",
+    *[f"{c}_country" for c in _COUNTRIES],
+]
+
+
 def main() -> None:
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         return (
-            df.pipe(_discover_ids)
+            df.select(_COLUMN_ORDER)
+            .pipe(_discover_ids)
             .pipe(_with_outlier_column)
             .pipe(_backfill_metadata)
-            .pipe(_backfill_appletv_redirect_url)
+            # .pipe(_backfill_appletv_redirect_url)
+            .pipe(_backfill_redirect_url)
             .drop("is_outlier")
-            .select(
-                "id",
-                "retrieved_at",
-                "type",
-                "kind",
-                "url",
-                "appletv_redirect_url",
-                "any_country",
-                *[f"{c}_country" for c in _COUNTRIES],
-            )
+            .select(_COLUMN_ORDER)
         )
 
     with pl.StringCache():

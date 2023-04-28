@@ -19,6 +19,7 @@ from polars_requests import (
     response_ok,
     response_text,
     urllib3_requests,
+    urllib3_resolve_redirects,
 )
 
 _POSTMAN_SESSION = Session(connect_timeout=1.0, read_timeout=2.0)
@@ -373,3 +374,26 @@ def test_response_text(responses: pl.Series) -> None:
     )
     assert df.schema == {"response_text": pl.Utf8}
     assert len(df) == len(responses)
+
+
+def test_urllib3_resolve_redirects() -> None:
+    df = pl.LazyFrame(
+        {
+            "url": [
+                "https://itunes.apple.com/"
+                "us/movie/avatar-the-way-of-water/id1676858107?uo=4",
+            ]
+        }
+    )
+    df1 = df.with_columns(
+        pl.col("url")
+        .pipe(urllib3_resolve_redirects, session=Session(), log_group="redirects")
+        .alias("resolved_url"),
+    )
+    df2 = df.with_columns(
+        pl.lit(
+            "https://tv.apple.com/"
+            "us/movie/avatar-the-way-of-water/umc.cmc.5k5xo2espahvd6kcswi2b5oe9"
+        ).alias("resolved_url"),
+    )
+    assert_frame_equal(df1, df2)

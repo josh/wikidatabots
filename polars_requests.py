@@ -10,6 +10,7 @@ from tqdm import tqdm
 from urllib3.exceptions import ResponseError
 
 from actions import log_group as _log_group
+from polars_utils import apply_with_tqdm
 
 
 class _HTTPDict(TypedDict):
@@ -154,6 +155,27 @@ def _urllib3_request(
         resp_headers.append({"name": name, "value": value})
 
     return {"status": response.status, "headers": resp_headers, "data": response.data}
+
+
+def urllib3_resolve_redirects(
+    url: pl.Expr,
+    session: Session,
+    log_group: str,
+) -> pl.Expr:
+    def _resolve_redirect(url: str) -> str:
+        response: urllib3.HTTPResponse = session.poolmanager().request(
+            method="HEAD",
+            url=url,
+            redirect=True,
+        )
+        return response.geturl()  # type: ignore
+
+    return url.pipe(
+        apply_with_tqdm,
+        _resolve_redirect,
+        return_dtype=pl.Utf8,
+        log_group=log_group,
+    )
 
 
 def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:
