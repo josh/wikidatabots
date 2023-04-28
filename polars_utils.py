@@ -158,17 +158,6 @@ def limit(
     return df.map(_limit, streamable=False)
 
 
-def expr_mask(expr: pl.Expr, mask: pl.Expr) -> pl.Expr:
-    def _inner(s: pl.Series) -> pl.Series:
-        return (
-            pl.DataFrame({"": s})
-            .select(pl.when(mask).then(s).otherwise(pl.lit(None)))
-            .to_series()
-        )
-
-    return expr.map(_inner)
-
-
 def is_constant(expr: pl.Expr) -> pl.Expr:
     return (expr == expr.first()).all()
 

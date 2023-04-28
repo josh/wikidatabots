@@ -18,7 +18,6 @@ from polars_utils import (
     compute_stats,
     drop_columns,
     expr_indicies_sorted,
-    expr_mask,
     expr_repl,
     frame_diff,
     groups_of,
@@ -196,14 +195,6 @@ def test_now() -> None:
 @settings(max_examples=5)
 def test_sample(df: pl.LazyFrame) -> None:
     assert len(df.pipe(sample, n=3).collect()) == 3
-
-
-def test_expr_mask() -> None:
-    df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5]}).select(
-        pl.col("a").pipe(expr_mask, pl.element() <= 2),
-    )
-    df2 = pl.DataFrame({"a": [1, 2, None, None, None]})
-    assert_frame_equal(df1, df2)
 
 
 def test_is_constant() -> None:
