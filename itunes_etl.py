@@ -481,7 +481,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
-_REDIRECT_CHECK_LIMIT = 250
+_REDIRECT_CHECK_LIMIT = 500
 
 
 def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
