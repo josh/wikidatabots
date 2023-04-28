@@ -26,9 +26,9 @@ from polars_utils import (
 
 _APPLETV_SESSION = Session(
     connect_timeout=0.5,
-    read_timeout=10.0,
+    read_timeout=20.0,
     retry_statuses={502},
-    retry_count=3,
+    retry_count=4,
     retry_backoff_factor=1.0,
 )
 
