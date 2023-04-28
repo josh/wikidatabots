@@ -505,8 +505,7 @@ def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("url"),
             pl.col("redirect_url"),
             pl.col("any_country"),
-            pl.col("us_country"),
-            # *[pl.col(f"{c}_country") for c in _COUNTRIES],
+            *[pl.col(f"{c}_country") for c in _COUNTRIES],
         ],
         max_count=1_000,
     )
