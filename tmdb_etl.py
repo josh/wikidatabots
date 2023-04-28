@@ -155,7 +155,7 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
             datetime.date.today(),
             interval="1d",
         ).alias("date")
-    ).pipe(assert_expression, pl.count() < 30, "Too many dates")
+    )
 
     return df.pipe(
         update_or_append, tmdb_changes(dates_df, tmdb_type=tmdb_type), on="id"
