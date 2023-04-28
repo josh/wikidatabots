@@ -2,7 +2,7 @@
 
 
 from math import ceil
-from typing import Iterator
+from typing import Callable, Iterator, TypeVar
 
 import polars as pl
 import pytest
@@ -14,7 +14,6 @@ from polars.testing.parametric import column, dataframes, series
 from polars_utils import (
     align_to_index,
     apply_with_tqdm,
-    assert_called_once,
     assert_expression,
     compute_stats,
     drop_columns,
@@ -44,6 +43,21 @@ def setup_module() -> None:
 
 def teardown_module() -> None:
     pl.enable_string_cache(False)
+
+
+T = TypeVar("T")
+
+
+def assert_called_once() -> Callable[[T], T]:
+    calls: int = 1
+
+    def mock(value: T) -> T:
+        nonlocal calls
+        calls -= 1
+        assert calls >= 0, "mock called too many times"
+        return value
+
+    return mock
 
 
 def test_assert_not_null():

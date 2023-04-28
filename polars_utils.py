@@ -9,7 +9,7 @@ import sys
 import xml.etree.ElementTree as ET
 from functools import partial
 from itertools import combinations
-from typing import Any, Callable, Iterable, Iterator, TextIO, TypeVar
+from typing import Any, Callable, Iterable, Iterator, TextIO
 
 import polars as pl
 from tqdm import tqdm
@@ -449,21 +449,6 @@ def _xml_element_field_iter(
                     yield float(child.text)
                 else:
                     yield child.text
-
-
-T = TypeVar("T")
-
-
-def assert_called_once() -> Callable[[T], T]:
-    calls: int = 1
-
-    def mock(value: T) -> T:
-        nonlocal calls
-        calls -= 1
-        assert calls >= 0, "mock called too many times"
-        return value
-
-    return mock
 
 
 def with_outlier_column(

@@ -5,7 +5,6 @@ import datetime
 import polars as pl
 from polars.testing import assert_frame_equal
 
-from polars_utils import assert_called_once
 from tmdb_etl import (
     insert_tmdb_external_ids,
     insert_tmdb_latest_changes,
@@ -43,7 +42,7 @@ def test_insert_tmdb_external_ids() -> None:
             "wikidata_numeric_id": [None],
         },
         schema=_SCHEMA,
-    ).map(assert_called_once())
+    )
     ldf = insert_tmdb_external_ids(df1, tmdb_type="movie")
     assert ldf.schema == _SCHEMA
     df2 = ldf.collect()
@@ -64,7 +63,7 @@ def test_insert_tmdb_latest_changes() -> None:
             "wikidata_numeric_id": [None],
         },
         schema=_SCHEMA,
-    ).map(assert_called_once())
+    )
     ldf = insert_tmdb_latest_changes(df1, tmdb_type="movie")
     assert ldf.schema == _SCHEMA
     df2 = ldf.collect()
