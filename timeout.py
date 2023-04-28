@@ -19,8 +19,3 @@ def iter_until_deadline(
         yield el
         if time.time() >= deadline:
             break
-
-
-def iter_with_timeout(seq: Iterable[T], timeout: float) -> Iterator[T]:
-    deadline = time.time() + timeout
-    return iter_until_deadline(seq, deadline)
