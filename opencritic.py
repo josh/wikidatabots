@@ -12,6 +12,8 @@ from polars_requests import (
     urllib3_requests,
 )
 
+_SAFE_SESSION = Session(ok_statuses={200, 413, 429, 503}, retry_raise_on_status=False)
+
 _SESSION = Session(retry_count=3, retry_backoff_factor=3)
 
 
@@ -28,7 +30,7 @@ def opencritic_ratelimits() -> pl.LazyFrame:
             )
             .pipe(
                 urllib3_requests,
-                session=_SESSION,
+                session=_SAFE_SESSION,
                 log_group="opencritic-api.p.rapidapi.com",
             )
             .alias("response")
@@ -43,6 +45,8 @@ def opencritic_ratelimits() -> pl.LazyFrame:
             (
                 pl.col("response")
                 .pipe(response_header_value, name="X-RateLimit-Searches-Remaining")
+                .cast(pl.Int32)
+                .clip_min(0)
                 .cast(pl.UInt32)
                 .alias("searches_remaining")
             ),
@@ -65,6 +69,8 @@ def opencritic_ratelimits() -> pl.LazyFrame:
             (
                 pl.col("response")
                 .pipe(response_header_value, name="X-RateLimit-Requests-Remaining")
+                .cast(pl.Int32)
+                .clip_min(0)
                 .cast(pl.UInt32)
                 .alias("requests_remaining")
             ),
