@@ -120,7 +120,7 @@ def main() -> None:
         )
 
 
-def fetch_game_qids() -> list[wikidata.QID]:
+def fetch_game_qids() -> list[str]:
     query = """
     SELECT ?item WHERE {
       ?item wdt:P2864 ?opencritic.
