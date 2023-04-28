@@ -252,7 +252,7 @@ def graph_empty_node(graph: Graph, object: AnyObject) -> bool:
 
 
 def compute_qname(uri: URIRef) -> tuple[str, str]:
-    prefix, namespace, name = NS_MANAGER.compute_qname(uri)
+    prefix, _, name = NS_MANAGER.compute_qname(uri)
     return (prefix, name)
 
 
