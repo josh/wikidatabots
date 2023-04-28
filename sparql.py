@@ -206,10 +206,6 @@ def sparql_df(
     return pl.LazyFrame().map(sparql_df_inner, schema=schema)
 
 
-def extract_qid(name: str = "item") -> pl.Expr:
-    return pl.col(name).str.extract(r"^http://www.wikidata.org/entity/(Q\d+)$", 1)
-
-
 def fetch_statements(
     qids: Iterable[QID],
     properties: Iterable[PID],

@@ -6,7 +6,6 @@ from rdflib import URIRef
 import wikidata
 from constants import IMDB_ID_PID, TMDB_MOVIE_ID_PID
 from sparql import (
-    extract_qid,
     fetch_property_statements,
     fetch_statements,
     sample_items,
@@ -90,6 +89,10 @@ def test_sparql_some_value():
     )
 
 
+def _extract_qid(name: str = "item") -> pl.Expr:
+    return pl.col(name).str.extract(r"^http://www.wikidata.org/entity/(Q\d+)$", 1)
+
+
 def test_sparql_df():
     lf = sparql_df(
         """
@@ -102,7 +105,7 @@ def test_sparql_df():
         LIMIT 10
         """,
         columns=["item", "itemLabel"],
-    ).with_columns(extract_qid("item").alias("qid"))
+    ).with_columns(_extract_qid("item").alias("qid"))
     assert lf.schema == {"item": pl.Utf8, "itemLabel": pl.Utf8, "qid": pl.Utf8}
     df = lf.collect()
     assert len(df) == 10
