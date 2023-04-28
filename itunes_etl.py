@@ -9,7 +9,6 @@ import polars as pl
 from polars_requests import (
     Session,
     prepare_request,
-    response_header_value,
     response_text,
     urllib3_requests,
     urllib3_resolve_redirects,
@@ -17,7 +16,6 @@ from polars_requests import (
 from polars_utils import (
     assert_expression,
     expr_indicies_sorted,
-    expr_mask,
     groups_of,
     limit,
     now,
@@ -399,65 +397,6 @@ def fetch_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def itunes_legacy_kind(type: pl.Expr, kind: pl.Expr) -> pl.Expr:
-    return (
-        pl.when(type == "Album")
-        .then("album")
-        .when(type == "TV Show")
-        .then("tv-show")
-        .when(type == "TV Season")
-        .then("tv-season")
-        .when(type == "Movie Bundle")
-        .then("movie-collection")
-        .when(kind == "ebook")
-        .then("book")
-        .when(kind == "feature-movie")
-        .then("movie")
-        .when(kind == "software")
-        .then("app")
-        .when(kind == "podcast")
-        .then("podcast")
-        .otherwise(None)
-    )
-
-
-def itunes_legacy_view_url(
-    id: pl.Expr, type: pl.Expr, kind: pl.Expr, region: str = "us"
-) -> pl.Expr:
-    return (
-        pl.when(itunes_legacy_kind(type=type, kind=kind).is_not_null())
-        .then(
-            pl.format(
-                "https://itunes.apple.com/{}/{}/id{}",
-                pl.lit(region),
-                itunes_legacy_kind(type=type, kind=kind),
-                id,
-            )
-        )
-        .otherwise(None)
-    )
-
-
-_ITUNES_REDIRECT_SESSION = Session(
-    ok_statuses={200, 301, 404},
-    retry_count=3,
-)
-
-
-def appletv_redirect_url(id: pl.Expr, type: pl.Expr, kind: pl.Expr) -> pl.Expr:
-    return (
-        itunes_legacy_view_url(id=id, type=type, kind=kind)
-        .pipe(prepare_request)
-        .pipe(
-            urllib3_requests,
-            session=_ITUNES_REDIRECT_SESSION,
-            log_group="itunes.apple.com",
-        )
-        .pipe(response_header_value, name="Location")
-        .pipe(expr_mask, pl.element().str.starts_with("https://tv.apple.com/"))
-    )
-
-
 _ITUNES_PROPERTY_ID = Literal[
     "P2281",
     "P2850",
@@ -533,31 +472,6 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
 _REDIRECT_CHECK_LIMIT = 250
 
 
-def xxx_backfill_appletv_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
-    df = df.cache()
-
-    df_updated = (
-        df.filter(
-            (pl.col("kind") == "feature-movie")
-            & pl.col("any_country")
-            & pl.col("appletv_redirect_url").is_null()
-        )
-        .select("id", "type", "kind", "appletv_redirect_url")
-        .pipe(
-            limit, soft=_REDIRECT_CHECK_LIMIT, desc="missing appletv_redirect_url frame"
-        )
-        .with_columns(
-            appletv_redirect_url(
-                id=pl.col("id"),
-                type=pl.col("type"),
-                kind=pl.col("kind"),
-            ).alias("appletv_redirect_url")
-        )
-    )
-
-    return df.pipe(update_or_append, df_updated, on="id").sort("id")
-
-
 def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
@@ -590,7 +504,6 @@ def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
             (pl.col("kind") == "feature-movie").alias("type_movie"),
             pl.col("url"),
             pl.col("redirect_url"),
-            pl.col("appletv_redirect_url"),
             pl.col("any_country"),
             pl.col("us_country"),
             # *[pl.col(f"{c}_country") for c in _COUNTRIES],
@@ -606,7 +519,6 @@ _COLUMN_ORDER: list[str] = [
     "kind",
     "url",
     "redirect_url",
-    "appletv_redirect_url",
     "any_country",
     *[f"{c}_country" for c in _COUNTRIES],
 ]
@@ -619,7 +531,6 @@ def main() -> None:
             .pipe(_discover_ids)
             .pipe(_with_outlier_column)
             .pipe(_backfill_metadata)
-            # .pipe(_backfill_appletv_redirect_url)
             .pipe(_backfill_redirect_url)
             .drop("is_outlier")
             .select(_COLUMN_ORDER)
