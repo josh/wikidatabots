@@ -61,7 +61,6 @@ class Session:
     retry_count: int = 0
     retry_allowed_methods: list[str] = field(default_factory=lambda: ["HEAD", "GET"])
     retry_backoff_factor: float = 0.0
-    retry_raise_on_redirect: bool = True
     retry_raise_on_status: bool = True
 
     def __post_init__(self) -> None:
@@ -75,7 +74,7 @@ class Session:
             allowed_methods=self.retry_allowed_methods,
             status_forcelist=self.retry_statuses,
             backoff_factor=self.retry_backoff_factor,
-            raise_on_redirect=self.retry_raise_on_redirect,
+            raise_on_redirect=True,
             raise_on_status=self.retry_raise_on_status,
             respect_retry_after_header=True,
         )
