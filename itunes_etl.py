@@ -396,18 +396,6 @@ def fetch_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def itunes_id_redirects_to_apple_tv(expr: pl.Expr) -> pl.Expr:
-    return (
-        pl.format("https://itunes.apple.com/us/movie/id{}", expr)
-        .pipe(
-            urllib3_resolve_redirects,
-            session=_SESSION,
-            log_group="apple.com redirect",
-        )
-        .str.starts_with("https://tv.apple.com/")
-    )
-
-
 _ITUNES_PROPERTY_ID = Literal[
     "P2281",
     "P2850",
