@@ -247,19 +247,6 @@ def predicate_objects(
         yield predicate, object
 
 
-def graph_value(
-    graph: Graph, subject: AnySubject, predicate: AnyPredicate
-) -> AnyObject | None:
-    value = graph.value(subject, predicate)
-    assert (
-        value is None
-        or isinstance(value, URIRef)
-        or isinstance(value, BNode)
-        or isinstance(value, Literal)
-    )
-    return value
-
-
 def graph_empty_node(graph: Graph, object: AnyObject) -> bool:
     return isinstance(object, BNode) and len(list(graph.predicate_objects(object))) == 0
 
