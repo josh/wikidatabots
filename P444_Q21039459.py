@@ -11,7 +11,6 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
-import wikidata
 from constants import (
     CRITIC_REVIEW_QID,
     DETERMINATION_METHOD_PID,
