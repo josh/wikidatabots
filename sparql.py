@@ -97,10 +97,6 @@ class SlowQueryWarning(Warning):
     pass
 
 
-class TimeoutWarning(Warning):
-    pass
-
-
 class SPARQLQueryError(Exception):
     pass
 
