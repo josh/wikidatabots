@@ -227,13 +227,6 @@ def prepare_request(
     return expr
 
 
-def response_ok(response: pl.Expr) -> pl.Expr:
-    return (
-        (response.struct.field("status") >= 200)
-        & (response.struct.field("status") < 300)
-    ).alias("ok")
-
-
 def response_header_value(response: pl.Expr, name: str) -> pl.Expr:
     return (
         response.struct.field("headers")

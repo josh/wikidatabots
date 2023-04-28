@@ -16,13 +16,19 @@ from polars_requests import (
     prepare_request,
     response_date,
     response_header_value,
-    response_ok,
     response_text,
     urllib3_requests,
     urllib3_resolve_redirects,
 )
 
 _POSTMAN_SESSION = Session(connect_timeout=1.0, read_timeout=2.0)
+
+
+def _response_ok(response: pl.Expr) -> pl.Expr:
+    return (
+        (response.struct.field("status") >= 200)
+        & (response.struct.field("status") < 300)
+    ).alias("ok")
 
 
 def _st_http_status():
@@ -80,7 +86,7 @@ def test_urllib3_requests() -> None:
             .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman"),
         )
         .with_columns(
-            pl.col("response").pipe(response_ok),
+            pl.col("response").pipe(_response_ok),
             pl.col("response").pipe(response_date).alias("date"),
             (
                 pl.col("response")
@@ -340,7 +346,7 @@ def test_prepare_request(
 )
 def test_response_ok(responses: pl.Series) -> None:
     df = pl.DataFrame({"response": responses}).select(
-        pl.col("response").pipe(response_ok)
+        pl.col("response").pipe(_response_ok)
     )
     assert df.schema == {"ok": pl.Boolean}
     assert len(df) == len(responses)
