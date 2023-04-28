@@ -1,55 +1,11 @@
 # pyright: strict
 
-import html
-import itertools
-import json
-from collections.abc import Iterable
-from typing import Any, TypedDict
+from typing import TypedDict
 
-import backoff
 import polars as pl
-import requests
-from bs4 import BeautifulSoup
 
 import appletv
 from sparql import sparql
-from timeout import iter_until_deadline
-from utils import shuffled, tryint
-
-session = requests.Session()
-
-
-@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
-def fetch_movie(url: str) -> tuple[str, int, set[str]] | None:
-    soup = appletv.fetch(url)
-    if not soup:
-        return None
-
-    ld = find_ld(soup)
-    if not ld:
-        return None
-
-    title: str = html.unescape(ld["name"])
-
-    year = tryint(ld.get("datePublished", "")[0:4])
-    if not year:
-        return None
-
-    directors: set[str] = set()
-    for director in ld.get("director", []):
-        directors.add(html.unescape(director["name"]))
-    if not directors:
-        return None
-
-    return (title, year, directors)
-
-
-def find_ld(soup: BeautifulSoup) -> dict[str, Any] | None:
-    for script in soup.find_all("script", {"type": "application/ld+json"}):
-        ld = json.loads(script.string)
-        if ld["@type"] == "Movie":
-            return ld
-    return None
 
 
 class WikidataSearchResult(TypedDict):
@@ -60,7 +16,7 @@ class WikidataSearchResult(TypedDict):
 def wikidata_search(
     title: str,
     year: int,
-    directors: Iterable[str],
+    director: str,
 ) -> WikidataSearchResult | None:
     query = "SELECT DISTINCT ?item ?appletv WHERE {\n"
 
@@ -100,7 +56,7 @@ def wikidata_search(
         + " || ".join(
             [
                 '(STR(?directorLabel)) = "{}"'.format(d.replace('"', '\\"'))
-                for d in directors
+                for d in [director]  # TODO: flatten to first name
             ]
         )
         + ")"
@@ -138,7 +94,7 @@ def matched_appletv_ids() -> set[appletv.ID]:
     return ids
 
 
-def main():
+def main() -> None:
     limit = 500
     skip_ids = matched_appletv_ids()
 
@@ -147,29 +103,45 @@ def main():
             "s3://wikidatabots/appletv/movie/sitemap.parquet",
             storage_options={"anon": True},
         )
-        .filter(pl.col("country") == "us")
-        .select(["loc", "id"])
+        .filter((pl.col("country") == "us") & pl.col("in_latest_sitemap"))
+        .select(["id", "loc"])
     )
 
-    def candiate_urls():
-        for url in shuffled(appletv.fetch_new_sitemap_urls())[0:250]:
-            id = appletv.parse_movie_url(url)
-            if not id or id in skip_ids:
-                continue
-            yield (url, id)
+    jsonld_df = (
+        pl.scan_parquet(
+            "s3://wikidatabots/appletv/movie/jsonld.parquet",
+            storage_options={"anon": True},
+        )
+        .filter(pl.col("jsonld_success"))
+        .select(["loc", "title", "published_at", "director"])
+    )
 
-        for url, id in sitemap_df.collect().sample(250).iter_rows():
-            assert isinstance(url, str)
-            assert isinstance(id, str)
-            if id in skip_ids:
-                continue
-            yield (url, id)
+    sitemap_df = (
+        sitemap_df.join(jsonld_df, on="loc", how="left")
+        .with_columns(
+            pl.col("id").is_in(skip_ids).alias("already_matched"),
+        )
+        .filter(
+            pl.col("already_matched").is_not()
+            & pl.col("title").is_not_null()
+            & pl.col("published_at").is_not_null()
+            & pl.col("director").is_not_null()
+        )
+        .select("id", "title", "published_at", "director")
+        .collect()
+    )
 
-    for url, id in iter_until_deadline(itertools.islice(candiate_urls(), limit)):
-        info = fetch_movie(url)
-        if not info:
-            continue
-        result = wikidata_search(*info)
+    for row in sitemap_df.sample(limit).iter_rows(named=True):
+        id = row["id"]
+        title = row["title"]
+        year = row["published_at"].year
+        director = row["director"]
+
+        assert isinstance(title, str)
+        assert isinstance(year, int)
+        assert isinstance(director, str)
+
+        result = wikidata_search(title, year, director)
         if result and not result["appletv"]:
             print(f'wd:{result["qid"]} wdt:P9586 "{id}" .')
 

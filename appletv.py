@@ -1,9 +1,7 @@
 # pyright: strict
 
-import csv
 import json
 import re
-from collections.abc import Iterator
 from typing import Any, Literal, NewType
 
 import backoff
@@ -25,17 +23,6 @@ def id(id: str) -> ID:
 def tryid(id: Any) -> ID | None:
     if type(id) is str and re.fullmatch(IDPattern, id):
         return ID(id)
-    return None
-
-
-def parse_movie_url(url: str) -> ID | None:
-    m = re.match(
-        r"https://tv.apple.com/us/(movie)/([^/]+/)?(umc.cmc.[0-9a-z]+)",
-        url,
-    )
-    if m:
-        assert m.group(1) == "movie"
-        return ID(m.group(3))
     return None
 
 
@@ -139,18 +126,3 @@ def extract_itunes_id(soup: BeautifulSoup) -> int | None:
                             return int(m.group(1))
 
     return None
-
-
-def fetch_new_sitemap_urls() -> Iterator[str]:
-    r = requests.get("https://github.com/josh/mixnmatch-catalogs/commit/main.diff")
-    r.encoding = "utf-8"
-    r.raise_for_status()
-
-    def new_rows() -> Iterator[str]:
-        for line in r.iter_lines(decode_unicode=True):
-            if line and line.startswith("+umc.cmc"):
-                yield line[1:]
-
-    for _id, name, _desc, url, _type in csv.reader(new_rows()):
-        if name:
-            yield url
