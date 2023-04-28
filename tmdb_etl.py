@@ -23,7 +23,6 @@ from polars_utils import (
     limit,
     update_or_append,
     update_parquet,
-    with_outlier_column,
 )
 
 TMDB_TYPE = Literal["movie", "tv", "person"]
@@ -244,26 +243,6 @@ def tmdb_find(
     )
 
 
-_FOUR_WEEKS_AGO = datetime.date.today() - datetime.timedelta(weeks=4)
-
-
-def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
-    return with_outlier_column(
-        df,
-        [
-            pl.col("date"),
-            pl.col("adult"),
-            pl.col("in_export"),
-            pl.col("success"),
-            pl.col("retrieved_at") < _FOUR_WEEKS_AGO,
-            pl.col("imdb_numeric_id"),
-            pl.col("tvdb_id"),
-            pl.col("wikidata_numeric_id"),
-        ],
-        max_count=1_000,
-    )
-
-
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
 _OUTDATED_LIMIT = (2_500, 10_000)
@@ -273,9 +252,7 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     df = df.cache()
 
     new_external_ids_df = (
-        df.pipe(_with_outlier_column)
-        .filter(_CHANGED | _NEVER_FETCHED | pl.col("is_outlier"))
-        .drop("is_outlier")
+        df.filter(_CHANGED | _NEVER_FETCHED)
         .pipe(limit, _OUTDATED_LIMIT, desc="outdated")
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
