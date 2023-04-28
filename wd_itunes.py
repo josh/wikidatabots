@@ -68,7 +68,7 @@ _DEPRECATE_RDF_STATEMENT = pl.format(
 ).alias("rdf_statement")
 
 
-def _delisted_itunes_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
+def xxx_delisted_itunes_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         sparql_df(_DEPRECATED_QUERY, schema={"statement": pl.Utf8, "id": pl.UInt64})
         .join(itunes_df, on="id")
@@ -98,7 +98,7 @@ def main() -> None:
     df = pl.concat(
         [
             _itunes_from_appletv_ids(itunes_df),
-            _delisted_itunes_ids(itunes_df),
+            # _delisted_itunes_ids(itunes_df),
         ]
     ).pipe(limit, _STATEMENT_LIMIT, desc="rdf_statements")
 
