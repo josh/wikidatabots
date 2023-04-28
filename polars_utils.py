@@ -87,10 +87,6 @@ def expr_repl(expr: pl.Expr, strip_alias: bool = False) -> str:
     return f"pl.{expr_s}"
 
 
-def filter_columns(df: pl.DataFrame, predicate: pl.Expr) -> pl.DataFrame:
-    return df.select(_flagged_columns(df, predicate))
-
-
 def drop_columns(df: pl.DataFrame, predicate: pl.Expr) -> pl.DataFrame:
     return df.drop(_flagged_columns(df, predicate))
 

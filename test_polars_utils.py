@@ -20,7 +20,6 @@ from polars_utils import (
     expr_indicies_sorted,
     expr_mask,
     expr_repl,
-    filter_columns,
     frame_diff,
     groups_of,
     is_constant,
@@ -183,9 +182,6 @@ def test_expr_repl() -> None:
     ),
 )
 def test_filter_drop_columns_properties(df: pl.DataFrame, predicate: pl.Expr) -> None:
-    df2 = filter_columns(df, predicate)
-    assert set(df2.columns).issubset(set(df.columns))
-
     df2 = drop_columns(df, predicate)
     assert set(df2.columns).issubset(set(df.columns))
 
