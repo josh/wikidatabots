@@ -334,6 +334,10 @@ _RDF = rdflib.Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 _WIKIDATA_LDF_SESSION = Session()
 
 
+def xxx_fetch_property_statements(pid: str) -> pl.LazyFrame:
+    return fetch_property_statements(pid)
+
+
 def fetch_property_statements(pid: str) -> pl.LazyFrame:
     predicate = f"http://www.wikidata.org/prop/statement/{pid}"
 
