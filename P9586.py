@@ -5,7 +5,7 @@ from typing import TypedDict
 import polars as pl
 
 import appletv
-from sparql import sparql
+from sparql import sparql, sparql_df
 
 
 class WikidataSearchResult(TypedDict):
@@ -85,18 +85,20 @@ def wikidata_search(
     return None
 
 
-def matched_appletv_ids() -> set[appletv.ID]:
-    query = "SELECT DISTINCT ?appletv WHERE { ?statement ps:P9586 ?appletv. }"
-    ids: set[appletv.ID] = set()
-    for result in sparql(query):
-        if id := appletv.tryid(result["appletv"]):
-            ids.add(id)
-    return ids
+_ID_QUERY = """
+SELECT DISTINCT ?id WHERE { ?statement ps:P9586 ?id. }
+"""
 
 
 def main() -> None:
     limit = 500
-    skip_ids = matched_appletv_ids()
+
+    wd_df = (
+        sparql_df(_ID_QUERY, columns=["id"])
+        .select(pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$"))
+        .drop_nulls()
+        .with_columns(pl.lit(True).alias("wd_exists"))
+    )
 
     sitemap_df = (
         pl.scan_parquet(
@@ -118,11 +120,9 @@ def main() -> None:
 
     sitemap_df = (
         sitemap_df.join(jsonld_df, on="loc", how="left")
-        .with_columns(
-            pl.col("id").is_in(skip_ids).alias("already_matched"),
-        )
+        .join(wd_df, on="id", how="left")
         .filter(
-            pl.col("already_matched").is_not()
+            pl.col("wd_exists").is_null()
             & pl.col("title").is_not_null()
             & pl.col("published_at").is_not_null()
             & pl.col("director").is_not_null()
