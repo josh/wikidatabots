@@ -6,14 +6,12 @@ from collections import defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
 
-import polars as pl
 import pywikibot
 import pywikibot.config
 from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
 from actions import print_warning
-from constants import INSTANCE_OF_PID
 from page import blocked_qids
 from pwb import login
 from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
@@ -271,45 +269,6 @@ def get_property_page(pid: str) -> pywikibot.PropertyPage:
 
 
 @cache
-def get_property_type_constraints(property: pywikibot.PropertyPage) -> set[str]:
-    pid: str = property.getID()
-    qids: list[str] = (
-        pl.scan_parquet(
-            "s3://wikidatabots/wikidata/property_class_constraints.parquet",
-            storage_options={"anon": True},
-        )
-        .filter(pl.col("pid") == pid)
-        .select("class_qid")
-        .collect()
-        .to_series()
-        .to_list()
-    )
-
-    if len(qids) == 0:
-        print_warning("ContraintsMissing", f"No type constraints: {pid}")
-
-    return set(qids)
-
-
-def check_item_property_constraints(
-    item: pywikibot.ItemPage,
-    property: pywikibot.PropertyPage,
-) -> None:
-    valid_instance_of_qids = get_property_type_constraints(property)
-    ok = False
-
-    if INSTANCE_OF_PID in item.claims:
-        for claim in item.claims[INSTANCE_OF_PID]:
-            if not isinstance(claim.target, pywikibot.ItemPage):
-                continue
-            if claim.target.getID() in valid_instance_of_qids:
-                ok = True
-
-    if not ok:
-        print_warning("BadClaim", f"Constraint violation: {item.id} / {property.id}")
-
-
-@cache
 def resolve_claim_guid(guid: str) -> pywikibot.Claim:
     qid, hash = guid.split("-", 1)
     snak = f"{qid}${hash}"
@@ -359,7 +318,6 @@ def item_append_claim_target(
     claim: pywikibot.Claim = property.newClaim()
     claim.setTarget(target)
     item.claims[pid].append(claim)
-    check_item_property_constraints(item, property)
 
     return (True, claim)
 
