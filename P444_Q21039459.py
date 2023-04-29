@@ -103,8 +103,7 @@ def main() -> None:
         .filter(
             pl.col("top_critic_score").is_not_null()
             & pl.col("latest_review_date").is_not_null()
-            & pl.col("reviews_count")
-            > 0
+            & (pl.col("reviews_count") > 0)
         )
         .collect()
     )
