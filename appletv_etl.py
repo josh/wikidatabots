@@ -8,7 +8,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from appletv import extract_itunes_id
+from appletv import extract_itunes_id, has_not_found_text
 from polars_requests import (
     Session,
     prepare_request,
@@ -44,7 +44,7 @@ _BROWSER_HEADERS: dict[str, str | pl.Expr] = {
     "User-Agent": _USER_AGENT,
 }
 
-Type = Literal["episode", "movie", "show"]
+_TYPE = Literal["movie", "episode", "show"]
 
 _SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
@@ -52,7 +52,7 @@ _SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
 _SITEINDEX_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEINDEX_SCHEMA))
 
 
-def siteindex(type: Type) -> pl.LazyFrame:
+def siteindex(type: _TYPE) -> pl.LazyFrame:
     return (
         pl.LazyFrame({"type": [type]})
         .select(
@@ -92,7 +92,7 @@ def _head(df: pl.LazyFrame, n: int | None) -> pl.LazyFrame:
         return df
 
 
-def sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
+def sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     return (
         siteindex(type)
         .pipe(_head, n=limit)
@@ -150,7 +150,7 @@ _LOC_PATTERN = (
 )
 
 
-def cleaned_sitemap(type: Type, limit: int | None = None) -> pl.LazyFrame:
+def cleaned_sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     # TODO: str.extract should return a struct
     return (
         sitemap(type, limit=limit)
@@ -298,6 +298,37 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
     )
 
 
+_REGIONS = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "cn"]
+
+
+def not_found(type: _TYPE, id: str) -> bool:
+    df = (
+        pl.LazyFrame({"region": _REGIONS})
+        .with_columns(
+            pl.format(
+                "https://tv.apple.com/{}/{}/{}",
+                pl.col("region"),
+                pl.lit(type),
+                pl.lit(id),
+            )
+            .pipe(prepare_request, headers=_BROWSER_HEADERS)
+            .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(response_text)
+            .apply(has_not_found_text, return_dtype=pl.Boolean)
+            .alias("not_found")
+        )
+        .select(
+            pl.col("not_found").all().alias("all_not_found"),
+        )
+        .collect()
+    )
+
+    result = df.item()
+    assert isinstance(result, bool)
+
+    return result
+
+
 def append_jsonld_changes(
     sitemap_df: pl.LazyFrame,
     jsonld_df: pl.LazyFrame,
@@ -319,7 +350,7 @@ _OUTDATED_EXPR = pl.lit(False).alias("in_latest_sitemap")
 _LATEST_EXPR = pl.lit(True).alias("in_latest_sitemap")
 
 
-def main_sitemap(type: Type) -> None:
+def main_sitemap(type: _TYPE) -> None:
     def update_sitemap(df: pl.LazyFrame) -> pl.LazyFrame:
         return (
             df.with_columns(_OUTDATED_EXPR)

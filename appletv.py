@@ -4,11 +4,7 @@ import json
 import re
 from typing import Any, Literal, NewType
 
-import requests
 from bs4 import BeautifulSoup
-
-session = requests.Session()
-
 
 ID = NewType("ID", str)
 IDPattern = re.compile("umc.cmc.[a-z0-9]{22,25}")
@@ -25,39 +21,11 @@ def tryid(id: Any) -> ID | None:
     return None
 
 
-user_agent = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/605.1.15 (KHTML, like Gecko) "
-    "Version/14.1.1 Safari/605.1.15"
-)
-
-request_headers = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-us",
-    "User-Agent": user_agent,
-}
-
-
-regions = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn"]
-
 Type = Literal["movie", "episode", "show"]
 
 
-def all_not_found(type: Type, id: ID) -> bool:
-    for region in regions:
-        url = f"https://tv.apple.com/{region}/{type}/{id}"
-        if not not_found(url=url):
-            return False
-    return True
-
-
-def not_found(url: str) -> bool:
-    r = session.get(url, headers=request_headers)
-    r.raise_for_status()
-
-    html = r.text
-    soup = BeautifulSoup(html, "html.parser")
-
+def has_not_found_text(text: str) -> bool:
+    soup = BeautifulSoup(text, "html.parser")
     if soup.find("div", {"class": "not-found"}):
         return True
     else:

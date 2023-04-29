@@ -2,6 +2,7 @@
 
 import appletv
 import sparql
+from appletv_etl import not_found
 from constants import (
     APPLE_TV_MOVIE_ID_PID,
     REASON_FOR_DEPRECATED_RANK_PID,
@@ -12,8 +13,8 @@ from timeout import iter_until_deadline
 from wikidata import page_qids
 
 
-def main():
-    assert not appletv.all_not_found(
+def main() -> None:
+    assert not not_found(
         type="movie", id=appletv.id("umc.cmc.o5z5ztufuu3uv8lx7m0jcega")
     )
 
@@ -32,7 +33,7 @@ def main():
             if not id:
                 continue
 
-            if appletv.all_not_found(type="movie", id=id):
+            if not_found(type="movie", id=id):
                 print(
                     f"{statement.n3()} "
                     f"wikibase:rank wikibase:DeprecatedRank ; "
