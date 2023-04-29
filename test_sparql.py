@@ -1,64 +1,8 @@
 # pyright: strict
 
 import polars as pl
-from rdflib import URIRef
 
-from sparql import fetch_property_statements, sparql, sparql_df
-
-_IMDB_ID_PID = "P345"
-
-
-def test_sparql():
-    results = sparql(
-        """
-        SELECT ?item ?itemLabel WHERE {
-          ?item wdt:P31 wd:Q146.
-          SERVICE wikibase:label {
-            bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
-          }
-        }
-        LIMIT 10
-        """
-    )
-    assert len(results) == 10
-    assert results[0]["item"]
-    assert type(results[0]["item"]) is str
-    assert results[0]["item"].startswith("Q")
-    assert results[0]["itemLabel"]
-
-
-def test_sparql_property():
-    results = sparql(
-        """
-        SELECT ?statement WHERE {
-          wd:Q1 p:P580 ?statement.
-        }
-        """
-    )
-    assert len(results) == 1
-    uri = results[0]["statement"].toPython()
-    assert uri == (
-        "http://www.wikidata.org/entity/statement/"
-        "Q1-789eef0c-4108-cdda-1a63-505cdd324564"
-    )
-
-
-def test_sparql_some_value():
-    results = sparql(
-        """
-        SELECT ?gender WHERE {
-          wd:Q100330360 wdt:P21 ?gender.
-          FILTER(wikibase:isSomeValue(?gender))
-        }
-        LIMIT 1
-        """
-    )
-    assert len(results) == 1
-    result = results[0]
-    assert result
-    assert result["gender"] == URIRef(
-        "http://www.wikidata.org/.well-known/genid/804129ad66d7a442efd976927d7a6fb0"
-    )
+from sparql import fetch_property_statements, sparql_df
 
 
 def _extract_qid(name: str = "item") -> pl.Expr:

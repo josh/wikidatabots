@@ -1,18 +1,11 @@
 # pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
 
-"""
-Small API wrapper for interacting with Wikidata's SPARQL query service.
-<https://query.wikidata.org/>
-"""
-
-import json
 import logging
 import math
 import os
 import platform
 import time
 from threading import Lock
-from typing import Any, Literal, TypedDict
 
 import polars as pl
 import rdflib
@@ -47,119 +40,12 @@ _USER_AGENT_PARTS.append(f"Python/{platform.python_version()}")
 _USER_AGENT_STR = " ".join(_USER_AGENT_PARTS)
 
 
-class SPARQLHead(TypedDict):
-    vars: list[str]
-
-
-class SPARQLIRIResult(TypedDict):
-    type: Literal["uri"]
-    value: str
-
-
-SPARQLLiteralValue = object
-
-
-class SPARQLLiteralResult(TypedDict):
-    type: Literal["literal"]
-    value: SPARQLLiteralValue
-
-
-class SPARQLLiteralWithDatatypeResult(TypedDict):
-    type: Literal["literal"]
-    value: SPARQLLiteralValue
-    # datatype: str
-
-
-class SPARQLBlankNodeResult(TypedDict):
-    type: Literal["bnode"]
-
-
-SPARQLResult = (
-    SPARQLIRIResult
-    | SPARQLLiteralResult
-    | SPARQLLiteralWithDatatypeResult
-    | SPARQLBlankNodeResult
-)
-
-
-class SPARQLResults(TypedDict):
-    bindings: list[dict[str, SPARQLResult]]
-
-
-class SPARQLDocument(TypedDict):
-    head: SPARQLHead
-    results: SPARQLResults
-
-
 class SlowQueryWarning(Warning):
     pass
 
 
 class SPARQLQueryError(Exception):
     pass
-
-
-def sparql(query: str) -> list[Any]:
-    """
-    Execute SPARQL query on Wikidata. Returns simplified results array.
-    """
-
-    with _LOCK:
-        start = time.time()
-        http = _WIKIDATA_SPARQL_SESSION.poolmanager()
-        r = http.request(
-            "POST",
-            "https://query.wikidata.org/sparql",
-            fields={"query": query},
-            headers={
-                "Accept": "application/sparql-results+json",
-                "User-Agent": _USER_AGENT_STR,
-            },
-            encode_multipart=False,
-        )
-        duration = time.time() - start
-
-    response_data = r.data
-    assert isinstance(response_data, bytes)
-
-    if r.status != 200:
-        raise SPARQLQueryError(f"Query errored with status {r.status}:\n{query}")
-
-    data: SPARQLDocument = json.loads(response_data)
-    vars = data["head"]["vars"]
-    bindings = data["results"]["bindings"]
-
-    result_count = len(bindings)
-    logging.info(f"sparql: {result_count:,} results in {duration:,.2f}s")
-
-    def results():
-        for binding in bindings:
-            yield {var: format_value(binding.get(var)) for var in vars}
-
-    def format_value(obj: SPARQLResult | None):
-        if obj is None:
-            return None
-        elif obj["type"] == "literal":
-            return obj["value"]
-        elif obj["type"] == "uri":
-            if obj["value"].startswith("http://www.wikidata.org/entity/Q"):
-                return obj["value"][31:]
-            elif obj["value"].startswith("http://www.wikidata.org/prop/P"):
-                return obj["value"][29:]
-            elif obj["value"] == "http://wikiba.se/ontology#DeprecatedRank":
-                return "deprecated"
-            elif obj["value"] == "http://wikiba.se/ontology#NormalRank":
-                return "normal"
-            elif obj["value"] == "http://wikiba.se/ontology#PreferredRank":
-                return "preferred"
-            else:
-                return URIRef(obj["value"])
-        elif obj["type"] == "bnode":
-            return None
-        else:
-            return None
-
-    return list(results())
 
 
 def _sparql_csv(query: str, _stacklevel: int = 0) -> bytes:
