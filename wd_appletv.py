@@ -1,87 +1,66 @@
 # pyright: strict
 
-from typing import TypedDict
 
 import polars as pl
 
-import appletv
-from sparql import sparql, sparql_df
+from sparql import sparql_df
+
+_SEARCH_QUERY = """
+SELECT DISTINCT ?item ?appletv WHERE {
+  SERVICE wikibase:mwapi {
+    bd:serviceParam wikibase:endpoint "www.wikidata.org";
+                    wikibase:api "EntitySearch";
+                    mwapi:search "<<TITLE>>";
+                    mwapi:language "en".
+    ?item wikibase:apiOutputItem mwapi:item.
+  }
+
+  VALUES ?classes {
+    wd:Q11424 # film
+    wd:Q506240 # television film
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?classes.
+
+  OPTIONAL { ?item rdfs:label ?titleLabel. }
+  OPTIONAL { ?item skos:altLabel ?titleAltLabel. }
+  FILTER(((LCASE(STR(?titleLabel))) = LCASE("<<TITLE>>")) ||
+        ((LCASE(STR(?titleAltLabel))) = LCASE("<<TITLE>>")))
+
+  ?item wdt:P577 ?date.
+  FILTER(
+    ((xsd:integer(YEAR(?date))) = <<YEAR>> ) ||
+    ((xsd:integer(YEAR(?date))) = <<NEXT_YEAR>> )
+  )
+
+  ?item wdt:P57 ?director.
+  ?director rdfs:label ?directorLabel.
+  FILTER((STR(?directorLabel)) = "<<DIRECTOR>>")
+
+  OPTIONAL { ?item wdt:P9586 ?appletv. }
+}
+LIMIT 2
+"""
 
 
-class WikidataSearchResult(TypedDict):
-    qid: str
-    appletv: appletv.ID | None
-
-
-def wikidata_search(
-    title: str,
-    year: int,
-    director: str,
-) -> WikidataSearchResult | None:
-    query = "SELECT DISTINCT ?item ?appletv WHERE {\n"
-
-    query += """
-      SERVICE wikibase:mwapi {
-        bd:serviceParam wikibase:endpoint "www.wikidata.org";
-                        wikibase:api "EntitySearch";
-                        mwapi:search "<<TITLE>>";
-                        mwapi:language "en".
-        ?item wikibase:apiOutputItem mwapi:item.
-      }
-
-      OPTIONAL { ?item rdfs:label ?titleLabel. }
-      OPTIONAL { ?item skos:altLabel ?titleAltLabel. }
-      FILTER(((LCASE(STR(?titleLabel))) = LCASE("<<TITLE>>")) ||
-            ((LCASE(STR(?titleAltLabel))) = LCASE("<<TITLE>>")))
-    """.replace(
-        "<<TITLE>>", title.replace('"', '\\"')
+def wikidata_search(title: str, year: int, director: str) -> str | None:
+    query = (
+        _SEARCH_QUERY.replace("<<TITLE>>", title.replace('"', '\\"'))
+        .replace("<<YEAR>>", str(year))
+        .replace("<<NEXT_YEAR>>", str(year + 1))
+        .replace("<<DIRECTOR>>", director.replace('"', '\\"'))
     )
-
-    years = [year, year - 1]
-    query += """
-    ?item wdt:P577 ?date.
-    """
-    query += (
-        "FILTER("
-        + " || ".join([f"((xsd:integer(YEAR(?date))) = {y} )" for y in years])
-        + ")"
-    )
-
-    query += """
-    ?item wdt:P57 ?director.
-    ?director rdfs:label ?directorLabel.
-    """
-    query += (
-        "FILTER("
-        + " || ".join(
-            [
-                '(STR(?directorLabel)) = "{}"'.format(d.replace('"', '\\"'))
-                for d in [director]  # TODO: flatten to first name
-            ]
+    df = (
+        sparql_df(query, columns=["item", "appletv"])
+        .with_columns(
+            (pl.count() == 1).alias("exclusive"),
+            pl.col("appletv").is_null().all().alias("no_appletv"),
         )
-        + ")"
+        .filter(pl.col("exclusive") & pl.col("no_appletv"))
+        .select("item")
+        .collect()
     )
-
-    query += """
-    VALUES ?classes {
-      wd:Q11424
-      wd:Q506240
-    }
-    ?item (wdt:P31/(wdt:P279*)) ?classes.
-
-    OPTIONAL { ?item wdt:P9586 ?appletv }
-    """
-
-    query += "\n} LIMIT 2"
-
-    Result = TypedDict("Result", {"item": str, "appletv": str})
-    results: list[Result] = sparql(query)
-
-    if len(results) == 1:
-        result = results[0]
-        qid = result["item"]
-        appletv_id = appletv.tryid(result["appletv"])
-        return WikidataSearchResult(qid=qid, appletv=appletv_id)
+    if len(df):
+        return df.item()
     return None
 
 
@@ -141,9 +120,8 @@ def main() -> None:
         assert isinstance(year, int)
         assert isinstance(director, str)
 
-        result = wikidata_search(title, year, director)
-        if result and not result["appletv"]:
-            print(f'wd:{result["qid"]} wdt:P9586 "{id}" .')
+        if item := wikidata_search(title, year, director):
+            print(f'<{item}> wdt:P9586 "{id}" .')
 
 
 if __name__ == "__main__":
