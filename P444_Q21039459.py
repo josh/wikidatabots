@@ -25,7 +25,7 @@ from constants import (
     STATED_IN_PID,
 )
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
-from polars_utils import position_weighted_shuffled
+from polars_utils import apply_with_tqdm, position_weighted_shuffled
 from sparql import sparql_df
 from utils import tryint
 from wikidata import page_qids
@@ -112,7 +112,12 @@ def main() -> None:
         .head(requests_limit)
         .with_columns(
             pl.col("qid")
-            .apply(find_opencritic_id)
+            .pipe(
+                apply_with_tqdm,
+                find_opencritic_id,
+                return_dtype=pl.Int64,
+                log_group="find_opencritic_id",
+            )
             .cast(pl.UInt32)
             .alias("opencritic_id"),
         )

@@ -170,7 +170,12 @@ def cleaned_sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
             (
                 pl.col("loc")
                 .str.extract(_LOC_PATTERN, 3)
-                .apply(urllib.parse.unquote, return_dtype=pl.Utf8)
+                .pipe(
+                    apply_with_tqdm,
+                    urllib.parse.unquote,
+                    return_dtype=pl.Utf8,
+                    log_group="urllib.parse.unquote",
+                )
                 .alias("slug")
             ),
             pl.col("loc").str.extract(_LOC_PATTERN, 4).alias("id"),
@@ -203,7 +208,14 @@ _JSONLD_DTYPE = pl.Struct(
 
 _JSONLD_SUCCESS_EXPR = pl.col("jsonld").struct.field("name").is_not_null()
 _JSONLD_TITLE_EXPR = (
-    pl.col("jsonld").struct.field("name").apply(html.unescape, return_dtype=pl.Utf8)
+    pl.col("jsonld")
+    .struct.field("name")
+    .pipe(
+        apply_with_tqdm,
+        html.unescape,
+        return_dtype=pl.Utf8,
+        log_group="html.unescape",
+    )
 )
 _JSONLD_PUBLISHED_AT_EXPR = (
     pl.col("jsonld")
@@ -215,7 +227,12 @@ _JSONLD_DIRECTOR_EXPR = (
     .struct.field("director")
     .arr.first()
     .struct.field("name")
-    .apply(html.unescape, return_dtype=pl.Utf8)
+    .pipe(
+        apply_with_tqdm,
+        html.unescape,
+        return_dtype=pl.Utf8,
+        log_group="html.unescape",
+    )
 )
 _RESPONSE_DATE_EXPR = (
     pl.col("response").pipe(response_date).cast(pl.Datetime(time_unit="ns"))
