@@ -8,5 +8,5 @@ pywikibot==8.1.2
 rdflib===6.3.2
 s3fs==2023.4.0
 tqdm==4.65.0
-urllib3==1.26.15
+urllib3==2.0.0
 wikitextparser==0.51.2
