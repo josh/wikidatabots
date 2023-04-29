@@ -5,8 +5,13 @@ from typing import TypedDict
 
 import polars as pl
 
+from appletv_etl import not_found
 from polars_utils import apply_with_tqdm, sample
 from sparql import sparql_df
+
+_SEARCH_LIMIT = 250
+_NOT_FOUND_LIMIT = 25
+
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item ?appletv WHERE {
@@ -77,20 +82,18 @@ def _wikidata_search(row: _SearchInput) -> str | None:
     return None
 
 
-_ID_QUERY = """
+_ANY_ID_QUERY = """
 SELECT DISTINCT ?id WHERE { ?statement ps:P9586 ?id. }
 """
 
-_RDF_STATEMENT = pl.format('<{}> wdt:P9586 "{}" .', pl.col("item"), pl.col("id")).alias(
-    "rdf_statement"
-)
+_ADD_RDF_STATEMENT = pl.format(
+    '<{}> wdt:P9586 "{}" .', pl.col("item"), pl.col("id")
+).alias("rdf_statement")
 
 
-def find_movie_via_search() -> pl.LazyFrame:
-    limit = 500
-
+def _find_movie_via_search() -> pl.LazyFrame:
     wd_df = (
-        sparql_df(_ID_QUERY, columns=["id"])
+        sparql_df(_ANY_ID_QUERY, columns=["id"])
         .select(pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$"))
         .drop_nulls()
         .with_columns(pl.lit(True).alias("wd_exists"))
@@ -123,7 +126,7 @@ def find_movie_via_search() -> pl.LazyFrame:
             & pl.col("published_at").is_not_null()
             & pl.col("director").is_not_null()
         )
-        .pipe(sample, n=limit)
+        .pipe(sample, n=_SEARCH_LIMIT)
         .with_columns(
             pl.struct(
                 pl.col("title"),
@@ -139,16 +142,47 @@ def find_movie_via_search() -> pl.LazyFrame:
             .alias("item"),
         )
         .filter(pl.col("item").is_not_null())
-        .select(_RDF_STATEMENT)
+        .select(_ADD_RDF_STATEMENT)
     )
 
     return sitemap_df
 
 
+_ID_QUERY = """
+SELECT ?statement ?id WHERE {
+  ?statement ps:P9586 ?id.
+  ?statement wikibase:rank ?rank.
+  FILTER(?rank != wikibase:DeprecatedRank)
+}
+"""
+
+_DEPRECATE_RDF_STATEMENT = pl.format(
+    "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
+    'wikidatabots:editSummary "Deprecate Apple TV movie ID delisted from store" .',
+    pl.col("statement"),
+).alias("rdf_statement")
+
+
+def _find_movie_not_found() -> pl.LazyFrame:
+    return (
+        sparql_df(_ID_QUERY, columns=["statement", "id"])
+        .with_columns(
+            pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$").alias("id"),
+        )
+        .drop_nulls()
+        .select("statement", "id")
+        .pipe(sample, n=_NOT_FOUND_LIMIT)
+        .pipe(not_found, type="movie")
+        .filter(pl.col("all_not_found"))
+        .select(_DEPRECATE_RDF_STATEMENT)
+    )
+
+
 def main() -> None:
     df = pl.concat(
         [
-            find_movie_via_search(),
+            _find_movie_via_search(),
+            _find_movie_not_found(),
         ]
     )
 
