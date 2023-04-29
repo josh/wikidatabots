@@ -4,7 +4,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
-from typing import TypedDict, TypeVar
+from typing import TypeVar
 
 import polars as pl
 import pywikibot
@@ -25,9 +25,9 @@ from constants import (
     STATED_IN_PID,
 )
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
-from page import filter_blocked_qids
+from page import blocked_qids
 from polars_utils import position_weighted_shuffled
-from sparql import sparql
+from sparql import sparql_df
 from utils import tryint
 
 SITE = pywikibot.Site("wikidata", "wikidata")
@@ -71,6 +71,20 @@ pywikibot.config.usernames["wikidata"]["wikidata"] = os.environ["WIKIDATA_USERNA
 pywikibot.config.password_file = "user-password.py"
 pywikibot.config.put_throttle = 0
 
+_QUERY = """
+SELECT ?item WHERE {
+    ?item wdt:P2864 ?opencritic.
+    OPTIONAL {
+    ?item p:P444 ?statement.
+    ?statement pq:P447 wd:Q21039459.
+    ?statement pq:P585 ?pointInTime.
+    }
+    FILTER((?pointInTime < NOW() - "P7D"^^xsd:duration) || !(BOUND(?pointInTime)))
+    BIND(IF(BOUND(?pointInTime), ?pointInTime, NOW()) AS ?timestamp)
+}
+ORDER BY DESC (?timestamp)
+"""
+
 
 def main() -> None:
     ratelimits_df = opencritic_ratelimits().collect()
@@ -82,11 +96,17 @@ def main() -> None:
         logging.warning("No available API requests for the day")
         return
 
-    qids = fetch_game_qids()
-
     df = (
-        pl.LazyFrame({"qid": qids})
-        .select(pl.col("qid").pipe(position_weighted_shuffled))
+        sparql_df(_QUERY, columns=["item"])
+        .with_columns(
+            pl.col("item")
+            .str.replace("http://www.wikidata.org/entity/", "")
+            .alias("qid")
+        )
+        .filter(pl.col("qid").is_in(blocked_qids()).is_not())
+        .select(
+            pl.col("qid").pipe(position_weighted_shuffled),
+        )
         .head(requests_limit)
         .with_columns(
             pl.col("qid")
@@ -119,29 +139,6 @@ def main() -> None:
             top_critic_score=row["top_critic_score"],
             latest_review_date=row["latest_review_date"],
         )
-
-
-def fetch_game_qids() -> list[str]:
-    query = """
-    SELECT ?item WHERE {
-      ?item wdt:P2864 ?opencritic.
-      OPTIONAL {
-        ?item p:P444 ?statement.
-        ?statement pq:P447 wd:Q21039459.
-        ?statement pq:P585 ?pointInTime.
-      }
-      FILTER((?pointInTime < NOW() - "P7D"^^xsd:duration) || !(BOUND(?pointInTime)))
-      BIND(IF(BOUND(?pointInTime), ?pointInTime, NOW()) AS ?timestamp)
-    }
-    ORDER BY DESC (?timestamp)
-    """
-
-    class Result(TypedDict):
-        item: str
-
-    results: list[Result] = sparql(query)
-    qids = [result["item"] for result in results]
-    return list(filter_blocked_qids(qids))
 
 
 def _update_review_score_claim(
