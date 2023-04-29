@@ -60,7 +60,7 @@ jobs:
       matrix:
         script:
           - "not_found_P9586"
-          - "P9586"
+          - "wd_appletv"
           - "wd_itunes"
           - "wd_plex"
           - "wd_tmdb"
