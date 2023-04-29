@@ -1,46 +1,50 @@
 # pyright: strict
 
-import appletv
-import sparql
+import polars as pl
+
 from appletv_etl import not_found
-from constants import (
-    APPLE_TV_MOVIE_ID_PID,
-    REASON_FOR_DEPRECATED_RANK_PID,
-    WITHDRAWN_IDENTIFIER_VALUE_QID,
-)
-from sparql import sample_items
-from timeout import iter_until_deadline
-from wikidata import page_qids
+from polars_utils import sample
+from sparql import sparql_df
+
+_QUERY = """
+SELECT ?statement ?id WHERE {
+  ?statement ps:P9586 ?id.
+  ?statement wikibase:rank ?rank.
+  FILTER(?rank != wikibase:DeprecatedRank)
+}
+"""
+
+_RDF_STATEMENT = pl.format(
+    "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
+    'wikidatabots:editSummary "Deprecate Apple TV movie ID delisted from store" .',
+    pl.col("statement"),
+).alias("rdf_statement")
+
+
+def find_movie_not_found() -> pl.LazyFrame:
+    return (
+        sparql_df(_QUERY, columns=["statement", "id"])
+        .with_columns(
+            pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$").alias("id"),
+        )
+        .drop_nulls()
+        .select("statement", "id")
+        .pipe(sample, n=3)
+        .pipe(not_found, type="movie")
+        .filter(pl.col("all_not_found"))
+        .select(_RDF_STATEMENT)
+    )
 
 
 def main() -> None:
-    assert not not_found(
-        type="movie", id=appletv.id("umc.cmc.o5z5ztufuu3uv8lx7m0jcega")
+    df = pl.concat(
+        [
+            find_movie_not_found(),
+        ]
     )
 
-    qids = sample_items(APPLE_TV_MOVIE_ID_PID, limit=250)
-    qids |= set(page_qids("Wikidata:Database reports/Constraint violations/P9586"))
-
-    results = sparql.fetch_statements(qids, [APPLE_TV_MOVIE_ID_PID])
-
-    edit_summary = "Deprecate Apple TV movie ID delisted from store"
-
-    for qid in iter_until_deadline(results):
-        item = results[qid]
-
-        for statement, value in item.get(APPLE_TV_MOVIE_ID_PID, []):
-            id = appletv.tryid(value)
-            if not id:
-                continue
-
-            if not_found(type="movie", id=id):
-                print(
-                    f"{statement.n3()} "
-                    f"wikibase:rank wikibase:DeprecatedRank ; "
-                    f"pq:{REASON_FOR_DEPRECATED_RANK_PID} "
-                    f"wd:{WITHDRAWN_IDENTIFIER_VALUE_QID} ; "
-                    f'wikidatabots:editSummary "{edit_summary}" . '
-                )
+    for (line,) in df.collect().iter_rows():
+        print(line)
 
 
 if __name__ == "__main__":

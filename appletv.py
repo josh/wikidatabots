@@ -15,21 +15,7 @@ def id(id: str) -> ID:
     return ID(id)
 
 
-def tryid(id: Any) -> ID | None:
-    if type(id) is str and re.fullmatch(IDPattern, id):
-        return ID(id)
-    return None
-
-
 Type = Literal["movie", "episode", "show"]
-
-
-def has_not_found_text(text: str) -> bool:
-    soup = BeautifulSoup(text, "html.parser")
-    if soup.find("div", {"class": "not-found"}):
-        return True
-    else:
-        return False
 
 
 def _extract_shoebox(soup: BeautifulSoup) -> list[Any]:

@@ -8,7 +8,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from appletv import extract_itunes_id, has_not_found_text
+from appletv import extract_itunes_id
 from polars_requests import (
     Session,
     prepare_request,
@@ -301,32 +301,31 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
 _REGIONS = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "cn"]
 
 
-def not_found(type: _TYPE, id: str) -> bool:
-    df = (
-        pl.LazyFrame({"region": _REGIONS})
+def not_found(df: pl.LazyFrame, type: _TYPE) -> pl.LazyFrame:
+    return (
+        df.lazy()
+        .with_columns(
+            pl.lit([_REGIONS]).alias("region"),
+        )
+        .explode("region")
         .with_columns(
             pl.format(
                 "https://tv.apple.com/{}/{}/{}",
                 pl.col("region"),
                 pl.lit(type),
-                pl.lit(id),
+                pl.col("id"),
             )
             .pipe(prepare_request, headers=_BROWSER_HEADERS)
             .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
             .pipe(response_text)
-            .apply(has_not_found_text, return_dtype=pl.Boolean)
+            .str.contains('<div class="not-found">', literal=True)
             .alias("not_found")
         )
-        .select(
+        .groupby(*df.columns)
+        .agg(
             pl.col("not_found").all().alias("all_not_found"),
         )
-        .collect()
     )
-
-    result = df.item()
-    assert isinstance(result, bool)
-
-    return result
 
 
 def append_jsonld_changes(
