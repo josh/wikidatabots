@@ -1,8 +1,11 @@
 # pyright: strict
 
 
+from typing import TypedDict
+
 import polars as pl
 
+from polars_utils import apply_with_tqdm, sample
 from sparql import sparql_df
 
 _SEARCH_QUERY = """
@@ -42,7 +45,17 @@ LIMIT 2
 """
 
 
-def wikidata_search(title: str, year: int, director: str) -> str | None:
+class _SearchInput(TypedDict):
+    title: str
+    year: int
+    director: str
+
+
+def _wikidata_search(row: _SearchInput) -> str | None:
+    title = row["title"]
+    year = row["year"]
+    director = row["director"]
+
     query = (
         _SEARCH_QUERY.replace("<<TITLE>>", title.replace('"', '\\"'))
         .replace("<<YEAR>>", str(year))
@@ -68,8 +81,12 @@ _ID_QUERY = """
 SELECT DISTINCT ?id WHERE { ?statement ps:P9586 ?id. }
 """
 
+_RDF_STATEMENT = pl.format('<{}> wdt:P9586 "{}" .', pl.col("item"), pl.col("id")).alias(
+    "rdf_statement"
+)
 
-def main() -> None:
+
+def find_movie_via_search() -> pl.LazyFrame:
     limit = 500
 
     wd_df = (
@@ -106,22 +123,37 @@ def main() -> None:
             & pl.col("published_at").is_not_null()
             & pl.col("director").is_not_null()
         )
-        .select("id", "title", "published_at", "director")
-        .collect()
+        .pipe(sample, n=limit)
+        .with_columns(
+            pl.struct(
+                pl.col("title"),
+                pl.col("published_at").dt.year().alias("year"),
+                pl.col("director"),
+            )
+            .pipe(
+                apply_with_tqdm,
+                _wikidata_search,
+                return_dtype=pl.Utf8,
+                log_group="wikidata_search",
+            )
+            .alias("item"),
+        )
+        .filter(pl.col("item").is_not_null())
+        .select(_RDF_STATEMENT)
     )
 
-    for row in sitemap_df.sample(limit).iter_rows(named=True):
-        id = row["id"]
-        title = row["title"]
-        year = row["published_at"].year
-        director = row["director"]
+    return sitemap_df
 
-        assert isinstance(title, str)
-        assert isinstance(year, int)
-        assert isinstance(director, str)
 
-        if item := wikidata_search(title, year, director):
-            print(f'<{item}> wdt:P9586 "{id}" .')
+def main() -> None:
+    df = pl.concat(
+        [
+            find_movie_via_search(),
+        ]
+    )
+
+    for (line,) in df.collect().iter_rows():
+        print(line)
 
 
 if __name__ == "__main__":

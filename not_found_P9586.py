@@ -29,7 +29,7 @@ def find_movie_not_found() -> pl.LazyFrame:
         )
         .drop_nulls()
         .select("statement", "id")
-        .pipe(sample, n=3)
+        .pipe(sample, n=25)
         .pipe(not_found, type="movie")
         .filter(pl.col("all_not_found"))
         .select(_RDF_STATEMENT)
