@@ -4,7 +4,6 @@ import json
 import re
 from typing import Any, Literal, NewType
 
-import backoff
 import requests
 from bs4 import BeautifulSoup
 
@@ -39,24 +38,6 @@ request_headers = {
 }
 
 
-@backoff.on_exception(backoff.expo, requests.exceptions.HTTPError, max_tries=3)
-def fetch(url: str) -> BeautifulSoup | None:
-    r = session.get(url, headers=request_headers)
-    r.raise_for_status()
-
-    html = r.text
-    soup = BeautifulSoup(html, "html.parser")
-
-    if soup.find("h1", string="This content is no longer available."):
-        return None
-
-    link = soup.find("link", attrs={"rel": "canonical"})
-    if not link:
-        return None
-
-    return soup
-
-
 regions = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "jp", "cn"]
 
 Type = Literal["movie", "episode", "show"]
@@ -83,7 +64,7 @@ def not_found(url: str) -> bool:
         return False
 
 
-def extract_shoebox(soup: BeautifulSoup) -> list[Any]:
+def _extract_shoebox(soup: BeautifulSoup) -> list[Any]:
     script = soup.find("script", {"type": "fastboot/shoebox", "id": "shoebox-uts-api"})
     if not script:
         return []
@@ -91,8 +72,17 @@ def extract_shoebox(soup: BeautifulSoup) -> list[Any]:
     return json.loads(script.text).values()
 
 
-def extract_itunes_id(soup: BeautifulSoup) -> int | None:
-    for data in extract_shoebox(soup):
+def extract_itunes_id(text: str) -> int | None:
+    soup = BeautifulSoup(text, "html.parser")
+
+    if soup.find("h1", string="This content is no longer available."):
+        return None
+
+    link = soup.find("link", attrs={"rel": "canonical"})
+    if not link:
+        return None
+
+    for data in _extract_shoebox(soup):
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:
                 if playable.get("isItunes", False) is True:

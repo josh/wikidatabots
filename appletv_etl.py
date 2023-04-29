@@ -8,7 +8,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-import appletv
+from appletv import extract_itunes_id
 from polars_requests import (
     Session,
     prepare_request,
@@ -31,6 +31,18 @@ _APPLETV_SESSION = Session(
     retry_count=5,
     retry_backoff_factor=1.0,
 )
+
+_USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/605.1.15 (KHTML, like Gecko) "
+    "Version/14.1.1 Safari/605.1.15"
+)
+
+_BROWSER_HEADERS: dict[str, str | pl.Expr] = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-us",
+    "User-Agent": _USER_AGENT,
+}
 
 Type = Literal["episode", "movie", "show"]
 
@@ -214,7 +226,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.with_columns(
             pl.col("loc")
-            .pipe(prepare_request)
+            .pipe(prepare_request, headers=_BROWSER_HEADERS)
             .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
             .alias("response")
         )
@@ -267,16 +279,15 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
         s.to_frame("id")
         .select(
             pl.format("https://tv.apple.com/us/movie/{}", pl.col("id"))
-            # TODO: Use polars_request
             .pipe(
-                apply_with_tqdm,
-                appletv.fetch,
-                return_dtype=pl.Object,
-                log_group="appletv_fetch",
+                prepare_request,
+                headers=_BROWSER_HEADERS,
             )
+            .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(response_text)
             .pipe(
                 apply_with_tqdm,
-                appletv.extract_itunes_id,
+                extract_itunes_id,
                 return_dtype=pl.Int64,
                 log_group="extract_itunes_id",
             )
