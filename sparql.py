@@ -11,7 +11,6 @@ import math
 import os
 import platform
 import time
-from collections.abc import Iterable
 from threading import Lock
 from typing import Any, Literal, TypedDict
 
@@ -205,55 +204,6 @@ def sparql_df(
     return pl.LazyFrame().map(sparql_df_inner, schema=schema)
 
 
-def fetch_statements(
-    qids: Iterable[str],
-    properties: Iterable[str],
-    deprecated: bool = False,
-) -> dict[str, dict[str, list[tuple[URIRef, str]]]]:
-    query = "SELECT ?statement ?item ?property ?value WHERE { "
-    query += _values_query(qids)
-    query += """
-    OPTIONAL {
-      ?item ?property ?statement.
-      ?statement ?ps ?value.
-      ?statement wikibase:rank ?rank.
-    """
-    if deprecated:
-        query += "  FILTER(?rank = wikibase:DeprecatedRank)"
-    else:
-        query += "  FILTER(?rank != wikibase:DeprecatedRank)"
-    query += "}"
-    query += "FILTER(" + " || ".join(["(?ps = ps:" + p + ")" for p in properties]) + ")"
-    query += "}"
-
-    Result = TypedDict(
-        "Result", {"statement": URIRef, "item": str, "property": str, "value": str}
-    )
-    results: list[Result] = sparql(query)
-
-    items: dict[str, dict[str, list[tuple[URIRef, str]]]] = {}
-    for result in results:
-        statement = result["statement"]
-        qid = result["item"]
-        prop = result["property"]
-        value = result["value"]
-
-        item = items[qid] = items.get(qid, {})
-        properties2 = item[prop] = item.get(prop, [])
-
-        properties2.append((statement, value))
-
-    return items
-
-
-_STATEMENTS_SCHEMA: dict[str, pl.PolarsDataType] = {
-    "statement": pl.Utf8,
-    "item": pl.Utf8,
-    "property": pl.Utf8,
-    "value": pl.Utf8,
-}
-
-
 SampleType = Literal["created", "updated", "random"]
 
 
@@ -319,11 +269,6 @@ def sample_items(
     results: list[Result] = sparql(query)
 
     return set([result["item"] for result in results])
-
-
-def _values_query(qids: Iterable[str], binding: str = "item") -> str:
-    values = " ".join(f"wd:{qid}" for qid in qids)
-    return "VALUES ?" + binding + " { " + values + " }"
 
 
 _HYDRA = rdflib.Namespace("http://www.w3.org/ns/hydra/core#")

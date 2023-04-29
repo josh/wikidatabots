@@ -3,16 +3,9 @@
 import polars as pl
 from rdflib import URIRef
 
-from sparql import (
-    fetch_property_statements,
-    fetch_statements,
-    sample_items,
-    sparql,
-    sparql_df,
-)
+from sparql import fetch_property_statements, sample_items, sparql, sparql_df
 
 _IMDB_ID_PID = "P345"
-_TMDB_MOVIE_ID_PID = "P4947"
 
 
 def test_sparql():
@@ -59,17 +52,6 @@ def test_sample_items():
 
     results = sample_items(_IMDB_ID_PID, limit=5, type="updated")
     assert len(results) == 5
-
-
-def test_fetch_statements():
-    qid = "Q172241"
-    items = fetch_statements([qid], [_IMDB_ID_PID, _TMDB_MOVIE_ID_PID])
-    assert len(items) == 1
-
-    item = items[qid]
-    assert item
-    assert item[_IMDB_ID_PID]
-    assert item[_TMDB_MOVIE_ID_PID]
 
 
 def test_sparql_some_value():
