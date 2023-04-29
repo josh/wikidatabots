@@ -79,7 +79,7 @@ def main() -> None:
     logging.info(f"OpenCritic API requests remaining: {requests_remaining}")
 
     if requests_remaining < 1:
-        logging.warn("No available API requests for the day")
+        logging.warning("No available API requests for the day")
         return
 
     qids = fetch_game_qids()
@@ -104,6 +104,9 @@ def main() -> None:
             pl.col("top_critic_score").is_not_null()
             & pl.col("latest_review_date").is_not_null()
             & (pl.col("reviews_count") > 0)
+        )
+        .with_columns(
+            pl.col("top_critic_score").round(0).cast(pl.UInt8),
         )
         .collect()
     )
@@ -147,7 +150,7 @@ def _update_review_score_claim(
     top_critic_score: float,
     number_of_reviews: int,
     latest_review_date: date,
-):
+) -> None:
     claim: Claim = REVIEW_SCORE_CLAIM.copy()
     orig_claim: Claim | None = None
 
@@ -158,7 +161,7 @@ def _update_review_score_claim(
             orig_claim = c.copy()
 
     # Update review score value top OpenCritic top-critic score
-    claim.setTarget("{}/100".format(round(top_critic_score)))
+    claim.setTarget("{}/100".format(top_critic_score))
 
     # Set determination method to "top critic average"
     claim.qualifiers[DETERMINATION_METHOD_PID] = [DETERMINATION_METHOD_CLAIM.copy()]
