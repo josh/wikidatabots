@@ -330,7 +330,7 @@ def main_sitemap(type: Type) -> None:
         update_parquet("sitemap.parquet", update_sitemap, key="loc")
 
 
-_JSONLD_LIMIT = 2_500
+_JSONLD_LIMIT = 1_000
 
 
 def main_jsonld() -> None:
