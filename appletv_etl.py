@@ -295,13 +295,7 @@ def append_jsonld_changes(
     jsonld_df = jsonld_df.cache()
     jsonld_new_df = (
         sitemap_df.join(jsonld_df, on="loc", how="left")
-        .filter(pl.col("jsonld_success").is_null())
-        .with_columns(
-            pl.when(pl.col("country").eq("us"))
-            .then(pl.col("priority") + 1)
-            .otherwise(pl.col("priority"))
-            .alias("priority")
-        )
+        .filter(pl.col("jsonld_success").is_null() & pl.col("country").eq("us"))
         .sort(by="priority", descending=True)
         .pipe(limit, sample=False, soft=soft_limit, desc="jsonld")
         .select(["loc"])
