@@ -3,7 +3,7 @@
 import polars as pl
 from rdflib import URIRef
 
-from sparql import fetch_property_statements, sample_items, sparql, sparql_df
+from sparql import fetch_property_statements, sparql, sparql_df
 
 _IMDB_ID_PID = "P345"
 
@@ -41,17 +41,6 @@ def test_sparql_property():
         "http://www.wikidata.org/entity/statement/"
         "Q1-789eef0c-4108-cdda-1a63-505cdd324564"
     )
-
-
-def test_sample_items():
-    results = sample_items(_IMDB_ID_PID, limit=5, type="random")
-    assert len(results) == 5
-
-    results = sample_items(_IMDB_ID_PID, limit=5, type="created")
-    assert len(results) == 5
-
-    results = sample_items(_IMDB_ID_PID, limit=5, type="updated")
-    assert len(results) == 5
 
 
 def test_sparql_some_value():
