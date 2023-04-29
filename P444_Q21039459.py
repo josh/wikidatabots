@@ -25,10 +25,10 @@ from constants import (
     STATED_IN_PID,
 )
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
-from page import blocked_qids
 from polars_utils import position_weighted_shuffled
 from sparql import sparql_df
 from utils import tryint
+from wikidata import page_qids
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -96,6 +96,8 @@ def main() -> None:
         logging.warning("No available API requests for the day")
         return
 
+    blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
+
     df = (
         sparql_df(_QUERY, columns=["item"])
         .with_columns(
@@ -103,7 +105,7 @@ def main() -> None:
             .str.replace("http://www.wikidata.org/entity/", "")
             .alias("qid")
         )
-        .filter(pl.col("qid").is_in(blocked_qids()).is_not())
+        .filter(pl.col("qid").is_in(blocked_qids).is_not())
         .select(
             pl.col("qid").pipe(position_weighted_shuffled),
         )

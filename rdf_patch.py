@@ -12,9 +12,8 @@ from rdflib import Graph
 from rdflib.term import BNode, Literal, URIRef
 
 from actions import print_warning
-from page import blocked_qids
 from pwb import login
-from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS
+from wikidata import NS_MANAGER, PROV, WIKIBASE, WIKIDATABOTS, page_qids
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -83,6 +82,8 @@ def process_graph(
     graph = Graph()
     data = PREFIXES + input.read()
     graph.parse(data=data)
+
+    blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
 
     changed_claims: dict[pywikibot.ItemPage, set[HashableClaim]] = defaultdict(set)
     edit_summaries: dict[pywikibot.ItemPage, str] = {}
@@ -202,7 +203,7 @@ def process_graph(
             print_warning("NotImplemented", f"Unknown subject: {subject}")
 
     for item, claims in changed_claims.items():
-        if item.id in blocked_qids():
+        if item.id in blocked_qids:
             print_warning("BadItem", f"Skipping edit, {item.id} is blocked")
             continue
 

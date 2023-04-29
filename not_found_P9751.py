@@ -3,9 +3,9 @@
 import appletv
 import sparql
 from constants import APPLE_TV_SHOW_ID_PID, WITHDRAWN_IDENTIFIER_VALUE_QID
-from page import page_qids
 from sparql import sample_items
 from timeout import iter_until_deadline
+from wikidata import page_qids
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     )
 
     qids = sample_items(APPLE_TV_SHOW_ID_PID, limit=250)
-    qids |= page_qids("Wikidata:Database reports/Constraint violations/P9751")
+    qids |= set(page_qids("Wikidata:Database reports/Constraint violations/P9751"))
 
     results = sparql.fetch_statements(qids, [APPLE_TV_SHOW_ID_PID])
 
