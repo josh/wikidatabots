@@ -6,7 +6,7 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from opencritic import fetch_opencritic_game, opencritic_ratelimits
+from opencritic_etl import fetch_opencritic_game, opencritic_ratelimits
 
 
 @pytest.mark.skipif("RAPIDAPI_KEY" not in os.environ, reason="Missing RAPIDAPI_KEY")

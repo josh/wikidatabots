@@ -11,7 +11,7 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
-from opencritic import fetch_opencritic_game, opencritic_ratelimits
+from opencritic_etl import fetch_opencritic_game, opencritic_ratelimits
 from polars_utils import apply_with_tqdm, position_weighted_shuffled
 from pwb import login
 from sparql import sparql
@@ -134,7 +134,7 @@ def main() -> None:
         .filter(
             pl.col("top_critic_score").is_not_null()
             & pl.col("latest_review_date").is_not_null()
-            & (pl.col("reviews_count") > 0)
+            & (pl.col("num_reviews") > 0)
         )
         .with_columns(
             pl.col("top_critic_score").round(0).cast(pl.UInt8),
@@ -146,7 +146,7 @@ def main() -> None:
         _update_review_score_claim(
             item=ItemPage(SITE, row["qid"]),
             opencritic_id=row["opencritic_id"],
-            number_of_reviews=row["reviews_count"],
+            number_of_reviews=row["num_reviews"],
             top_critic_score=row["top_critic_score"],
             latest_review_date=row["latest_review_date"],
         )
