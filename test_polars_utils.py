@@ -15,6 +15,7 @@ from polars_utils import (
     apply_with_tqdm,
     assert_expression,
     compute_stats,
+    csv_extract,
     drop_columns,
     expr_indicies_sorted,
     expr_repl,
@@ -229,6 +230,20 @@ def test_is_constant() -> None:
         }
     )
     assert_frame_equal(df.select(pl.all().pipe(is_constant)), df2)
+
+
+def test_csv_extract() -> None:
+    dtype = pl.List(pl.Struct({"a": pl.UInt8}))
+    df1 = (
+        pl.LazyFrame({"text": ["a\n1\n2\n3\n", "a\n4\n5\n6\n", "a\n7\n8\n9\n"]})
+        .select(
+            pl.col("text").cast(pl.Binary).pipe(csv_extract, dtype=dtype).alias("data"),
+        )
+        .explode("data")
+        .select(pl.col("data").struct.field("a"))
+    )
+    df2 = pl.LazyFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9]}, schema={"a": pl.UInt8})
+    assert_frame_equal(df1, df2)
 
 
 XML_EXAMPLE = """

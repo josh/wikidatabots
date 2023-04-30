@@ -345,6 +345,25 @@ def apply_with_tqdm(
     return expr.map(map_function, return_dtype=return_dtype)
 
 
+def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
+    return pl.read_csv(data, dtypes=dtype.to_schema()).to_struct("")
+
+
+def csv_extract(
+    expr: pl.Expr,
+    dtype: pl.List,
+    log_group: str = "apply(csv_extract)",
+) -> pl.Expr:
+    inner_dtype = dtype.inner
+    assert isinstance(inner_dtype, pl.Struct)
+    return apply_with_tqdm(
+        expr,
+        partial(_parse_csv_to_series, dtype=inner_dtype),
+        return_dtype=dtype,
+        log_group=log_group,
+    )
+
+
 def _parse_xml_to_series(
     xml: str,
     dtype: pl.Struct,

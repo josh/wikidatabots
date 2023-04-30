@@ -13,7 +13,7 @@ from rdflib import URIRef
 
 from actions import log_group, warn
 from polars_requests import Session, prepare_request, request
-from polars_utils import apply_with_tqdm
+from polars_utils import apply_with_tqdm, csv_extract
 
 _USER_AGENT_STR = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
 
@@ -27,7 +27,7 @@ class SlowQueryWarning(Warning):
     _requests.exceptions.RequestException,
     max_tries=10,
 )
-def _sparql(query: str, _stacklevel: int = 0) -> bytes:
+def _sparql(query: str, _stacklevel: int) -> bytes:
     logging.info(query)
 
     start = time.time()
@@ -42,13 +42,19 @@ def _sparql(query: str, _stacklevel: int = 0) -> bytes:
 
     if duration > 45:
         logging.warn(f"sparql: {duration:,.2f}s")
-        warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
+        warn(query, SlowQueryWarning, stacklevel=3 + _stacklevel)
     elif duration > 5:
         logging.info(f"sparql: {duration:,.2f}s")
     else:
         logging.debug(f"sparql: {duration:,.2f}s")
 
     return r.content
+
+
+def _sparql_batch_raw(queries: pl.Series) -> pl.Series:
+    with log_group("sparql"):
+        values = [_sparql(q, _stacklevel=2) for q in queries]
+        return pl.Series("", values=values, dtype=pl.Binary)
 
 
 def sparql(
@@ -60,12 +66,34 @@ def sparql(
         schema = {column: pl.Utf8 for column in columns}
     assert schema, "missing schema"
 
-    def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
-        with log_group("sparql"):
-            data = _sparql(query, _stacklevel=2)
-            return pl.read_csv(data, dtypes=schema)
+    def read_item_as_csv(df: pl.DataFrame) -> pl.DataFrame:
+        return pl.read_csv(df.item(), dtypes=schema)
 
-    return pl.LazyFrame().map(sparql_df_inner, schema=schema)
+    return (
+        pl.LazyFrame({"query": [query]})
+        .select(
+            pl.col("query")
+            .map(_sparql_batch_raw, return_dtype=pl.Binary)
+            .alias("results"),
+        )
+        .map(read_item_as_csv, schema=schema)
+    )
+
+
+def sparql_batch(
+    queries: pl.Expr,
+    columns: list[str] | None = None,
+    schema: dict[str, pl.PolarsDataType] | None = None,
+) -> pl.Expr:
+    if columns and not schema:
+        schema = {column: pl.Utf8 for column in columns}
+    assert schema, "missing schema"
+
+    dtype = pl.List(pl.Struct(schema))
+
+    return queries.map(_sparql_batch_raw, return_dtype=pl.Binary).pipe(
+        csv_extract, dtype=dtype, log_group="parse_sparql_csv"
+    )
 
 
 _HYDRA = rdflib.Namespace("http://www.w3.org/ns/hydra/core#")
