@@ -23,7 +23,7 @@ from polars_utils import (
     update_parquet,
     with_outlier_column,
 )
-from sparql import sparql
+from sparql import sparql_batch
 
 _COUNTRY = Literal[
     "af",
@@ -408,7 +408,7 @@ _ITUNES_PROPERTY_ID = Literal[
     "P6998",
 ]
 
-ITUNES_PROPERTY_IDS: set[_ITUNES_PROPERTY_ID] = {
+_ITUNES_PROPERTY_IDS: set[_ITUNES_PROPERTY_ID] = {
     "P2281",
     "P2850",
     "P3861",
@@ -424,21 +424,22 @@ ITUNES_PROPERTY_IDS: set[_ITUNES_PROPERTY_ID] = {
 
 _QUERY = """
 SELECT DISTINCT ?id WHERE {
-  _:b0 ps:P0000 ?id.
+  _:b0 ps:{} ?id.
   FILTER(xsd:integer(?id))
 }
 """
 
 
-def _wikidata_itunes_ids(pid: _ITUNES_PROPERTY_ID) -> pl.LazyFrame:
-    return sparql(_QUERY.replace("P0000", pid), schema={"id": pl.UInt64})
-
-
 def wikidata_itunes_all_ids() -> pl.LazyFrame:
-    return pl.concat(
-        [_wikidata_itunes_ids(pid) for pid in ITUNES_PROPERTY_IDS],
-        parallel=False,
-    ).unique("id")
+    return pl.LazyFrame({"pid": list(_ITUNES_PROPERTY_IDS)}).select(
+        pl.format(_QUERY, pl.col("pid"))
+        .pipe(sparql_batch, schema={"id": pl.UInt64})
+        .explode()
+        .struct.field("id")
+        .unique()
+        .sort()
+        .alias("id"),
+    )
 
 
 def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
