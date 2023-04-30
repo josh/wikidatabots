@@ -28,7 +28,7 @@ class SlowQueryWarning(Warning):
     _requests.exceptions.RequestException,
     max_tries=10,
 )
-def _sparql(query: str, _log_query: bool, _stacklevel: int) -> bytes:
+def _sparql(query: str, _log_query: bool) -> bytes:
     if _log_query:
         logging.info(query)
 
@@ -44,7 +44,7 @@ def _sparql(query: str, _log_query: bool, _stacklevel: int) -> bytes:
 
     if duration > 45:
         logging.warn(f"sparql: {duration:,.2f}s")
-        warn(query, SlowQueryWarning, stacklevel=3 + _stacklevel)
+        warn(query, SlowQueryWarning)
     elif duration > 5:
         logging.info(f"sparql: {duration:,.2f}s")
     else:
@@ -59,7 +59,7 @@ def _sparql_batch_raw(queries: pl.Series) -> pl.Series:
         .select(
             pl.col("query").pipe(
                 apply_with_tqdm,
-                partial(_sparql, _log_query=len(queries) == 1, _stacklevel=2),
+                partial(_sparql, _log_query=len(queries) == 1),
                 return_dtype=pl.Binary,
                 log_group="sparql",
             )
