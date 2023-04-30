@@ -4,6 +4,7 @@ import logging
 import math
 import platform
 import time
+from functools import partial
 
 import backoff
 import polars as pl
@@ -11,7 +12,7 @@ import rdflib
 import requests as _requests
 from rdflib import URIRef
 
-from actions import log_group, warn
+from actions import warn
 from polars_requests import Session, prepare_request, request
 from polars_utils import apply_with_tqdm, csv_extract
 
@@ -53,10 +54,18 @@ def _sparql(query: str, _log_query: bool, _stacklevel: int) -> bytes:
 
 
 def _sparql_batch_raw(queries: pl.Series) -> pl.Series:
-    with log_group("sparql"):
-        log_query = len(queries) == 1
-        values = [_sparql(q, _log_query=log_query, _stacklevel=2) for q in queries]
-        return pl.Series("", values=values, dtype=pl.Binary)
+    return (
+        queries.to_frame("query")
+        .select(
+            pl.col("query").pipe(
+                apply_with_tqdm,
+                partial(_sparql, _log_query=len(queries) == 1, _stacklevel=2),
+                return_dtype=pl.Binary,
+                log_group="sparql",
+            )
+        )
+        .to_series()
+    )
 
 
 def sparql(
