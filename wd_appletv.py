@@ -57,7 +57,7 @@ _ADD_RDF_STATEMENT = pl.format(
 ).alias("rdf_statement")
 
 
-def _find_movie_via_search() -> pl.LazyFrame:
+def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
     wd_df = (
         sparql(_ANY_ID_QUERY, columns=["id"])
         .select(pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$"))
@@ -65,33 +65,17 @@ def _find_movie_via_search() -> pl.LazyFrame:
         .with_columns(pl.lit(True).alias("wd_exists"))
     )
 
-    sitemap_df = (
-        pl.scan_parquet(
-            "s3://wikidatabots/appletv/movie/sitemap.parquet",
-            storage_options={"anon": True},
-        )
-        .filter((pl.col("country") == "us") & pl.col("in_latest_sitemap"))
-        .select(["id", "loc"])
-    )
-
-    jsonld_df = (
-        pl.scan_parquet(
-            "s3://wikidatabots/appletv/movie/jsonld.parquet",
-            storage_options={"anon": True},
-        )
-        .filter(pl.col("jsonld_success"))
-        .select(["loc", "title", "published_at", "director"])
-    )
-
-    sitemap_df = (
-        sitemap_df.join(jsonld_df, on="loc", how="left")
-        .join(wd_df, on="id", how="left")
-        .filter(
-            pl.col("wd_exists").is_null()
+    return (
+        sitemap_df.filter(
+            (pl.col("country") == "us")
+            & pl.col("in_latest_sitemap")
+            & pl.col("jsonld_success")
             & pl.col("title").is_not_null()
             & pl.col("published_at").is_not_null()
             & pl.col("director").is_not_null()
         )
+        .join(wd_df, on="id", how="left")
+        .filter(pl.col("wd_exists").is_null())
         .pipe(limit, soft=_SEARCH_LIMIT, desc="unmatched sitemap ids")
         .with_columns(
             pl.format(
@@ -114,8 +98,6 @@ def _find_movie_via_search() -> pl.LazyFrame:
         .select(_ADD_RDF_STATEMENT)
     )
 
-    return sitemap_df
-
 
 _ID_QUERY = """
 SELECT ?statement ?id WHERE {
@@ -132,7 +114,13 @@ _DEPRECATE_RDF_STATEMENT = pl.format(
 ).alias("rdf_statement")
 
 
-def _find_movie_not_found() -> pl.LazyFrame:
+def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
+    sitemap_df = (
+        sitemap_df.select("id", "in_latest_sitemap")
+        .groupby("id")
+        .agg(pl.col("in_latest_sitemap").any())
+    )
+
     return (
         sparql(_ID_QUERY, columns=["statement", "id"])
         .with_columns(
@@ -140,6 +128,10 @@ def _find_movie_not_found() -> pl.LazyFrame:
         )
         .drop_nulls()
         .select("statement", "id")
+        .join(sitemap_df, on="id", how="left")
+        .filter(
+            pl.col("in_latest_sitemap").is_not() | pl.col("in_latest_sitemap").is_null()
+        )
         .pipe(limit, soft=_NOT_FOUND_LIMIT, desc="deprecated candidate ids")
         .pipe(not_found, type="movie")
         .filter(pl.col("all_not_found"))
@@ -148,10 +140,20 @@ def _find_movie_not_found() -> pl.LazyFrame:
 
 
 def main() -> None:
+    sitemap_df = pl.scan_parquet(
+        "s3://wikidatabots/appletv/movie/sitemap.parquet",
+        storage_options={"anon": True},
+    )
+    jsonld_df = pl.scan_parquet(
+        "s3://wikidatabots/appletv/movie/jsonld.parquet",
+        storage_options={"anon": True},
+    )
+    sitemap_df = sitemap_df.join(jsonld_df, on="loc", how="left").cache()
+
     df = pl.concat(
         [
-            _find_movie_via_search(),
-            _find_movie_not_found(),
+            _find_movie_via_search(sitemap_df),
+            _find_movie_not_found(sitemap_df),
         ]
     )
 
