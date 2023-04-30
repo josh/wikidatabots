@@ -12,7 +12,9 @@ from polars_requests import (
     response_header_value,
     response_text,
 )
-from polars_utils import align_to_index, update_or_append, update_parquet
+from polars_utils import align_to_index, limit, update_or_append, update_parquet
+
+_BACKFILL_LIMIT = 10
 
 _SAFE_SESSION = Session(ok_statuses=range(100, 600))
 
@@ -216,14 +218,26 @@ def opencritic_reviewed_today() -> pl.LazyFrame:
     )
 
 
+def _backfill_missing_games(df: pl.LazyFrame) -> pl.LazyFrame:
+    return (
+        df.filter(pl.col("name").is_null())
+        .pipe(limit, soft=_BACKFILL_LIMIT, desc="opencritic ids missing name")
+        .select(
+            pl.col("id").pipe(fetch_opencritic_game).alias("game"),
+        )
+        .unnest("game")
+    )
+
+
 def _main() -> None:
     pl.enable_string_cache(True)
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        today_df = opencritic_reviewed_today()
-
-        return df.pipe(update_or_append, today_df, on="id").pipe(
-            align_to_index, name="id"
+        df = df.cache()
+        return (
+            df.pipe(update_or_append, opencritic_reviewed_today(), on="id")
+            .pipe(update_or_append, _backfill_missing_games(df), on="id")
+            .pipe(align_to_index, name="id")
         )
 
     update_parquet("opencritic.parquet", update, key="id")
