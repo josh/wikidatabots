@@ -94,7 +94,10 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
 
 
 def _fetch_all_property_class_constraints() -> pl.LazyFrame:
-    return pl.concat([fetch_property_class_constraints(pid) for pid in _PIDS])
+    return pl.concat(
+        [fetch_property_class_constraints(pid) for pid in _PIDS],
+        parallel=False,
+    )
 
 
 def _main() -> None:
