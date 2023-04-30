@@ -12,7 +12,7 @@ import rdflib
 from rdflib import URIRef
 
 from actions import warn
-from polars_requests import Session, prepare_request, urllib3_requests
+from polars_requests import Session, prepare_request, request
 from polars_utils import apply_with_tqdm
 
 _LOCK = Lock()
@@ -111,9 +111,7 @@ def fetch_property_statements(pid: str) -> pl.LazyFrame:
             fields={"predicate": predicate},
             headers={"Accept": "application/n-triples"},
         )
-        .pipe(
-            urllib3_requests, session=_WIKIDATA_LDF_SESSION, log_group="wikidata_query"
-        )
+        .pipe(request, session=_WIKIDATA_LDF_SESSION, log_group="wikidata_query")
         .struct.field("data")
         .pipe(
             apply_with_tqdm,
@@ -136,7 +134,7 @@ def fetch_property_statements(pid: str) -> pl.LazyFrame:
                 headers={"Accept": "application/n-triples"},
             )
             .pipe(
-                urllib3_requests,
+                request,
                 session=_WIKIDATA_LDF_SESSION,
                 log_group="wikidata_query",
             )

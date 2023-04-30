@@ -10,8 +10,8 @@ from appletv_etl import APPLETV_SESSION
 from polars_requests import (
     Session,
     prepare_request,
+    request,
     response_text,
-    urllib3_requests,
     urllib3_resolve_redirects,
 )
 from polars_utils import (
@@ -294,7 +294,7 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
                 },
             )
             .pipe(
-                urllib3_requests,
+                request,
                 session=_SESSION,
                 log_group=f"itunes.apple.com/lookup?country={country}",
             )

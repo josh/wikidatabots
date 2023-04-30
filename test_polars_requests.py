@@ -14,10 +14,10 @@ from polars_requests import (
     HTTP_RESPONSE_DTYPE,
     Session,
     prepare_request,
+    request,
     response_date,
     response_header_value,
     response_text,
-    urllib3_requests,
     urllib3_resolve_redirects,
 )
 
@@ -68,7 +68,7 @@ def _st_http_response_dict(utf8_data: bool = False):
     )
 
 
-def test_urllib3_requests() -> None:
+def test_request() -> None:
     response_dtype = pl.Struct({"args": pl.Struct({"foo": pl.Utf8})})
     ldf = (
         pl.LazyFrame(
@@ -83,7 +83,7 @@ def test_urllib3_requests() -> None:
         .with_columns(
             pl.col("url")
             .pipe(prepare_request)
-            .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman"),
+            .pipe(request, session=_POSTMAN_SESSION, log_group="postman"),
         )
         .with_columns(
             pl.col("response").pipe(_response_ok),
@@ -118,11 +118,11 @@ def test_urllib3_requests() -> None:
     assert len(df) == 3
 
 
-def test_urllib3_requests_empty() -> None:
+def test_request_empty() -> None:
     ldf = pl.LazyFrame({"url": []}, schema={"url": pl.Utf8}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman"),
+        .pipe(request, session=_POSTMAN_SESSION, log_group="postman"),
     )
     ldf2 = pl.LazyFrame({"url": [], "response": []}).with_columns(
         pl.col("url").cast(pl.Utf8),
@@ -131,7 +131,7 @@ def test_urllib3_requests_empty() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_raw() -> None:
+def test_request_raw() -> None:
     response_dtype = pl.Struct(
         {
             "args": pl.Struct({"foo": pl.Utf8}),
@@ -150,7 +150,7 @@ def test_urllib3_requests_raw() -> None:
 
     ldf = pl.LazyFrame({"request": requests}).select(
         pl.col("request")
-        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -165,11 +165,11 @@ def test_urllib3_requests_raw() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_prepare_empty_headers() -> None:
+def test_request_prepare_empty_headers() -> None:
     ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -181,11 +181,11 @@ def test_urllib3_requests_prepare_empty_headers() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_prepare_empty_df() -> None:
+def test_request_prepare_empty_df() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"}, headers={"x-foo": "baz"})
-        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -197,11 +197,11 @@ def test_urllib3_requests_prepare_empty_df() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_prepare_empty_df_and_headers() -> None:
+def test_request_prepare_empty_df_and_headers() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -213,7 +213,7 @@ def test_urllib3_requests_prepare_empty_df_and_headers() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_prepare() -> None:
+def test_request_prepare() -> None:
     response_dtype = pl.Struct(
         {
             "args": pl.Struct({"foo": pl.Utf8}),
@@ -224,7 +224,7 @@ def test_urllib3_requests_prepare() -> None:
     ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"}, headers={"x-foo": "baz"})
-        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -240,13 +240,13 @@ def test_urllib3_requests_prepare() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_prepare_just_fields() -> None:
+def test_request_prepare_just_fields() -> None:
     response_dtype = pl.Struct({"args": pl.Struct({"foo": pl.Utf8})})
 
     ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"})
-        .pipe(urllib3_requests, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -262,7 +262,7 @@ def test_urllib3_requests_prepare_just_fields() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_retry_status() -> None:
+def test_request_retry_status() -> None:
     session = Session(ok_statuses={200}, retry_statuses={500}, retry_count=10)
 
     ldf = (
@@ -278,7 +278,7 @@ def test_urllib3_requests_retry_status() -> None:
         .with_columns(
             pl.col("url")
             .pipe(prepare_request)
-            .pipe(urllib3_requests, session=session, log_group="postman"),
+            .pipe(request, session=session, log_group="postman"),
         )
         .select(
             pl.col("url"), pl.col("response").struct.field("status").alias("status")
@@ -297,7 +297,7 @@ def test_urllib3_requests_retry_status() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
-def test_urllib3_requests_timeout() -> None:
+def test_request_timeout() -> None:
     session = Session(read_timeout=2.0)
 
     ldf = pl.LazyFrame(
@@ -310,7 +310,7 @@ def test_urllib3_requests_timeout() -> None:
     ).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(urllib3_requests, session=session, log_group="postman"),
+        .pipe(request, session=session, log_group="postman"),
     )
 
     assert ldf.schema == {

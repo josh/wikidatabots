@@ -12,9 +12,9 @@ import polars as pl
 from polars_requests import (
     Session,
     prepare_request,
+    request,
     response_date,
     response_text,
-    urllib3_requests,
 )
 from polars_utils import (
     align_to_index,
@@ -96,7 +96,7 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
             )
             .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
             .pipe(
-                urllib3_requests,
+                request,
                 session=_SESSION,
                 log_group=f"api.themoviedb.org/3/{tmdb_type}/external_ids",
             )
@@ -175,7 +175,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 },
             )
             .pipe(
-                urllib3_requests,
+                request,
                 session=_SESSION,
                 log_group=f"api.themoviedb.org/3/{tmdb_type}/changes",
             )
@@ -198,7 +198,7 @@ def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
         pl.format("https://api.themoviedb.org/3/{}/{}", pl.lit(tmdb_type), expr)
         .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
         .pipe(
-            urllib3_requests,
+            request,
             session=_SESSION,
             log_group=f"api.themoviedb.org/3/{tmdb_type}",
         )
@@ -230,7 +230,7 @@ def tmdb_find(
             },
         )
         .pipe(
-            urllib3_requests,
+            request,
             session=_SESSION,
             log_group="api.themoviedb.org/3/find",
         )
@@ -296,7 +296,7 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
             )
             .pipe(prepare_request)
             .pipe(
-                urllib3_requests,
+                request,
                 session=_SESSION,
                 log_group="files.tmdb.org/p/exports",
             )

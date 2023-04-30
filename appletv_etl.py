@@ -13,9 +13,9 @@ from bs4 import BeautifulSoup
 from polars_requests import (
     Session,
     prepare_request,
+    request,
     response_date,
     response_text,
-    urllib3_requests,
 )
 from polars_utils import (
     apply_with_tqdm,
@@ -62,7 +62,7 @@ def siteindex(type: _TYPE) -> pl.LazyFrame:
             pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
             .pipe(prepare_request)
             .pipe(
-                urllib3_requests,
+                request,
                 session=_APPLETV_SESSION,
                 log_group="tv.apple.com/sitemaps_tv_index_type_1.xml",
             )
@@ -103,7 +103,7 @@ def sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
             pl.col("loc")
             .pipe(prepare_request)
             .pipe(
-                urllib3_requests,
+                request,
                 session=_APPLETV_SESSION,
                 log_group="tv.apple.com/sitemaps_tv_type.xml.gz",
             )
@@ -247,7 +247,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
         df.with_columns(
             pl.col("loc")
             .pipe(prepare_request, headers=_BROWSER_HEADERS)
-            .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(request, session=_APPLETV_SESSION, log_group="tv.apple.com")
             .alias("response")
         )
         .with_columns(
@@ -303,7 +303,7 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
                 prepare_request,
                 headers=_BROWSER_HEADERS,
             )
-            .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(request, session=_APPLETV_SESSION, log_group="tv.apple.com")
             .pipe(response_text)
             .pipe(
                 apply_with_tqdm,
@@ -390,7 +390,7 @@ def not_found(df: pl.LazyFrame, type: _TYPE) -> pl.LazyFrame:
                 pl.col("id"),
             )
             .pipe(prepare_request, headers=_BROWSER_HEADERS)
-            .pipe(urllib3_requests, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(request, session=_APPLETV_SESSION, log_group="tv.apple.com")
             .pipe(response_text)
             .str.contains('<div class="not-found">', literal=True)
             .alias("not_found")

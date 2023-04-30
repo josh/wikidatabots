@@ -10,9 +10,9 @@ import polars as pl
 from polars_requests import (
     Session,
     prepare_request,
+    request,
     response_date,
     response_text,
-    urllib3_requests,
 )
 from polars_utils import (
     update_or_append,
@@ -58,7 +58,7 @@ def _plex_server(name: str) -> pl.LazyFrame:
             pl.col("url")
             .pipe(prepare_request, headers={"X-Plex-Token": os.environ["PLEX_TOKEN"]})
             .pipe(
-                urllib3_requests,
+                request,
                 session=_PLEX_SESSION,
                 log_group="plex.tv/api/resources",
             )
@@ -91,7 +91,7 @@ def plex_library_guids() -> pl.LazyFrame:
             pl.format("{}/library/sections/{}/all", pl.col("uri"), pl.col("section"))
             .pipe(prepare_request, headers={"X-Plex-Token": pl.col("accessToken")})
             .pipe(
-                urllib3_requests,
+                request,
                 session=_PLEX_SERVER_SESSION,
                 log_group="plexserver/library/sections/all",
             )
@@ -165,7 +165,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 },
             )
             .pipe(
-                urllib3_requests,
+                request,
                 session=_PLEX_SESSION,
                 log_group="plex_metadata_search",
             )
@@ -320,7 +320,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 },
             )
             .pipe(
-                urllib3_requests,
+                request,
                 session=_PLEX_SESSION,
                 log_group="metadata.provider.plex.tv/library/metadata",
             ),

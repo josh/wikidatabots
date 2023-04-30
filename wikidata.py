@@ -4,7 +4,7 @@ import json
 
 import polars as pl
 
-from polars_requests import Session, prepare_request, response_text, urllib3_requests
+from polars_requests import Session, prepare_request, request, response_text
 
 _SESSION = Session()
 
@@ -33,7 +33,7 @@ def page_qids(page_title: str) -> pl.Series:
                     "explaintext": "1",
                 },
             )
-            .pipe(urllib3_requests, session=_SESSION, log_group="wikidata_api")
+            .pipe(request, session=_SESSION, log_group="wikidata_api")
             .pipe(response_text)
             .apply(_parse_query_json_data, return_dtype=pl.Utf8)
             .alias("text")

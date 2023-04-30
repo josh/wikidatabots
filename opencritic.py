@@ -7,9 +7,9 @@ import polars as pl
 from polars_requests import (
     Session,
     prepare_request,
+    request,
     response_header_value,
     response_text,
-    urllib3_requests,
 )
 
 _SAFE_SESSION = Session(ok_statuses={200, 413, 429, 503}, retry_raise_on_status=False)
@@ -29,7 +29,7 @@ def opencritic_ratelimits() -> pl.LazyFrame:
                 },
             )
             .pipe(
-                urllib3_requests,
+                request,
                 session=_SAFE_SESSION,
                 log_group="opencritic-api.p.rapidapi.com",
             )
@@ -122,7 +122,7 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
             },
         )
         .pipe(
-            urllib3_requests,
+            request,
             session=_SESSION,
             log_group="opencritic-api.p.rapidapi.com",
         )

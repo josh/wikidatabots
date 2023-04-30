@@ -91,14 +91,14 @@ class Session:
         return self._poolmanager
 
 
-def urllib3_requests(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
+def request(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
     return requests.map(
-        partial(_urllib3_requests_series, session=session, log_group=log_group),
+        partial(_request_series, session=session, log_group=log_group),
         return_dtype=HTTP_RESPONSE_DTYPE,
     ).alias("response")
 
 
-def _urllib3_requests_series(
+def _request_series(
     requests: pl.Series,
     session: Session,
     log_group: str,
