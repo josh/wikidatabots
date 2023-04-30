@@ -155,7 +155,7 @@ def _urllib3_request(
     return {"status": response.status, "headers": resp_headers, "data": response.data}
 
 
-def urllib3_resolve_redirects(
+def resolve_redirects(
     url: pl.Expr,
     session: Session,
     log_group: str,

@@ -15,10 +15,10 @@ from polars_requests import (
     Session,
     prepare_request,
     request,
+    resolve_redirects,
     response_date,
     response_header_value,
     response_text,
-    urllib3_resolve_redirects,
 )
 
 _POSTMAN_SESSION = Session(connect_timeout=1.0, read_timeout=2.0)
@@ -382,7 +382,7 @@ def test_response_text(responses: pl.Series) -> None:
     assert len(df) == len(responses)
 
 
-def test_urllib3_resolve_redirects() -> None:
+def test_resolve_redirects() -> None:
     df = pl.LazyFrame(
         {
             "url": [
@@ -393,7 +393,7 @@ def test_urllib3_resolve_redirects() -> None:
     )
     df1 = df.with_columns(
         pl.col("url")
-        .pipe(urllib3_resolve_redirects, session=Session(), log_group="redirects")
+        .pipe(resolve_redirects, session=Session(), log_group="redirects")
         .alias("resolved_url"),
     )
     df2 = df.with_columns(

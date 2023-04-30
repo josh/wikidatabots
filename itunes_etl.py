@@ -11,8 +11,8 @@ from polars_requests import (
     Session,
     prepare_request,
     request,
+    resolve_redirects,
     response_text,
-    urllib3_resolve_redirects,
 )
 from polars_utils import (
     expr_indicies_sorted,
@@ -482,7 +482,7 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
         .with_columns(
             pl.col("url")
             .pipe(
-                urllib3_resolve_redirects,
+                resolve_redirects,
                 session=APPLETV_SESSION,
                 log_group="apple.com",
             )
