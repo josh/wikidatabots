@@ -11,19 +11,6 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
-from constants import (
-    CRITIC_REVIEW_QID,
-    DETERMINATION_METHOD_PID,
-    NUMBER_OF_REVIEWS_RATINGS_PID,
-    OPENCRITIC_ID_PID,
-    OPENCRITIC_QID,
-    OPENCRITIC_TOP_CRITIC_AVERAGE_QID,
-    POINT_IN_TIME_PID,
-    RETRIEVED_PID,
-    REVIEW_SCORE_BY_PID,
-    REVIEW_SCORE_PID,
-    STATED_IN_PID,
-)
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
 from polars_utils import apply_with_tqdm, position_weighted_shuffled
 from sparql import sparql_df
@@ -31,6 +18,21 @@ from utils import tryint
 from wikidata import page_qids
 
 SITE = pywikibot.Site("wikidata", "wikidata")
+
+# Wikidata Property IDs
+DETERMINATION_METHOD_PID = "P459"
+NUMBER_OF_REVIEWS_RATINGS_PID = "P7887"
+OPENCRITIC_ID_PID = "P2864"
+POINT_IN_TIME_PID = "P585"
+RETRIEVED_PID = "P813"
+REVIEW_SCORE_BY_PID = "P447"
+REVIEW_SCORE_PID = "P444"
+STATED_IN_PID = "P248"
+
+# Wikidata Item IDs
+CRITIC_REVIEW_QID = "Q80698083"
+OPENCRITIC_QID = "Q21039459"
+OPENCRITIC_TOP_CRITIC_AVERAGE_QID = "Q114712322"
 
 CRITIC_REVIEW_ITEM = ItemPage(SITE, CRITIC_REVIEW_QID)
 OPENCRITIC_ITEM = ItemPage(SITE, OPENCRITIC_QID)
