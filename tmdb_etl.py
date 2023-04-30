@@ -42,10 +42,8 @@ _COLUMNS = [
 
 _SESSION = Session(
     ok_statuses={200, 404},
-    connect_timeout=1.0,
-    read_timeout=3.0,
+    timeout=3.0,
     retry_count=3,
-    retry_backoff_factor=1.0,
 )
 
 _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {

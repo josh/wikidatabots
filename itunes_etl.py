@@ -269,12 +269,7 @@ _LOOKUP_DTYPE = pl.Struct(
     ]
 )
 
-_SESSION = Session(
-    connect_timeout=1.0,
-    read_timeout=30.0,
-    retry_count=5,
-    retry_statuses={429, 500, 503},
-)
+_SESSION = Session(timeout=30.0, retry_count=5)
 
 
 def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:

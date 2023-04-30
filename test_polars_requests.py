@@ -21,7 +21,7 @@ from polars_requests import (
     response_text,
 )
 
-_POSTMAN_SESSION = Session(connect_timeout=1.0, read_timeout=2.0)
+_POSTMAN_SESSION = Session(timeout=2.0)
 
 
 def _response_ok(response: pl.Expr) -> pl.Expr:
@@ -263,7 +263,7 @@ def test_request_prepare_just_fields() -> None:
 
 
 def test_request_retry_status() -> None:
-    session = Session(ok_statuses={200}, retry_statuses={500}, retry_count=10)
+    session = Session(retry_count=10)
 
     ldf = (
         pl.LazyFrame(
@@ -298,7 +298,7 @@ def test_request_retry_status() -> None:
 
 
 def test_request_timeout() -> None:
-    session = Session(read_timeout=2.0)
+    session = Session(timeout=2.0)
 
     ldf = pl.LazyFrame(
         {

@@ -1,13 +1,13 @@
-# pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
+# pyright: strict
 
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Iterable, TypedDict
 
+import backoff
 import polars as pl
-import urllib3
+import requests as _requests
 from tqdm import tqdm
-from urllib3.exceptions import ResponseError
 
 from actions import log_group as _log_group
 from polars_utils import apply_with_tqdm
@@ -18,10 +18,33 @@ class _HTTPDict(TypedDict):
     value: str
 
 
+def _make_header_dict(headers: list[_HTTPDict] | None) -> dict[str, str]:
+    if not headers:
+        return {}
+    return {h["name"]: h["value"] for h in headers}
+
+
+def _make_header_list(headers: dict[str, str]) -> list[_HTTPDict]:
+    return [{"name": name, "value": value} for name, value in headers.items()]
+
+
+class _HTTPRequest(TypedDict):
+    url: str
+    headers: list[_HTTPDict] | None
+
+
 class _HTTPResponse(TypedDict):
     status: int
     headers: list[_HTTPDict]
     data: bytes
+
+
+def _make_http_response(response: _requests.Response) -> _HTTPResponse:
+    return {
+        "status": response.status_code,
+        "headers": _make_header_list(dict(response.headers)),
+        "data": response.content,
+    }
 
 
 _HTTP_DICT_DTYPE = pl.Struct([pl.Field("name", pl.Utf8), pl.Field("value", pl.Utf8)])
@@ -48,47 +71,9 @@ HTTP_RESPONSE_DTYPE = pl.Struct(
 
 @dataclass
 class Session:
-    num_pools: int = 10
-    maxsize: int = 1
-    block: bool = True
-
-    connect_timeout: float = 1.0
-    read_timeout: float = 10.0
-
-    ok_statuses: set[int] = field(default_factory=lambda: {200})
-    retry_statuses: set[int] = field(default_factory=lambda: {413, 429, 503})
-
+    timeout: float = 10.0
+    ok_statuses: Iterable[int] = field(default_factory=lambda: [])
     retry_count: int = 0
-    retry_allowed_methods: list[str] = field(default_factory=lambda: ["HEAD", "GET"])
-    retry_backoff_factor: float = 0.0
-    retry_raise_on_status: bool = True
-
-    def __post_init__(self) -> None:
-        timeout = urllib3.Timeout(
-            connect=self.connect_timeout,
-            read=self.read_timeout,
-        )
-
-        retries = urllib3.Retry(
-            total=self.retry_count,
-            allowed_methods=self.retry_allowed_methods,
-            status_forcelist=self.retry_statuses,
-            backoff_factor=self.retry_backoff_factor,
-            raise_on_redirect=True,
-            raise_on_status=self.retry_raise_on_status,
-            respect_retry_after_header=True,
-        )
-
-        self._poolmanager = urllib3.PoolManager(
-            num_pools=self.num_pools,
-            timeout=timeout,
-            maxsize=self.maxsize,
-            block=self.block,
-            retries=retries,
-        )
-
-    def poolmanager(self) -> urllib3.PoolManager:
-        return self._poolmanager
 
 
 def request(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
@@ -110,49 +95,36 @@ def _request_series(
 
     values: list[_HTTPResponse | None] = []
 
+    def _get(url: str, headers: dict[str, str]) -> _requests.Response:
+        r = _requests.get(
+            url,
+            headers=headers,
+            timeout=session.timeout,
+            allow_redirects=False,
+        )
+        if r.status_code not in session.ok_statuses:
+            r.raise_for_status()
+        return r
+
+    if session.retry_count:
+        _get = backoff.on_exception(
+            backoff.expo,
+            _requests.exceptions.RequestException,
+            max_tries=session.retry_count,
+        )(_get)
+
     with _log_group(log_group):
-        for request in tqdm(requests, unit="url"):
+        for request_ in tqdm(requests, unit="url"):
+            request: _HTTPRequest = request_
+            response: _HTTPResponse | None = None
+
             if request and request["url"]:
-                response = _urllib3_request(
-                    session=session,
-                    url=request["url"],
-                    headers=request["headers"],
-                )
-                values.append(response)
-            else:
-                values.append(None)
+                r = _get(request["url"], _make_header_dict(request["headers"]))
+                response = _make_http_response(r)
+
+            values.append(response)
 
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
-
-
-def _urllib3_request(
-    session: Session,
-    url: str,
-    headers: list[_HTTPDict] | None = None,
-) -> _HTTPResponse:
-    http = session.poolmanager()
-
-    headers_dict = {}
-    if headers:
-        for h in headers:
-            headers_dict[h["name"]] = h["value"]
-
-    response: urllib3.HTTPResponse = http.request(
-        method="GET",
-        url=url,
-        headers=headers_dict,
-        redirect=False,
-    )
-
-    if response.status not in session.ok_statuses:
-        raise ResponseError(f"unretryable {response.status} error response")
-
-    resp_headers: list[_HTTPDict] = []
-    header_items: Iterable[tuple[str, str]] = response.headers.items()
-    for name, value in header_items:
-        resp_headers.append({"name": name, "value": value})
-
-    return {"status": response.status, "headers": resp_headers, "data": response.data}
 
 
 def resolve_redirects(
@@ -161,12 +133,16 @@ def resolve_redirects(
     log_group: str,
 ) -> pl.Expr:
     def _resolve_redirect(url: str) -> str:
-        response: urllib3.HTTPResponse = session.poolmanager().request(
-            method="HEAD",
-            url=url,
-            redirect=True,
-        )
-        return response.geturl()  # type: ignore
+        r = _requests.head(url, timeout=session.timeout, allow_redirects=True)
+        r.raise_for_status()
+        return r.url
+
+    if session.retry_count:
+        _resolve_redirect = backoff.on_exception(
+            backoff.expo,
+            _requests.exceptions.RequestException,
+            max_tries=session.retry_count,
+        )(_resolve_redirect)
 
     return url.pipe(
         apply_with_tqdm,

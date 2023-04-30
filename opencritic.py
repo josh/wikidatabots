@@ -12,9 +12,9 @@ from polars_requests import (
     response_text,
 )
 
-_SAFE_SESSION = Session(ok_statuses={200, 413, 429, 503}, retry_raise_on_status=False)
+_SAFE_SESSION = Session(ok_statuses=range(100, 600))
 
-_SESSION = Session(retry_count=3, retry_backoff_factor=3)
+_SESSION = Session(retry_count=3)
 
 
 def opencritic_ratelimits() -> pl.LazyFrame:

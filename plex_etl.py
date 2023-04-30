@@ -28,7 +28,7 @@ _GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
 
 _PLEX_SESSION = Session(
     ok_statuses={200, 404},
-    read_timeout=15.0,
+    timeout=15.0,
     retry_count=2,
 )
 

@@ -1,4 +1,4 @@
-# pyright: strict, reportUnknownMemberType=false, reportUnknownVariableType=false
+# pyright: strict
 
 import logging
 import math
@@ -7,8 +7,10 @@ import platform
 import time
 from threading import Lock
 
+import backoff
 import polars as pl
 import rdflib
+import requests as _requests
 from rdflib import URIRef
 
 from actions import warn
@@ -16,14 +18,6 @@ from polars_requests import Session, prepare_request, request
 from polars_utils import apply_with_tqdm
 
 _LOCK = Lock()
-_WIKIDATA_SPARQL_SESSION = Session(
-    read_timeout=90,
-    retry_statuses={500},
-    retry_count=10,
-    retry_allowed_methods=["GET", "POST"],
-    retry_raise_on_status=True,
-    retry_backoff_factor=1.0,
-)
 
 
 _USER_AGENT_PARTS: list[str] = []
@@ -45,35 +39,32 @@ class SlowQueryWarning(Warning):
     pass
 
 
-class SPARQLQueryError(Exception):
-    pass
-
-
-def _sparql_csv(query: str, _stacklevel: int = 0) -> bytes:
+@backoff.on_exception(
+    backoff.expo,
+    _requests.exceptions.RequestException,
+    max_tries=10,
+)
+def _sparql(query: str, _stacklevel: int = 0) -> bytes:
     with _LOCK:
         start = time.time()
-        http = _WIKIDATA_SPARQL_SESSION.poolmanager()
-        r = http.request(
-            "POST",
+        r = _requests.post(
             "https://query.wikidata.org/sparql",
-            fields={"query": query},
+            data={"query": query},
             headers={"Accept": "text/csv", "User-Agent": _USER_AGENT_STR},
-            encode_multipart=False,
+            timeout=(1, 90),
         )
+        r.raise_for_status()
         duration = time.time() - start
 
-    if r.status != 200:
-        raise SPARQLQueryError(f"Query errored with status {r.status}:\n{query}")
+        if duration > 45:
+            logging.warn(f"sparql: {duration:,.2f}s")
+            warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
+        elif duration > 5:
+            logging.info(f"sparql: {duration:,.2f}s")
+        else:
+            logging.debug(f"sparql: {duration:,.2f}s")
 
-    if duration > 45:
-        logging.warn(f"sparql: {duration:,.2f}s")
-        warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
-    elif duration > 5:
-        logging.info(f"sparql: {duration:,.2f}s")
-    else:
-        logging.debug(f"sparql: {duration:,.2f}s")
-
-    return r.data
+        return r.content
 
 
 def sparql_df(
@@ -86,7 +77,7 @@ def sparql_df(
     assert schema, "missing schema"
 
     def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
-        return pl.read_csv(_sparql_csv(query, _stacklevel=2), dtypes=schema)
+        return pl.read_csv(_sparql(query, _stacklevel=2), dtypes=schema)
 
     return pl.LazyFrame().map(sparql_df_inner, schema=schema)
 

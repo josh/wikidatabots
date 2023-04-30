@@ -25,13 +25,7 @@ from polars_utils import (
     xml_extract,
 )
 
-_APPLETV_SESSION = Session(
-    connect_timeout=1,
-    read_timeout=30.0,
-    retry_statuses={502},
-    retry_count=10,
-    retry_backoff_factor=1.0,
-)
+_APPLETV_SESSION = Session(timeout=30.0, retry_count=10)
 
 APPLETV_SESSION = _APPLETV_SESSION
 
