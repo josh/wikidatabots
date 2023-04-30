@@ -22,6 +22,7 @@ _WIKIDATA_SPARQL_SESSION = Session(
     retry_count=10,
     retry_allowed_methods=["GET", "POST"],
     retry_raise_on_status=True,
+    retry_backoff_factor=1.0,
 )
 
 
