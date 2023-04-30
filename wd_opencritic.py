@@ -126,7 +126,7 @@ def main() -> None:
             .alias("opencritic_id"),
         )
         .filter(pl.col("opencritic_id").is_not_null())
-        .head(requests_remaining)
+        .head(requests_remaining / 2)
         .with_columns(
             pl.col("opencritic_id").pipe(fetch_opencritic_game).alias("metadata"),
         )
