@@ -13,6 +13,7 @@ from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
 from polars_utils import apply_with_tqdm, position_weighted_shuffled
+from pwb import login
 from sparql import sparql
 from wikidata import page_qids
 
@@ -88,6 +89,8 @@ ORDER BY DESC (?timestamp)
 
 
 def main() -> None:
+    login(os.environ["WIKIDATA_USERNAME"], os.environ["WIKIDATA_PASSWORD"])
+
     ratelimits_df = opencritic_ratelimits().collect()
     requests_limit = ratelimits_df["requests_limit"].item()
     requests_remaining = ratelimits_df["requests_remaining"].item()

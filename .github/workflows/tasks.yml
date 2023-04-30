@@ -37,18 +37,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Login
-        env:
-          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
-        run: |
-          python pwb.py login
-
       - name: Run script
         run: |
           python "$PROPERTY_ID.py"
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
           PROPERTY_ID: ${{ matrix.property }}
+          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
 
   rdf_patch:
     runs-on: ubuntu-latest
