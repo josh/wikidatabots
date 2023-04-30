@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Iterable, TypedDict
+from typing import Callable, Iterable, ParamSpec, TypedDict, TypeVar
 
 import backoff
 import polars as pl
@@ -93,38 +93,66 @@ def _request_series(
     if len(requests) == 0:
         return pl.Series(name="response", values=[], dtype=HTTP_RESPONSE_DTYPE)
 
-    values: list[_HTTPResponse | None] = []
+    timeout = session.timeout
+    ok_status_codes = set(session.ok_statuses)
 
-    def _get(url: str, headers: dict[str, str]) -> _requests.Response:
-        r = _requests.get(
-            url,
+    def request_with_retry(url: str, headers: dict[str, str]) -> _requests.Response:
+        return _request(
+            url=url,
             headers=headers,
-            timeout=session.timeout,
-            allow_redirects=False,
+            timeout=timeout,
+            ok_status_codes=ok_status_codes,
         )
-        if r.status_code not in session.ok_statuses:
-            r.raise_for_status()
-        return r
 
-    if session.retry_count:
-        _get = backoff.on_exception(
+    request_with_retry = _decorate_backoff(request_with_retry, session.retry_count)
+
+    values: list[_HTTPResponse | None] = []
+    with _log_group(log_group):
+        for request in tqdm(requests, unit="url"):
+            response = None
+            if request and request["url"]:
+                r = request_with_retry(
+                    request["url"],
+                    _make_header_dict(request["headers"]),
+                )
+                response = _make_http_response(r)
+            values.append(response)
+    return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
+
+
+def _request(
+    url: str,
+    timeout: float,
+    method: str = "GET",
+    headers: dict[str, str] = {},
+    allow_redirects: bool = False,
+    ok_status_codes: set[int] = set(),
+) -> _requests.Response:
+    r = _requests.request(
+        method=method,
+        url=url,
+        headers=headers,
+        timeout=timeout,
+        allow_redirects=allow_redirects,
+    )
+    if r.status_code not in ok_status_codes:
+        r.raise_for_status()
+    return r
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
+
+
+def _decorate_backoff(fn: Callable[P, T], max_retries: int) -> Callable[P, T]:
+    if max_retries:
+        return backoff.on_exception(
             backoff.expo,
             _requests.exceptions.RequestException,
-            max_tries=session.retry_count,
-        )(_get)
-
-    with _log_group(log_group):
-        for request_ in tqdm(requests, unit="url"):
-            request: _HTTPRequest = request_
-            response: _HTTPResponse | None = None
-
-            if request and request["url"]:
-                r = _get(request["url"], _make_header_dict(request["headers"]))
-                response = _make_http_response(r)
-
-            values.append(response)
-
-    return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
+            max_tries=max_retries,
+        )(fn)
+    else:
+        return fn
 
 
 def resolve_redirects(
@@ -132,21 +160,19 @@ def resolve_redirects(
     session: Session,
     log_group: str,
 ) -> pl.Expr:
-    def _resolve_redirect(url: str) -> str:
-        r = _requests.head(url, timeout=session.timeout, allow_redirects=True)
-        r.raise_for_status()
-        return r.url
+    def resolve_redirect(url: str) -> str:
+        return _request(
+            method="HEAD",
+            url=url,
+            timeout=session.timeout,
+            allow_redirects=True,
+        ).url
 
-    if session.retry_count:
-        _resolve_redirect = backoff.on_exception(
-            backoff.expo,
-            _requests.exceptions.RequestException,
-            max_tries=session.retry_count,
-        )(_resolve_redirect)
+    resolve_redirect = _decorate_backoff(resolve_redirect, session.retry_count)
 
     return url.pipe(
         apply_with_tqdm,
-        _resolve_redirect,
+        resolve_redirect,
         return_dtype=pl.Utf8,
         log_group=log_group,
     )
