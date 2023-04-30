@@ -2,20 +2,9 @@
 
 import json
 import re
-from typing import Any, Literal, NewType
+from typing import Any
 
 from bs4 import BeautifulSoup
-
-ID = NewType("ID", str)
-IDPattern = re.compile("umc.cmc.[a-z0-9]{22,25}")
-
-
-def id(id: str) -> ID:
-    assert re.fullmatch(IDPattern, id), f"'{id}' is an invalid Apple TV ID"
-    return ID(id)
-
-
-Type = Literal["movie", "episode", "show"]
 
 
 def _extract_shoebox(soup: BeautifulSoup) -> list[Any]:
