@@ -1,23 +1,25 @@
 # pyright: strict
 
-from typing import TypedDict
 
 import polars as pl
 
 from appletv_etl import not_found
-from polars_utils import apply_with_tqdm, sample
-from sparql import sparql
+from polars_utils import sample
+from sparql import sparql, sparql_batch
 
 _SEARCH_LIMIT = 250
 _NOT_FOUND_LIMIT = 25
 
-
 _SEARCH_QUERY = """
-SELECT DISTINCT ?item ?appletv WHERE {
+SELECT DISTINCT ?item ?has_appletv WHERE {
+  VALUES ?title { "{}" }
+  VALUES ?directorName { "{}" }
+  VALUES ?year { {} {} }
+
   SERVICE wikibase:mwapi {
     bd:serviceParam wikibase:endpoint "www.wikidata.org";
                     wikibase:api "EntitySearch";
-                    mwapi:search "<<TITLE>>";
+                    mwapi:search "{}";
                     mwapi:language "en".
     ?item wikibase:apiOutputItem mwapi:item.
   }
@@ -30,56 +32,20 @@ SELECT DISTINCT ?item ?appletv WHERE {
 
   OPTIONAL { ?item rdfs:label ?titleLabel. }
   OPTIONAL { ?item skos:altLabel ?titleAltLabel. }
-  FILTER(((LCASE(STR(?titleLabel))) = LCASE("<<TITLE>>")) ||
-        ((LCASE(STR(?titleAltLabel))) = LCASE("<<TITLE>>")))
+  FILTER(((LCASE(STR(?titleLabel))) = LCASE(?title)) ||
+        ((LCASE(STR(?titleAltLabel))) = LCASE(?title)))
 
   ?item wdt:P577 ?date.
-  FILTER(
-    ((xsd:integer(YEAR(?date))) = <<YEAR>> ) ||
-    ((xsd:integer(YEAR(?date))) = <<NEXT_YEAR>> )
-  )
+  FILTER((xsd:integer(YEAR(?date))) = ?year)
 
   ?item wdt:P57 ?director.
   ?director rdfs:label ?directorLabel.
-  FILTER((STR(?directorLabel)) = "<<DIRECTOR>>")
+  FILTER((STR(?directorLabel)) = ?directorName)
 
-  OPTIONAL { ?item wdt:P9586 ?appletv. }
+  OPTIONAL { ?item wdt:P9586 ?has_appletv. }
 }
 LIMIT 2
 """
-
-
-class _SearchInput(TypedDict):
-    title: str
-    year: int
-    director: str
-
-
-def _wikidata_search(row: _SearchInput) -> str | None:
-    title = row["title"]
-    year = row["year"]
-    director = row["director"]
-
-    query = (
-        _SEARCH_QUERY.replace("<<TITLE>>", title.replace('"', '\\"'))
-        .replace("<<YEAR>>", str(year))
-        .replace("<<NEXT_YEAR>>", str(year + 1))
-        .replace("<<DIRECTOR>>", director.replace('"', '\\"'))
-    )
-    df = (
-        sparql(query, columns=["item", "appletv"])
-        .with_columns(
-            (pl.count() == 1).alias("exclusive"),
-            pl.col("appletv").is_null().all().alias("no_appletv"),
-        )
-        .filter(pl.col("exclusive") & pl.col("no_appletv"))
-        .select("item")
-        .collect()
-    )
-    if len(df):
-        return df.item()
-    return None
-
 
 _ANY_ID_QUERY = """
 SELECT DISTINCT ?id WHERE { ?statement ps:P9586 ?id. }
@@ -127,20 +93,23 @@ def _find_movie_via_search() -> pl.LazyFrame:
         )
         .pipe(sample, n=_SEARCH_LIMIT)
         .with_columns(
-            pl.struct(
-                pl.col("title"),
-                pl.col("published_at").dt.year().alias("year"),
-                pl.col("director"),
+            pl.format(
+                _SEARCH_QUERY,
+                pl.col("title").str.replace_all('"', '\\"', literal=True),
+                pl.col("director").str.replace_all('"', '\\"', literal=True),
+                pl.col("published_at").dt.year(),
+                pl.col("published_at").dt.year() + 1,
+                pl.col("title").str.replace_all('"', '\\"', literal=True),
             )
-            .pipe(
-                apply_with_tqdm,
-                _wikidata_search,
-                return_dtype=pl.Utf8,
-                log_group="wikidata_search",
-            )
-            .alias("item"),
+            .pipe(sparql_batch, columns=["item", "has_appletv"])
+            .alias("result"),
         )
-        .filter(pl.col("item").is_not_null())
+        .filter(pl.col("result").arr.lengths() == 1)
+        .with_columns(
+            pl.col("result").arr.first().alias("result"),
+        )
+        .unnest("result")
+        .filter(pl.col("item").is_not_null() & pl.col("has_appletv").is_null())
         .select(_ADD_RDF_STATEMENT)
     )
 
