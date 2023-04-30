@@ -4,7 +4,6 @@ import logging
 import math
 import platform
 import time
-from threading import Lock
 
 import backoff
 import polars as pl
@@ -12,11 +11,10 @@ import rdflib
 import requests as _requests
 from rdflib import URIRef
 
-from actions import warn
+from actions import log_group, warn
 from polars_requests import Session, prepare_request, request
 from polars_utils import apply_with_tqdm
 
-_LOCK = Lock()
 _USER_AGENT_STR = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
 
 
@@ -30,26 +28,27 @@ class SlowQueryWarning(Warning):
     max_tries=10,
 )
 def _sparql(query: str, _stacklevel: int = 0) -> bytes:
-    with _LOCK:
-        start = time.time()
-        r = _requests.post(
-            "https://query.wikidata.org/sparql",
-            data={"query": query},
-            headers={"Accept": "text/csv", "User-Agent": _USER_AGENT_STR},
-            timeout=(1, 90),
-        )
-        r.raise_for_status()
-        duration = time.time() - start
+    logging.info(query)
 
-        if duration > 45:
-            logging.warn(f"sparql: {duration:,.2f}s")
-            warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
-        elif duration > 5:
-            logging.info(f"sparql: {duration:,.2f}s")
-        else:
-            logging.debug(f"sparql: {duration:,.2f}s")
+    start = time.time()
+    r = _requests.post(
+        "https://query.wikidata.org/sparql",
+        data={"query": query},
+        headers={"Accept": "text/csv", "User-Agent": _USER_AGENT_STR},
+        timeout=(1, 90),
+    )
+    r.raise_for_status()
+    duration = time.time() - start
 
-        return r.content
+    if duration > 45:
+        logging.warn(f"sparql: {duration:,.2f}s")
+        warn(query, SlowQueryWarning, stacklevel=2 + _stacklevel)
+    elif duration > 5:
+        logging.info(f"sparql: {duration:,.2f}s")
+    else:
+        logging.debug(f"sparql: {duration:,.2f}s")
+
+    return r.content
 
 
 def sparql_df(
@@ -62,7 +61,9 @@ def sparql_df(
     assert schema, "missing schema"
 
     def sparql_df_inner(df: pl.DataFrame) -> pl.DataFrame:
-        return pl.read_csv(_sparql(query, _stacklevel=2), dtypes=schema)
+        with log_group("sparql"):
+            data = _sparql(query, _stacklevel=2)
+            return pl.read_csv(data, dtypes=schema)
 
     return pl.LazyFrame().map(sparql_df_inner, schema=schema)
 
