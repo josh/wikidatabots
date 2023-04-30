@@ -19,8 +19,8 @@ def test_opencritic_ratelimits() -> None:
 @pytest.mark.skipif("RAPIDAPI_KEY" not in os.environ, reason="Missing RAPIDAPI_KEY")
 def test_fetch_game() -> None:
     df1 = (
-        pl.LazyFrame({"id": [1548, 14343]})
-        .select(
+        pl.LazyFrame({"id": [1, 1548, 14343]}, schema={"id": pl.UInt32})
+        .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("metadata"),
         )
         .unnest("metadata")
@@ -28,12 +28,14 @@ def test_fetch_game() -> None:
     )
     df2 = pl.LazyFrame(
         {
-            "id": [1548, 14343],
+            "id": [1, 1548, 14343],
             "name": [
+                None,
                 "The Legend of Zelda: Breath of the Wild",
                 "The Legend of Zelda: Tears of the Kingdom",
             ],
             "url": [
+                None,
                 "https://opencritic.com/game/1548/"
                 "the-legend-of-zelda-breath-of-the-wild",
                 "https://opencritic.com/game/14343/"

@@ -18,7 +18,7 @@ _BACKFILL_LIMIT = 10
 
 _SAFE_SESSION = Session(ok_statuses=range(100, 600))
 
-_SESSION = Session(retry_count=5)
+_SESSION = Session(retry_count=5, ok_statuses={400})
 
 _LOG_GROUP = "opencritic-api.p.rapidapi.com"
 
@@ -129,7 +129,6 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
 
 _OPENCRITIC_GAME_DTYPE = pl.Struct(
     {
-        "id": pl.UInt32,
         "name": pl.Utf8,
         "url": pl.Utf8,
         "tier": pl.Categorical,
@@ -211,7 +210,7 @@ def _opencritic_reviewed_today_ids() -> pl.LazyFrame:
 def opencritic_reviewed_today() -> pl.LazyFrame:
     return (
         _opencritic_reviewed_today_ids()
-        .select(
+        .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
         .unnest("game")
@@ -221,8 +220,9 @@ def opencritic_reviewed_today() -> pl.LazyFrame:
 def _backfill_missing_games(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.filter(pl.col("name").is_null())
+        .select("id")
         .pipe(limit, soft=_BACKFILL_LIMIT, desc="opencritic ids missing name")
-        .select(
+        .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
         .unnest("game")
