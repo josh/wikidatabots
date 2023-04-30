@@ -1,3 +1,5 @@
+# pyright: reportUnknownArgumentType=false
+
 from io import StringIO
 
 import rdf_patch

@@ -1,6 +1,5 @@
 # pyright: strict
 
-
 from math import ceil
 from typing import Callable, Iterator, TypeVar
 

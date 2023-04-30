@@ -1,6 +1,5 @@
 # pyright: strict
 
-
 from typing import TypedDict
 
 import polars as pl

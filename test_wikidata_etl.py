@@ -1,3 +1,5 @@
+# pyright: strict
+
 import polars as pl
 
 from wikidata_etl import fetch_property_class_constraints
