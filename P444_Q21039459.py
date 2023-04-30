@@ -4,7 +4,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import polars as pl
 import pywikibot
@@ -14,7 +14,6 @@ from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
 from polars_utils import apply_with_tqdm, position_weighted_shuffled
 from sparql import sparql_df
-from utils import tryint
 from wikidata import page_qids
 
 SITE = pywikibot.Site("wikidata", "wikidata")
@@ -255,6 +254,13 @@ def get_dict_value(dict: OrderedDict[str, list[T]], key: str) -> T | None:
     for value in dict.get(key, []):
         return value
     return None
+
+
+def tryint(value: Any) -> int | None:
+    try:
+        return int(value)
+    except ValueError:
+        return None
 
 
 if __name__ == "__main__":
