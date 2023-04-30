@@ -108,7 +108,8 @@ def _request_series(
 
     values: list[_HTTPResponse | None] = []
     with _log_group(log_group):
-        for request in tqdm(requests, unit="url"):
+        for request_ in tqdm(requests, unit="url"):
+            request: _HTTPRequest = request_
             response = None
             if request and request["url"]:
                 r = request_with_retry(
