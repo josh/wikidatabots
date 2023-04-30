@@ -27,8 +27,9 @@ class SlowQueryWarning(Warning):
     _requests.exceptions.RequestException,
     max_tries=10,
 )
-def _sparql(query: str, _stacklevel: int) -> bytes:
-    logging.info(query)
+def _sparql(query: str, _log_query: bool, _stacklevel: int) -> bytes:
+    if _log_query:
+        logging.info(query)
 
     start = time.time()
     r = _requests.post(
@@ -53,7 +54,8 @@ def _sparql(query: str, _stacklevel: int) -> bytes:
 
 def _sparql_batch_raw(queries: pl.Series) -> pl.Series:
     with log_group("sparql"):
-        values = [_sparql(q, _stacklevel=2) for q in queries]
+        log_query = len(queries) == 1
+        values = [_sparql(q, _log_query=log_query, _stacklevel=2) for q in queries]
         return pl.Series("", values=values, dtype=pl.Binary)
 
 
