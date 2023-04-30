@@ -2,7 +2,6 @@
 
 import logging
 import math
-import os
 import platform
 import time
 from threading import Lock
@@ -18,21 +17,7 @@ from polars_requests import Session, prepare_request, request
 from polars_utils import apply_with_tqdm
 
 _LOCK = Lock()
-
-
-_USER_AGENT_PARTS: list[str] = []
-
-if "WIKIDATA_USERNAME" in os.environ:
-    _USER_AGENT_PARTS.append(
-        "{username}/1.0 (User:{username})".format(
-            username=os.environ["WIKIDATA_USERNAME"]
-        )
-    )
-else:
-    warn("WIKIDATA_USERNAME unset")
-
-_USER_AGENT_PARTS.append(f"Python/{platform.python_version()}")
-_USER_AGENT_STR = " ".join(_USER_AGENT_PARTS)
+_USER_AGENT_STR = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
 
 
 class SlowQueryWarning(Warning):
