@@ -137,6 +137,13 @@ def _position_weighted_shuffled(s: pl.Series) -> pl.Series:
     return pl.DataFrame({"s": s}).sort(by=weights).to_series()
 
 
+def head(df: pl.LazyFrame, n: int | None) -> pl.LazyFrame:
+    if n:
+        return df.head(n)
+    else:
+        return df
+
+
 class LimitWarning(Warning):
     pass
 

@@ -19,6 +19,7 @@ from polars_requests import (
 )
 from polars_utils import (
     apply_with_tqdm,
+    head,
     limit,
     update_or_append,
     update_parquet,
@@ -82,17 +83,10 @@ _SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
 _SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEMAP_SCHEMA))
 
 
-def _head(df: pl.LazyFrame, n: int | None) -> pl.LazyFrame:
-    if n:
-        return df.head(n)
-    else:
-        return df
-
-
 def sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     return (
         siteindex(type)
-        .pipe(_head, n=limit)
+        .pipe(head, n=limit)
         .select(
             pl.col("loc")
             .pipe(prepare_request)
