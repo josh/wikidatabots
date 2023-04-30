@@ -6,6 +6,7 @@ from typing import Literal
 
 import polars as pl
 
+from appletv_etl import APPLETV_SESSION
 from polars_requests import (
     Session,
     prepare_request,
@@ -293,7 +294,9 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
                 },
             )
             .pipe(
-                urllib3_requests, session=_SESSION, log_group=f"itunes_lookup_{country}"
+                urllib3_requests,
+                session=_SESSION,
+                log_group=f"itunes.apple.com/lookup?country={country}",
             )
             .pipe(response_text)
             .str.json_extract(_RESULTS_DTYPE)
@@ -480,8 +483,8 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("url")
             .pipe(
                 urllib3_resolve_redirects,
-                session=_SESSION,
-                log_group="apple.com redirect",
+                session=APPLETV_SESSION,
+                log_group="apple.com",
             )
             .alias("redirect_url")
         )

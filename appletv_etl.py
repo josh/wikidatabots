@@ -29,9 +29,11 @@ _APPLETV_SESSION = Session(
     connect_timeout=1,
     read_timeout=30.0,
     retry_statuses={502},
-    retry_count=5,
+    retry_count=10,
     retry_backoff_factor=1.0,
 )
+
+APPLETV_SESSION = _APPLETV_SESSION
 
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
