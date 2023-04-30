@@ -4,7 +4,7 @@ import polars as pl
 
 from appletv_etl import appletv_to_itunes_series
 from polars_utils import limit
-from sparql import sparql_df
+from sparql import sparql
 
 _STATEMENT_LIMIT = (100, 10_000)
 
@@ -37,7 +37,7 @@ _LOOKUP_LIMIT = 100
 
 def _itunes_from_appletv_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        sparql_df(_APPLETV_QUERY, columns=["item", "appletv_id"])
+        sparql(_APPLETV_QUERY, columns=["item", "appletv_id"])
         .pipe(limit, soft=_LOOKUP_LIMIT, desc="appletv_ids")
         .with_columns(
             pl.col("appletv_id")

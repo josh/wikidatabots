@@ -23,7 +23,7 @@ from polars_utils import (
     update_parquet,
     with_outlier_column,
 )
-from sparql import sparql_df
+from sparql import sparql
 
 _COUNTRY = Literal[
     "af",
@@ -431,7 +431,7 @@ SELECT DISTINCT ?id WHERE {
 
 
 def _wikidata_itunes_ids(pid: _ITUNES_PROPERTY_ID) -> pl.LazyFrame:
-    return sparql_df(_QUERY.replace("P0000", pid), schema={"id": pl.UInt64})
+    return sparql(_QUERY.replace("P0000", pid), schema={"id": pl.UInt64})
 
 
 def wikidata_itunes_all_ids() -> pl.LazyFrame:

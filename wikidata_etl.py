@@ -5,7 +5,7 @@ import logging
 import polars as pl
 
 from polars_utils import assert_expression, update_parquet
-from sparql import sparql_df
+from sparql import sparql
 
 _PIDS: list[str] = [
     "P345",
@@ -53,8 +53,8 @@ def fetch_property_class_constraints(pid: str) -> pl.LazyFrame:
     return (
         pl.concat(
             [
-                sparql_df(query1, schema=_CONSTRAINT_QUERY_SCHEMA),
-                sparql_df(query2, schema=_CONSTRAINT_QUERY_SCHEMA),
+                sparql(query1, schema=_CONSTRAINT_QUERY_SCHEMA),
+                sparql(query2, schema=_CONSTRAINT_QUERY_SCHEMA),
             ]
         )
         .unique(subset=["class"], maintain_order=True)

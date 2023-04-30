@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from sparql import fetch_property_statements, sparql_df
+from sparql import fetch_property_statements, sparql
 
 
 def _extract_qid(name: str = "item") -> pl.Expr:
@@ -10,7 +10,7 @@ def _extract_qid(name: str = "item") -> pl.Expr:
 
 
 def test_sparql_df():
-    lf = sparql_df(
+    lf = sparql(
         """
         SELECT ?item ?itemLabel WHERE {
           ?item wdt:P31 wd:Q146.

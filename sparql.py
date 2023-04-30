@@ -51,7 +51,7 @@ def _sparql(query: str, _stacklevel: int = 0) -> bytes:
     return r.content
 
 
-def sparql_df(
+def sparql(
     query: str,
     columns: list[str] | None = None,
     schema: dict[str, pl.PolarsDataType] | None = None,

@@ -20,7 +20,7 @@ from polars_utils import (
     with_outlier_column,
     xml_extract,
 )
-from sparql import sparql_df
+from sparql import sparql
 
 GUID_TYPE = Literal["episode", "movie", "season", "show"]
 
@@ -116,7 +116,7 @@ def plex_library_guids() -> pl.LazyFrame:
 
 def wikidata_plex_guids() -> pl.LazyFrame:
     return (
-        sparql_df(
+        sparql(
             "SELECT DISTINCT ?guid WHERE { ?item ps:P11460 ?guid. }",
             columns=["guid"],
         )
@@ -207,7 +207,7 @@ SELECT ?title WHERE {
 
 
 def _wd_random_titles(limit: int) -> pl.LazyFrame:
-    return sparql_df(_TITLE_QUERY.replace("?limit", str(limit)), columns=["title"])
+    return sparql(_TITLE_QUERY.replace("?limit", str(limit)), columns=["title"])
 
 
 _SEARCH_LIMIT = 100

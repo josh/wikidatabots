@@ -6,7 +6,7 @@ import polars as pl
 
 from plex_etl import GUID_TYPE, encode_plex_guids
 from polars_utils import limit
-from sparql import sparql_df
+from sparql import sparql
 
 _STATEMENT_LIMIT = 100
 
@@ -68,7 +68,7 @@ _TMDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
 
 def _wikidata_tmdb_ids(guid_type: GUID_TYPE) -> pl.LazyFrame:
     return (
-        sparql_df(_TMDB_QUERY[guid_type], schema=_TMDB_QUERY_SCHEMA)
+        sparql(_TMDB_QUERY[guid_type], schema=_TMDB_QUERY_SCHEMA)
         .filter(pl.col("tmdb_id").is_unique() & pl.col("plex_guid").is_null())
         .drop("plex_guid")
         .with_columns(pl.lit(guid_type).cast(pl.Categorical).alias("type"))

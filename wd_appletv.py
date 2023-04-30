@@ -6,7 +6,7 @@ import polars as pl
 
 from appletv_etl import not_found
 from polars_utils import apply_with_tqdm, sample
-from sparql import sparql_df
+from sparql import sparql
 
 _SEARCH_LIMIT = 250
 _NOT_FOUND_LIMIT = 25
@@ -67,7 +67,7 @@ def _wikidata_search(row: _SearchInput) -> str | None:
         .replace("<<DIRECTOR>>", director.replace('"', '\\"'))
     )
     df = (
-        sparql_df(query, columns=["item", "appletv"])
+        sparql(query, columns=["item", "appletv"])
         .with_columns(
             (pl.count() == 1).alias("exclusive"),
             pl.col("appletv").is_null().all().alias("no_appletv"),
@@ -92,7 +92,7 @@ _ADD_RDF_STATEMENT = pl.format(
 
 def _find_movie_via_search() -> pl.LazyFrame:
     wd_df = (
-        sparql_df(_ANY_ID_QUERY, columns=["id"])
+        sparql(_ANY_ID_QUERY, columns=["id"])
         .select(pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$"))
         .drop_nulls()
         .with_columns(pl.lit(True).alias("wd_exists"))
@@ -164,7 +164,7 @@ _DEPRECATE_RDF_STATEMENT = pl.format(
 
 def _find_movie_not_found() -> pl.LazyFrame:
     return (
-        sparql_df(_ID_QUERY, columns=["statement", "id"])
+        sparql(_ID_QUERY, columns=["statement", "id"])
         .with_columns(
             pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$").alias("id"),
         )

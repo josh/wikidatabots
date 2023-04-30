@@ -13,7 +13,7 @@ from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
 from opencritic import fetch_opencritic_game, opencritic_ratelimits
 from polars_utils import apply_with_tqdm, position_weighted_shuffled
-from sparql import sparql_df
+from sparql import sparql
 from wikidata import page_qids
 
 SITE = pywikibot.Site("wikidata", "wikidata")
@@ -100,7 +100,7 @@ def main() -> None:
     blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
 
     df = (
-        sparql_df(_QUERY, columns=["item"])
+        sparql(_QUERY, columns=["item"])
         .with_columns(
             pl.col("item")
             .str.replace("http://www.wikidata.org/entity/", "")

@@ -6,7 +6,7 @@ from typing import Literal
 import polars as pl
 
 from polars_utils import limit
-from sparql import sparql_df
+from sparql import sparql
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
 _STATEMENT_LIMIT = (100, 10_000)
@@ -118,7 +118,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
     wd_df = (
-        sparql_df(sparql_query, schema=_IMDB_QUERY_SCHEMA)
+        sparql(sparql_query, schema=_IMDB_QUERY_SCHEMA)
         .with_columns(pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type))
         .filter(pl.col("imdb_numeric_id").is_unique() & pl.col("tmdb_id").is_null())
         .drop("tmdb_id")
@@ -198,7 +198,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     )
 
     wd_df = (
-        sparql_df(sparql_query, schema=_TVDB_QUERY_SCHEMA)
+        sparql(sparql_query, schema=_TVDB_QUERY_SCHEMA)
         .filter(pl.col("tvdb_id").is_unique() & pl.col("tmdb_id").is_null())
         .drop("tmdb_id")
         .drop_nulls()
@@ -246,7 +246,7 @@ def find_tmdb_ids_not_found(
     ).select(["id", "date", "success"])
 
     query = _NOT_DEPRECATED_QUERY.replace("P0000", _TMDB_TYPE_TO_WD_PID[tmdb_type])
-    df = sparql_df(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
+    df = sparql(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
 
     return (
         df.join(tmdb_df, on="id", how="left")
