@@ -14,7 +14,7 @@ from polars_requests import (
 
 _SAFE_SESSION = Session(ok_statuses=range(100, 600))
 
-_SESSION = Session(retry_count=3)
+_SESSION = Session(retry_count=5)
 
 
 def opencritic_ratelimits() -> pl.LazyFrame:
