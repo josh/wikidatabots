@@ -361,6 +361,7 @@ def extract_itunes_id(text: str) -> int | None:
 
 
 _REGIONS = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "cn"]
+REGION_COUNT = len(_REGIONS)
 
 
 def not_found(df: pl.LazyFrame, type: _TYPE) -> pl.LazyFrame:

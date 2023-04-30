@@ -1,14 +1,15 @@
 # pyright: strict
 
+from math import floor
 
 import polars as pl
 
-from appletv_etl import not_found
-from polars_utils import sample
+from appletv_etl import REGION_COUNT, not_found
+from polars_utils import limit
 from sparql import sparql, sparql_batch
 
 _SEARCH_LIMIT = 250
-_NOT_FOUND_LIMIT = 25
+_NOT_FOUND_LIMIT = floor(100 / REGION_COUNT)
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item ?has_appletv WHERE {
@@ -91,7 +92,7 @@ def _find_movie_via_search() -> pl.LazyFrame:
             & pl.col("published_at").is_not_null()
             & pl.col("director").is_not_null()
         )
-        .pipe(sample, n=_SEARCH_LIMIT)
+        .pipe(limit, soft=_SEARCH_LIMIT, desc="unmatched sitemap ids")
         .with_columns(
             pl.format(
                 _SEARCH_QUERY,
@@ -139,7 +140,7 @@ def _find_movie_not_found() -> pl.LazyFrame:
         )
         .drop_nulls()
         .select("statement", "id")
-        .pipe(sample, n=_NOT_FOUND_LIMIT)
+        .pipe(limit, soft=_NOT_FOUND_LIMIT, desc="deprecated candidate ids")
         .pipe(not_found, type="movie")
         .filter(pl.col("all_not_found"))
         .select(_DEPRECATE_RDF_STATEMENT)
