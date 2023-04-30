@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         property:
-          - "P444_Q21039459"
+          - "wd_opencritic"
 
     steps:
       - uses: actions/checkout@v3
