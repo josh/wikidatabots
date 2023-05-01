@@ -161,10 +161,10 @@ _RECENTLY_REVIEWED = pl.col("recently_reviewed")
 
 def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.join(_fetch_recently_reviewed(), on="id")
+        df.join(_fetch_recently_reviewed(), on="id", how="left")
         .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
         .select("id")
-        .pipe(limit, soft=250, desc="outdated ids")  # TODO: Remove
+        .pipe(limit, (500, 10_000), desc="outdated ids")  # TODO: Remove
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
