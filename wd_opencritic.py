@@ -11,7 +11,6 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
-from pwb import login
 from sparql import sparql
 from wikidata import page_qids
 
@@ -275,6 +274,18 @@ def get_dict_value(dict: OrderedDict[str, list[T]], key: str) -> T | None:
     for value in dict.get(key, []):
         return value
     return None
+
+
+def login(username: str, password: str) -> None:
+    pywikibot.config.password_file = "user-password.py"
+    with open(pywikibot.config.password_file, "w") as file:
+        file.write(f'("{username}", "{password}")')
+    os.chmod(pywikibot.config.password_file, 0o600)
+
+    pywikibot.config.usernames["wikidata"]["wikidata"] = username
+
+    site = pywikibot.Site("wikidata", "wikidata")
+    site.login()
 
 
 if __name__ == "__main__":

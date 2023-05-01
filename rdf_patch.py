@@ -2,6 +2,7 @@
 
 import datetime
 import logging
+import os
 from collections import defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
@@ -13,7 +14,6 @@ from rdflib.namespace import Namespace, NamespaceManager
 from rdflib.term import BNode, Literal, URIRef
 
 from actions import print_warning
-from pwb import login
 from wikidata import page_qids
 
 SITE = pywikibot.Site("wikidata", "wikidata")
@@ -393,9 +393,20 @@ def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
     return True
 
 
+def login(username: str, password: str) -> None:
+    pywikibot.config.password_file = "user-password.py"
+    with open(pywikibot.config.password_file, "w") as file:
+        file.write(f'("{username}", "{password}")')
+    os.chmod(pywikibot.config.password_file, 0o600)
+
+    pywikibot.config.usernames["wikidata"]["wikidata"] = username
+
+    site = pywikibot.Site("wikidata", "wikidata")
+    site.login()
+
+
 if __name__ == "__main__":
     import argparse
-    import os
     import sys
 
     logging.basicConfig(level=logging.INFO)
