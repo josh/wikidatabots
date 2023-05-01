@@ -14,8 +14,6 @@ from polars_requests import (
 )
 from polars_utils import align_to_index, limit, update_or_append, update_parquet
 
-_BACKFILL_LIMIT = 10
-
 _SAFE_SESSION = Session(ok_statuses=range(100, 600))
 
 _SESSION = Session(retry_count=5, ok_statuses={400})
@@ -26,10 +24,6 @@ _HEADERS: dict[str, str | pl.Expr] = {
     "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
     "X-RapidAPI-Key": os.environ["RAPIDAPI_KEY"],
 }
-
-
-def xxx_opencritic_ratelimits() -> None:
-    opencritic_ratelimits()
 
 
 def opencritic_ratelimits() -> pl.LazyFrame:
@@ -222,10 +216,17 @@ def opencritic_reviewed_today() -> pl.LazyFrame:
 
 
 def _backfill_missing_games(df: pl.LazyFrame) -> pl.LazyFrame:
+    ratelimits_df = opencritic_ratelimits().collect()
+    requests_remaining = ratelimits_df["requests_remaining"].item()
+    logging.info(f"OpenCritic API requests remaining: {requests_remaining}")
+    assert requests_remaining > 0
+
+    backfill_limit = round(requests_remaining / 2)
+
     return (
         df.filter(pl.col("name").is_null())
         .select("id")
-        .pipe(limit, soft=_BACKFILL_LIMIT, desc="opencritic ids missing name")
+        .pipe(limit, soft=backfill_limit, desc="opencritic ids missing name")
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
