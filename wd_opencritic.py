@@ -3,7 +3,7 @@
 import logging
 import os
 from collections import OrderedDict
-from datetime import date
+from datetime import date, datetime
 from typing import TypeVar
 
 import polars as pl
@@ -56,16 +56,6 @@ REVIEW_SCORE_CLAIM.qualifiers[DETERMINATION_METHOD_PID] = [DETERMINATION_METHOD_
 
 STATED_IN_REFERENCE = STATED_IN_PROPERTY.newClaim(is_reference=True)
 STATED_IN_REFERENCE.setTarget(OPENCRITIC_ITEM)
-
-TODAY_DATE = date.today()
-TODAY_WBTIME = WbTime(
-    year=TODAY_DATE.year,
-    month=TODAY_DATE.month,
-    day=TODAY_DATE.day,
-    precision=11,
-)
-RETRIEVED_TODAY_REFERENCE = RETRIEVED_PROPERTY.newClaim(is_reference=True)
-RETRIEVED_TODAY_REFERENCE.setTarget(TODAY_WBTIME)
 
 pywikibot.config.usernames["wikidata"]["wikidata"] = os.environ["WIKIDATA_USERNAME"]
 pywikibot.config.password_file = "user-password.py"
@@ -140,6 +130,7 @@ def main() -> None:
             pl.col("wd_qid").is_in(blocked_qids).is_not()
             & pl.col("api_top_critic_score").is_not_null()
             & pl.col("api_latest_review_date").is_not_null()
+            & pl.col("api_retrieved_at").is_not_null()
             & (pl.col("api_num_reviews") > 0)
         )
         .with_columns(
@@ -160,7 +151,7 @@ def main() -> None:
             "api_review_score",
             "api_num_reviews",
             "api_latest_review_date",
-            "wd_point_in_time",
+            "api_retrieved_at",
         )
         .collect()
     )
@@ -173,6 +164,7 @@ def main() -> None:
             review_score=row["api_review_score"],
             number_of_reviews=row["api_num_reviews"],
             latest_review_date=row["api_latest_review_date"],
+            retrieved_at=row["api_retrieved_at"],
         )
 
 
@@ -182,6 +174,7 @@ def _update_review_score_claim(
     review_score: str,
     number_of_reviews: int,
     latest_review_date: date,
+    retrieved_at: datetime,
 ) -> None:
     claim: Claim = REVIEW_SCORE_CLAIM.copy()
 
@@ -222,14 +215,24 @@ def _update_review_score_claim(
         if has_claim(opencritic_id_reference, source):
             retrieved_reference = get_dict_value(source, RETRIEVED_PID)
 
+    retrieved_at_wbtime = WbTime(
+        year=retrieved_at.year,
+        month=retrieved_at.month,
+        day=retrieved_at.day,
+        precision=11,
+    )
+
     # Update existing retrieved reference, or create a new one
     if retrieved_reference:
-        retrieved_reference.setTarget(TODAY_WBTIME)
+        retrieved_reference.setTarget(retrieved_at_wbtime)
     else:
+        retrieved_reference = RETRIEVED_PROPERTY.newClaim(is_reference=True)
+        retrieved_reference.setTarget(retrieved_at_wbtime)
+
         references = [
             (STATED_IN_PID, [STATED_IN_REFERENCE.copy()]),
             (OPENCRITIC_ID_PID, [opencritic_id_reference]),
-            (RETRIEVED_PID, [RETRIEVED_TODAY_REFERENCE.copy()]),
+            (RETRIEVED_PID, [retrieved_reference]),
         ]
         claim.sources.append(OrderedDict(references))
 
