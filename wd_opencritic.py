@@ -111,8 +111,6 @@ _QUERY_SCHEMA = {
 
 
 def main() -> None:
-    login(os.environ["WIKIDATA_USERNAME"], os.environ["WIKIDATA_PASSWORD"])
-
     blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
 
     wd_df = (
@@ -276,18 +274,18 @@ def get_dict_value(dict: OrderedDict[str, list[T]], key: str) -> T | None:
     return None
 
 
-def login(username: str, password: str) -> None:
-    pywikibot.config.password_file = "user-password.py"
+def login() -> None:
+    username = os.environ["WIKIDATA_USERNAME"]
+    password = os.environ["WIKIDATA_PASSWORD"]
+
     with open(pywikibot.config.password_file, "w") as file:
         file.write(f'("{username}", "{password}")')
     os.chmod(pywikibot.config.password_file, 0o600)
 
-    pywikibot.config.usernames["wikidata"]["wikidata"] = username
-
-    site = pywikibot.Site("wikidata", "wikidata")
-    site.login()
+    SITE.login()
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    login()
     main()

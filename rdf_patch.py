@@ -393,18 +393,6 @@ def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
     return True
 
 
-def login(username: str, password: str) -> None:
-    pywikibot.config.password_file = "user-password.py"
-    with open(pywikibot.config.password_file, "w") as file:
-        file.write(f'("{username}", "{password}")')
-    os.chmod(pywikibot.config.password_file, 0o600)
-
-    pywikibot.config.usernames["wikidata"]["wikidata"] = username
-
-    site = pywikibot.Site("wikidata", "wikidata")
-    site.login()
-
-
 if __name__ == "__main__":
     import argparse
     import sys
@@ -412,20 +400,21 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
-    parser.add_argument("-u", "--username", action="store")
-    parser.add_argument("-p", "--password", action="store")
     parser.add_argument("-n", "--dry-run", action="store_true")
     args = parser.parse_args()
 
-    username = (
-        args.username
-        or os.environ.get("QUICKSTATEMENTS_USERNAME")
-        or os.environ.get("WIKIDATA_USERNAME")
-    )
-    password = args.password or os.environ.get("WIKIDATA_PASSWORD")
+    username = os.environ["WIKIDATA_USERNAME"]
+    password = os.environ["WIKIDATA_PASSWORD"]
 
-    if (not args.dry_run) and username and password:
-        login(username, password)
+    if not args.dry_run:
+        pywikibot.config.password_file = "user-password.py"
+        with open(pywikibot.config.password_file, "w") as file:
+            file.write(f'("{username}", "{password}")')
+        os.chmod(pywikibot.config.password_file, 0o600)
+
+        pywikibot.config.usernames["wikidata"]["wikidata"] = username
+
+        SITE.login()
 
     edits = process_graph(
         username=username,
