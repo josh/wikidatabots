@@ -6,14 +6,7 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from opencritic_etl import fetch_opencritic_game, opencritic_ratelimits
-
-
-@pytest.mark.skipif("RAPIDAPI_KEY" not in os.environ, reason="Missing RAPIDAPI_KEY")
-def test_opencritic_ratelimits() -> None:
-    df = opencritic_ratelimits().collect()
-    assert df["searches_limit"].item() == 25
-    assert df["requests_limit"].item() == 200
+from opencritic_etl import fetch_opencritic_game
 
 
 @pytest.mark.skipif("RAPIDAPI_KEY" not in os.environ, reason="Missing RAPIDAPI_KEY")

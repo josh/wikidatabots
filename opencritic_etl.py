@@ -10,12 +10,9 @@ from polars_requests import (
     prepare_request,
     request,
     response_date,
-    response_header_value,
     response_text,
 )
 from polars_utils import align_to_index, limit, update_or_append, update_parquet
-
-_SAFE_SESSION = Session(ok_statuses=range(100, 600))
 
 _SESSION = Session(min_time=1 / 4, retry_count=3, ok_statuses={400})
 
@@ -25,70 +22,6 @@ _HEADERS: dict[str, str | pl.Expr] = {
     "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
     "X-RapidAPI-Key": os.environ["RAPIDAPI_KEY"],
 }
-
-
-def opencritic_ratelimits() -> pl.LazyFrame:
-    return (
-        pl.LazyFrame()
-        .select(
-            prepare_request(
-                url="https://opencritic-api.p.rapidapi.com/score-format",
-                headers=_HEADERS,
-            )
-            .pipe(request, session=_SAFE_SESSION, log_group=_LOG_GROUP)
-            .alias("response")
-        )
-        .select(
-            (
-                pl.col("response")
-                .pipe(response_header_value, name="X-RateLimit-Searches-Limit")
-                .cast(pl.UInt32)
-                .alias("searches_limit")
-            ),
-            (
-                pl.col("response")
-                .pipe(response_header_value, name="X-RateLimit-Searches-Remaining")
-                .cast(pl.Int32)
-                .clip_min(0)
-                .cast(pl.UInt32)
-                .alias("searches_remaining")
-            ),
-            (
-                (
-                    pl.col("response")
-                    .pipe(response_header_value, name="X-RateLimit-Searches-Reset")
-                    .cast(pl.UInt32)
-                    * 1000
-                )
-                .cast(pl.Duration(time_unit="ms"))
-                .alias("searches_reset")
-            ),
-            (
-                pl.col("response")
-                .pipe(response_header_value, name="X-RateLimit-Requests-Limit")
-                .cast(pl.UInt32)
-                .alias("requests_limit")
-            ),
-            (
-                pl.col("response")
-                .pipe(response_header_value, name="X-RateLimit-Requests-Remaining")
-                .cast(pl.Int32)
-                .clip_min(0)
-                .cast(pl.UInt32)
-                .alias("requests_remaining")
-            ),
-            (
-                (
-                    pl.col("response")
-                    .pipe(response_header_value, name="X-RateLimit-Requests-Reset")
-                    .cast(pl.UInt32)
-                    * 1000
-                )
-                .cast(pl.Duration(time_unit="ms"))
-                .alias("requests_reset")
-            ),
-        )
-    )
 
 
 _OPENCRITIC_GAME_API_DTYPE = pl.Struct(
@@ -223,17 +156,10 @@ def opencritic_reviewed_today() -> pl.LazyFrame:
 
 
 def _backfill_missing_games(df: pl.LazyFrame) -> pl.LazyFrame:
-    ratelimits_df = opencritic_ratelimits().collect()
-    requests_remaining = ratelimits_df["requests_remaining"].item()
-    logging.info(f"OpenCritic API requests remaining: {requests_remaining}")
-    assert requests_remaining > 0
-
-    backfill_limit = round(requests_remaining / 2)
-
     return (
         df.filter(pl.col("retrieved_at").is_null())
         .select("id")
-        .pipe(limit, soft=backfill_limit, desc="ids missing retrieved_at")
+        .pipe(limit, soft=250, desc="ids missing retrieved_at")
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
