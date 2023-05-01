@@ -28,6 +28,10 @@ _HEADERS: dict[str, str | pl.Expr] = {
 }
 
 
+def xxx_opencritic_ratelimits() -> None:
+    opencritic_ratelimits()
+
+
 def opencritic_ratelimits() -> pl.LazyFrame:
     return (
         pl.LazyFrame()

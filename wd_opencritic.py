@@ -11,8 +11,6 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
-from opencritic_etl import fetch_opencritic_game, opencritic_ratelimits
-from polars_utils import sample
 from pwb import login
 from sparql import sparql
 from wikidata import page_qids
@@ -102,86 +100,80 @@ SELECT ?item ?opencritic_id ?statement ?reference
 }
 """
 
-_QUERY_COLUMNS = [
-    "item",
-    "opencritic_id",
-    "statement",
-    "reference",
-    "review_score",
-    "point_in_time",
-    "number_of_reviews",
-]
+_QUERY_SCHEMA = {
+    "item": pl.Utf8,
+    "opencritic_id": pl.UInt32,
+    "statement": pl.Utf8,
+    "reference": pl.Utf8,
+    "review_score": pl.Utf8,
+    "point_in_time": pl.Utf8,
+    "number_of_reviews": pl.Float64,
+}
 
 
 def main() -> None:
     login(os.environ["WIKIDATA_USERNAME"], os.environ["WIKIDATA_PASSWORD"])
 
-    ratelimits_df = opencritic_ratelimits().collect()
-    requests_remaining = ratelimits_df["requests_remaining"].item()
-    logging.info(f"OpenCritic API requests remaining: {requests_remaining}")
-
-    if requests_remaining < 1:
-        logging.warning("No available API requests for the day")
-        return
-
     blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
 
-    df = (
-        sparql(_QUERY, columns=_QUERY_COLUMNS)
+    wd_df = (
+        sparql(_QUERY, schema=_QUERY_SCHEMA)
+        .unique("item", keep="none")
         .with_columns(
             pl.col("item")
             .str.replace("http://www.wikidata.org/entity/", "")
             .alias("qid")
         )
         .with_columns(
-            pl.col("opencritic_id").cast(pl.UInt32).alias("opencritic_id"),
-            pl.col("qid").is_in(blocked_qids).alias("blocked"),
+            pl.col("number_of_reviews").cast(pl.UInt16),
+            pl.col("point_in_time").str.strptime(pl.Date, "%+"),
         )
-        .unique("item", keep="none")
+        .select(pl.all().prefix("wd_"))
+    )
+
+    api_df = pl.scan_parquet(
+        "s3://wikidatabots/opencritic.parquet",
+        storage_options={"anon": True},
+    ).select(pl.all().prefix("api_"))
+
+    df = (
+        wd_df.join(api_df, left_on="wd_opencritic_id", right_on="api_id", how="left")
         .filter(
-            pl.col("opencritic_id").is_not_null() & pl.col("blocked").is_not(),
-        )
-        .pipe(sample, n=(requests_remaining / 2))
-        .with_columns(
-            pl.col("opencritic_id").pipe(fetch_opencritic_game).alias("api_data"),
-        )
-        .with_columns(
-            (
-                pl.col("api_data")
-                .struct.field("top_critic_score")
-                .round(0)
-                .cast(pl.UInt8)
-                .alias("api_top_critic_score")
-            ),
-            (
-                pl.col("api_data")
-                .struct.field("latest_review_date")
-                .alias("api_latest_review_date")
-            ),
-            pl.col("api_data").struct.field("num_reviews").alias("api_num_reviews"),
-        )
-        .drop("api_data")
-        .filter(
-            pl.col("api_top_critic_score").is_not_null()
+            pl.col("wd_qid").is_in(blocked_qids).is_not()
+            & pl.col("api_top_critic_score").is_not_null()
             & pl.col("api_latest_review_date").is_not_null()
             & (pl.col("api_num_reviews") > 0)
         )
+        .with_columns(
+            pl.format(
+                "{}/100", pl.col("api_top_critic_score").round(0).cast(pl.UInt8)
+            ).alias("api_review_score"),
+        )
+        .filter(
+            pl.col("wd_review_score").is_null()
+            | (pl.col("wd_review_score") != pl.col("api_review_score"))
+            | pl.col("wd_number_of_reviews").is_null()
+            | (pl.col("wd_number_of_reviews") < pl.col("api_num_reviews"))
+            | pl.col("wd_point_in_time").is_null()
+            | (pl.col("wd_point_in_time") < pl.col("api_latest_review_date")),
+        )
         .select(
-            "qid",
-            "opencritic_id",
+            "wd_qid",
+            "wd_opencritic_id",
+            "api_review_score",
             "api_num_reviews",
-            "api_top_critic_score",
             "api_latest_review_date",
+            "wd_point_in_time",
         )
         .collect()
     )
 
     for row in df.iter_rows(named=True):
         _update_review_score_claim(
-            item=ItemPage(SITE, row["qid"]),
-            opencritic_id=row["opencritic_id"],
+            item=ItemPage(SITE, row["wd_qid"]),
+            opencritic_id=row["wd_opencritic_id"],
+            review_score=row["api_review_score"],
             number_of_reviews=row["api_num_reviews"],
-            top_critic_score=row["api_top_critic_score"],
             latest_review_date=row["api_latest_review_date"],
         )
 
@@ -189,7 +181,7 @@ def main() -> None:
 def _update_review_score_claim(
     item: ItemPage,
     opencritic_id: int,
-    top_critic_score: float,
+    review_score: str,
     number_of_reviews: int,
     latest_review_date: date,
 ) -> None:
@@ -203,7 +195,7 @@ def _update_review_score_claim(
             orig_claim = c.copy()
 
     # Update review score value top OpenCritic top-critic score
-    claim.setTarget("{}/100".format(top_critic_score))
+    claim.setTarget(review_score)
 
     # Set determination method to "top critic average"
     claim.qualifiers[DETERMINATION_METHOD_PID] = [DETERMINATION_METHOD_CLAIM.copy()]
