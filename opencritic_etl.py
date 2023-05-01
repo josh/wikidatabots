@@ -231,9 +231,9 @@ def _backfill_missing_games(df: pl.LazyFrame) -> pl.LazyFrame:
     backfill_limit = round(requests_remaining / 2)
 
     return (
-        df.filter(pl.col("name").is_null())
+        df.filter(pl.col("retrieved_at").is_null())
         .select("id")
-        .pipe(limit, soft=backfill_limit, desc="opencritic ids missing name")
+        .pipe(limit, soft=backfill_limit, desc="ids missing retrieved_at")
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
