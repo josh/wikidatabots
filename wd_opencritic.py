@@ -11,6 +11,7 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
+from actions import warn
 from sparql import sparql
 from wikidata import page_qids
 
@@ -217,7 +218,7 @@ def _update_review_score_claim(
 
     # Skip editting if claims are the same
     if compare_claims(claim, orig_claim):
-        logging.debug(f"Skipping {item.id}, review score is up to date")
+        warn(f"Secondary skip check is deprecated: {item.id}", DeprecationWarning)
         return
 
     opencritic_id_reference = OPENCRITIC_ID_PROPERTY.newClaim(is_reference=True)
