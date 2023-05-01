@@ -154,6 +154,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
     )
 
 
+_REFRESH_LIMIT = (500, 5_000)
 _OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 250
 _MISSING_DATA = pl.col("retrieved_at").is_null()
 _RECENTLY_REVIEWED = pl.col("recently_reviewed")
@@ -164,7 +165,7 @@ def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
         df.join(_fetch_recently_reviewed(), on="id", how="left")
         .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
         .select("id")
-        .pipe(limit, (500, 10_000), desc="outdated ids")  # TODO: Remove
+        .pipe(limit, _REFRESH_LIMIT, desc="outdated ids")
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
