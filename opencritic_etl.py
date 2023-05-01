@@ -124,30 +124,37 @@ def _tidy_game(s: pl.Series) -> pl.Series:
     )
 
 
-_TODAY_GAME_DTYPE = pl.List(pl.Struct({"id": pl.UInt32}))
+_GAME_DTYPE = pl.List(pl.Struct({"id": pl.UInt32}))
 
 
-def _opencritic_reviewed_today_ids() -> pl.LazyFrame:
+def _recent_opencritic_ids() -> pl.LazyFrame:
     return (
         pl.LazyFrame(
-            {"url": ["https://opencritic-api.p.rapidapi.com/game/reviewed-today"]}
+            {
+                "url": [
+                    "https://opencritic-api.p.rapidapi.com/game/reviewed-today",
+                    "https://opencritic-api.p.rapidapi.com/game/reviewed-this-week",
+                    "https://opencritic-api.p.rapidapi.com/game/recently-released",
+                ]
+            }
         )
         .select(
             prepare_request(pl.col("url"), headers=_HEADERS)
             .pipe(request, session=_SESSION, log_group=_LOG_GROUP)
             .alias("response")
             .pipe(response_text)
-            .str.json_extract(_TODAY_GAME_DTYPE)
+            .str.json_extract(_GAME_DTYPE)
             .alias("game"),
         )
         .explode("game")
         .unnest("game")
+        .unique("id")
     )
 
 
 def opencritic_reviewed_today() -> pl.LazyFrame:
     return (
-        _opencritic_reviewed_today_ids()
+        _recent_opencritic_ids()
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
