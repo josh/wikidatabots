@@ -16,7 +16,7 @@ from polars_utils import align_to_index, limit, update_or_append, update_parquet
 
 _SAFE_SESSION = Session(ok_statuses=range(100, 600))
 
-_SESSION = Session(retry_count=5, ok_statuses={400})
+_SESSION = Session(min_time=1 / 4, retry_count=3, ok_statuses={400})
 
 _LOG_GROUP = "opencritic-api.p.rapidapi.com"
 

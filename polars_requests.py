@@ -1,5 +1,7 @@
 # pyright: strict
 
+import logging
+import time
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Callable, Iterable, ParamSpec, TypedDict, TypeVar
@@ -74,6 +76,7 @@ class Session:
     timeout: float = 10.0
     ok_statuses: Iterable[int] = field(default_factory=lambda: [])
     retry_count: int = 0
+    min_time: float = 0.0
 
 
 def request(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
@@ -94,6 +97,7 @@ def _request_series(
         return pl.Series(name="response", values=[], dtype=HTTP_RESPONSE_DTYPE)
 
     timeout = session.timeout
+    min_time = session.min_time
     ok_status_codes = set(session.ok_statuses)
 
     def request_with_retry(url: str, headers: dict[str, str]) -> _requests.Response:
@@ -101,6 +105,7 @@ def _request_series(
             url=url,
             headers=headers,
             timeout=timeout,
+            min_time=min_time,
             ok_status_codes=ok_status_codes,
         )
 
@@ -124,11 +129,13 @@ def _request_series(
 def _request(
     url: str,
     timeout: float,
+    min_time: float = 0.0,
     method: str = "GET",
     headers: dict[str, str] = {},
     allow_redirects: bool = False,
     ok_status_codes: set[int] = set(),
 ) -> _requests.Response:
+    start_time = time.time()
     r = _requests.request(
         method=method,
         url=url,
@@ -136,8 +143,16 @@ def _request(
         timeout=timeout,
         allow_redirects=allow_redirects,
     )
+    elapsed_time = time.time() - start_time
+
     if r.status_code not in ok_status_codes:
         r.raise_for_status()
+
+    sleep_time = min_time - elapsed_time
+    if sleep_time > 0:
+        logging.debug(f"Sleeping for {sleep_time:.2f} seconds more seconds")
+        time.sleep(sleep_time)
+
     return r
 
 
