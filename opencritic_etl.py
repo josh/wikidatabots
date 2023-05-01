@@ -127,7 +127,7 @@ def _tidy_game(s: pl.Series) -> pl.Series:
 _GAME_DTYPE = pl.List(pl.Struct({"id": pl.UInt32}))
 
 
-def _recent_opencritic_ids() -> pl.LazyFrame:
+def _fetch_recently_reviewed() -> pl.LazyFrame:
     return (
         pl.LazyFrame(
             {
@@ -148,25 +148,23 @@ def _recent_opencritic_ids() -> pl.LazyFrame:
         )
         .explode("game")
         .unnest("game")
-        .unique("id")
-    )
-
-
-def opencritic_reviewed_today() -> pl.LazyFrame:
-    return (
-        _recent_opencritic_ids()
-        .with_columns(
-            pl.col("id").pipe(fetch_opencritic_game).alias("game"),
-        )
-        .unnest("game")
-    )
-
-
-def _backfill_missing_games(df: pl.LazyFrame) -> pl.LazyFrame:
-    return (
-        df.filter(pl.col("retrieved_at").is_null())
         .select("id")
-        .pipe(limit, soft=250, desc="ids missing retrieved_at")
+        .unique("id")
+        .with_columns(pl.lit(True).alias("recently_reviewed"))
+    )
+
+
+_OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 250
+_MISSING_DATA = pl.col("retrieved_at").is_null()
+_RECENTLY_REVIEWED = pl.col("recently_reviewed")
+
+
+def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
+    return (
+        df.join(_fetch_recently_reviewed(), on="id")
+        .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
+        .select("id")
+        .pipe(limit, soft=250, desc="outdated ids")  # TODO: Remove
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
@@ -179,10 +177,8 @@ def _main() -> None:
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         df = df.cache()
-        return (
-            df.pipe(update_or_append, opencritic_reviewed_today(), on="id")
-            .pipe(update_or_append, _backfill_missing_games(df), on="id")
-            .pipe(align_to_index, name="id")
+        return df.pipe(update_or_append, _refresh_games(df), on="id").pipe(
+            align_to_index, name="id"
         )
 
     update_parquet("opencritic.parquet", update, key="id")
