@@ -9,6 +9,7 @@ from polars_requests import (
     Session,
     prepare_request,
     request,
+    response_date,
     response_header_value,
     response_text,
 )
@@ -119,8 +120,6 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
             headers=_HEADERS,
         )
         .pipe(request, session=_SESSION, log_group=_LOG_GROUP)
-        .pipe(response_text)
-        .str.json_extract(dtype=_OPENCRITIC_GAME_API_DTYPE)
         .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
     )
 
@@ -142,14 +141,22 @@ _OPENCRITIC_GAME_DTYPE = pl.Struct(
         "latest_review_date": pl.Date,
         "tenth_review_date": pl.Date,
         "critical_review_date": pl.Date,
+        "retrieved_at": pl.Datetime(time_unit="ms"),
     }
 )
 
 
 def _tidy_game(s: pl.Series) -> pl.Series:
     return (
-        s.to_frame(name=s.name)
-        .unnest(s.name)
+        s.to_frame(name="response")
+        .select(
+            pl.col("response").pipe(response_date).alias("retrieved_at"),
+            pl.col("response")
+            .pipe(response_text)
+            .str.json_extract(dtype=_OPENCRITIC_GAME_API_DTYPE)
+            .alias("data"),
+        )
+        .unnest("data")
         .with_columns(
             pl.col(pl.Utf8).map_dict({"": None}, default=pl.first()),
             pl.col(pl.Int8).map_dict({-1: None}, default=pl.first()).cast(pl.UInt8),
