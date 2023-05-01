@@ -10,6 +10,7 @@ import polars as pl
 import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
+from tqdm import tqdm
 
 from actions import warn
 from sparql import sparql
@@ -165,7 +166,8 @@ def main() -> None:
         .collect()
     )
 
-    for row in df.iter_rows(named=True):
+    rows = list(df.iter_rows(named=True))
+    for row in tqdm(rows, unit="row"):
         _update_review_score_claim(
             item=ItemPage(SITE, row["wd_qid"]),
             opencritic_id=row["wd_opencritic_id"],
