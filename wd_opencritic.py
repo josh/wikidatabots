@@ -12,7 +12,6 @@ import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
 
-from actions import warn
 from sparql import sparql
 from wikidata import page_qids
 
@@ -185,13 +184,11 @@ def _update_review_score_claim(
     latest_review_date: date,
 ) -> None:
     claim: Claim = REVIEW_SCORE_CLAIM.copy()
-    orig_claim: Claim | None = None
 
     # Find existing review score claim, if one exists
     for c in item.claims.get(REVIEW_SCORE_PID, []):
         if c.has_qualifier(REVIEW_SCORE_BY_PID, OPENCRITIC_QID):
             claim = c
-            orig_claim = c.copy()
 
     # Update review score value top OpenCritic top-critic score
     claim.setTarget(review_score)
@@ -216,11 +213,6 @@ def _update_review_score_claim(
         amount=number_of_reviews, unit=CRITIC_REVIEW_ITEM, site=item.repo
     )
     number_of_reviews_qualifier.setTarget(number_of_reviews_quantity)
-
-    # Skip editting if claims are the same
-    if compare_claims(claim, orig_claim):
-        warn(f"Secondary skip check is deprecated: {item.id}", DeprecationWarning)
-        return
 
     opencritic_id_reference = OPENCRITIC_ID_PROPERTY.newClaim(is_reference=True)
     opencritic_id_reference.setTarget(f"{opencritic_id}")
@@ -259,12 +251,6 @@ def find_or_initialize_qualifier(claim: Claim, property: PropertyPage) -> Claim:
 
 def has_claim(claim: Claim, claims: OrderedDict[str, list[Claim]]) -> bool:
     return any(c for c in claims.get(claim.id, []) if c.same_as(claim))
-
-
-def compare_claims(a: Claim, b: Claim | None) -> bool:
-    if not b:
-        return False
-    return a.same_as(b, ignore_rank=True, ignore_quals=False, ignore_refs=True)
 
 
 T = TypeVar("T")
