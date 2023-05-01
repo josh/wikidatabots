@@ -4,7 +4,7 @@ import logging
 import os
 from collections import OrderedDict
 from datetime import date
-from typing import Any, TypeVar
+from typing import TypeVar
 
 import polars as pl
 import pywikibot
@@ -12,7 +12,7 @@ import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 
 from opencritic_etl import fetch_opencritic_game, opencritic_ratelimits
-from polars_utils import apply_with_tqdm, position_weighted_shuffled
+from polars_utils import sample
 from pwb import login
 from sparql import sparql
 from wikidata import page_qids
@@ -74,25 +74,49 @@ pywikibot.config.password_file = "user-password.py"
 pywikibot.config.put_throttle = 0
 
 _QUERY = """
-SELECT ?item WHERE {
-    ?item wdt:P2864 ?opencritic.
-    OPTIONAL {
+SELECT ?item ?opencritic_id ?statement ?reference
+      ?review_score ?point_in_time ?number_of_reviews WHERE {
+  ?item wdt:P2864 ?opencritic_id.
+  FILTER(xsd:integer(?opencritic_id))
+
+  OPTIONAL {
     ?item p:P444 ?statement.
+
+    ?statement wikibase:rank ?rank.
+    FILTER(?rank != wikibase:DeprecatedRank)
+
+    ?statement ps:P444 ?review_score.
     ?statement pq:P447 wd:Q21039459.
-    ?statement pq:P585 ?pointInTime.
+
+    OPTIONAL { ?statement pq:P459 wd:Q114712322. }
+    OPTIONAL { ?statement pq:P585 ?point_in_time. }
+    OPTIONAL { ?statement pq:P7887 ?number_of_reviews. }
+
+    OPTIONAL {
+      ?statement prov:wasDerivedFrom ?reference.
+      ?reference pr:P2864 ?opencritic_id.
+      OPTIONAL { ?reference pr:P248 wd:Q21039459. }
+      OPTIONAL { ?reference pr:P813 ?retrieved. }
     }
-    FILTER((?pointInTime < NOW() - "P7D"^^xsd:duration) || !(BOUND(?pointInTime)))
-    BIND(IF(BOUND(?pointInTime), ?pointInTime, NOW()) AS ?timestamp)
+  }
 }
-ORDER BY DESC (?timestamp)
 """
+
+_QUERY_COLUMNS = [
+    "item",
+    "opencritic_id",
+    "statement",
+    "reference",
+    "review_score",
+    "point_in_time",
+    "number_of_reviews",
+]
 
 
 def main() -> None:
     login(os.environ["WIKIDATA_USERNAME"], os.environ["WIKIDATA_PASSWORD"])
 
     ratelimits_df = opencritic_ratelimits().collect()
-    requests_limit = ratelimits_df["requests_limit"].item()
     requests_remaining = ratelimits_df["requests_remaining"].item()
     logging.info(f"OpenCritic API requests remaining: {requests_remaining}")
 
@@ -103,41 +127,51 @@ def main() -> None:
     blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
 
     df = (
-        sparql(_QUERY, columns=["item"])
+        sparql(_QUERY, columns=_QUERY_COLUMNS)
         .with_columns(
             pl.col("item")
             .str.replace("http://www.wikidata.org/entity/", "")
             .alias("qid")
         )
-        .filter(pl.col("qid").is_in(blocked_qids).is_not())
-        .select(
-            pl.col("qid").pipe(position_weighted_shuffled),
-        )
-        .head(requests_limit)
         .with_columns(
-            pl.col("qid")
-            .pipe(
-                apply_with_tqdm,
-                find_opencritic_id,
-                return_dtype=pl.Int64,
-                log_group="find_opencritic_id",
-            )
-            .cast(pl.UInt32)
-            .alias("opencritic_id"),
+            pl.col("opencritic_id").cast(pl.UInt32).alias("opencritic_id"),
+            pl.col("qid").is_in(blocked_qids).alias("blocked"),
         )
-        .filter(pl.col("opencritic_id").is_not_null())
-        .head(requests_remaining / 2)
-        .with_columns(
-            pl.col("opencritic_id").pipe(fetch_opencritic_game).alias("metadata"),
-        )
-        .unnest("metadata")
+        .unique("item", keep="none")
         .filter(
-            pl.col("top_critic_score").is_not_null()
-            & pl.col("latest_review_date").is_not_null()
-            & (pl.col("num_reviews") > 0)
+            pl.col("opencritic_id").is_not_null() & pl.col("blocked").is_not(),
+        )
+        .pipe(sample, n=(requests_remaining / 2))
+        .with_columns(
+            pl.col("opencritic_id").pipe(fetch_opencritic_game).alias("api_data"),
         )
         .with_columns(
-            pl.col("top_critic_score").round(0).cast(pl.UInt8),
+            (
+                pl.col("api_data")
+                .struct.field("top_critic_score")
+                .round(0)
+                .cast(pl.UInt8)
+                .alias("api_top_critic_score")
+            ),
+            (
+                pl.col("api_data")
+                .struct.field("latest_review_date")
+                .alias("api_latest_review_date")
+            ),
+            pl.col("api_data").struct.field("num_reviews").alias("api_num_reviews"),
+        )
+        .drop("api_data")
+        .filter(
+            pl.col("api_top_critic_score").is_not_null()
+            & pl.col("api_latest_review_date").is_not_null()
+            & (pl.col("api_num_reviews") > 0)
+        )
+        .select(
+            "qid",
+            "opencritic_id",
+            "api_num_reviews",
+            "api_top_critic_score",
+            "api_latest_review_date",
         )
         .collect()
     )
@@ -146,9 +180,9 @@ def main() -> None:
         _update_review_score_claim(
             item=ItemPage(SITE, row["qid"]),
             opencritic_id=row["opencritic_id"],
-            number_of_reviews=row["num_reviews"],
-            top_critic_score=row["top_critic_score"],
-            latest_review_date=row["latest_review_date"],
+            number_of_reviews=row["api_num_reviews"],
+            top_critic_score=row["api_top_critic_score"],
+            latest_review_date=row["api_latest_review_date"],
         )
 
 
@@ -224,14 +258,6 @@ def _update_review_score_claim(
     )
 
 
-def find_opencritic_id(qid: str) -> int | None:
-    item = ItemPage(SITE, qid)
-    claim = get_dict_value(item.claims, OPENCRITIC_ID_PID)
-    if not claim:
-        return None
-    return tryint(claim.target)
-
-
 def find_or_initialize_qualifier(claim: Claim, property: PropertyPage) -> Claim:
     for qualifier in claim.qualifiers.get(property.id, []):
         return qualifier
@@ -257,13 +283,6 @@ def get_dict_value(dict: OrderedDict[str, list[T]], key: str) -> T | None:
     for value in dict.get(key, []):
         return value
     return None
-
-
-def tryint(value: Any) -> int | None:
-    try:
-        return int(value)
-    except ValueError:
-        return None
 
 
 if __name__ == "__main__":

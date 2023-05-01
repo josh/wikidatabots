@@ -25,7 +25,6 @@ from polars_utils import (
     merge_with_indicator,
     now,
     outlier_exprs,
-    position_weighted_shuffled,
     sample,
     update_or_append,
     with_outlier_column,
@@ -195,13 +194,6 @@ def test_now() -> None:
 @settings(max_examples=5)
 def test_sample(df: pl.LazyFrame) -> None:
     assert len(df.pipe(sample, n=3).collect()) == 3
-
-
-def test_position_weighted_shuffled() -> None:
-    df = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9]}).select(
-        pl.col("a").pipe(position_weighted_shuffled)
-    )
-    assert len(df) == 9
 
 
 def test_is_constant() -> None:
