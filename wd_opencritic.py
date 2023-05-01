@@ -149,11 +149,10 @@ def main() -> None:
         )
         .filter(
             pl.col("wd_review_score").is_null()
-            | (pl.col("wd_review_score") != pl.col("api_review_score"))
-            | pl.col("wd_number_of_reviews").is_null()
-            | (pl.col("wd_number_of_reviews") < pl.col("api_num_reviews"))
             | pl.col("wd_point_in_time").is_null()
-            | (pl.col("wd_point_in_time") < pl.col("api_latest_review_date")),
+            | pl.col("wd_number_of_reviews").is_null()
+            | (pl.col("wd_review_score") != pl.col("api_review_score"))
+            | ((pl.col("wd_number_of_reviews") + 10) < pl.col("api_num_reviews"))
         )
         .select(
             "wd_qid",
