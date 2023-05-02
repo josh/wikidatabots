@@ -34,6 +34,7 @@ class HashableClaim(object):
 
 P = Namespace("http://www.wikidata.org/prop/")
 PQ = Namespace("http://www.wikidata.org/prop/qualifier/")
+PQV = Namespace("http://www.wikidata.org/prop/qualifier/value/")
 PR = Namespace("http://www.wikidata.org/prop/reference/")
 PS = Namespace("http://www.wikidata.org/prop/statement/")
 PSV = Namespace("http://www.wikidata.org/prop/statement/value/")
@@ -44,6 +45,7 @@ WDS = Namespace("http://www.wikidata.org/entity/statement/")
 WDT = Namespace("http://www.wikidata.org/prop/direct/")
 WDV = Namespace("http://www.wikidata.org/value/")
 WDNO = Namespace("http://www.wikidata.org/prop/novalue/")
+RDF = Namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 WIKIBASE = Namespace("http://wikiba.se/ontology#")
 
 WIKIDATABOTS = Namespace("https://github.com/josh/wikidatabots#")
@@ -60,6 +62,7 @@ NS_MANAGER.bind("wdno", WDNO)
 NS_MANAGER.bind("ps", PS)
 NS_MANAGER.bind("psv", PSV)
 NS_MANAGER.bind("pq", PQ)
+NS_MANAGER.bind("pqv", PQV)
 NS_MANAGER.bind("pr", PR)
 
 PREFIXES = """
@@ -162,7 +165,7 @@ def process_graph(
     ) -> None:
         predicate_prefix, predicate_local_name = compute_qname(predicate)
 
-        if predicate_prefix == "pq":
+        if predicate_prefix == "pq" or predicate_prefix == "pqv":
             property = get_property_page(predicate_local_name)
 
             if graph_empty_node(graph, object):
@@ -208,6 +211,33 @@ def process_graph(
 
         else:
             print_warning("NotImplemented", f"Unknown wds triple: {predicate} {object}")
+
+    def object_to_target(object: AnyObject) -> Any:
+        if isinstance(object, Literal):
+            value = object.toPython()
+            if type(value) == datetime.date:
+                return pywikibot.WbTime.fromTimestr(f"{object}T00:00:00Z", precision=11)
+            else:
+                return value
+        elif isinstance(object, BNode):
+            rdf_type = graph.value(object, RDF.type)
+
+            if rdf_type == WIKIBASE.QuantityValue:
+                amount = graph.value(object, WIKIBASE.quantityAmount)
+                unit_uri = graph.value(object, WIKIBASE.quantityUnit)
+                unit_prefix, unit_local_name = compute_qname(unit_uri)
+                assert unit_prefix == "wd"
+                unit_page = get_item_page(unit_local_name)
+                return pywikibot.WbQuantity(amount=amount, unit=unit_page, site=SITE)
+
+            raise NotImplementedError(f"rdf type not implemented: {rdf_type}")
+
+        elif isinstance(object, URIRef):
+            prefix, local_name = compute_qname(object)
+            assert prefix == "wd"
+            return get_item_page(local_name)
+        else:
+            raise NotImplementedError(f"Can't convert object to target: {object}")
 
     for subject in subjects(graph):
         if isinstance(subject, BNode):
@@ -313,21 +343,6 @@ def resolve_claim_guid(guid: str) -> pywikibot.Claim:
                 return claim
 
     assert False, f"Can't resolve statement GUID: {guid}"
-
-
-def object_to_target(object: AnyObject) -> Any:
-    if isinstance(object, Literal):
-        value = object.toPython()
-        if type(value) == datetime.date:
-            return pywikibot.WbTime.fromTimestr(f"{object}T00:00:00Z", precision=11)
-        else:
-            return value
-    elif isinstance(object, URIRef):
-        prefix, local_name = compute_qname(object)
-        assert prefix == "wd"
-        return get_item_page(local_name)
-    else:
-        assert False, f"Can't convert object to target: {object}"
 
 
 def item_append_claim_target(
