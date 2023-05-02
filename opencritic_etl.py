@@ -132,14 +132,23 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
         pl.LazyFrame(
             {
                 "url": [
-                    "https://opencritic-api.p.rapidapi.com/game/reviewed-today",
-                    "https://opencritic-api.p.rapidapi.com/game/reviewed-this-week",
-                    "https://opencritic-api.p.rapidapi.com/game/recently-released",
+                    "game/reviewed-today",
+                    "game/reviewed-this-week",
+                    "game/recently-released",
+                    "game?time=last90&order=asc&sort=score",
+                    "game?time=last90&order=desc&sort=score",
+                    "game?time=last90&order=asc&sort=date",
+                    "game?time=last90&order=desc&sort=date",
+                    "game?time=last90&order=asc&sort=num-reviews",
+                    "game?time=last90&order=desc&sort=num-reviews",
                 ]
             }
         )
         .select(
-            prepare_request(pl.col("url"), headers=_HEADERS)
+            prepare_request(
+                pl.format("https://opencritic-api.p.rapidapi.com/{}", pl.col("url")),
+                headers=_HEADERS,
+            )
             .pipe(request, session=_SESSION, log_group=_LOG_GROUP)
             .alias("response")
             .pipe(response_text)
@@ -155,7 +164,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
 
 
 _REFRESH_LIMIT = (500, 5_000)
-_OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 250
+_OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 100
 _MISSING_DATA = pl.col("retrieved_at").is_null()
 _RECENTLY_REVIEWED = pl.col("recently_reviewed")
 
