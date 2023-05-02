@@ -179,3 +179,54 @@ def test_add_item_prop_qualifer() -> None:
     assert claims[0]["mainsnak"]["property"] == "P161"
     assert claims[0]["mainsnak"]["datavalue"]["value"]["numeric-id"] == 48337
     assert claims[0]["qualifiers"]["P4633"][0]["datavalue"]["value"] == "Narrator"
+
+
+def test_quantity_value() -> None:
+    triples = """
+      wikidatabots:testSubject wikidatabots:assertValue _:b1.
+      _:b1 rdf:type wikibase:QuantityValue;
+        wikibase:quantityAmount "+123"^^xsd:decimal;
+        wikibase:quantityUpperBound "+124"^^xsd:decimal;
+        wikibase:quantityLowerBound "+122"^^xsd:decimal;
+        wikibase:quantityUnit wd:Q828224.
+
+      wikidatabots:testSubject wikidatabots:assertValue _:b2.
+      _:b2 rdf:type wikibase:QuantityValue;
+        wikibase:quantityAmount "+123"^^xsd:decimal;
+        wikibase:quantityUnit wd:Q828224.
+
+      wikidatabots:testSubject wikidatabots:assertValue _:b3.
+      _:b3 rdf:type wikibase:QuantityValue;
+        wikibase:quantityAmount "+123"^^xsd:decimal.
+    """
+    _ = list(process_graph(username, StringIO(triples)))
+
+
+def test_time_value() -> None:
+    triples = """
+      wikidatabots:testSubject wikidatabots:assertValue _:b1.
+      _:b1 rdf:type wikibase:TimeValue;
+        wikibase:timeValue "2020-01-01T00:00:00Z"^^xsd:dateTime;
+        wikibase:timePrecision "11"^^xsd:integer;
+        wikibase:timeTimezone "0"^^xsd:integer;
+        wikibase:timeCalendarModel wd:Q1985727.
+
+      wikidatabots:testSubject wikidatabots:assertValue _:b2.
+      _:b2 rdf:type wikibase:TimeValue;
+        wikibase:timeValue "2020-01-01";
+        wikibase:timePrecision "11"^^xsd:integer;
+        wikibase:timeTimezone "0"^^xsd:integer;
+        wikibase:timeCalendarModel wd:Q1985727.
+
+      wikidatabots:testSubject wikidatabots:assertValue "2020-01-01T00:00:00Z"^^xsd:dateTime.
+      wikidatabots:testSubject wikidatabots:assertValue "2020-01-01"^^xsd:date.
+    """
+    _ = list(process_graph(username, StringIO(triples)))
+
+
+def test_resolve_items() -> None:
+    triples = """
+      wikidatabots:testSubject wikidatabots:assertValue wd:Q42.
+      wikidatabots:testSubject wikidatabots:assertValue wd:P31.
+    """
+    _ = list(process_graph(username, StringIO(triples)))

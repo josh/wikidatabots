@@ -9,7 +9,7 @@ from typing import Any, Iterator, TextIO
 
 import pywikibot
 import pywikibot.config
-from rdflib import Graph
+from rdflib import XSD, Graph
 from rdflib.namespace import Namespace, NamespaceManager
 from rdflib.term import BNode, Literal, URIRef
 
@@ -64,6 +64,7 @@ NS_MANAGER.bind("psv", PSV)
 NS_MANAGER.bind("pq", PQ)
 NS_MANAGER.bind("pqv", PQV)
 NS_MANAGER.bind("pr", PR)
+NS_MANAGER.bind("wikidatabots", WIKIDATABOTS)
 
 PREFIXES = """
 PREFIX bd: <http://www.bigdata.com/rdf#>
@@ -135,7 +136,7 @@ def process_graph(
 
         if predicate_prefix == "wdt":
             property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
-            target = object_to_target(object)
+            target = resolve_object(graph, object)
             did_change, claim = item_append_claim_target(item, property, target)
             mark_changed(item, claim, did_change)
 
@@ -173,13 +174,13 @@ def process_graph(
                     del claim.qualifiers[predicate_local_name]
                     mark_changed(item, claim, True)
             else:
-                target = object_to_target(object)
+                target = resolve_object(graph, object)
                 did_change, _ = claim_append_qualifer(claim, property, target)
                 mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "ps":
             property = get_property_page(predicate_local_name)
-            target = object_to_target(object)
+            target = resolve_object(graph, object)
             assert claim.getID() == property.getID()
 
             if not claim.target_equals(target):
@@ -201,7 +202,7 @@ def process_graph(
                 assert predicate_prefix == "pr"
                 property = get_property_page(predicate_local_name)
                 reference_claim = property.newClaim(is_reference=True)
-                reference_claim.setTarget(object_to_target(object))
+                reference_claim.setTarget(resolve_object(graph, object))
                 source[reference_claim.getID()].append(reference_claim)
 
             claim.sources.append(source)
@@ -211,33 +212,6 @@ def process_graph(
 
         else:
             print_warning("NotImplemented", f"Unknown wds triple: {predicate} {object}")
-
-    def object_to_target(object: AnyObject) -> Any:
-        if isinstance(object, Literal):
-            value = object.toPython()
-            if type(value) == datetime.date:
-                return pywikibot.WbTime.fromTimestr(f"{object}T00:00:00Z", precision=11)
-            else:
-                return value
-        elif isinstance(object, BNode):
-            rdf_type = graph.value(object, RDF.type)
-
-            if rdf_type == WIKIBASE.QuantityValue:
-                amount = graph.value(object, WIKIBASE.quantityAmount)
-                unit_uri = graph.value(object, WIKIBASE.quantityUnit)
-                unit_prefix, unit_local_name = compute_qname(unit_uri)
-                assert unit_prefix == "wd"
-                unit_page = get_item_page(unit_local_name)
-                return pywikibot.WbQuantity(amount=amount, unit=unit_page, site=SITE)
-
-            raise NotImplementedError(f"rdf type not implemented: {rdf_type}")
-
-        elif isinstance(object, URIRef):
-            prefix, local_name = compute_qname(object)
-            assert prefix == "wd"
-            return get_item_page(local_name)
-        else:
-            raise NotImplementedError(f"Can't convert object to target: {object}")
 
     for subject in subjects(graph):
         if isinstance(subject, BNode):
@@ -259,6 +233,11 @@ def process_graph(
             assert claim_item
             for predicate, object in predicate_objects(graph, subject):
                 visit_wds_subject(claim_item, claim, predicate, object)
+
+        elif subject == WIKIDATABOTS.testSubject:
+            assert isinstance(subject, URIRef)
+            for object in graph.objects(subject, WIKIDATABOTS.assertValue):
+                assert resolve_object(graph, object)
 
         else:
             print_warning("NotImplemented", f"Unknown subject: {subject}")
@@ -305,6 +284,110 @@ def predicate_objects(
             or isinstance(object, Literal)
         )
         yield predicate, object
+
+
+def resolve_object(
+    graph: Graph, object: AnyObject
+) -> (
+    pywikibot.ItemPage
+    | pywikibot.PropertyPage
+    | pywikibot.WbTime
+    | pywikibot.WbQuantity
+    | str
+):
+    if isinstance(object, URIRef):
+        prefix, local_name = compute_qname(object)
+        assert prefix == "wd"
+        if local_name.startswith("Q"):
+            return get_item_page(local_name)
+        elif local_name.startswith("P"):
+            return get_property_page(local_name)
+        else:
+            raise NotImplementedError(f"Unknown item: {object}")
+
+    elif isinstance(object, BNode):
+        rdf_type = graph.value(object, RDF.type)
+        if rdf_type == WIKIBASE.QuantityValue:
+            if amount := graph.value(object, WIKIBASE.quantityAmount):
+                assert isinstance(amount, Literal)
+                assert amount.datatype == XSD.decimal
+            if upper_bound := graph.value(object, WIKIBASE.quantityUpperBound):
+                assert isinstance(upper_bound, Literal)
+                assert upper_bound.datatype == XSD.decimal
+            if lower_bound := graph.value(object, WIKIBASE.quantityLowerBound):
+                assert isinstance(lower_bound, Literal)
+                assert lower_bound.datatype == XSD.decimal
+            if unit := graph.value(object, WIKIBASE.quantityUnit):
+                assert isinstance(unit, URIRef)
+
+            data = {
+                "amount": None,
+                "upperBound": None,
+                "lowerBound": None,
+                "unit": "1",
+            }
+            if amount:
+                data["amount"] = f"+{amount}"
+            if upper_bound:
+                data["upperBound"] = f"+{upper_bound}"
+            if lower_bound:
+                data["lowerBound"] = f"+{lower_bound}"
+            if unit:
+                data["unit"] = str(unit)
+            return pywikibot.WbQuantity.fromWikibase(data, site=SITE)
+
+        elif rdf_type == WIKIBASE.TimeValue:
+            if value := graph.value(object, WIKIBASE.timeValue):
+                assert isinstance(value, Literal)
+                assert value.datatype is None or value.datatype == XSD.dateTime
+            if precision := graph.value(object, WIKIBASE.timePrecision):
+                assert isinstance(precision, Literal)
+                assert precision.datatype == XSD.integer
+                assert 0 <= precision.toPython() <= 14
+            if timezone := graph.value(object, WIKIBASE.timeTimezone):
+                assert isinstance(timezone, Literal)
+                assert timezone.datatype == XSD.integer
+            if calendar_model := graph.value(object, WIKIBASE.timeCalendarModel):
+                assert isinstance(calendar_model, URIRef)
+
+            data = {
+                "time": None,
+                "precision": 11,
+                "after": 0,
+                "before": 0,
+                "timezone": 0,
+                "calendarmodel": "https://www.wikidata.org/wiki/Q1985727",
+            }
+            if value:
+                value_dt = value.toPython()
+                if not isinstance(value_dt, datetime.datetime):
+                    value_dt = datetime.datetime.fromisoformat(value_dt)
+                data["time"] = value_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if precision:
+                data["precision"] = precision.toPython()
+            if timezone:
+                data["timezone"] = timezone.toPython()
+            if calendar_model:
+                data["calendarmodel"] = str(calendar_model)
+            return pywikibot.WbTime.fromWikibase(data, site=SITE)
+
+    elif isinstance(object, Literal):
+        if object.datatype is None:
+            return str(object)
+        elif object.datatype == XSD.dateTime or object.datatype == XSD.date:
+            data = {
+                "time": object.toPython().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "precision": 11,
+                "after": 0,
+                "before": 0,
+                "timezone": 0,
+                "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+            }
+            return pywikibot.WbTime.fromWikibase(data, site=SITE)
+
+        assert f"not implemented datatype: {object.datatype}"
+
+    raise NotImplementedError("not implemented")
 
 
 def graph_empty_node(graph: Graph, object: AnyObject) -> bool:
