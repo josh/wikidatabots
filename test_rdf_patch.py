@@ -218,7 +218,8 @@ def test_time_value() -> None:
         wikibase:timeTimezone "0"^^xsd:integer;
         wikibase:timeCalendarModel wd:Q1985727.
 
-      wikidatabots:testSubject wikidatabots:assertValue "2020-01-01T00:00:00Z"^^xsd:dateTime.
+      wikidatabots:testSubject wikidatabots:assertValue
+        "2020-01-01T00:00:00Z"^^xsd:dateTime.
       wikidatabots:testSubject wikidatabots:assertValue "2020-01-01"^^xsd:date.
     """
     _ = list(process_graph(username, StringIO(triples)))
