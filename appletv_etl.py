@@ -442,3 +442,14 @@ def main_jsonld() -> None:
 
     with pl.StringCache():
         update_parquet("jsonld.parquet", update_jsonld, key="loc")
+
+
+def main_join() -> None:
+    sitemap_df = pl.read_parquet("sitemap.parquet")
+    jsonld_df = pl.read_parquet("jsonld.parquet")
+    df = sitemap_df.join(jsonld_df, on="loc", how="left")
+    df.write_parquet(
+        "appletv.parquet",
+        compression="zstd",
+        statistics=True,
+    )

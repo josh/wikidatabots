@@ -110,18 +110,21 @@ jobs:
         run: |
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet" "sitemap.parquet"
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/jsonld.parquet" "jsonld.parquet"
+          aws s3 cp "s3://wikidatabots/appletv/${TYPE}.parquet" "appletv.parquet"
         env:
           TYPE: ${{ matrix.type }}
 
       - name: Run script
         shell: python
         run: |
-          from appletv_etl import main_jsonld
+          from appletv_etl import main_join, main_jsonld
 
           main_jsonld()
+          main_join()
 
       - name: Upload to S3
         run: |
           aws s3 cp --acl public-read "jsonld.parquet" "s3://wikidatabots/appletv/${TYPE}/jsonld.parquet"
+          aws s3 cp --acl public-read "appletv.parquet" "s3://wikidatabots/appletv/${TYPE}.parquet"
         env:
           TYPE: ${{ matrix.type }}
