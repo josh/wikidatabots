@@ -110,7 +110,7 @@ jobs:
         run: |
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet" "sitemap.parquet"
           aws s3 cp "s3://wikidatabots/appletv/${TYPE}/jsonld.parquet" "jsonld.parquet"
-          aws s3 cp "s3://wikidatabots/appletv/${TYPE}.parquet" "appletv.parquet"
+          # aws s3 cp "s3://wikidatabots/appletv/${TYPE}.parquet" "appletv.parquet"
         env:
           TYPE: ${{ matrix.type }}
 
