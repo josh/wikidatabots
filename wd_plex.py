@@ -91,7 +91,7 @@ _RDF_STATEMENT = pl.format(
 def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
     return (
         _wikidata_all_tmdb_ids()
-        .join(_plex_guids(), on=["type", "tmdb_id"])
+        .join(_plex_guids(), on=["type", "tmdb_id"], how="inner")
         .with_columns(
             pl.when(pl.col("type") == "movie")
             .then(pl.lit("TMDb movie ID"))
