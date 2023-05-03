@@ -141,6 +141,10 @@ _LOC_PATTERN = (
 )
 
 
+def url_extract_id(url: pl.Expr) -> pl.Expr:
+    return url.str.extract(_LOC_PATTERN, 4)
+
+
 def cleaned_sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     # TODO: str.extract should return a struct
     return (

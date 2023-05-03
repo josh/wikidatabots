@@ -4,12 +4,13 @@ from math import floor
 
 import polars as pl
 
-from appletv_etl import REGION_COUNT, not_found
+from appletv_etl import REGION_COUNT, not_found, url_extract_id
 from polars_utils import limit
 from sparql import sparql, sparql_batch
 
 _SEARCH_LIMIT = 250
 _NOT_FOUND_LIMIT = floor(100 / REGION_COUNT)
+_STATEMENT_LIMIT = (100, 10_000)
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item ?has_appletv WHERE {
@@ -139,6 +140,49 @@ def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+_ITUNES_QUERY = """
+SELECT ?item ?itunes_id WHERE {
+  ?item wdt:P6398 ?itunes_id.
+  FILTER(xsd:integer(?itunes_id))
+
+  # Apple TV movie ID subject type constraints
+  VALUES ?class {
+    wd:Q11424 # film
+  }
+  ?item (wdt:P31/(wdt:P279*)) ?class.
+
+  OPTIONAL { ?item wdt:P9586 ?appletv_id. }
+  FILTER(!(BOUND(?appletv_id)))
+}
+"""
+
+_ADD_VIA_ITUNES_STATEMENT = pl.format(
+    '<{}> wdt:P9586 "{}"; wikidatabots:editSummary '
+    '"Add Apple TV movie ID via associated iTunes movie ID " .',
+    pl.col("item"),
+    pl.col("appletv_id"),
+).alias("rdf_statement")
+
+
+def _find_movie_via_itunes_redirect(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
+    wd_df = sparql(_ITUNES_QUERY, schema={"item": pl.Utf8, "itunes_id": pl.UInt64})
+
+    itunes_df = (
+        itunes_df.filter((pl.col("kind") == "feature-movie") & pl.col("any_country"))
+        .with_columns(
+            pl.col("redirect_url").pipe(url_extract_id).alias("appletv_id"),
+        )
+        .filter(pl.col("appletv_id").is_not_null())
+        .select(pl.col("id").alias("itunes_id"), pl.col("appletv_id"))
+    )
+
+    return (
+        wd_df.join(itunes_df, on="itunes_id", how="left")
+        .filter(pl.col("appletv_id").is_not_null())
+        .select(_ADD_VIA_ITUNES_STATEMENT)
+    )
+
+
 def main() -> None:
     sitemap_df = pl.scan_parquet(
         "s3://wikidatabots/appletv/movie/sitemap.parquet",
@@ -150,12 +194,18 @@ def main() -> None:
     )
     sitemap_df = sitemap_df.join(jsonld_df, on="loc", how="left").cache()
 
+    itunes_df = pl.scan_parquet(
+        "s3://wikidatabots/itunes.parquet",
+        storage_options={"anon": True},
+    )
+
     df = pl.concat(
         [
             _find_movie_via_search(sitemap_df),
             _find_movie_not_found(sitemap_df),
+            _find_movie_via_itunes_redirect(itunes_df),
         ]
-    )
+    ).pipe(limit, _STATEMENT_LIMIT, sample=False, desc="rdf_statements")
 
     for (line,) in df.collect().iter_rows():
         print(line)
