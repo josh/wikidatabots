@@ -78,7 +78,6 @@ def siteindex(sitemap_type: _TYPE) -> pl.LazyFrame:
 _SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
     "lastmod": pl.Utf8,
-    "changefreq": pl.Utf8,
     "priority": pl.Utf8,
 }
 _SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEMAP_SCHEMA))
