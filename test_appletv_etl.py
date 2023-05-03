@@ -25,7 +25,6 @@ def test_sitemap() -> None:
     assert ldf.schema == {
         "loc": pl.Utf8,
         "lastmod": pl.Datetime,
-        "changefreq": pl.Categorical,
         "priority": pl.Float32,
     }
     ldf.collect()
@@ -40,7 +39,6 @@ def test_cleaned_sitemap() -> None:
         "slug": pl.Utf8,
         "loc": pl.Utf8,
         "lastmod": pl.Datetime(time_unit="ns"),
-        "changefreq": pl.Categorical,
         "priority": pl.Float32,
         "in_latest_sitemap": pl.Boolean,
     }

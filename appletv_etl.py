@@ -114,7 +114,6 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
                 .str.strptime(dtype=pl.Datetime(time_unit="ns"), format="%+")
                 .cast(pl.Datetime(time_unit="ns"))
             ),
-            pl.col("changefreq").cast(pl.Categorical),
             pl.col("priority").cast(pl.Float32),
         )
     )
@@ -186,7 +185,6 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
                 "priority",
                 "in_latest_sitemap",
                 "lastmod",
-                "changefreq",
                 "type",
             ]
         )
