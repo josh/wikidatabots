@@ -402,10 +402,15 @@ _JSONLD_LIMIT = 1_000
 def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
     df_new = (
-        df.filter(pl.col("jsonld_success").is_null() & pl.col("country").eq("us"))
-        .sort(by="priority", descending=True)
+        df.filter(pl.col("jsonld_success").is_null())
+        .sort(
+            (pl.col("country") == "us"),
+            pl.col("in_latest_sitemap"),
+            pl.col("priority"),
+            descending=True,
+        )
         .pipe(limit, sample=False, soft=_JSONLD_LIMIT, desc="jsonld")
-        .select(["loc"])
+        .select("loc")
         .pipe(fetch_jsonld_columns)
     )
     return df.pipe(update_or_append, df_new, on="loc").sort(by="loc")
