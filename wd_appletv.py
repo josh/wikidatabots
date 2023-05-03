@@ -134,7 +134,7 @@ def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("in_latest_sitemap").is_not() | pl.col("in_latest_sitemap").is_null()
         )
         .pipe(limit, soft=_NOT_FOUND_LIMIT, desc="deprecated candidate ids")
-        .pipe(not_found, type="movie")
+        .pipe(not_found, sitemap_type="movie")
         .filter(pl.col("all_not_found"))
         .select(_DEPRECATE_RDF_STATEMENT)
     )

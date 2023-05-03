@@ -2,8 +2,7 @@ name: Apple TV ETL
 
 on:
   schedule:
-    - cron: "0 16 * * 1"
-    - cron: "0 1,9,17 * * *"
+    - cron: "0 8,16 * * *"
   workflow_dispatch:
 
 permissions:
@@ -11,10 +10,9 @@ permissions:
   contents: read
 
 jobs:
-  sitemap:
+  run:
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 16 * * 1' || github.event_name == 'workflow_dispatch'
-    concurrency: appletv_sitemap_${{ matrix.type }}
+    concurrency: appletv_${{ matrix.type }}
     timeout-minutes: 60
 
     strategy:
@@ -43,88 +41,20 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet" "sitemap.parquet"
-        env:
-          TYPE: ${{ matrix.type }}
-
-      - name: Fetch sitemaps changes
-        shell: python
-        run: |
-          import os
-
-          from appletv_etl import main_sitemap
-
-          main_sitemap(os.environ["TYPE"])
-        env:
-          TYPE: ${{ matrix.type }}
-
-      - name: Upload to S3
-        run: |
-          aws s3 cp --acl public-read "sitemap.parquet" "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet"
-        env:
-          TYPE: ${{ matrix.type }}
-
-  jsonld:
-    runs-on: ubuntu-latest
-    if: github.event.schedule == '0 1,9,17 * * *' || github.event_name == 'workflow_dispatch'
-    concurrency: appletv_jsonld_${{ matrix.type }}
-    timeout-minutes: 60
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - type: "movie"
-          - type: "show"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Set Python path
-        run: |
-          echo "PYTHONPATH=$GITHUB_WORKSPACE" >>"$GITHUB_ENV"
-
-      - name: Download from S3
-        run: |
-          aws s3 cp "s3://wikidatabots/appletv/${TYPE}/sitemap.parquet" "sitemap.parquet"
-          aws s3 cp "s3://wikidatabots/appletv/${TYPE}/jsonld.parquet" "jsonld.parquet"
-          # aws s3 cp "s3://wikidatabots/appletv/${TYPE}.parquet" "appletv.parquet"
+          aws s3 cp "s3://wikidatabots/appletv/${TYPE}.parquet" "appletv.parquet"
         env:
           TYPE: ${{ matrix.type }}
 
       - name: Run script
-        shell: python
         run: |
-          from appletv_etl import main_join, main_jsonld
-
-          main_jsonld()
-          main_join()
+          python appletv_etl.py "$TYPE"
+        env:
+          TYPE: ${{ matrix.type }}
 
       - name: Upload to S3
         run: |
-          aws s3 cp --acl public-read "jsonld.parquet" "s3://wikidatabots/appletv/${TYPE}/jsonld.parquet"
           aws s3 cp --acl public-read "appletv.parquet" "s3://wikidatabots/appletv/${TYPE}.parquet"
         env:
           TYPE: ${{ matrix.type }}

@@ -2,7 +2,9 @@
 
 import html
 import json
+import logging
 import re
+import sys
 import urllib.parse
 import zlib
 from typing import Any, Literal
@@ -41,6 +43,7 @@ _BROWSER_HEADERS: dict[str, str | pl.Expr] = {
 }
 
 _TYPE = Literal["movie", "episode", "show"]
+_TYPES: set[_TYPE] = {"movie", "episode", "show"}
 
 _SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
@@ -48,9 +51,9 @@ _SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
 _SITEINDEX_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEINDEX_SCHEMA))
 
 
-def siteindex(type: _TYPE) -> pl.LazyFrame:
+def siteindex(sitemap_type: _TYPE) -> pl.LazyFrame:
     return (
-        pl.LazyFrame({"type": [type]})
+        pl.LazyFrame({"type": [sitemap_type]})
         .select(
             pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
             .pipe(prepare_request)
@@ -81,9 +84,9 @@ _SITEMAP_SCHEMA: dict[str, pl.PolarsDataType] = {
 _SITEMAP_DTYPE: pl.PolarsDataType = pl.List(pl.Struct(_SITEMAP_SCHEMA))
 
 
-def sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
+def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     return (
-        siteindex(type)
+        siteindex(sitemap_type)
         .pipe(head, n=limit)
         .select(
             pl.col("loc")
@@ -143,10 +146,10 @@ def url_extract_id(url: pl.Expr) -> pl.Expr:
     return url.str.extract(_LOC_PATTERN, 4)
 
 
-def cleaned_sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
+def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     # TODO: str.extract should return a struct
     return (
-        sitemap(type, limit=limit)
+        sitemap(sitemap_type, limit=limit)
         .with_columns(
             (
                 pl.col("loc")
@@ -172,7 +175,7 @@ def cleaned_sitemap(type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
                 .alias("slug")
             ),
             pl.col("loc").str.extract(_LOC_PATTERN, 4).alias("id"),
-            _LATEST_EXPR,
+            pl.lit(True).alias("in_latest_sitemap"),
         )
         .select(
             [
@@ -366,7 +369,7 @@ _REGIONS = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "cn"]
 REGION_COUNT = len(_REGIONS)
 
 
-def not_found(df: pl.LazyFrame, type: _TYPE) -> pl.LazyFrame:
+def not_found(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
     return (
         df.lazy()
         .with_columns(
@@ -377,7 +380,7 @@ def not_found(df: pl.LazyFrame, type: _TYPE) -> pl.LazyFrame:
             pl.format(
                 "https://tv.apple.com/{}/{}/{}",
                 pl.col("region"),
-                pl.lit(type),
+                pl.lit(sitemap_type),
                 pl.col("id"),
             )
             .pipe(prepare_request, headers=_BROWSER_HEADERS)
@@ -393,61 +396,44 @@ def not_found(df: pl.LazyFrame, type: _TYPE) -> pl.LazyFrame:
     )
 
 
-def append_jsonld_changes(
-    sitemap_df: pl.LazyFrame,
-    jsonld_df: pl.LazyFrame,
-    soft_limit: int,
-) -> pl.LazyFrame:
-    jsonld_df = jsonld_df.cache()
-    jsonld_new_df = (
-        sitemap_df.join(jsonld_df, on="loc", how="left")
-        .filter(pl.col("jsonld_success").is_null() & pl.col("country").eq("us"))
-        .sort(by="priority", descending=True)
-        .pipe(limit, sample=False, soft=soft_limit, desc="jsonld")
-        .select(["loc"])
-        .pipe(fetch_jsonld_columns)
-    )
-    return jsonld_df.pipe(update_or_append, jsonld_new_df, on="loc").sort(by="loc")
-
-
-_OUTDATED_EXPR = pl.lit(False).alias("in_latest_sitemap")
-_LATEST_EXPR = pl.lit(True).alias("in_latest_sitemap")
-
-
-def main_sitemap(type: _TYPE) -> None:
-    def update_sitemap(df: pl.LazyFrame) -> pl.LazyFrame:
-        return (
-            df.with_columns(_OUTDATED_EXPR)
-            .pipe(
-                update_or_append,
-                cleaned_sitemap(type).with_columns(_LATEST_EXPR),
-                on="loc",
-            )
-            .sort(by="loc")
-        )
-
-    with pl.StringCache():
-        update_parquet("sitemap.parquet", update_sitemap, key="loc")
-
-
 _JSONLD_LIMIT = 1_000
 
 
-def main_jsonld() -> None:
-    def update_jsonld(jsonld_df: pl.LazyFrame) -> pl.LazyFrame:
-        sitemap_df = pl.scan_parquet("sitemap.parquet")
-        return append_jsonld_changes(sitemap_df, jsonld_df, _JSONLD_LIMIT)
+def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
+    df = df.cache()
+    df_new = (
+        df.filter(pl.col("jsonld_success").is_null() & pl.col("country").eq("us"))
+        .sort(by="priority", descending=True)
+        .pipe(limit, sample=False, soft=_JSONLD_LIMIT, desc="jsonld")
+        .select(["loc"])
+        .pipe(fetch_jsonld_columns)
+    )
+    return df.pipe(update_or_append, df_new, on="loc").sort(by="loc")
+
+
+def _fetch_latest_sitemap(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
+    latest_sitemap = cleaned_sitemap(sitemap_type)
+    return (
+        df.with_columns(
+            pl.lit(False).alias("in_latest_sitemap"),
+        )
+        .pipe(update_or_append, latest_sitemap, on="loc")
+        .sort(by="loc")
+    )
+
+
+def main() -> None:
+    sitemap_type = sys.argv[1]
+    assert sitemap_type in _TYPES
+
+    def update(df: pl.LazyFrame) -> pl.LazyFrame:
+        df_sitemap = _fetch_latest_sitemap(df, sitemap_type)
+        return df.pipe(update_or_append, df_sitemap, on="loc").pipe(_backfill_jsonld)
 
     with pl.StringCache():
-        update_parquet("jsonld.parquet", update_jsonld, key="loc")
+        update_parquet("appletv.parquet", update, key="loc")
 
 
-def main_join() -> None:
-    sitemap_df = pl.read_parquet("sitemap.parquet")
-    jsonld_df = pl.read_parquet("jsonld.parquet")
-    df = sitemap_df.join(jsonld_df, on="loc", how="left")
-    df.write_parquet(
-        "appletv.parquet",
-        compression="zstd",
-        statistics=True,
-    )
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    main()
