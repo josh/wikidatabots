@@ -28,8 +28,6 @@ from polars_utils import (
 
 _APPLETV_SESSION = Session(timeout=30.0, retry_count=10)
 
-APPLETV_SESSION = _APPLETV_SESSION
-
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/605.1.15 (KHTML, like Gecko) "

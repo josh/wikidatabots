@@ -6,7 +6,6 @@ from typing import Literal
 
 import polars as pl
 
-from appletv_etl import APPLETV_SESSION
 from polars_requests import (
     Session,
     prepare_request,
@@ -464,6 +463,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 _REDIRECT_CHECK_LIMIT = 1_000
+_APPLETV_REDIRECT_SESSION = Session(timeout=30.0, retry_count=10, ok_statuses={404})
 
 
 def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -483,7 +483,7 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("url")
             .pipe(
                 resolve_redirects,
-                session=APPLETV_SESSION,
+                session=_APPLETV_REDIRECT_SESSION,
                 log_group="apple.com",
             )
             .alias("redirect_url")
