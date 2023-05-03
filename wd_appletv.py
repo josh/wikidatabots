@@ -185,15 +185,9 @@ def _find_movie_via_itunes_redirect(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
 
 def main() -> None:
     sitemap_df = pl.scan_parquet(
-        "s3://wikidatabots/appletv/movie/sitemap.parquet",
+        "s3://wikidatabots/appletv/movie.parquet",
         storage_options={"anon": True},
     )
-    jsonld_df = pl.scan_parquet(
-        "s3://wikidatabots/appletv/movie/jsonld.parquet",
-        storage_options={"anon": True},
-    )
-    sitemap_df = sitemap_df.join(jsonld_df, on="loc", how="left").cache()
-
     itunes_df = pl.scan_parquet(
         "s3://wikidatabots/itunes.parquet",
         storage_options={"anon": True},
