@@ -36,7 +36,6 @@ def test_cleaned_sitemap() -> None:
         "id": pl.Utf8,
         "type": pl.Categorical,
         "country": pl.Categorical,
-        "slug": pl.Utf8,
         "loc": pl.Utf8,
         "lastmod": pl.Datetime(time_unit="ns"),
         "priority": pl.Float32,

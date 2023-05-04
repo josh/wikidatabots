@@ -160,17 +160,6 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
                 .cast(pl.Categorical)
                 .alias("type")
             ),
-            (
-                pl.col("loc")
-                .str.extract(_LOC_PATTERN, 3)
-                .pipe(
-                    apply_with_tqdm,
-                    urllib.parse.unquote,
-                    return_dtype=pl.Utf8,
-                    log_group="urllib.parse.unquote",
-                )
-                .alias("slug")
-            ),
             pl.col("loc").str.extract(_LOC_PATTERN, 4).alias("id"),
             pl.lit(True).alias("in_latest_sitemap"),
         )
@@ -178,7 +167,6 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
             [
                 "loc",
                 "country",
-                "slug",
                 "id",
                 "priority",
                 "in_latest_sitemap",
