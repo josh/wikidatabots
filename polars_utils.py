@@ -562,9 +562,13 @@ def compute_stats(
             return pl.DataFrame(schema=schema)
         return df2.transpose(include_header=True, column_names=[column_name])
 
+    simple_cols = [col for col in df.columns if not df.schema[col].is_nested]
+
     count = len(df)
     null_count_df = _count_columns("null_count", pl.all().null_count())
-    is_unique_df = _count_columns("is_unique", pl.all().drop_nulls().is_unique().all())
+    is_unique_df = _count_columns(
+        "is_unique", pl.col(*simple_cols).drop_nulls().is_unique().all()
+    )
     true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
     false_count_df = _count_columns(
         "false_count", pl.col(pl.Boolean).drop_nulls().is_not().sum()
