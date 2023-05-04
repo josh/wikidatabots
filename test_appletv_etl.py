@@ -75,6 +75,7 @@ def test_fetch_jsonld_columns() -> None:
                 dtype=pl.Date,
             ),
             "directors": [None, ["Siân Heder"], ["Joel Coen", "Ethan Coen"], None],
+            "itunes_id": pl.Series([None, None, 188765152, None], dtype=pl.UInt64),
         },
     )
 

@@ -6,7 +6,7 @@ import logging
 import re
 import sys
 import zlib
-from typing import Any, Literal
+from typing import Literal
 
 import polars as pl
 from bs4 import BeautifulSoup
@@ -199,11 +199,26 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             .alias("response")
         )
         .with_columns(
-            pl.col("response")
-            .pipe(response_text)
-            .pipe(_extract_jsonld_expr)
-            .str.json_extract(dtype=_JSONLD_DTYPE)
-            .alias("jsonld")
+            pl.col("response").pipe(response_text).alias("response_html"),
+        )
+        .with_columns(
+            (
+                pl.col("response_html")
+                .pipe(_extract_jsonld_expr)
+                .str.json_extract(dtype=_JSONLD_DTYPE)
+                .alias("jsonld")
+            ),
+            (
+                pl.col("response_html")
+                .pipe(
+                    apply_with_tqdm,
+                    _extract_itunes_id,
+                    return_dtype=pl.Int64,
+                    log_group="extract_itunes_id",
+                )
+                .cast(pl.UInt64)
+                .alias("itunes_id")
+            ),
         )
         .with_columns(
             (
@@ -248,7 +263,15 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
                 .alias("retrieved_at")
             ),
         )
-        .drop(["response", "jsonld"])
+        .select(
+            "loc",
+            "retrieved_at",
+            "jsonld_success",
+            "title",
+            "published_at",
+            "directors",
+            "itunes_id",
+        )
     )
 
 
@@ -261,7 +284,7 @@ def _extract_jsonld_expr(expr: pl.Expr) -> pl.Expr:
     )
 
 
-def _extract_jsonld(html: str) -> str | None:
+def _parse_html(html: str) -> BeautifulSoup | None:
     soup = BeautifulSoup(html, "html.parser")
 
     if soup.find("h1", string="This content is no longer available."):
@@ -269,6 +292,14 @@ def _extract_jsonld(html: str) -> str | None:
 
     link = soup.find("link", attrs={"rel": "canonical"})
     if not link:
+        return None
+
+    return soup
+
+
+def _extract_jsonld(html: str) -> str | None:
+    soup = _parse_html(html)
+    if not soup:
         return None
 
     scripts = soup.find_all("script", {"type": "application/ld+json"})
@@ -291,7 +322,7 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
             .pipe(response_text)
             .pipe(
                 apply_with_tqdm,
-                extract_itunes_id,
+                _extract_itunes_id,
                 return_dtype=pl.Int64,
                 log_group="extract_itunes_id",
             )
@@ -302,25 +333,16 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
     )
 
 
-def _extract_shoebox(soup: BeautifulSoup) -> list[Any]:
+def _extract_itunes_id(html: str) -> int | None:
+    soup = _parse_html(html)
+    if not soup:
+        return None
+
     script = soup.find("script", {"type": "fastboot/shoebox", "id": "shoebox-uts-api"})
     if not script:
-        return []
-
-    return json.loads(script.text).values()
-
-
-def extract_itunes_id(text: str) -> int | None:
-    soup = BeautifulSoup(text, "html.parser")
-
-    if soup.find("h1", string="This content is no longer available."):
         return None
 
-    link = soup.find("link", attrs={"rel": "canonical"})
-    if not link:
-        return None
-
-    for data in _extract_shoebox(soup):
+    for data in json.loads(script.text).values():
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:
                 if playable.get("isItunes", False) is True:
