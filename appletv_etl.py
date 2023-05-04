@@ -190,6 +190,10 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
     )
 
 
+def _html_escape_list(lst: list[str]) -> list[str]:
+    return [html.escape(s) for s in lst]
+
+
 _JSONLD_DTYPE = pl.Struct(
     [
         pl.Field("name", pl.Utf8),
@@ -217,12 +221,11 @@ _JSONLD_PUBLISHED_AT_EXPR = (
 _JSONLD_DIRECTOR_EXPR = (
     pl.col("jsonld")
     .struct.field("director")
-    .arr.first()
-    .struct.field("name")
+    .arr.eval(pl.element().struct.field("name"))
     .pipe(
         apply_with_tqdm,
-        html.unescape,
-        return_dtype=pl.Utf8,
+        _html_escape_list,
+        return_dtype=pl.List(pl.Utf8),
         log_group="html.unescape",
     )
 )
@@ -250,7 +253,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             _JSONLD_SUCCESS_EXPR.alias("jsonld_success"),
             _JSONLD_TITLE_EXPR.alias("title"),
             _JSONLD_PUBLISHED_AT_EXPR.alias("published_at"),
-            _JSONLD_DIRECTOR_EXPR.alias("director"),
+            _JSONLD_DIRECTOR_EXPR.alias("directors"),
             _RESPONSE_DATE_EXPR.alias("retrieved_at"),
         )
         .drop(["response", "jsonld"])

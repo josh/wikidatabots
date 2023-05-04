@@ -52,6 +52,7 @@ def test_fetch_jsonld_columns() -> None:
                 "loc": [
                     "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
                     "https://tv.apple.com/us/movie/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir",
+                    "https://tv.apple.com/us/movie/umc.cmc.3vmofz00i7y5m00861o6waay8",
                     "https://tv.apple.com/us/movie/umc.cmc.1111111111111111111111111",
                 ]
             }
@@ -65,14 +66,16 @@ def test_fetch_jsonld_columns() -> None:
             "loc": [
                 "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
                 "https://tv.apple.com/us/movie/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir",
+                "https://tv.apple.com/us/movie/umc.cmc.3vmofz00i7y5m00861o6waay8",
                 "https://tv.apple.com/us/movie/umc.cmc.1111111111111111111111111",
             ],
-            "jsonld_success": [True, True, False],
-            "title": ["The Morning Show", "CODA", None],
+            "jsonld_success": [True, True, True, False],
+            "title": ["The Morning Show", "CODA", "O Brother, Where Art Thou?", None],
             "published_at": pl.Series(
-                [date(2019, 11, 1), date(2021, 8, 13), None], dtype=pl.Date
+                [date(2019, 11, 1), date(2021, 8, 13), date(2001, 2, 2), None],
+                dtype=pl.Date,
             ),
-            "director": [None, "Siân Heder", None],
+            "directors": [None, ["Siân Heder"], ["Joel Coen", "Ethan Coen"], None],
         },
     )
 

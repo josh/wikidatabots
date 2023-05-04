@@ -73,7 +73,7 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
             & pl.col("jsonld_success")
             & pl.col("title").is_not_null()
             & pl.col("published_at").is_not_null()
-            & pl.col("director").is_not_null()
+            & pl.col("directors").is_not_null()
         )
         .join(wd_df, on="id", how="left")
         .filter(pl.col("wd_exists").is_null())
@@ -82,7 +82,11 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
             pl.format(
                 _SEARCH_QUERY,
                 pl.col("title").str.replace_all('"', '\\"', literal=True),
-                pl.col("director").str.replace_all('"', '\\"', literal=True),
+                (  # TODO: Use all directors
+                    pl.col("directors")
+                    .arr.first()
+                    .str.replace_all('"', '\\"', literal=True)
+                ),
                 pl.col("published_at").dt.year(),
                 pl.col("published_at").dt.year() + 1,
                 pl.col("title").str.replace_all('"', '\\"', literal=True),
