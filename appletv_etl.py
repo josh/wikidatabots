@@ -145,7 +145,6 @@ def url_extract_id(url: pl.Expr) -> pl.Expr:
 
 
 def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
-    # TODO: str.extract should return a struct
     return (
         sitemap(sitemap_type, limit=limit)
         .with_columns(
