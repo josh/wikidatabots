@@ -5,7 +5,6 @@ import json
 import logging
 import re
 import sys
-import urllib.parse
 import zlib
 from typing import Any, Literal
 
