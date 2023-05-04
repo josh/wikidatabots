@@ -1,5 +1,6 @@
 # pyright: strict
 
+import datetime
 import html
 import json
 import logging
@@ -166,11 +167,11 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
             [
                 "loc",
                 "country",
+                "type",
                 "id",
                 "priority",
                 "in_latest_sitemap",
                 "lastmod",
-                "type",
             ]
         )
         .unique("loc")
@@ -410,14 +411,17 @@ def not_found(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
 
 
 _JSONLD_LIMIT = 1_000
+_OUTDATED = pl.col("retrieved_at").is_null() | pl.col("retrieved_at").lt(
+    datetime.date(2023, 5, 5)
+)
 
 
 def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
     df_new = (
-        df.filter(pl.col("jsonld_success").is_null())
+        df.filter(_OUTDATED)
         .sort(
-            (pl.col("country") == "us"),
+            pl.col("country").eq("us"),
             pl.col("in_latest_sitemap"),
             pl.col("priority"),
             descending=True,
