@@ -328,10 +328,10 @@ def apply_with_tqdm(
 
         with _log_group(log_group):
             for item in tqdm(s, unit="row"):
-                if item:
-                    values.append(function(item))
-                else:
+                if item is None:
                     values.append(None)
+                else:
+                    values.append(function(item))
 
         return values
 
