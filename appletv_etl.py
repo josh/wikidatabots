@@ -189,37 +189,6 @@ _JSONLD_DTYPE = pl.Struct(
     ]
 )
 
-_JSONLD_SUCCESS_EXPR = pl.col("jsonld").struct.field("name").is_not_null()
-_JSONLD_TITLE_EXPR = (
-    pl.col("jsonld")
-    .struct.field("name")
-    .pipe(
-        apply_with_tqdm,
-        html.unescape,
-        return_dtype=pl.Utf8,
-        log_group="html.unescape",
-    )
-)
-_JSONLD_PUBLISHED_AT_EXPR = (
-    pl.col("jsonld")
-    .struct.field("datePublished")
-    .str.strptime(dtype=pl.Date, format="%+")
-)
-_JSONLD_DIRECTOR_EXPR = (
-    pl.col("jsonld")
-    .struct.field("director")
-    .arr.eval(pl.element().struct.field("name"))
-    .pipe(
-        apply_with_tqdm,
-        _html_escape_list,
-        return_dtype=pl.List(pl.Utf8),
-        log_group="html.unescape",
-    )
-)
-_RESPONSE_DATE_EXPR = (
-    pl.col("response").pipe(response_date).cast(pl.Datetime(time_unit="ns"))
-)
-
 
 def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
@@ -237,11 +206,47 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             .alias("jsonld")
         )
         .with_columns(
-            _JSONLD_SUCCESS_EXPR.alias("jsonld_success"),
-            _JSONLD_TITLE_EXPR.alias("title"),
-            _JSONLD_PUBLISHED_AT_EXPR.alias("published_at"),
-            _JSONLD_DIRECTOR_EXPR.alias("directors"),
-            _RESPONSE_DATE_EXPR.alias("retrieved_at"),
+            (
+                pl.col("jsonld")
+                .struct.field("name")
+                .is_not_null()
+                .alias("jsonld_success")
+            ),
+            (
+                pl.col("jsonld")
+                .struct.field("name")
+                .pipe(
+                    apply_with_tqdm,
+                    html.unescape,
+                    return_dtype=pl.Utf8,
+                    log_group="html.unescape",
+                )
+                .alias("title")
+            ),
+            (
+                pl.col("jsonld")
+                .struct.field("datePublished")
+                .str.strptime(dtype=pl.Date, format="%+")
+                .alias("published_at")
+            ),
+            (
+                pl.col("jsonld")
+                .struct.field("director")
+                .arr.eval(pl.element().struct.field("name"))
+                .pipe(
+                    apply_with_tqdm,
+                    _html_escape_list,
+                    return_dtype=pl.List(pl.Utf8),
+                    log_group="html.unescape",
+                )
+                .alias("directors")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_date)
+                .cast(pl.Datetime(time_unit="ns"))
+                .alias("retrieved_at")
+            ),
         )
         .drop(["response", "jsonld"])
     )
