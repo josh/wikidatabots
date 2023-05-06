@@ -20,7 +20,6 @@ from polars_utils import (
     now,
     update_or_append,
     update_parquet,
-    with_outlier_column,
 )
 from sparql import sparql_batch
 
@@ -451,12 +450,11 @@ def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
 
 _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < (10 * _LOOKUP_BATCH_SIZE)
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
-_OUTLIER = pl.col("is_outlier")
 
 
 def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
-    df_updated = df.filter(_MISSING_METADATA | _OLDEST_METADATA | _OUTLIER).pipe(
+    df_updated = df.filter(_MISSING_METADATA | _OLDEST_METADATA).pipe(
         fetch_metadata
     )
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
@@ -493,22 +491,6 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
-def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
-    return with_outlier_column(
-        df,
-        [
-            pl.col("type"),
-            pl.col("kind"),
-            (pl.col("kind") == "feature-movie").alias("type_movie"),
-            pl.col("url"),
-            pl.col("redirect_url"),
-            pl.col("any_country"),
-            *[pl.col(f"{c}_country") for c in _COUNTRIES],
-        ],
-        max_count=1_000,
-    )
-
-
 _COLUMN_ORDER: list[str] = [
     "id",
     "retrieved_at",
@@ -526,10 +508,8 @@ def main() -> None:
         return (
             df.select(_COLUMN_ORDER)
             .pipe(_discover_ids)
-            .pipe(_with_outlier_column)
             .pipe(_backfill_metadata)
             .pipe(_backfill_redirect_url)
-            .drop("is_outlier")
             .select(_COLUMN_ORDER)
         )
 
