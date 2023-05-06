@@ -13,7 +13,7 @@ from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
 
 from sparql import sparql
-from wikidata import page_qids
+from wikidata import blocklist
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -102,7 +102,7 @@ _QUERY_SCHEMA = {
 
 
 def main() -> None:
-    blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
+    blocked_qids: set[str] = set(blocklist())
 
     wd_df = (
         sparql(_QUERY, schema=_QUERY_SCHEMA)

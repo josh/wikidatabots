@@ -19,7 +19,7 @@ def _parse_query_json_data(text: str) -> str | None:
     return None
 
 
-def page_qids(page_title: str) -> pl.Series:
+def _page_qids(page_title: str) -> pl.Series:
     return (
         pl.DataFrame({"title": [page_title]})
         .with_columns(
@@ -45,3 +45,7 @@ def page_qids(page_title: str) -> pl.Series:
         .sort("qid")
         .to_series()
     )
+
+
+def blocklist() -> pl.Series:
+    return _page_qids("User:Josh404Bot/Blocklist")

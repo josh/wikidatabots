@@ -14,7 +14,7 @@ from rdflib.namespace import Namespace, NamespaceManager
 from rdflib.term import BNode, Literal, URIRef
 
 from actions import print_warning
-from wikidata import page_qids
+from wikidata import blocklist
 
 SITE = pywikibot.Site("wikidata", "wikidata")
 
@@ -118,7 +118,7 @@ def process_graph(
     data = PREFIXES + input.read()
     graph.parse(data=data)
 
-    blocked_qids: set[str] = set(page_qids("User:Josh404Bot/Blocklist"))
+    blocked_qids: set[str] = set(blocklist())
 
     changed_claims: dict[pywikibot.ItemPage, set[HashableClaim]] = defaultdict(set)
     edit_summaries: dict[pywikibot.ItemPage, str] = {}
