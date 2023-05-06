@@ -454,9 +454,7 @@ _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
-    df_updated = df.filter(_MISSING_METADATA | _OLDEST_METADATA).pipe(
-        fetch_metadata
-    )
+    df_updated = df.filter(_MISSING_METADATA | _OLDEST_METADATA).pipe(fetch_metadata)
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
