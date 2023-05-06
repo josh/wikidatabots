@@ -182,6 +182,7 @@ def resolve_redirects(
             url=url,
             timeout=session.timeout,
             allow_redirects=True,
+            ok_status_codes=set(session.ok_statuses),
         ).url
 
     resolve_redirect = _decorate_backoff(resolve_redirect, session.retry_count)
