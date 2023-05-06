@@ -440,12 +440,30 @@ def wikidata_itunes_all_ids() -> pl.LazyFrame:
     )
 
 
-def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
+def _appletv_sitemap_ids(type: Literal["movie", "show"]) -> pl.LazyFrame:
     return (
-        df.pipe(update_or_append, wikidata_itunes_all_ids(), on="id")
-        .sort("id")
-        .unique("id")
+        pl.scan_parquet(
+            f"s3://wikidatabots/appletv/{type}.parquet",
+            storage_options={"anon": True},
+        )
+        .select("itunes_id")
+        .rename({"itunes_id": "id"})
+        .filter(pl.col("id").is_not_null())
+        .unique()
     )
+
+
+def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
+    ids_df = pl.concat(
+        [
+            wikidata_itunes_all_ids(),
+            _appletv_sitemap_ids("movie"),
+            _appletv_sitemap_ids("show"),
+        ]
+    ).unique()
+    assert ids_df.schema == {"id": pl.UInt64}
+
+    return df.pipe(update_or_append, ids_df, on="id").sort("id").unique("id")
 
 
 _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < (10 * _LOOKUP_BATCH_SIZE)
