@@ -102,7 +102,7 @@ _QUERY_SCHEMA = {
 
 
 def main() -> None:
-    blocked_qids: set[str] = set(blocklist())
+    blocked_qids = blocklist()
 
     wd_df = (
         sparql(_QUERY, schema=_QUERY_SCHEMA)

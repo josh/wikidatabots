@@ -118,7 +118,7 @@ def process_graph(
     data = PREFIXES + input.read()
     graph.parse(data=data)
 
-    blocked_qids: set[str] = set(blocklist())
+    blocked_qids = blocklist()
 
     changed_claims: dict[pywikibot.ItemPage, set[HashableClaim]] = defaultdict(set)
     edit_summaries: dict[pywikibot.ItemPage, str] = {}

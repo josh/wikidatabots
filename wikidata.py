@@ -1,6 +1,5 @@
 # pyright: strict
 
-import json
 
 import polars as pl
 
@@ -8,38 +7,46 @@ from polars_requests import Session, prepare_request, request, response_text
 
 _SESSION = Session()
 
+_BLOCKED_PAGE_ID = 103442925
 
-def _parse_query_json_data(text: str) -> str | None:
-    data = json.loads(text)
-    pages = data["query"]["pages"]
-    for pageid in pages:
-        page = pages[pageid]
-        if page.get("extract"):
-            return page["extract"]
-    return None
+_QUERY_DTYPE = pl.Struct(
+    {
+        "query": pl.Struct(
+            {
+                "pages": pl.Struct(
+                    {
+                        "103442925": pl.Struct({"extract": pl.Utf8}),
+                    }
+                )
+            }
+        )
+    }
+)
 
 
-def _page_qids(page_title: str) -> pl.Series:
+def _blocked_qids() -> pl.Series:
     return (
-        pl.DataFrame({"title": [page_title]})
-        .with_columns(
+        pl.DataFrame({"pageids": [_BLOCKED_PAGE_ID]})
+        .select(
             prepare_request(
                 url="https://www.wikidata.org/w/api.php",
                 fields={
                     "action": "query",
                     "format": "json",
-                    "titles": pl.col("title"),
+                    "pageids": pl.col("pageids"),
                     "prop": "extracts",
                     "explaintext": "1",
                 },
             )
-            .pipe(request, session=_SESSION, log_group="wikidata_api")
+            .pipe(request, session=_SESSION, log_group=None)
             .pipe(response_text)
-            .apply(_parse_query_json_data, return_dtype=pl.Utf8)
-            .alias("text")
-        )
-        .select(
-            pl.col("text").str.extract_all(r"(Q[0-9]+)").alias("qid"),
+            .str.json_extract(_QUERY_DTYPE)
+            .struct.field("query")
+            .struct.field("pages")
+            .struct.field("103442925")
+            .struct.field("extract")
+            .str.extract_all(r"(Q[0-9]+)")
+            .alias("qid"),
         )
         .explode("qid")
         .sort("qid")
@@ -47,5 +54,5 @@ def _page_qids(page_title: str) -> pl.Series:
     )
 
 
-def blocklist() -> pl.Series:
-    return _page_qids("User:Josh404Bot/Blocklist")
+def blocklist() -> set[str]:
+    return set(_blocked_qids())
