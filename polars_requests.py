@@ -99,6 +99,7 @@ def _request_series(
     timeout = session.timeout
     min_time = session.min_time
     ok_status_codes = set(session.ok_statuses)
+    disable_tqdm = len(requests) <= 1
 
     def request_with_retry(url: str, headers: dict[str, str]) -> _requests.Response:
         return _request(
@@ -113,7 +114,7 @@ def _request_series(
 
     values: list[_HTTPResponse | None] = []
     with _log_group(log_group):
-        for request_ in tqdm(requests, unit="url"):
+        for request_ in tqdm(requests, unit="url", disable=disable_tqdm):
             request: _HTTPRequest = request_
             response = None
             if request and request["url"]:
