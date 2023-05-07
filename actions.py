@@ -12,7 +12,11 @@ _THREAD_LOCAL = local()
 
 
 @contextmanager
-def log_group(name: str) -> Generator[None, None, None]:
+def log_group(name: str | None) -> Generator[None, None, None]:
+    if name is None:
+        yield
+        return
+
     if hasattr(_THREAD_LOCAL, "actions_log_group"):
         current_name: str = _THREAD_LOCAL.actions_log_group
         raise RuntimeError(f"Can't nest '{name}' log group inside '{current_name}'")
