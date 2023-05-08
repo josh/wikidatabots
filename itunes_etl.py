@@ -469,6 +469,7 @@ _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
 def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+    # MARK: pl.LazyFrame.cache
     df = df.cache()
     df_updated = df.filter(_MISSING_METADATA | _OLDEST_METADATA).pipe(fetch_metadata)
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
@@ -481,6 +482,7 @@ _APPLETV_REDIRECT_OK = {200, 404}
 
 
 def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
+    # MARK: pl.LazyFrame.cache
     df = df.cache()
 
     df_updated = (

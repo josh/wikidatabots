@@ -134,7 +134,7 @@ def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    df = df.cache()
+    df = df.cache()  # MARK: pl.LazyFrame.cache
 
     dates_df = df.select(
         pl.date_range(
@@ -240,7 +240,7 @@ _OUTDATED_LIMIT = 5_000
 
 
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    df = df.cache()
+    df = df.cache()  # MARK: pl.LazyFrame.cache
 
     new_external_ids_df = (
         df.filter(_CHANGED | _NEVER_FETCHED)

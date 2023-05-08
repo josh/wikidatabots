@@ -221,6 +221,7 @@ _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
 def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+    # MARK: pl.LazyFrame.cache
     df = df.cache()
 
     df_updated = (
@@ -228,6 +229,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
         .filter(_OLDEST_METADATA | _MISSING_METADATA | pl.col("is_outlier"))
         .drop("is_outlier")
         .pipe(fetch_metadata_guids)
+        # MARK: pl.LazyFrame.cache
         .cache()
     )
 
@@ -241,6 +243,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
         )
         .drop_nulls()
         .unique(subset="key")
+        # MARK: pl.LazyFrame.cache
         .cache()
     )
     assert df_similar.schema == {"key": pl.Binary, "type": pl.Categorical}

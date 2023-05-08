@@ -192,6 +192,7 @@ def _main() -> None:
     pl.enable_string_cache(True)
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
+        # MARK: pl.LazyFrame.cache
         df = df.cache()
         return df.pipe(update_or_append, _refresh_games(df), on="id").pipe(
             align_to_index, name="id"

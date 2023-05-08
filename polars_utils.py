@@ -248,7 +248,7 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
         assert_expression,
         pl.col(name).is_not_null() & pl.col(name).is_unique() & (pl.col(name) >= 0),
         f"Invalid {name} index",
-    ).cache()
+    ).cache()  # MARK: pl.LazyFrame.cache
 
     return df.select(
         pl.arange(
@@ -271,7 +271,7 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
             pl.col(on).is_unique(),
             f"df '{on}' column has non-unique values",
         )
-        .cache()
+        .cache()  # MARK: pl.LazyFrame.cache
     )
     other = (
         other.pipe(
@@ -284,7 +284,7 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
             pl.col(on).is_unique(),
             f"other df '{on}' column has non-unique values",
         )
-        .cache()
+        .cache()  # MARK: pl.LazyFrame.cache
     )
 
     other_cols = list(other.columns)

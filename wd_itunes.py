@@ -43,25 +43,17 @@ def _itunes_from_appletv_ids(
 
 
 def main() -> None:
-    itunes_df = (
-        pl.scan_parquet(
-            "s3://wikidatabots/itunes.parquet",
-            storage_options={"anon": True},
-        )
-        .select(["id", "any_country"])
-        .cache()
-    )
+    itunes_df = pl.scan_parquet(
+        "s3://wikidatabots/itunes.parquet",
+        storage_options={"anon": True},
+    ).select(["id", "any_country"])
 
-    appletv_df = (
-        pl.scan_parquet(
-            "s3://wikidatabots/appletv/movie.parquet",
-            storage_options={"anon": True},
-        )
-        .select(
-            pl.col("id").alias("appletv_id"),
-            pl.col("itunes_id"),
-        )
-        .cache()
+    appletv_df = pl.scan_parquet(
+        "s3://wikidatabots/appletv/movie.parquet",
+        storage_options={"anon": True},
+    ).select(
+        pl.col("id").alias("appletv_id"),
+        pl.col("itunes_id"),
     )
 
     pl.concat(

@@ -375,6 +375,7 @@ _DIRECTOR_ENCODING_ERROR = (
 
 
 def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
+    # MARK: pl.LazyFrame.cache
     df = df.cache()
     df_new = (
         df.filter(_OUTDATED | _DIRECTOR_ENCODING_ERROR)
