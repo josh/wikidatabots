@@ -201,6 +201,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             ),
             (
                 pl.col("response_html")
+                .pipe(_extract_shoebox_expr)
                 .pipe(_extract_itunes_id_expr)
                 .cast(pl.UInt64)
                 .alias("itunes_id")
@@ -248,10 +249,19 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
 
 def _extract_jsonld_expr(expr: pl.Expr) -> pl.Expr:
     return apply_with_tqdm(
-        expr,
-        _extract_jsonld,
-        return_dtype=pl.Utf8,
-        log_group="extract_jsonld",
+        expr, _extract_jsonld, return_dtype=pl.Utf8, log_group="extract_jsonld"
+    )
+
+
+def _extract_shoebox_expr(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr, _extract_shoebox, return_dtype=pl.Utf8, log_group="extract_shoebox"
+    )
+
+
+def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr, _extract_itunes_id, return_dtype=pl.Int64, log_group="extract_itunes_id"
     )
 
 
@@ -280,25 +290,20 @@ def _extract_jsonld(html: str) -> str | None:
     return None
 
 
-def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr,
-        _extract_itunes_id,
-        return_dtype=pl.Int64,
-        log_group="extract_itunes_id",
-    )
-
-
-def _extract_itunes_id(html: str) -> int | None:
+def _extract_shoebox(html: str) -> str | None:
     soup = _parse_html(html)
     if not soup:
         return None
 
     script = soup.find("script", {"type": "fastboot/shoebox", "id": "shoebox-uts-api"})
-    if not script:
-        return None
+    if script:
+        return script.text
 
-    for data in json.loads(script.text).values():
+    return None
+
+
+def _extract_itunes_id(text: str) -> int | None:
+    for data in json.loads(text).values():
         if "content" in data and "playables" in data["content"]:
             for playable in data["content"]["playables"]:
                 if playable.get("isItunes", False) is True:
