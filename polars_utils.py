@@ -754,8 +754,7 @@ def describe_frame_with_diff(
     )
 
 
-# TODO: Tune this limit
-_RDF_STATEMENT_LIMIT = 250  # 360
+_RDF_STATEMENT_LIMIT = 250
 
 
 def print_rdf_statements(
@@ -764,6 +763,7 @@ def print_rdf_statements(
     sample: bool = True,
     file: TextIO = sys.stdout,
 ) -> None:
+    assert limit <= 360
     assert df.schema == {"rdf_statement": pl.Utf8}
     df = df.pipe(_limit, limit, sample=sample, desc="rdf statements")
 
