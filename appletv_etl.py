@@ -21,6 +21,7 @@ from polars_requests import (
 from polars_utils import (
     apply_with_tqdm,
     head,
+    html_unescape,
     limit,
     update_or_append,
     update_parquet,
@@ -215,17 +216,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
                 .is_not_null()
                 .alias("jsonld_success")
             ),
-            (
-                pl.col("jsonld")
-                .struct.field("name")
-                .pipe(
-                    apply_with_tqdm,
-                    html.unescape,
-                    return_dtype=pl.Utf8,
-                    log_group="html.unescape",
-                )
-                .alias("title")
-            ),
+            pl.col("jsonld").struct.field("name").pipe(html_unescape).alias("title"),
             (
                 pl.col("jsonld")
                 .struct.field("datePublished")

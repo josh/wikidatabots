@@ -2,6 +2,7 @@
 
 import datetime
 import gzip
+import html
 import logging
 import os
 import random
@@ -433,6 +434,15 @@ def _xml_element_field_iter(
                     yield float(child.text)
                 else:
                     yield child.text
+
+
+def html_unescape(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        html.unescape,
+        return_dtype=pl.Utf8,
+        log_group="html_unescape",
+    )
 
 
 def gzip_decompress(expr: pl.Expr) -> pl.Expr:
