@@ -175,7 +175,7 @@ def _request_series(
             values.append(response)
 
         elapsed_times_s = pl.Series(elapsed_times)
-        logging.info("Elapsed times:", elapsed_times_s.describe())
+        logging.info("Elapsed times: %s", elapsed_times_s.describe())
         session.close()
 
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
