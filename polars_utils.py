@@ -8,7 +8,6 @@ import os
 import random
 import re
 import sys
-import time
 import xml.etree.ElementTree as ET
 import zlib
 from functools import partial
@@ -323,32 +322,20 @@ def apply_with_tqdm(
     function: Callable[[Any], Any],
     return_dtype: pl.PolarsDataType | None = None,
     log_group: str | None = "apply(unknown)",
-    limit: int = sys.maxsize,
 ) -> pl.Expr:
     def apply_function(s: pl.Series) -> list[Any]:
         values: list[Any] = []
         size = len(s)
 
-        assert size < limit, f"apply limit exceeded: {size:,}/{limit:,}"
-
         if size == 0:
             return values
 
         with _log_group(log_group):
-            start_time = time.time()
-
             for item in tqdm(s, unit="row"):
                 if item is None:
                     values.append(None)
                 else:
                     values.append(function(item))
-
-            elapsed_time = time.time() - start_time
-            rph = int(size / elapsed_time * 3600)
-            if limit == sys.maxsize:
-                logging.warning(f"unbound apply: {rph:,} row/hour")
-            else:
-                logging.debug(f"{rph:,} row/hour")
 
         return values
 
