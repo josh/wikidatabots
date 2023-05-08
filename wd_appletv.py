@@ -4,7 +4,7 @@ from math import floor
 
 import polars as pl
 
-from appletv_etl import REGION_COUNT, not_found, url_extract_id
+from appletv_etl import REGION_COUNT, not_found, url_extract_id, valid_appletv_id
 from polars_utils import limit, print_rdf_statements
 from sparql import sparql, sparql_batch
 
@@ -60,7 +60,7 @@ _ADD_RDF_STATEMENT = pl.format(
 def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
     wd_df = (
         sparql(_ANY_ID_QUERY, columns=["id"])
-        .select(pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$"))
+        .select(pl.col("id").pipe(valid_appletv_id))
         .drop_nulls()
         .with_columns(pl.lit(True).alias("wd_exists"))
     )
@@ -127,9 +127,7 @@ def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
 
     return (
         sparql(_ID_QUERY, columns=["statement", "id"])
-        .with_columns(
-            pl.col("id").str.extract("^(umc.cmc.[a-z0-9]{22,25})$").alias("id"),
-        )
+        .with_columns(pl.col("id").pipe(valid_appletv_id))
         .drop_nulls()
         .select("statement", "id")
         .join(sitemap_df, on="id", how="left")

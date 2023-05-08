@@ -125,6 +125,10 @@ _LOC_PATTERN = (
 )
 
 
+def valid_appletv_id(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract("^(umc.cmc.[a-z0-9]{22,25})$")
+
+
 def url_extract_id(url: pl.Expr) -> pl.Expr:
     return url.str.extract(_LOC_PATTERN, 4)
 
