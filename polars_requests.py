@@ -110,14 +110,25 @@ def _request_series(
     disable_tqdm = len(requests) <= 1
 
     def request_with_retry(url: str, headers: dict[str, str]) -> _requests.Response:
-        return _request(
-            session=session,
+        start_time = time.time()
+        r = session.request(
+            method="GET",
             url=url,
             headers=headers,
             timeout=timeout,
-            min_time=min_time,
-            ok_status_codes=ok_status_codes,
+            allow_redirects=False,
         )
+        elapsed_time = time.time() - start_time
+
+        if r.status_code not in ok_status_codes:
+            r.raise_for_status()
+
+        sleep_time = min_time - elapsed_time
+        if sleep_time > 0:
+            logging.debug(f"Sleeping for {sleep_time:.2f} seconds more seconds")
+            time.sleep(sleep_time)
+
+        return r
 
     request_with_retry = _decorate_backoff(request_with_retry, retry_count)
 
@@ -136,37 +147,6 @@ def _request_series(
         session.close()
 
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
-
-
-def _request(
-    session: _requests.Session,
-    url: str,
-    timeout: float,
-    min_time: float = 0.0,
-    method: str = "GET",
-    headers: dict[str, str] = {},
-    allow_redirects: bool = False,
-    ok_status_codes: set[int] = set(),
-) -> _requests.Response:
-    start_time = time.time()
-    r = session.request(
-        method=method,
-        url=url,
-        headers=headers,
-        timeout=timeout,
-        allow_redirects=allow_redirects,
-    )
-    elapsed_time = time.time() - start_time
-
-    if r.status_code not in ok_status_codes:
-        r.raise_for_status()
-
-    sleep_time = min_time - elapsed_time
-    if sleep_time > 0:
-        logging.debug(f"Sleeping for {sleep_time:.2f} seconds more seconds")
-        time.sleep(sleep_time)
-
-    return r
 
 
 T = TypeVar("T")
@@ -193,16 +173,20 @@ def resolve_redirects(
     retry_count: int = 0,
 ) -> pl.Expr:
     session = _requests.Session()
+    ok_status_codes = set(ok_statuses)
 
     def resolve_redirect(url: str) -> str:
-        return _request(
-            session=session,
+        r = session.request(
             method="HEAD",
             url=url,
             timeout=timeout,
             allow_redirects=True,
-            ok_status_codes=set(ok_statuses),
-        ).url
+        )
+
+        if r.status_code not in ok_status_codes:
+            r.raise_for_status()
+
+        return r.url
 
     resolve_redirect = _decorate_backoff(resolve_redirect, retry_count)
 
