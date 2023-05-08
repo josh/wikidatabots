@@ -65,6 +65,7 @@ def _check_ldf(
         function(df)
         return df
 
+    # MARK: pl.LazyFrame.map
     return ldf.map(
         _inner_check,
         validate_output_schema=False,
@@ -126,6 +127,7 @@ def sample(
             seed=seed,
         )
 
+    # MARK: pl.LazyFrame.map
     return df.map(_sample, streamable=False)
 
 
@@ -157,6 +159,7 @@ def limit(
         else:
             return df
 
+    # MARK: pl.LazyFrame.map
     return df.map(_limit, streamable=False)
 
 
@@ -337,6 +340,7 @@ def apply_with_tqdm(
     def map_function(s: pl.Series) -> pl.Series:
         return pl.Series(values=apply_function(s), dtype=return_dtype)
 
+    # MARK: pl.Expr.map
     return expr.map(map_function, return_dtype=return_dtype)
 
 
@@ -506,6 +510,7 @@ def with_outlier_column(
             logging.info("No outlier patterns found")
             return df.with_columns(pl.lit(False).alias(outlier_name))
 
+    # MARK: pl.LazyFrame.map
     return df.map(
         _with_outlier_column,
         schema=schema,
@@ -574,6 +579,7 @@ def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr
 
 
 def _format_int_comma(expr: pl.Expr) -> pl.Expr:
+    # MARK: pl.Expr.apply
     return expr.apply(
         lambda v: f"{v:,}",
         return_dtype=pl.Utf8,
@@ -581,6 +587,7 @@ def _format_int_comma(expr: pl.Expr) -> pl.Expr:
 
 
 def _format_float_percent(expr: pl.Expr) -> pl.Expr:
+    # MARK: pl.Expr.apply
     return expr.apply(
         lambda v: f"{v:.2%}",
         return_dtype=pl.Utf8,
@@ -655,6 +662,7 @@ def compute_stats(
 
     return joined_df.select(
         pl.col("column").alias("name"),
+        # MARK: pl.Expr.apply
         pl.col("column").apply(df.schema.get).apply(_dtype_str_repr).alias("dtype"),
         _percent_col("null"),
         _percent_col("true"),

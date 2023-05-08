@@ -80,8 +80,8 @@ def sparql(
         pl.LazyFrame({"query": [query]})
         .select(
             pl.col("query")
-            .map(_sparql_batch_raw, return_dtype=pl.Binary)
-            .alias("results"),
+            # MARK: pl.Expr.map
+            .map(_sparql_batch_raw, return_dtype=pl.Binary).alias("results"),
         )
         .map(read_item_as_csv, schema=schema)
     )
@@ -98,6 +98,7 @@ def sparql_batch(
 
     dtype = pl.List(pl.Struct(schema))
 
+    # MARK: pl.Expr.map
     return queries.map(_sparql_batch_raw, return_dtype=pl.Binary).pipe(
         csv_extract, dtype=dtype, log_group="parse_sparql_csv"
     )

@@ -39,8 +39,8 @@ def _itunes_from_appletv_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
         .pipe(limit, _LOOKUP_LIMIT, desc="appletv_ids")
         .with_columns(
             pl.col("appletv_id")
-            .map(appletv_to_itunes_series, return_dtype=pl.UInt64)
-            .alias("itunes_id")
+            # MARK: pl.Expr.map
+            .map(appletv_to_itunes_series, return_dtype=pl.UInt64).alias("itunes_id")
         )
         .join(itunes_df, left_on="itunes_id", right_on="id", how="left")
         .filter(pl.col("any_country"))

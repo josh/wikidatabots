@@ -80,6 +80,7 @@ class Session:
 
 
 def request(requests: pl.Expr, session: Session, log_group: str | None) -> pl.Expr:
+    # MARK: pl.Expr.map
     return requests.map(
         partial(_request_series, session=session, log_group=log_group),
         return_dtype=HTTP_RESPONSE_DTYPE,

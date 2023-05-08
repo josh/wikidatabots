@@ -51,8 +51,8 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
         prepare_request(
             url=pl.format("https://opencritic-api.p.rapidapi.com/game/{}", expr),
             headers=_HEADERS,
-        )
-        .pipe(request, session=_SESSION, log_group=_LOG_GROUP)
+        ).pipe(request, session=_SESSION, log_group=_LOG_GROUP)
+        # MARK: pl.Expr.map
         .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
     )
 
