@@ -195,12 +195,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             ),
             (
                 pl.col("response_html")
-                .pipe(
-                    apply_with_tqdm,
-                    _extract_itunes_id,
-                    return_dtype=pl.Int64,
-                    log_group="extract_itunes_id",
-                )
+                .pipe(_extract_itunes_id_expr)
                 .cast(pl.UInt64)
                 .alias("itunes_id")
             ),
@@ -290,16 +285,20 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
             )
             .pipe(request, session=_APPLETV_SESSION, log_group="tv.apple.com")
             .pipe(response_text)
-            .pipe(
-                apply_with_tqdm,
-                _extract_itunes_id,
-                return_dtype=pl.Int64,
-                log_group="extract_itunes_id",
-            )
+            .pipe(_extract_itunes_id_expr)
             .cast(pl.UInt64),
         )
         .to_series()
         .alias(s.name)
+    )
+
+
+def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        _extract_itunes_id,
+        return_dtype=pl.Int64,
+        log_group="extract_itunes_id",
     )
 
 
