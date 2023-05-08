@@ -394,12 +394,15 @@ _JSONLD_LIMIT = 1_000
 _OUTDATED = pl.col("retrieved_at").is_null() | pl.col("retrieved_at").lt(
     datetime.date(2023, 5, 5)
 )
+_DIRECTOR_ENCODING_ERROR = (
+    pl.col("directors").arr.eval(pl.element().str.contains("&")).arr.sum() > 0
+)  # TMP
 
 
 def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
     df_new = (
-        df.filter(_OUTDATED)
+        df.filter(_OUTDATED | _DIRECTOR_ENCODING_ERROR)
         .sort(
             pl.col("country").eq("us"),
             pl.col("in_latest_sitemap"),
