@@ -90,6 +90,10 @@ def test_pyformat() -> None:
     df2 = pl.DataFrame({"fmt": ["foo_a_bar_1", "foo_b_bar_2", "foo_c_bar_3"]})
     assert_frame_equal(df1, df2)
 
+    df1 = df.select([pyformat("foo_{}_bar_{b}", pl.col("a"), b="b").alias("fmt")])
+    df2 = pl.DataFrame({"fmt": ["foo_a_bar_1", "foo_b_bar_2", "foo_c_bar_3"]})
+    assert_frame_equal(df1, df2)
+
     df = pl.DataFrame({"a": ["a", None, "c"], "b": [1, 2, None]})
     df1 = df.select([pyformat("foo_{}_bar_{}", pl.col("a"), "b").alias("fmt")])
     df2 = pl.DataFrame({"fmt": ["foo_a_bar_1", None, None]})
