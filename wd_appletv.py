@@ -12,15 +12,15 @@ _SEARCH_LIMIT = 250
 _NOT_FOUND_LIMIT = floor(100 / REGION_COUNT)
 
 _SEARCH_QUERY = """
-SELECT DISTINCT ?item ?has_appletv WHERE {
-  VALUES ?title { "{}" }
-  VALUES ?directorName { "{}" }
+SELECT DISTINCT ?item (SAMPLE(?appletv_id) AS ?has_appletv) WHERE {
+  VALUES ?title { {} }
+  VALUES ?directorName { {} }
   VALUES ?year { {} {} }
 
   SERVICE wikibase:mwapi {
     bd:serviceParam wikibase:endpoint "www.wikidata.org";
                     wikibase:api "EntitySearch";
-                    mwapi:search "{}";
+                    mwapi:search {};
                     mwapi:language "en".
     ?item wikibase:apiOutputItem mwapi:item.
   }
@@ -34,7 +34,7 @@ SELECT DISTINCT ?item ?has_appletv WHERE {
   OPTIONAL { ?item rdfs:label ?titleLabel. }
   OPTIONAL { ?item skos:altLabel ?titleAltLabel. }
   FILTER(((LCASE(STR(?titleLabel))) = LCASE(?title)) ||
-        ((LCASE(STR(?titleAltLabel))) = LCASE(?title)))
+         ((LCASE(STR(?titleAltLabel))) = LCASE(?title)))
 
   ?item wdt:P577 ?date.
   FILTER((xsd:integer(YEAR(?date))) = ?year)
@@ -43,10 +43,41 @@ SELECT DISTINCT ?item ?has_appletv WHERE {
   ?director rdfs:label ?directorLabel.
   FILTER((STR(?directorLabel)) = ?directorName)
 
-  OPTIONAL { ?item wdt:P9586 ?has_appletv. }
+  OPTIONAL { ?item wdt:P9586 ?appletv_id. }
 }
-LIMIT 2
+GROUP BY ?item
 """
+
+
+def _escape_str(expr: pl.Expr) -> pl.Expr:
+    return expr.str.replace_all('"', '\\"', literal=True)
+
+
+def _quote_str(expr: pl.Expr) -> pl.Expr:
+    return pl.format('"{}"', _escape_str(expr))
+
+
+def _quote_arr_str(expr: pl.Expr) -> pl.Expr:
+    return pl.format(
+        '"{}"',
+        expr.arr.eval(_escape_str(pl.element())).arr.join('" "'),
+    )
+
+
+def find_wd_movie_via_search(df: pl.LazyFrame) -> pl.LazyFrame:
+    return df.with_columns(
+        pl.format(
+            _SEARCH_QUERY,
+            pl.col("title").pipe(_quote_str),
+            pl.col("directors").pipe(_quote_arr_str),
+            pl.col("published_at").dt.year(),
+            pl.col("published_at").dt.year() + 1,
+            pl.col("title").pipe(_quote_str),
+        )
+        .pipe(sparql_batch, columns=["item", "has_appletv"])
+        .alias("results"),
+    )
+
 
 _ANY_ID_QUERY = """
 SELECT DISTINCT ?id WHERE { ?statement ps:P9586 ?id. }
@@ -67,36 +98,20 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
 
     return (
         sitemap_df.filter(
-            (pl.col("country") == "us")
+            pl.col("country").eq("us")
             & pl.col("in_latest_sitemap")
             & pl.col("jsonld_success")
             & pl.col("title").is_not_null()
             & pl.col("published_at").is_not_null()
             & pl.col("directors").is_not_null()
+            & pl.col("directors").arr.lengths().ge(1)
         )
         .join(wd_df, on="id", how="left")
         .filter(pl.col("wd_exists").is_null())
         .pipe(limit, _SEARCH_LIMIT, desc="unmatched sitemap ids")
-        .with_columns(
-            pl.format(
-                _SEARCH_QUERY,
-                pl.col("title").str.replace_all('"', '\\"', literal=True),
-                (  # TODO: Use all directors
-                    pl.col("directors")
-                    .arr.first()
-                    .str.replace_all('"', '\\"', literal=True)
-                ),
-                pl.col("published_at").dt.year(),
-                pl.col("published_at").dt.year() + 1,
-                pl.col("title").str.replace_all('"', '\\"', literal=True),
-            )
-            .pipe(sparql_batch, columns=["item", "has_appletv"])
-            .alias("result"),
-        )
-        .filter(pl.col("result").arr.lengths() == 1)
-        .with_columns(
-            pl.col("result").arr.first().alias("result"),
-        )
+        .pipe(find_wd_movie_via_search)
+        .filter(pl.col("results").arr.lengths() == 1)
+        .with_columns(pl.col("results").arr.first().alias("result"))
         .unnest("result")
         .filter(pl.col("item").is_not_null() & pl.col("has_appletv").is_null())
         .select(_ADD_RDF_STATEMENT)
