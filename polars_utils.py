@@ -357,7 +357,7 @@ def apply_with_tqdm(
     expr: pl.Expr,
     function: Callable[[Any], Any],
     return_dtype: pl.PolarsDataType | None = None,
-    log_group: str | None = "apply(unknown)",
+    log_group: str = "apply(unknown)",
 ) -> pl.Expr:
     def apply_function(s: pl.Series) -> list[Any]:
         values: list[Any] = []

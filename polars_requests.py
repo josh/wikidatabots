@@ -79,7 +79,7 @@ class Session:
     min_time: float = 0.0
 
 
-def request(requests: pl.Expr, session: Session, log_group: str | None) -> pl.Expr:
+def request(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
     # MARK: pl.Expr.map
     return requests.map(
         partial(_request_series, session=session, log_group=log_group),
@@ -90,7 +90,7 @@ def request(requests: pl.Expr, session: Session, log_group: str | None) -> pl.Ex
 def _request_series(
     requests: pl.Series,
     session: Session,
-    log_group: str | None,
+    log_group: str,
 ) -> pl.Series:
     assert len(requests) < 50_000, f"Too many requests: {len(requests):,}"
 

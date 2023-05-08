@@ -38,7 +38,7 @@ def _blocked_qids() -> pl.Series:
                     "explaintext": "1",
                 },
             )
-            .pipe(request, session=_SESSION, log_group=None)
+            .pipe(request, session=_SESSION, log_group="wikidata")
             .pipe(response_text)
             .str.json_extract(_QUERY_DTYPE)
             .struct.field("query")
