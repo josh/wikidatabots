@@ -749,7 +749,7 @@ def describe_frame_with_diff(
 
 
 # TODO: Tune this limit
-_RDF_STATEMENT_LIMIT = 200  # 360
+_RDF_STATEMENT_LIMIT = 250  # 360
 
 
 def print_rdf_statements(
