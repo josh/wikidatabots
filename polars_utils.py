@@ -1,6 +1,7 @@
 # pyright: strict
 
 import datetime
+import gzip
 import logging
 import os
 import random
@@ -431,6 +432,15 @@ def _xml_element_field_iter(
                     yield float(child.text)
                 else:
                     yield child.text
+
+
+def gzip_decompress(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        gzip.decompress,
+        return_dtype=pl.Binary,
+        log_group="gzip_decompress",
+    )
 
 
 def with_outlier_column(

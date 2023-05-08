@@ -1,7 +1,6 @@
 # pyright: strict
 
 import datetime
-import gzip
 import logging
 import os
 import sys
@@ -18,8 +17,8 @@ from polars_requests import (
 )
 from polars_utils import (
     align_to_index,
-    apply_with_tqdm,
     assert_expression,
+    gzip_decompress,
     limit,
     update_or_append,
     update_parquet,
@@ -262,15 +261,6 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     )
 
 
-def _gzip_decompress(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr,
-        gzip.decompress,
-        return_dtype=pl.Binary,
-        log_group="gzip_decompress",
-    )
-
-
 def _export_date() -> datetime.date:
     now = datetime.datetime.utcnow()
     if now.hour >= 8:
@@ -300,7 +290,7 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
                 log_group="files.tmdb.org/p/exports",
             )
             .struct.field("data")
-            .pipe(_gzip_decompress)
+            .pipe(gzip_decompress)
             .cast(pl.Utf8)
             .str.split("\n")
             .alias("lines"),
