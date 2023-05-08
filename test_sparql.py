@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from sparql import fetch_property_statements, sparql, sparql_batch
+from sparql import sparql, sparql_batch
 
 
 def _extract_qid(name: str = "item") -> pl.Expr:
@@ -44,10 +44,3 @@ def test_sparql_batch() -> None:
     assert ldf.schema == {"pid": pl.Utf8, "n": pl.Utf8}
     df = ldf.collect()
     assert len(df) == 3
-
-
-def test_fetch_property_statements() -> None:
-    ldf = fetch_property_statements(pid="P9750")
-    assert ldf.schema == {"subject": pl.Utf8, "object": pl.Utf8}
-    df = ldf.collect()
-    assert len(df) > 1
