@@ -25,6 +25,7 @@ from polars_utils import (
     merge_with_indicator,
     now,
     outlier_exprs,
+    pyformat,
     sample,
     update_or_append,
     with_outlier_column,
@@ -72,6 +73,27 @@ def test_assert_not_null():
     ldf = df.pipe(assert_expression, pl.all().is_not_null())
     with pytest.raises(pl.ComputeError):  # type: ignore
         ldf.collect()
+
+
+def test_pyformat() -> None:
+    df = pl.DataFrame({"a": ["a", "b", "c"], "b": [1, 2, 3]})
+
+    df1 = df.select([pyformat("foo_{}_bar_{}", pl.col("a"), "b").alias("fmt")])
+    df2 = pl.DataFrame({"fmt": ["foo_a_bar_1", "foo_b_bar_2", "foo_c_bar_3"]})
+    assert_frame_equal(df1, df2)
+
+    df1 = df.select([pyformat("foo_{0}_bar_{1}", pl.col("a"), "b").alias("fmt")])
+    df2 = pl.DataFrame({"fmt": ["foo_a_bar_1", "foo_b_bar_2", "foo_c_bar_3"]})
+    assert_frame_equal(df1, df2)
+
+    df1 = df.select([pyformat("foo_{a}_bar_{b}", a=pl.col("a"), b="b").alias("fmt")])
+    df2 = pl.DataFrame({"fmt": ["foo_a_bar_1", "foo_b_bar_2", "foo_c_bar_3"]})
+    assert_frame_equal(df1, df2)
+
+    df = pl.DataFrame({"a": ["a", None, "c"], "b": [1, 2, None]})
+    df1 = df.select([pyformat("foo_{}_bar_{}", pl.col("a"), "b").alias("fmt")])
+    df2 = pl.DataFrame({"fmt": ["foo_a_bar_1", None, None]})
+    assert_frame_equal(df1, df2)
 
 
 def test_merge_with_indicator() -> None:

@@ -84,6 +84,44 @@ def assert_expression(
     return _check_ldf(ldf, assert_expression_inner)
 
 
+def _wrap_col_expr(value: pl.Expr | str) -> pl.Expr:
+    if isinstance(value, str):
+        return pl.col(value)
+    return value
+
+
+def pyformat(
+    format_string: str,
+    *args: pl.Expr | str,
+    **kwargs: pl.Expr | str,
+) -> pl.Expr:
+    named_exprs: dict[str, pl.Expr] = {}
+    for i, value in enumerate(args):
+        named_exprs[f"_{i}"] = _wrap_col_expr(value)
+    for key, value in kwargs.items():
+        named_exprs[key] = _wrap_col_expr(value)
+
+    def _format(s: pl.Series) -> pl.Series:
+        values: list[str | None] = []
+
+        for row in s:
+            if any(v is None for v in row.values()):
+                values.append(None)
+                continue
+
+            f_args: list[Any] = [row[f"_{i}"] for i in range(0, len(args))]
+            f_kwargs: dict[str, Any] = {}
+            for name in kwargs:
+                f_kwargs[name] = row[name]
+
+            values.append(format_string.format(*f_args, **f_kwargs))
+
+        return pl.Series(values=values, dtype=pl.Utf8)
+
+    # MARK: pl.Expr.map
+    return pl.struct(**named_exprs).map(_format, return_dtype=pl.Utf8)
+
+
 def expr_repl(expr: pl.Expr, strip_alias: bool = False) -> str:
     expr_s: str = str(expr)
     if strip_alias:
@@ -578,22 +616,6 @@ def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr
             yield expr.is_unique().alias(f"unique_{output_name}")
 
 
-def _format_int_comma(expr: pl.Expr) -> pl.Expr:
-    # MARK: pl.Expr.apply
-    return expr.apply(
-        lambda v: f"{v:,}",
-        return_dtype=pl.Utf8,
-    )
-
-
-def _format_float_percent(expr: pl.Expr) -> pl.Expr:
-    # MARK: pl.Expr.apply
-    return expr.apply(
-        lambda v: f"{v:.2%}",
-        return_dtype=pl.Utf8,
-    )
-
-
 def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:
     if isinstance(dtype, pl.DataType):
         return dtype._string_repr()  # type: ignore
@@ -628,10 +650,10 @@ def compute_stats(
         return (
             pl.when(pl.col(f"{name}_count") > 0)
             .then(
-                pl.format(
-                    "{} ({})",
-                    pl.col(f"{name}_count").pipe(_format_int_comma),
-                    (pl.col(f"{name}_count") / count).pipe(_format_float_percent),
+                pyformat(
+                    "{:,} ({:.2%})",
+                    pl.col(f"{name}_count"),
+                    pl.col(f"{name}_count") / count,
                 )
             )
             .otherwise(None)
@@ -641,7 +663,7 @@ def compute_stats(
     def _int_col(name: str) -> pl.Expr:
         return (
             pl.when(pl.col(f"{name}_count") > 0)
-            .then(pl.col(f"{name}_count").pipe(_format_int_comma))
+            .then(pyformat("{:,}", pl.col(f"{name}_count")))
             .otherwise(None)
             .alias(name)
         )
