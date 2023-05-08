@@ -53,12 +53,7 @@ def siteindex(sitemap_type: _TYPE) -> pl.LazyFrame:
         .select(
             pl.format("https://tv.apple.com/sitemaps_tv_index_{}_1.xml", pl.col("type"))
             .pipe(prepare_request)
-            .pipe(
-                request,
-                log_group="tv.apple.com/sitemaps_tv_index_type_1.xml",
-                timeout=_APPLETV_TIMEOUT,
-                retry_count=_RETRY_COUNT,
-            )
+            .pipe(request, log_group="tv.apple.com/sitemaps_tv_index_type_1.xml")
             .pipe(response_text)
             .pipe(
                 xml_extract,
@@ -87,12 +82,7 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
         .select(
             pl.col("loc")
             .pipe(prepare_request)
-            .pipe(
-                request,
-                log_group="tv.apple.com/sitemaps_tv_type.xml.gz",
-                timeout=_APPLETV_TIMEOUT,
-                retry_count=_RETRY_COUNT,
-            )
+            .pipe(request, log_group="tv.apple.com/sitemaps_tv_type.xml.gz")
             .struct.field("data")
             .pipe(zlib_decompress)
             .pipe(
