@@ -1,6 +1,5 @@
 # pyright: strict
 
-import datetime
 import json
 import logging
 import re
@@ -367,19 +366,14 @@ def not_found(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
 
 
 _JSONLD_LIMIT = 1_000
-_OUTDATED = pl.col("retrieved_at").is_null() | pl.col("retrieved_at").lt(
-    datetime.date(2023, 5, 5)
-)
-_DIRECTOR_ENCODING_ERROR = (
-    pl.col("directors").arr.eval(pl.element().str.contains("&")).arr.sum() > 0
-)  # TMP
+_OUTDATED = pl.col("retrieved_at").is_null()
 
 
 def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
     # MARK: pl.LazyFrame.cache
     df = df.cache()
     df_new = (
-        df.filter(_OUTDATED | _DIRECTOR_ENCODING_ERROR)
+        df.filter(_OUTDATED)
         .sort(
             pl.col("country").eq("us"),
             pl.col("in_latest_sitemap"),
