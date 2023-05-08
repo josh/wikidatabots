@@ -180,18 +180,27 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             .alias("response")
         )
         .with_columns(
-            pl.col("response").pipe(response_text).alias("response_html"),
+            pl.col("response").pipe(response_text).pipe(_parse_html_expr).alias("soup"),
         )
         .with_columns(
             (
-                pl.col("response_html")
-                .pipe(_extract_jsonld_expr)
+                pl.col("soup")
+                .pipe(
+                    _extract_script_text,
+                    script_type="application/ld+json",
+                    log_group="extract_jsonld",
+                )
                 .str.json_extract(dtype=_JSONLD_DTYPE)
                 .alias("jsonld")
             ),
             (
-                pl.col("response_html")
-                .pipe(_extract_shoebox_expr)
+                pl.col("soup")
+                .pipe(
+                    _extract_script_text,
+                    script_type="fastboot/shoebox",
+                    script_id="shoebox-uts-api",
+                    log_group="extract_shoebox",
+                )
                 .pipe(_extract_itunes_id_expr)
                 .cast(pl.UInt64)
                 .alias("itunes_id")
@@ -237,21 +246,12 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def _extract_jsonld_expr(expr: pl.Expr) -> pl.Expr:
+def _parse_html_expr(expr: pl.Expr) -> pl.Expr:
     return apply_with_tqdm(
-        expr, _extract_jsonld, return_dtype=pl.Utf8, log_group="extract_jsonld"
-    )
-
-
-def _extract_shoebox_expr(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr, _extract_shoebox, return_dtype=pl.Utf8, log_group="extract_shoebox"
-    )
-
-
-def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr, _extract_itunes_id, return_dtype=pl.Int64, log_group="extract_itunes_id"
+        expr,
+        _parse_html,
+        return_dtype=pl.Object,
+        log_group="parse_html",
     )
 
 
@@ -268,28 +268,38 @@ def _parse_html(html: str) -> BeautifulSoup | None:
     return soup
 
 
-def _extract_jsonld(html: str) -> str | None:
-    soup = _parse_html(html)
-    if not soup:
+def _extract_script_text(
+    expr: pl.Expr,
+    log_group: str,
+    script_type: str | None = None,
+    script_id: str | None = None,
+) -> pl.Expr:
+    attrs = {}
+    if script_type:
+        attrs["type"] = script_type
+    if script_id:
+        attrs["id"] = script_id
+
+    def _soup_find_script_text(soup: BeautifulSoup) -> str | None:
+        if script := soup.find("script", attrs):
+            return script.text
         return None
 
-    scripts = soup.find_all("script", {"type": "application/ld+json"})
-    for script in scripts:
-        return script.text
+    return apply_with_tqdm(
+        expr,
+        _soup_find_script_text,
+        return_dtype=pl.Utf8,
+        log_group=log_group,
+    )
 
-    return None
 
-
-def _extract_shoebox(html: str) -> str | None:
-    soup = _parse_html(html)
-    if not soup:
-        return None
-
-    script = soup.find("script", {"type": "fastboot/shoebox", "id": "shoebox-uts-api"})
-    if script:
-        return script.text
-
-    return None
+def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        _extract_itunes_id,
+        return_dtype=pl.Int64,
+        log_group="extract_itunes_id",
+    )
 
 
 def _extract_itunes_id(text: str) -> int | None:
