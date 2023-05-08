@@ -153,6 +153,7 @@ def main() -> None:
             "api_latest_review_date",
             "api_retrieved_at",
         )
+        # MARK: pl.LazyFrame.collect
         .collect()
     )
 

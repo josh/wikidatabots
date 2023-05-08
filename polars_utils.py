@@ -38,6 +38,7 @@ def update_parquet(
 
     lf2 = transform(df.lazy())
     assert lf2.schema == df.schema, "schema changed"
+    # MARK: pl.LazyFrame.collect
     df2 = lf2.collect()
 
     describe_frame_with_diff(
@@ -743,6 +744,7 @@ def describe_frame_with_diff(
     source: str,
     output: TextIO,
 ) -> pl.DataFrame:
+    # MARK: pl.LazyFrame.collect
     changes_df = frame_diff(df_old.lazy(), df_new.lazy(), on=key).collect()
     return describe_frame(
         df_new,
@@ -765,5 +767,6 @@ def print_rdf_statements(
     assert df.schema == {"rdf_statement": pl.Utf8}
     df = df.pipe(_limit, limit, sample=sample, desc="rdf statements")
 
+    # MARK: pl.LazyFrame.collect
     for (line,) in df.collect().iter_rows():
         print(line, file=file)

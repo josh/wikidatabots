@@ -310,6 +310,7 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
                 )
             )
         )
+        # MARK: pl.LazyFrame.collect
         .collect()
         .to_series()
     )
