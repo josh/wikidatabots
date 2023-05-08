@@ -6,7 +6,6 @@ import json
 import logging
 import re
 import sys
-import zlib
 from typing import Literal
 
 import polars as pl
@@ -26,6 +25,7 @@ from polars_utils import (
     update_or_append,
     update_parquet,
     xml_extract,
+    zlib_decompress,
 )
 
 _APPLETV_SESSION = Session(timeout=30.0, retry_count=10)
@@ -96,7 +96,7 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
                 log_group="tv.apple.com/sitemaps_tv_type.xml.gz",
             )
             .struct.field("data")
-            .pipe(_zlib_decompress_expr)
+            .pipe(zlib_decompress)
             .pipe(
                 xml_extract,
                 dtype=_SITEMAP_DTYPE,
@@ -115,19 +115,6 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
             ),
             pl.col("priority").cast(pl.Float32),
         )
-    )
-
-
-def _zlib_decompress(data: bytes) -> str:
-    return zlib.decompress(data, 16 + zlib.MAX_WBITS).decode("utf-8")
-
-
-def _zlib_decompress_expr(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr,
-        _zlib_decompress,
-        return_dtype=pl.Utf8,
-        log_group="zlib_decompress",
     )
 
 

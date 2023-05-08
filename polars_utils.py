@@ -8,6 +8,7 @@ import random
 import re
 import sys
 import xml.etree.ElementTree as ET
+import zlib
 from functools import partial
 from itertools import combinations
 from typing import Any, Callable, Iterable, Iterator, TextIO
@@ -440,6 +441,19 @@ def gzip_decompress(expr: pl.Expr) -> pl.Expr:
         gzip.decompress,
         return_dtype=pl.Binary,
         log_group="gzip_decompress",
+    )
+
+
+def _zlib_decompress(data: bytes) -> str:
+    return zlib.decompress(data, 16 + zlib.MAX_WBITS).decode("utf-8")
+
+
+def zlib_decompress(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        _zlib_decompress,
+        return_dtype=pl.Utf8,
+        log_group="zlib_decompress",
     )
 
 
