@@ -199,6 +199,57 @@ def _find_movie_via_itunes_redirect(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+_ITUNES_SEASON_QUERY = """
+SELECT ?show_item ?season_item ?itunes_season_id WHERE {
+  ?season_item wdt:P6381 ?itunes_season_id;
+    wdt:P179 ?show_item.
+  OPTIONAL { ?show_item wdt:P9751 ?appletv_id. }
+  FILTER(!(BOUND(?appletv_id)))
+}
+"""
+
+_ITUNES_SEASON_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
+    "show_item": pl.Utf8,
+    "season_item": pl.Utf8,
+    "itunes_season_id": pl.UInt64,
+}
+
+_ADD_VIA_ITUNES_SEASON_STATEMENT = pl.format(
+    '<{}> wdt:P9751 "{}"; wikidatabots:editSummary '
+    '"Add Apple TV show ID via associated iTunes TV season ID " .',
+    pl.col("show_item"),
+    pl.col("appletv_show_id"),
+).alias("rdf_statement")
+
+
+def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
+    wd_df = sparql(
+        _ITUNES_SEASON_QUERY,
+        schema=_ITUNES_SEASON_QUERY_SCHEMA,
+    )
+
+    itunes_seasons_df = (
+        itunes_df.filter(pl.col("type") == "TV Season")
+        .filter(pl.col("any_country"))
+        .select(
+            pl.col("id").alias("itunes_season_id"),
+            pl.col("redirect_url")
+            .str.extract(r"showId=(umc.cmc.[0-9a-z]+)", 1)
+            .alias("appletv_show_id"),
+        )
+        .filter(pl.col("appletv_show_id").is_not_null())
+        .select("itunes_season_id", "appletv_show_id")
+    )
+
+    return (
+        wd_df.join(itunes_seasons_df, on="itunes_season_id", how="left")
+        .filter(pl.col("appletv_show_id").is_not_null())
+        .select("show_item", "appletv_show_id")
+        .unique()
+        .select(_ADD_VIA_ITUNES_SEASON_STATEMENT)
+    )
+
+
 def main() -> None:
     sitemap_df = pl.scan_parquet(
         "s3://wikidatabots/appletv/movie.parquet",
@@ -214,6 +265,7 @@ def main() -> None:
             _find_movie_via_search(sitemap_df),
             _find_movie_not_found(sitemap_df),
             _find_movie_via_itunes_redirect(itunes_df),
+            _find_show_via_itunes_season(itunes_df),
         ]
     ).pipe(print_rdf_statements, sample=False)
 
