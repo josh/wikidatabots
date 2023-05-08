@@ -160,6 +160,9 @@ def limit(
     return df.map(_limit, streamable=False)
 
 
+_limit = limit
+
+
 def is_constant(expr: pl.Expr) -> pl.Expr:
     return (expr == expr.first()).all()
 
@@ -713,3 +716,19 @@ def describe_frame_with_diff(
         source=source,
         output=output,
     )
+
+
+# TODO: Tune this limit
+_RDF_STATEMENT_LIMIT = 200  # 360
+
+
+def print_rdf_statements(
+    df: pl.LazyFrame,
+    limit: int = _RDF_STATEMENT_LIMIT,
+    file: TextIO = sys.stdout,
+) -> None:
+    assert df.schema == {"rdf_statement": pl.Utf8}
+    df = df.pipe(_limit, limit, desc="rdf statements")
+
+    for (line,) in df.collect().iter_rows():
+        print(line, file=file)

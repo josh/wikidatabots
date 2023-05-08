@@ -3,10 +3,8 @@
 import polars as pl
 
 from appletv_etl import appletv_to_itunes_series
-from polars_utils import limit
+from polars_utils import limit, print_rdf_statements
 from sparql import sparql
-
-_STATEMENT_LIMIT = 100
 
 _ADD_RDF_STATEMENT = pl.format(
     '<{}> wdt:P6398 "{}" ; '
@@ -60,14 +58,11 @@ def main() -> None:
         .cache()
     )
 
-    df = pl.concat(
+    pl.concat(
         [
             _itunes_from_appletv_ids(itunes_df),
         ]
-    ).pipe(limit, _STATEMENT_LIMIT, desc="rdf_statements")
-
-    for (line,) in df.collect().iter_rows():
-        print(line)
+    ).pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":

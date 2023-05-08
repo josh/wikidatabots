@@ -5,10 +5,8 @@ import logging
 import polars as pl
 
 from plex_etl import GUID_TYPE, encode_plex_guids
-from polars_utils import limit
+from polars_utils import print_rdf_statements
 from sparql import sparql
-
-_STATEMENT_LIMIT = 100
 
 
 def _plex_guids() -> pl.LazyFrame:
@@ -106,12 +104,7 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
 
 def main() -> None:
     with pl.StringCache():
-        df = find_plex_guids_via_tmdb_id().pipe(
-            limit, _STATEMENT_LIMIT, desc="rdf_statements"
-        )
-
-        for (line,) in df.collect().iter_rows():
-            print(line)
+        find_plex_guids_via_tmdb_id().pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":

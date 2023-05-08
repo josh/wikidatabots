@@ -5,11 +5,10 @@ from typing import Literal
 
 import polars as pl
 
-from polars_utils import limit
+from polars_utils import limit, print_rdf_statements
 from sparql import sparql
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
-_STATEMENT_LIMIT = 250
 _CHECK_LIMIT = 250
 _TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
@@ -265,7 +264,7 @@ def find_tmdb_ids_not_found(
 
 
 def main() -> None:
-    df = pl.concat(
+    pl.concat(
         [
             find_tmdb_ids_via_imdb_id("movie"),
             find_tmdb_ids_via_imdb_id("tv"),
@@ -275,10 +274,7 @@ def main() -> None:
             find_tmdb_ids_not_found("tv"),
             find_tmdb_ids_not_found("person"),
         ]
-    ).pipe(limit, _STATEMENT_LIMIT, desc="rdf_statements")
-
-    for (line,) in df.collect().iter_rows():
-        print(line)
+    ).pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":

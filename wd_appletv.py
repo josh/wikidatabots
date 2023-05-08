@@ -5,12 +5,11 @@ from math import floor
 import polars as pl
 
 from appletv_etl import REGION_COUNT, not_found, url_extract_id
-from polars_utils import limit
+from polars_utils import limit, print_rdf_statements
 from sparql import sparql, sparql_batch
 
 _SEARCH_LIMIT = 250
 _NOT_FOUND_LIMIT = floor(100 / REGION_COUNT)
-_STATEMENT_LIMIT = 100
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item ?has_appletv WHERE {
@@ -197,16 +196,13 @@ def main() -> None:
         storage_options={"anon": True},
     )
 
-    df = pl.concat(
+    pl.concat(
         [
             _find_movie_via_search(sitemap_df),
             _find_movie_not_found(sitemap_df),
             _find_movie_via_itunes_redirect(itunes_df),
         ]
-    ).pipe(limit, _STATEMENT_LIMIT, sample=False, desc="rdf_statements")
-
-    for (line,) in df.collect().iter_rows():
-        print(line)
+    ).pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":
