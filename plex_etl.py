@@ -193,7 +193,7 @@ def _wd_random_titles(limit: int) -> pl.LazyFrame:
     return sparql(_TITLE_QUERY.replace("?limit", str(limit)), columns=["title"])
 
 
-_SEARCH_LIMIT = 100
+_SEARCH_LIMIT = 250
 
 
 def wikidata_search_guids() -> pl.LazyFrame:
