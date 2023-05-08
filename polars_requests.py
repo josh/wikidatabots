@@ -75,7 +75,8 @@ def request(
     log_group: str,
     timeout: float = 10.0,
     min_time: float = 0.0,
-    ok_statuses: Iterable[int] = [],
+    ok_statuses: Iterable[int] = [200],
+    bad_statuses: Iterable[int] = [],
     retry_count: int = 0,
 ) -> pl.Expr:
     # MARK: pl.Expr.map
@@ -86,6 +87,7 @@ def request(
             timeout=timeout,
             min_time=min_time,
             ok_statuses=ok_statuses,
+            bad_statuses=bad_statuses,
             retry_count=retry_count,
         ),
         return_dtype=HTTP_RESPONSE_DTYPE,
@@ -98,6 +100,7 @@ def _request_series(
     timeout: float,
     min_time: float,
     ok_statuses: Iterable[int],
+    bad_statuses: Iterable[int],
     retry_count: int,
 ) -> pl.Series:
     assert len(requests) < 50_000, f"Too many requests: {len(requests):,}"
@@ -107,9 +110,17 @@ def _request_series(
 
     session = _requests.Session()
     ok_status_codes = set(ok_statuses)
+    bad_status_codes = set(bad_statuses)
     disable_tqdm = len(requests) <= 1
 
-    def request_with_retry(url: str, headers: dict[str, str]) -> _requests.Response:
+    response_codes: list[int | None] = [None] * len(requests)
+    elapsed_times: list[float | None] = [None] * len(requests)
+
+    def request_with_retry(
+        request_id: int,
+        url: str,
+        headers: dict[str, str],
+    ) -> _requests.Response:
         start_time = time.time()
         r = session.request(
             method="GET",
@@ -118,9 +129,24 @@ def _request_series(
             timeout=timeout,
             allow_redirects=False,
         )
-        elapsed_time = time.time() - start_time
 
-        if r.status_code not in ok_status_codes:
+        previous_status_code = response_codes[request_id]
+        response_codes[request_id] = r.status_code
+        if previous_status_code and previous_status_code != r.status_code:
+            if r.status_code in bad_status_codes:
+                logging.debug(f"Retried {previous_status_code} -> {r.status_code}")
+            else:
+                logging.warning(f"Retried {previous_status_code} -> {r.status_code}")
+
+        elapsed_time = time.time() - start_time
+        elapsed_times[request_id] = elapsed_time
+
+        if r.status_code in ok_status_codes:
+            pass
+        elif r.status_code in bad_status_codes:
+            r.raise_for_status()
+        else:
+            logging.warning(f"Unknown status code: {r.status_code}")
             r.raise_for_status()
 
         sleep_time = min_time - elapsed_time
@@ -134,16 +160,22 @@ def _request_series(
 
     values: list[_HTTPResponse | None] = []
     with _log_group(log_group):
+        request_id = 0
         for request_ in tqdm(requests, unit="url", disable=disable_tqdm):
             request: _HTTPRequest = request_
             response = None
             if request and request["url"]:
                 r = request_with_retry(
+                    request_id,
                     request["url"],
                     _make_header_dict(request["headers"]),
                 )
                 response = _make_http_response(r)
+            request_id += 1
             values.append(response)
+
+        elapsed_times_s = pl.Series(elapsed_times)
+        logging.info("Elapsed times:", elapsed_times_s.describe())
         session.close()
 
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
