@@ -174,6 +174,7 @@ P = ParamSpec("P")
 
 
 def _decorate_backoff(fn: Callable[P, T], max_retries: int) -> Callable[P, T]:
+    assert max_retries <= 12, "Too many retries"
     if max_retries:
         return backoff.on_exception(
             backoff.expo,
