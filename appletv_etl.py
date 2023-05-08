@@ -1,7 +1,6 @@
 # pyright: strict
 
 import datetime
-import html
 import json
 import logging
 import re
@@ -22,6 +21,7 @@ from polars_utils import (
     apply_with_tqdm,
     head,
     html_unescape,
+    html_unescape_list,
     limit,
     update_or_append,
     update_parquet,
@@ -166,10 +166,6 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
     )
 
 
-def _html_escape_list(lst: list[str]) -> list[str]:
-    return [html.escape(s) for s in lst]
-
-
 _JSONLD_DTYPE = pl.Struct(
     [
         pl.Field("name", pl.Utf8),
@@ -227,12 +223,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
                 pl.col("jsonld")
                 .struct.field("director")
                 .arr.eval(pl.element().struct.field("name"))
-                .pipe(
-                    apply_with_tqdm,
-                    _html_escape_list,
-                    return_dtype=pl.List(pl.Utf8),
-                    log_group="html.unescape",
-                )
+                .pipe(html_unescape_list)
                 .alias("directors")
             ),
             (

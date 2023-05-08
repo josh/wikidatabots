@@ -445,6 +445,19 @@ def html_unescape(expr: pl.Expr) -> pl.Expr:
     )
 
 
+def _html_unescape_list(lst: list[str]) -> list[str]:
+    return [html.unescape(s) for s in lst]
+
+
+def html_unescape_list(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        _html_unescape_list,
+        return_dtype=pl.List(pl.Utf8),
+        log_group="html_unescape",
+    )
+
+
 def gzip_decompress(expr: pl.Expr) -> pl.Expr:
     return apply_with_tqdm(
         expr,
