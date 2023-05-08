@@ -2,8 +2,7 @@
 
 import polars as pl
 
-from appletv_etl import appletv_to_itunes_series
-from polars_utils import limit, print_rdf_statements
+from polars_utils import print_rdf_statements
 from sparql import sparql
 
 _ADD_RDF_STATEMENT = pl.format(
@@ -30,18 +29,13 @@ SELECT ?item ?appletv_id WHERE {
 }
 """
 
-_LOOKUP_LIMIT = 100
 
-
-def _itunes_from_appletv_ids(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
+def _itunes_from_appletv_ids(
+    itunes_df: pl.LazyFrame, appletv_df: pl.LazyFrame
+) -> pl.LazyFrame:
     return (
         sparql(_APPLETV_QUERY, columns=["item", "appletv_id"])
-        .pipe(limit, _LOOKUP_LIMIT, desc="appletv_ids")
-        .with_columns(
-            pl.col("appletv_id")
-            # MARK: pl.Expr.map
-            .map(appletv_to_itunes_series, return_dtype=pl.UInt64).alias("itunes_id")
-        )
+        .join(appletv_df, on="appletv_id", how="left")
         .join(itunes_df, left_on="itunes_id", right_on="id", how="left")
         .filter(pl.col("any_country"))
         .select(_ADD_RDF_STATEMENT)
@@ -58,9 +52,21 @@ def main() -> None:
         .cache()
     )
 
+    appletv_df = (
+        pl.scan_parquet(
+            "s3://wikidatabots/appletv/movie.parquet",
+            storage_options={"anon": True},
+        )
+        .select(
+            pl.col("id").alias("appletv_id"),
+            pl.col("itunes_id"),
+        )
+        .cache()
+    )
+
     pl.concat(
         [
-            _itunes_from_appletv_ids(itunes_df),
+            _itunes_from_appletv_ids(itunes_df, appletv_df),
         ]
     ).pipe(print_rdf_statements)
 

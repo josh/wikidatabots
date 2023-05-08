@@ -276,30 +276,6 @@ def _extract_jsonld(html: str) -> str | None:
     return None
 
 
-def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
-    return (
-        s.to_frame("id")
-        .select(
-            pl.format("https://tv.apple.com/us/movie/{}", pl.col("id"))
-            .pipe(
-                prepare_request,
-                headers=_BROWSER_HEADERS,
-            )
-            .pipe(
-                request,
-                log_group="tv.apple.com",
-                timeout=_APPLETV_TIMEOUT,
-                retry_count=_RETRY_COUNT,
-            )
-            .pipe(response_text)
-            .pipe(_extract_itunes_id_expr)
-            .cast(pl.UInt64),
-        )
-        .to_series()
-        .alias(s.name)
-    )
-
-
 def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
     return apply_with_tqdm(
         expr,
