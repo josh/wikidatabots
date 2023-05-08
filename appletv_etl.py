@@ -375,7 +375,7 @@ def not_found(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
     )
 
 
-_JSONLD_LIMIT = 1_000
+_JSONLD_LIMIT = 1_500
 _OUTDATED = pl.col("retrieved_at").is_null()
 
 
