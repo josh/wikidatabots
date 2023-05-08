@@ -174,8 +174,9 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             .pipe(
                 request,
                 log_group="tv.apple.com",
-                timeout=_APPLETV_TIMEOUT,
-                retry_count=_RETRY_COUNT,
+                timeout=10.0,
+                retry_count=11,
+                bad_statuses={502},
             )
             .alias("response")
         )
