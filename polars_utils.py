@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import zlib
 from functools import partial
 from itertools import combinations
-from typing import Any, Callable, Iterable, Iterator, TextIO
+from typing import Any, Callable, Iterable, Iterator, TextIO, TypedDict
 
 import polars as pl
 from tqdm import tqdm
@@ -84,26 +84,26 @@ def assert_expression(
     return _check_ldf(ldf, assert_expression_inner)
 
 
+class _PyformatRow(TypedDict):
+    args: list[Any]
+    kwargs: dict[str, Any]
+
+
 def pyformat(
     format_string: str,
     *args: pl.Expr | str,
     **kwargs: pl.Expr | str,
 ) -> pl.Expr:
-    def _format(s: pl.Series) -> pl.Series:
-        values: list[str | None] = []
+    def _format(row: _PyformatRow) -> str | None:
+        row_args = row.get("args", [])
+        row_kwargs = row.get("kwargs", {})
 
-        for row in s:
-            row_args = row.get("args", [])
-            row_kwargs = row.get("kwargs", {})
-
-            if any(v is None for v in row_args):
-                values.append(None)
-            elif any(v is None for v in row_kwargs.values()):
-                values.append(None)
-            else:
-                values.append(format_string.format(*row_args, **row_kwargs))
-
-        return pl.Series(values=values, dtype=pl.Utf8)
+        if any(v is None for v in row_args):
+            return None
+        elif any(v is None for v in row_kwargs.values()):
+            return None
+        else:
+            return format_string.format(*row_args, **row_kwargs)
 
     packed_expr: pl.Expr
     if len(args) > 0 and len(kwargs) > 0:
@@ -118,8 +118,12 @@ def pyformat(
     else:
         raise ValueError("must provide at least one argument")
 
-    # MARK: pl.Expr.map
-    return packed_expr.map(_format, return_dtype=pl.Utf8)
+    return packed_expr.pipe(
+        apply_with_tqdm,
+        _format,
+        return_dtype=pl.Utf8,
+        log_group="pyformat",
+    )
 
 
 def expr_repl(expr: pl.Expr, strip_alias: bool = False) -> str:
