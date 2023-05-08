@@ -7,13 +7,7 @@ from typing import Literal
 
 import polars as pl
 
-from polars_requests import (
-    Session,
-    prepare_request,
-    request,
-    response_date,
-    response_text,
-)
+from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     update_or_append,
     update_parquet,
@@ -26,13 +20,7 @@ GUID_TYPE = Literal["episode", "movie", "season", "show"]
 
 _GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
 
-_PLEX_SESSION = Session(
-    ok_statuses={200, 404},
-    timeout=15.0,
-    retry_count=2,
-)
-
-_PLEX_SERVER_SESSION = Session()
+_PLEX_API_RETRY_COUNT = 3
 
 _PLEX_DEVICE_DTYPE = pl.Struct(
     {
@@ -57,11 +45,7 @@ def _plex_server(name: str) -> pl.LazyFrame:
         .select(
             pl.col("url")
             .pipe(prepare_request, headers={"X-Plex-Token": os.environ["PLEX_TOKEN"]})
-            .pipe(
-                request,
-                session=_PLEX_SESSION,
-                log_group="plex.tv/api/resources",
-            )
+            .pipe(request, log_group="plex.tv/api/resources")
             .pipe(response_text)
             .pipe(
                 xml_extract,
@@ -92,7 +76,6 @@ def plex_library_guids() -> pl.LazyFrame:
             .pipe(prepare_request, headers={"X-Plex-Token": pl.col("accessToken")})
             .pipe(
                 request,
-                session=_PLEX_SERVER_SESSION,
                 log_group="plexserver/library/sections/all",
             )
             .pipe(response_text)
@@ -166,8 +149,8 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             )
             .pipe(
                 request,
-                session=_PLEX_SESSION,
                 log_group="plex_metadata_search",
+                retry_count=_PLEX_API_RETRY_COUNT,
             )
             .pipe(response_text)
             .str.json_extract(_SEARCH_METACONTAINER_JSON_DTYPE)
@@ -321,8 +304,9 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             )
             .pipe(
                 request,
-                session=_PLEX_SESSION,
                 log_group="metadata.provider.plex.tv/library/metadata",
+                ok_statuses={200, 404},
+                retry_count=_PLEX_API_RETRY_COUNT,
             ),
         )
         .with_columns(

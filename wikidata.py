@@ -3,9 +3,7 @@
 
 import polars as pl
 
-from polars_requests import Session, prepare_request, request, response_text
-
-_SESSION = Session()
+from polars_requests import prepare_request, request, response_text
 
 _BLOCKED_PAGE_ID = 103442925
 
@@ -38,7 +36,7 @@ def _blocked_qids() -> pl.Series:
                     "explaintext": "1",
                 },
             )
-            .pipe(request, session=_SESSION, log_group="wikidata")
+            .pipe(request, log_group="wikidata")
             .pipe(response_text)
             .str.json_extract(_QUERY_DTYPE)
             .struct.field("query")

@@ -8,13 +8,7 @@ from typing import Literal
 
 import polars as pl
 
-from polars_requests import (
-    Session,
-    prepare_request,
-    request,
-    response_date,
-    response_text,
-)
+from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     align_to_index,
     assert_expression,
@@ -39,11 +33,7 @@ _COLUMNS = [
     "wikidata_numeric_id",
 ]
 
-_SESSION = Session(
-    ok_statuses={200, 404},
-    timeout=3.0,
-    retry_count=3,
-)
+_API_RETRY_COUNT = 3
 
 _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
     "movie": r"tt(\d+)",
@@ -94,8 +84,9 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
             .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
             .pipe(
                 request,
-                session=_SESSION,
                 log_group=f"api.themoviedb.org/3/{tmdb_type}/external_ids",
+                ok_statuses={200, 404},
+                retry_count=_API_RETRY_COUNT,
             )
             .alias("response")
         )
@@ -174,8 +165,8 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
             )
             .pipe(
                 request,
-                session=_SESSION,
                 log_group=f"api.themoviedb.org/3/{tmdb_type}/changes",
+                retry_count=_API_RETRY_COUNT,
             )
             .pipe(response_text)
             .str.json_extract(dtype=_CHANGES_RESPONSE_DTYPE)
@@ -197,8 +188,9 @@ def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
         .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
         .pipe(
             request,
-            session=_SESSION,
             log_group=f"api.themoviedb.org/3/{tmdb_type}",
+            ok_statuses={200, 404},
+            retry_count=_API_RETRY_COUNT,
         )
         .pipe(response_text)
         .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.UInt32)]))
@@ -229,8 +221,9 @@ def tmdb_find(
         )
         .pipe(
             request,
-            session=_SESSION,
             log_group="api.themoviedb.org/3/find",
+            ok_statuses={200, 404},
+            retry_count=_API_RETRY_COUNT,
         )
         .pipe(response_text)
         .str.json_extract(dtype=_FIND_RESPONSE_DTYPE)
@@ -286,8 +279,8 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
             .pipe(prepare_request)
             .pipe(
                 request,
-                session=_SESSION,
                 log_group="files.tmdb.org/p/exports",
+                retry_count=_API_RETRY_COUNT,
             )
             .struct.field("data")
             .pipe(gzip_decompress)

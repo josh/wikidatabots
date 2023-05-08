@@ -10,13 +10,7 @@ from typing import Literal
 import polars as pl
 from bs4 import BeautifulSoup
 
-from polars_requests import (
-    Session,
-    prepare_request,
-    request,
-    response_date,
-    response_text,
-)
+from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     apply_with_tqdm,
     head,
@@ -29,7 +23,8 @@ from polars_utils import (
     zlib_decompress,
 )
 
-_APPLETV_SESSION = Session(timeout=30.0, retry_count=10)
+_APPLETV_TIMEOUT = 30.0
+_RETRY_COUNT = 10
 
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -60,8 +55,9 @@ def siteindex(sitemap_type: _TYPE) -> pl.LazyFrame:
             .pipe(prepare_request)
             .pipe(
                 request,
-                session=_APPLETV_SESSION,
                 log_group="tv.apple.com/sitemaps_tv_index_type_1.xml",
+                timeout=_APPLETV_TIMEOUT,
+                retry_count=_RETRY_COUNT,
             )
             .pipe(response_text)
             .pipe(
@@ -93,8 +89,9 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
             .pipe(prepare_request)
             .pipe(
                 request,
-                session=_APPLETV_SESSION,
                 log_group="tv.apple.com/sitemaps_tv_type.xml.gz",
+                timeout=_APPLETV_TIMEOUT,
+                retry_count=_RETRY_COUNT,
             )
             .struct.field("data")
             .pipe(zlib_decompress)
@@ -180,7 +177,12 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
         df.with_columns(
             pl.col("loc")
             .pipe(prepare_request, headers=_BROWSER_HEADERS)
-            .pipe(request, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(
+                request,
+                log_group="tv.apple.com",
+                timeout=_APPLETV_TIMEOUT,
+                retry_count=_RETRY_COUNT,
+            )
             .alias("response")
         )
         .with_columns(
@@ -283,7 +285,12 @@ def appletv_to_itunes_series(s: pl.Series) -> pl.Series:
                 prepare_request,
                 headers=_BROWSER_HEADERS,
             )
-            .pipe(request, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(
+                request,
+                log_group="tv.apple.com",
+                timeout=_APPLETV_TIMEOUT,
+                retry_count=_RETRY_COUNT,
+            )
             .pipe(response_text)
             .pipe(_extract_itunes_id_expr)
             .cast(pl.UInt64),
@@ -366,7 +373,12 @@ def not_found(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
                 pl.col("id"),
             )
             .pipe(prepare_request, headers=_BROWSER_HEADERS)
-            .pipe(request, session=_APPLETV_SESSION, log_group="tv.apple.com")
+            .pipe(
+                request,
+                log_group="tv.apple.com",
+                timeout=_APPLETV_TIMEOUT,
+                retry_count=_RETRY_COUNT,
+            )
             .pipe(response_text)
             .str.contains('<div class="not-found">', literal=True)
             .alias("not_found")

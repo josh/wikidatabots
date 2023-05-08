@@ -6,13 +6,7 @@ from typing import Literal
 
 import polars as pl
 
-from polars_requests import (
-    Session,
-    prepare_request,
-    request,
-    resolve_redirects,
-    response_text,
-)
+from polars_requests import prepare_request, request, resolve_redirects, response_text
 from polars_utils import (
     expr_indicies_sorted,
     groups_of,
@@ -268,7 +262,8 @@ _LOOKUP_DTYPE = pl.Struct(
     ]
 )
 
-_SESSION = Session(timeout=30.0, retry_count=5)
+_ITUNES_API_TIMEOUT = 30.0
+_ITUNES_API_RETRY_COUNT = 5
 
 
 def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
@@ -289,8 +284,9 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
             )
             .pipe(
                 request,
-                session=_SESSION,
                 log_group=f"itunes.apple.com/lookup?country={country}",
+                timeout=_ITUNES_API_TIMEOUT,
+                retry_count=_ITUNES_API_RETRY_COUNT,
             )
             .pipe(response_text)
             .str.json_extract(_RESULTS_DTYPE)
@@ -479,7 +475,9 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 _REDIRECT_CHECK_LIMIT = 1_000
-_APPLETV_REDIRECT_SESSION = Session(timeout=30.0, retry_count=10, ok_statuses={404})
+_APPLETV_REDIRECT_TIMEOUT = 30.0
+_APPLETV_REDIRECT_RETRY_COUNT = 10
+_APPLETV_REDIRECT_OK = {200, 404}
 
 
 def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -496,8 +494,10 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("url")
             .pipe(
                 resolve_redirects,
-                session=_APPLETV_REDIRECT_SESSION,
                 log_group="apple.com",
+                timeout=_APPLETV_REDIRECT_TIMEOUT,
+                ok_statuses=_APPLETV_REDIRECT_OK,
+                retry_count=_APPLETV_REDIRECT_RETRY_COUNT,
             )
             .alias("redirect_url")
         )

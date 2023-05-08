@@ -2,7 +2,6 @@
 
 import logging
 import time
-from dataclasses import dataclass, field
 from functools import partial
 from typing import Callable, Iterable, ParamSpec, TypedDict, TypeVar
 
@@ -71,35 +70,42 @@ HTTP_RESPONSE_DTYPE = pl.Struct(
 )
 
 
-@dataclass
-class Session:
-    timeout: float = 10.0
-    ok_statuses: Iterable[int] = field(default_factory=lambda: [])
-    retry_count: int = 0
-    min_time: float = 0.0
-
-
-def request(requests: pl.Expr, session: Session, log_group: str) -> pl.Expr:
+def request(
+    requests: pl.Expr,
+    log_group: str,
+    timeout: float = 10.0,
+    min_time: float = 0.0,
+    ok_statuses: Iterable[int] = [],
+    retry_count: int = 0,
+) -> pl.Expr:
     # MARK: pl.Expr.map
     return requests.map(
-        partial(_request_series, session=session, log_group=log_group),
+        partial(
+            _request_series,
+            log_group=log_group,
+            timeout=timeout,
+            min_time=min_time,
+            ok_statuses=ok_statuses,
+            retry_count=retry_count,
+        ),
         return_dtype=HTTP_RESPONSE_DTYPE,
     ).alias("response")
 
 
 def _request_series(
     requests: pl.Series,
-    session: Session,
     log_group: str,
+    timeout: float,
+    min_time: float,
+    ok_statuses: Iterable[int],
+    retry_count: int,
 ) -> pl.Series:
     assert len(requests) < 50_000, f"Too many requests: {len(requests):,}"
 
     if len(requests) == 0:
         return pl.Series(name="response", values=[], dtype=HTTP_RESPONSE_DTYPE)
 
-    timeout = session.timeout
-    min_time = session.min_time
-    ok_status_codes = set(session.ok_statuses)
+    ok_status_codes = set(ok_statuses)
     disable_tqdm = len(requests) <= 1
 
     def request_with_retry(url: str, headers: dict[str, str]) -> _requests.Response:
@@ -111,7 +117,7 @@ def _request_series(
             ok_status_codes=ok_status_codes,
         )
 
-    request_with_retry = _decorate_backoff(request_with_retry, session.retry_count)
+    request_with_retry = _decorate_backoff(request_with_retry, retry_count)
 
     values: list[_HTTPResponse | None] = []
     with _log_group(log_group):
@@ -175,19 +181,21 @@ def _decorate_backoff(fn: Callable[P, T], max_retries: int) -> Callable[P, T]:
 
 def resolve_redirects(
     url: pl.Expr,
-    session: Session,
     log_group: str,
+    timeout: float = 10.0,
+    ok_statuses: Iterable[int] = [],
+    retry_count: int = 0,
 ) -> pl.Expr:
     def resolve_redirect(url: str) -> str:
         return _request(
             method="HEAD",
             url=url,
-            timeout=session.timeout,
+            timeout=timeout,
             allow_redirects=True,
-            ok_status_codes=set(session.ok_statuses),
+            ok_status_codes=set(ok_statuses),
         ).url
 
-    resolve_redirect = _decorate_backoff(resolve_redirect, session.retry_count)
+    resolve_redirect = _decorate_backoff(resolve_redirect, retry_count)
 
     return url.pipe(
         apply_with_tqdm,

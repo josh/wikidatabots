@@ -12,7 +12,6 @@ from polars.testing.parametric import series
 from polars_requests import (
     HTTP_REQUEST_DTYPE,
     HTTP_RESPONSE_DTYPE,
-    Session,
     prepare_request,
     request,
     resolve_redirects,
@@ -20,8 +19,6 @@ from polars_requests import (
     response_header_value,
     response_text,
 )
-
-_POSTMAN_SESSION = Session(timeout=2.0)
 
 
 def _response_ok(response: pl.Expr) -> pl.Expr:
@@ -81,9 +78,7 @@ def test_request() -> None:
             }
         )
         .with_columns(
-            pl.col("url")
-            .pipe(prepare_request)
-            .pipe(request, session=_POSTMAN_SESSION, log_group="postman"),
+            pl.col("url").pipe(prepare_request).pipe(request, log_group="postman"),
         )
         .with_columns(
             pl.col("response").pipe(_response_ok),
@@ -120,9 +115,7 @@ def test_request() -> None:
 
 def test_request_empty() -> None:
     ldf = pl.LazyFrame({"url": []}, schema={"url": pl.Utf8}).with_columns(
-        pl.col("url")
-        .pipe(prepare_request)
-        .pipe(request, session=_POSTMAN_SESSION, log_group="postman"),
+        pl.col("url").pipe(prepare_request).pipe(request, log_group="postman"),
     )
     ldf2 = pl.LazyFrame({"url": [], "response": []}).with_columns(
         pl.col("url").cast(pl.Utf8),
@@ -150,7 +143,7 @@ def test_request_raw() -> None:
 
     ldf = pl.LazyFrame({"request": requests}).select(
         pl.col("request")
-        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -169,7 +162,7 @@ def test_request_prepare_empty_headers() -> None:
     ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -185,7 +178,7 @@ def test_request_prepare_empty_df() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"}, headers={"x-foo": "baz"})
-        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -201,7 +194,7 @@ def test_request_prepare_empty_df_and_headers() -> None:
     ldf = pl.LazyFrame({"url": pl.Series([], dtype=pl.Utf8)}).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, log_group="postman")
         .struct.field("status")
     )
     ldf2 = pl.LazyFrame(
@@ -224,7 +217,7 @@ def test_request_prepare() -> None:
     ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"}, headers={"x-foo": "baz"})
-        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -246,7 +239,7 @@ def test_request_prepare_just_fields() -> None:
     ldf = pl.LazyFrame({"url": ["https://postman-echo.com/get"]}).with_columns(
         pl.col("url")
         .pipe(prepare_request, fields={"foo": "bar"})
-        .pipe(request, session=_POSTMAN_SESSION, log_group="postman")
+        .pipe(request, log_group="postman")
         .pipe(response_text)
         .str.json_extract(response_dtype)
         .alias("data"),
@@ -263,8 +256,6 @@ def test_request_prepare_just_fields() -> None:
 
 
 def test_request_retry_status() -> None:
-    session = Session(retry_count=10)
-
     ldf = (
         pl.LazyFrame(
             {
@@ -278,7 +269,7 @@ def test_request_retry_status() -> None:
         .with_columns(
             pl.col("url")
             .pipe(prepare_request)
-            .pipe(request, session=session, log_group="postman"),
+            .pipe(request, log_group="postman", retry_count=10),
         )
         .select(
             pl.col("url"), pl.col("response").struct.field("status").alias("status")
@@ -298,8 +289,6 @@ def test_request_retry_status() -> None:
 
 
 def test_request_timeout() -> None:
-    session = Session(timeout=2.0)
-
     ldf = pl.LazyFrame(
         {
             "url": [
@@ -310,7 +299,7 @@ def test_request_timeout() -> None:
     ).with_columns(
         pl.col("url")
         .pipe(prepare_request)
-        .pipe(request, session=session, log_group="postman"),
+        .pipe(request, log_group="postman", timeout=2.0),
     )
 
     assert ldf.schema == {
@@ -393,7 +382,7 @@ def test_resolve_redirects() -> None:
     )
     df1 = df.with_columns(
         pl.col("url")
-        .pipe(resolve_redirects, session=Session(), log_group="redirects")
+        .pipe(resolve_redirects, log_group="redirects")
         .alias("resolved_url"),
     )
     df2 = df.with_columns(

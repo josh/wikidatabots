@@ -5,16 +5,11 @@ import os
 
 import polars as pl
 
-from polars_requests import (
-    Session,
-    prepare_request,
-    request,
-    response_date,
-    response_text,
-)
+from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import align_to_index, limit, update_or_append, update_parquet
 
-_SESSION = Session(min_time=1 / 3, retry_count=3, ok_statuses={400})
+_API_RETRY_COUNT = 3
+_API_RPS: float = 1 / 3
 
 _LOG_GROUP = "opencritic-api.p.rapidapi.com"
 
@@ -51,7 +46,13 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
         prepare_request(
             url=pl.format("https://opencritic-api.p.rapidapi.com/game/{}", expr),
             headers=_HEADERS,
-        ).pipe(request, session=_SESSION, log_group=_LOG_GROUP)
+        ).pipe(
+            request,
+            log_group=_LOG_GROUP,
+            min_time=_API_RPS,
+            ok_statuses={200, 400},
+            retry_count=_API_RETRY_COUNT,
+        )
         # MARK: pl.Expr.map
         .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
     )
@@ -149,7 +150,12 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
                 pl.format("https://opencritic-api.p.rapidapi.com/{}", pl.col("url")),
                 headers=_HEADERS,
             )
-            .pipe(request, session=_SESSION, log_group=_LOG_GROUP)
+            .pipe(
+                request,
+                log_group=_LOG_GROUP,
+                min_time=_API_RPS,
+                retry_count=_API_RETRY_COUNT,
+            )
             .alias("response")
             .pipe(response_text)
             .str.json_extract(_GAME_DTYPE)
