@@ -105,11 +105,13 @@ def _request_series(
     if len(requests) == 0:
         return pl.Series(name="response", values=[], dtype=HTTP_RESPONSE_DTYPE)
 
+    session = _requests.Session()
     ok_status_codes = set(ok_statuses)
     disable_tqdm = len(requests) <= 1
 
     def request_with_retry(url: str, headers: dict[str, str]) -> _requests.Response:
         return _request(
+            session=session,
             url=url,
             headers=headers,
             timeout=timeout,
@@ -131,10 +133,13 @@ def _request_series(
                 )
                 response = _make_http_response(r)
             values.append(response)
+        session.close()
+
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
 
 
 def _request(
+    session: _requests.Session,
     url: str,
     timeout: float,
     min_time: float = 0.0,
@@ -144,7 +149,7 @@ def _request(
     ok_status_codes: set[int] = set(),
 ) -> _requests.Response:
     start_time = time.time()
-    r = _requests.request(
+    r = session.request(
         method=method,
         url=url,
         headers=headers,
@@ -186,8 +191,11 @@ def resolve_redirects(
     ok_statuses: Iterable[int] = [],
     retry_count: int = 0,
 ) -> pl.Expr:
+    session = _requests.Session()
+
     def resolve_redirect(url: str) -> str:
         return _request(
+            session=session,
             method="HEAD",
             url=url,
             timeout=timeout,
