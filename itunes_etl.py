@@ -486,11 +486,7 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
 
     df_updated = (
         df.filter(
-            pl.col("url").is_not_null()
-            & pl.col("redirect_url").is_null()
-            & (  # TMP
-                (pl.col("kind") == "feature-movie") | (pl.col("type") == "TV Season")
-            ),
+            pl.col("url").is_not_null() & pl.col("redirect_url").is_null(),
         )
         .select("id", "url", "redirect_url")
         .pipe(limit, _REDIRECT_CHECK_LIMIT, desc="missing redirect_url frame")
