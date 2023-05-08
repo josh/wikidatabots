@@ -202,7 +202,7 @@ def main() -> None:
             _find_movie_not_found(sitemap_df),
             _find_movie_via_itunes_redirect(itunes_df),
         ]
-    ).pipe(print_rdf_statements)
+    ).pipe(print_rdf_statements, sample=False)
 
 
 if __name__ == "__main__":

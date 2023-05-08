@@ -755,10 +755,11 @@ _RDF_STATEMENT_LIMIT = 200  # 360
 def print_rdf_statements(
     df: pl.LazyFrame,
     limit: int = _RDF_STATEMENT_LIMIT,
+    sample: bool = True,
     file: TextIO = sys.stdout,
 ) -> None:
     assert df.schema == {"rdf_statement": pl.Utf8}
-    df = df.pipe(_limit, limit, desc="rdf statements")
+    df = df.pipe(_limit, limit, sample=sample, desc="rdf statements")
 
     for (line,) in df.collect().iter_rows():
         print(line, file=file)
