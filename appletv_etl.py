@@ -394,7 +394,7 @@ def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("priority"),
             descending=True,
         )
-        .pipe(limit, sample=False, soft=_JSONLD_LIMIT, desc="jsonld")
+        .pipe(limit, _JSONLD_LIMIT, sample=False, desc="jsonld")
         .select("loc")
         .pipe(fetch_jsonld_columns)
     )

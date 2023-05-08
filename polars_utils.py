@@ -142,26 +142,18 @@ class LimitWarning(Warning):
 
 def limit(
     df: pl.LazyFrame,
-    n: tuple[int, int] = (sys.maxsize, sys.maxsize),
-    soft: int = sys.maxsize,
-    hard: int = sys.maxsize,
+    n: int,
     sample: bool = True,
     desc: str = "frame",
 ) -> pl.LazyFrame:
-    soft = min(soft, n[0])
-    hard = min(hard, n[1])
-    soft = min(soft, hard)
-
     def _limit(df: pl.DataFrame) -> pl.DataFrame:
         total = len(df)
-        if total > hard:
-            raise AssertionError(f"{desc} exceeded hard limit: {total:,}/{hard:,}")
-        elif total > soft:
-            warn(f"{desc} exceeded soft limit: {total:,}/{soft:,}", LimitWarning)
+        if total > n:
+            warn(f"{desc} exceeded limit: {total:,}/{n:,}", LimitWarning)
             if sample:
-                return df.sample(soft)
+                return df.sample(n)
             else:
-                return df.head(soft)
+                return df.head(n)
         else:
             return df
 

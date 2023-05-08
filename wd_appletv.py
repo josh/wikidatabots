@@ -10,7 +10,7 @@ from sparql import sparql, sparql_batch
 
 _SEARCH_LIMIT = 250
 _NOT_FOUND_LIMIT = floor(100 / REGION_COUNT)
-_STATEMENT_LIMIT = (100, 10_000)
+_STATEMENT_LIMIT = 100
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item ?has_appletv WHERE {
@@ -77,7 +77,7 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         )
         .join(wd_df, on="id", how="left")
         .filter(pl.col("wd_exists").is_null())
-        .pipe(limit, soft=_SEARCH_LIMIT, desc="unmatched sitemap ids")
+        .pipe(limit, _SEARCH_LIMIT, desc="unmatched sitemap ids")
         .with_columns(
             pl.format(
                 _SEARCH_QUERY,
@@ -137,7 +137,7 @@ def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         .filter(
             pl.col("in_latest_sitemap").is_not() | pl.col("in_latest_sitemap").is_null()
         )
-        .pipe(limit, soft=_NOT_FOUND_LIMIT, desc="deprecated candidate ids")
+        .pipe(limit, _NOT_FOUND_LIMIT, desc="deprecated candidate ids")
         .pipe(not_found, sitemap_type="movie")
         .filter(pl.col("all_not_found"))
         .select(_DEPRECATE_RDF_STATEMENT)

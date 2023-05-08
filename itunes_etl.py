@@ -492,7 +492,7 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
             ),
         )
         .select("id", "url", "redirect_url")
-        .pipe(limit, soft=_REDIRECT_CHECK_LIMIT, desc="missing redirect_url frame")
+        .pipe(limit, _REDIRECT_CHECK_LIMIT, desc="missing redirect_url frame")
         .with_columns(
             pl.col("url")
             .pipe(

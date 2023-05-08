@@ -9,8 +9,8 @@ from polars_utils import limit
 from sparql import sparql
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
-_STATEMENT_LIMIT = (250, 10_000)
-_CHECK_LIMIT = (250, 10_000)
+_STATEMENT_LIMIT = 250
+_CHECK_LIMIT = 250
 _TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
 _TMDB_TYPE_TO_WD_PID: dict[TMDB_TYPE, _TMDB_ID_PID] = {

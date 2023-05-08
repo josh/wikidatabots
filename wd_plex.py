@@ -107,7 +107,7 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
 def main() -> None:
     with pl.StringCache():
         df = find_plex_guids_via_tmdb_id().pipe(
-            limit, soft=_STATEMENT_LIMIT, desc="rdf_statements"
+            limit, _STATEMENT_LIMIT, desc="rdf_statements"
         )
 
         for (line,) in df.collect().iter_rows():
