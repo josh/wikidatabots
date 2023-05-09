@@ -473,10 +473,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
-_REDIRECT_CHECK_LIMIT = 1_000
-_APPLETV_REDIRECT_TIMEOUT = 30.0
-_APPLETV_REDIRECT_RETRY_COUNT = 10
-_APPLETV_REDIRECT_OK = {200, 404}
+_REDIRECT_CHECK_LIMIT = 1_500
 
 
 def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -495,9 +492,9 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
             .pipe(
                 resolve_redirects,
                 log_group="apple.com",
-                timeout=_APPLETV_REDIRECT_TIMEOUT,
-                ok_statuses=_APPLETV_REDIRECT_OK,
-                retry_count=_APPLETV_REDIRECT_RETRY_COUNT,
+                timeout=10.0,
+                ok_statuses={200, 404},
+                retry_count=11,
             )
             .alias("redirect_url")
         )
