@@ -656,7 +656,7 @@ def compute_stats(
             pl.when(pl.col(f"{name}_count") > 0)
             .then(
                 pyformat(
-                    "{:,} ({:.2%})",
+                    "{:,.0f} ({:.1%})",
                     pl.col(f"{name}_count"),
                     pl.col(f"{name}_count") / count,
                 )
