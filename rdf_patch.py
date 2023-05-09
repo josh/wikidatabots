@@ -402,14 +402,12 @@ def compute_qname(uri: URIRef) -> tuple[str, str]:
 @cache
 def get_item_page(qid: str) -> pywikibot.ItemPage:
     assert qid.startswith("Q"), qid
-    logging.debug(f"Load item page: {qid}")
     return pywikibot.ItemPage(SITE, qid)
 
 
 @cache
 def get_property_page(pid: str) -> pywikibot.PropertyPage:
     assert pid.startswith("P"), pid
-    logging.debug(f"Load property page: {pid}")
     return pywikibot.PropertyPage(SITE, pid)
 
 

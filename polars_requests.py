@@ -132,7 +132,7 @@ def _request_series(
         response_codes[request_id] = r.status_code
         if previous_status_code and previous_status_code != r.status_code:
             if r.status_code in bad_statuses:
-                logging.debug(f"Retried {previous_status_code} -> {r.status_code}")
+                pass
             else:
                 logging.warning(f"Retried {previous_status_code} -> {r.status_code}")
 
@@ -149,7 +149,6 @@ def _request_series(
 
         sleep_time = min_time - elapsed_time
         if sleep_time > 0:
-            logging.debug(f"Sleeping for {sleep_time:.2f} seconds more seconds")
             time.sleep(sleep_time)
 
         return r

@@ -43,8 +43,6 @@ def _sparql(query: str, _log_query: bool) -> bytes:
         warn(f"sparql: {duration:,.2f}s", SlowQueryWarning)
     elif duration > 5:
         logging.info(f"sparql: {duration:,.2f}s")
-    else:
-        logging.debug(f"sparql: {duration:,.2f}s")
 
     return r.content
 
