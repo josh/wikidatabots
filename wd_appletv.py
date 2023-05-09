@@ -11,7 +11,7 @@ from appletv_etl import (
     url_extract_id,
     valid_appletv_id,
 )
-from polars_utils import limit, print_rdf_statements
+from polars_utils import limit, print_rdf_statements, sample
 from sparql import sparql, sparql_batch
 
 _SEARCH_LIMIT = 250
@@ -114,7 +114,7 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         )
         .join(wd_df, on="id", how="left")
         .filter(pl.col("wd_exists").is_null())
-        .pipe(limit, _SEARCH_LIMIT, desc="unmatched sitemap ids")
+        .pipe(sample, n=_SEARCH_LIMIT)
         .pipe(find_wd_movie_via_search)
         .filter(pl.col("results").arr.lengths() == 1)
         .with_columns(pl.col("results").arr.first().alias("result"))
