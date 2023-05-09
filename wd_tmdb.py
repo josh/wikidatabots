@@ -9,7 +9,7 @@ from polars_utils import limit, print_rdf_statements
 from sparql import sparql
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
-_CHECK_LIMIT = 250
+_CHECK_LIMIT = 500
 _TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
 _TMDB_TYPE_TO_WD_PID: dict[TMDB_TYPE, _TMDB_ID_PID] = {
