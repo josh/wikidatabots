@@ -86,8 +86,8 @@ def request(
             log_group=log_group,
             timeout=timeout,
             min_time=min_time,
-            ok_statuses=ok_statuses,
-            bad_statuses=bad_statuses,
+            ok_statuses=set(ok_statuses),
+            bad_statuses=set(bad_statuses),
             retry_count=retry_count,
         ),
         return_dtype=HTTP_RESPONSE_DTYPE,
@@ -99,8 +99,8 @@ def _request_series(
     log_group: str,
     timeout: float,
     min_time: float,
-    ok_statuses: Iterable[int],
-    bad_statuses: Iterable[int],
+    ok_statuses: set[int],
+    bad_statuses: set[int],
     retry_count: int,
 ) -> pl.Series:
     assert len(requests) < 50_000, f"Too many requests: {len(requests):,}"
@@ -109,8 +109,6 @@ def _request_series(
         return pl.Series(name="response", values=[], dtype=HTTP_RESPONSE_DTYPE)
 
     session = _requests.Session()
-    ok_status_codes = set(ok_statuses)
-    bad_status_codes = set(bad_statuses)
     disable_tqdm = len(requests) <= 1
 
     response_codes: list[int | None] = [None] * len(requests)
@@ -133,7 +131,7 @@ def _request_series(
         previous_status_code = response_codes[request_id]
         response_codes[request_id] = r.status_code
         if previous_status_code and previous_status_code != r.status_code:
-            if r.status_code in bad_status_codes:
+            if r.status_code in bad_statuses:
                 logging.debug(f"Retried {previous_status_code} -> {r.status_code}")
             else:
                 logging.warning(f"Retried {previous_status_code} -> {r.status_code}")
@@ -141,9 +139,9 @@ def _request_series(
         elapsed_time = time.time() - start_time
         elapsed_times[request_id] = elapsed_time
 
-        if r.status_code in ok_status_codes:
+        if r.status_code in ok_statuses:
             pass
-        elif r.status_code in bad_status_codes:
+        elif r.status_code in bad_statuses:
             r.raise_for_status()
         else:
             logging.warning(f"Unknown status code: {r.status_code}")
