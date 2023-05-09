@@ -130,7 +130,7 @@ def process_graph(
             changed_claims[item].add(HashableClaim(claim))
 
     def visit_wd_subject(
-        item: pywikibot.ItemPage, predicate: URIRef, object: AnyObject
+        item: pywikibot.ItemPage, predicate: URIRef, object: AnyRDFObject
     ) -> None:
         predicate_prefix, predicate_local_name = _compute_qname(predicate)
 
@@ -162,7 +162,7 @@ def process_graph(
         item: pywikibot.ItemPage,
         claim: pywikibot.Claim,
         predicate: URIRef,
-        object: AnyObject,
+        object: AnyRDFObject,
     ) -> None:
         predicate_prefix, predicate_local_name = _compute_qname(predicate)
 
@@ -262,20 +262,20 @@ def process_graph(
         yield (item, claims_json, summary)
 
 
-AnySubject = URIRef | BNode
-AnyPredicate = URIRef
-AnyObject = URIRef | BNode | Literal
+AnyRDFSubject = URIRef | BNode
+AnyRDFPredicate = URIRef
+AnyRDFObject = URIRef | BNode | Literal
 
 
-def _subjects(graph: Graph) -> Iterator[AnySubject]:
+def _subjects(graph: Graph) -> Iterator[AnyRDFSubject]:
     for subject in graph.subjects():
         assert isinstance(subject, URIRef) or isinstance(subject, BNode)
         yield subject
 
 
 def _predicate_objects(
-    graph: Graph, subject: AnySubject
-) -> Iterator[tuple[AnyPredicate, AnyObject]]:
+    graph: Graph, subject: AnyRDFSubject
+) -> Iterator[tuple[AnyRDFPredicate, AnyRDFObject]]:
     for predicate, object in graph.predicate_objects(subject):
         assert isinstance(predicate, URIRef)
         assert (
@@ -287,7 +287,7 @@ def _predicate_objects(
 
 
 def _resolve_object(
-    graph: Graph, object: AnyObject
+    graph: Graph, object: AnyRDFObject
 ) -> (
     pywikibot.ItemPage
     | pywikibot.PropertyPage
@@ -390,7 +390,7 @@ def _resolve_object(
     raise NotImplementedError("not implemented")
 
 
-def _graph_empty_node(graph: Graph, object: AnyObject) -> bool:
+def _graph_empty_node(graph: Graph, object: AnyRDFObject) -> bool:
     return isinstance(object, BNode) and len(list(graph.predicate_objects(object))) == 0
 
 
