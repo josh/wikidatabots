@@ -264,8 +264,8 @@ def main() -> None:
         [
             _find_movie_via_search(sitemap_df),
             _find_movie_not_found(sitemap_df),
-            _find_movie_via_itunes_redirect(itunes_df),
             _find_show_via_itunes_season(itunes_df),
+            _find_movie_via_itunes_redirect(itunes_df),
         ]
     ).pipe(print_rdf_statements, sample=False)
 
