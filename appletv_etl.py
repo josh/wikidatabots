@@ -413,13 +413,24 @@ def _fetch_latest_sitemap(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame
     )
 
 
+_GC = pl.col("in_latest_sitemap").is_not() & pl.col("country").ne("us")
+
+
+def _gc(df: pl.LazyFrame) -> pl.LazyFrame:
+    return df.filter(_GC.is_not())
+
+
 def main() -> None:
     sitemap_type = sys.argv[1]
     assert sitemap_type in _TYPES
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         df_sitemap = _fetch_latest_sitemap(df, sitemap_type)
-        return df.pipe(update_or_append, df_sitemap, on="loc").pipe(_backfill_jsonld)
+        return (
+            df.pipe(update_or_append, df_sitemap, on="loc")
+            .pipe(_backfill_jsonld)
+            .pipe(_gc)
+        )
 
     with pl.StringCache():
         update_parquet("appletv.parquet", update, key="loc")
