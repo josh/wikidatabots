@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     apply_with_tqdm,
+    assert_expression,
     head,
     html_unescape,
     html_unescape_list,
@@ -105,17 +106,21 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     )
 
 
+_ID_PATTERN = r"^(umc.cmc.[a-z0-9]{21,25})$"
+
 _LOC_PATTERN = (
-    r"https://tv.apple.com/"
+    r"^https://tv.apple.com/"
     r"(?P<country>[a-z]{2})/"
     r"(?P<type>episode|movie|show)/"
     r"(?P<slug>[^/]*)/"
-    r"(?P<id>umc.cmc.[0-9a-z]+)"
+    r"(?P<id>umc.cmc.[0-9a-z]{21,25})$"
 )
+
+LOC_SHOW_PATTERN = r"showId=(umc.cmc.[0-9a-z]{21,25})$"
 
 
 def valid_appletv_id(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract("^(umc.cmc.[a-z0-9]{22,25})$")
+    return expr.str.extract(_ID_PATTERN)
 
 
 def url_extract_id(url: pl.Expr) -> pl.Expr:
@@ -152,6 +157,7 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
                 "lastmod",
             ]
         )
+        .pipe(assert_expression, pl.col("id").is_not_null(), "bad sitemap id")
         .unique("loc")
     )
 

@@ -4,7 +4,13 @@ from math import floor
 
 import polars as pl
 
-from appletv_etl import REGION_COUNT, not_found, url_extract_id, valid_appletv_id
+from appletv_etl import (
+    LOC_SHOW_PATTERN,
+    REGION_COUNT,
+    not_found,
+    url_extract_id,
+    valid_appletv_id,
+)
 from polars_utils import limit, print_rdf_statements
 from sparql import sparql, sparql_batch
 
@@ -234,7 +240,7 @@ def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
         .select(
             pl.col("id").alias("itunes_season_id"),
             pl.col("redirect_url")
-            .str.extract(r"showId=(umc.cmc.[0-9a-z]+)", 1)
+            .str.extract(LOC_SHOW_PATTERN, 1)
             .alias("appletv_show_id"),
         )
         .filter(pl.col("appletv_show_id").is_not_null())
