@@ -382,16 +382,15 @@ def not_found(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
 
 
 _JSONLD_LIMIT = 1_500
-_OUTDATED = pl.col("retrieved_at").is_null()
+_OUTDATED_JSONLD = pl.col("country").eq("us") & pl.col("retrieved_at").is_null()
 
 
 def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
     # MARK: pl.LazyFrame.cache
     df = df.cache()
     df_new = (
-        df.filter(_OUTDATED)
+        df.filter(_OUTDATED_JSONLD)
         .sort(
-            pl.col("country").eq("us"),
             pl.col("in_latest_sitemap"),
             pl.col("priority"),
             descending=True,
