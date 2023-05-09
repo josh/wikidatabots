@@ -321,7 +321,7 @@ def _extract_itunes_id(text: str) -> int | None:
 
                 if way.get("punchoutUrls"):
                     m = re.match(
-                        r"itmss://itunes.apple.com/us/[^/]+/[^/]+/id(\d+)",
+                        r"itmss://itunes.apple.com/[a-z]{2}/[^/]+/[^/]+/id(\d+)",
                         way["punchoutUrls"]["open"],
                     )
                     if m:
