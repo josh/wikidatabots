@@ -11,6 +11,7 @@ import requests as _requests
 from tqdm import tqdm
 
 from actions import log_group as _log_group
+from actions import warn
 from polars_utils import apply_with_tqdm
 
 
@@ -94,6 +95,10 @@ def request(
     ).alias("response")
 
 
+class StatusCodeWarning(Warning):
+    pass
+
+
 def _request_series(
     requests: pl.Series,
     log_group: str,
@@ -134,7 +139,10 @@ def _request_series(
             if r.status_code in bad_statuses:
                 pass
             else:
-                logging.warning(f"Retried {previous_status_code} -> {r.status_code}")
+                warn(
+                    f"Retried {previous_status_code} -> {r.status_code}",
+                    StatusCodeWarning,
+                )
 
         elapsed_time = time.time() - start_time
         elapsed_times[request_id] = elapsed_time
@@ -144,7 +152,7 @@ def _request_series(
         elif r.status_code in bad_statuses:
             r.raise_for_status()
         else:
-            logging.warning(f"Unknown status code: {r.status_code}")
+            warn(f"Unknown status code: {r.status_code}", StatusCodeWarning)
             r.raise_for_status()
 
         sleep_time = min_time - elapsed_time
