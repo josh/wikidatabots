@@ -107,7 +107,9 @@ PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>
 
 
 def process_graph(
-    username: str, input: TextIO
+    username: str,
+    input: TextIO,
+    blocked_qids: set[str] = set(),
 ) -> Iterator[tuple[pywikibot.ItemPage, list[dict[str, Any]], str | None]]:
     pywikibot.config.usernames["wikidata"]["wikidata"] = username
     pywikibot.config.password_file = "user-password.py"
@@ -117,8 +119,6 @@ def process_graph(
     graph = Graph()
     data = PREFIXES + input.read()
     graph.parse(data=data)
-
-    blocked_qids = blocklist()
 
     changed_claims: dict[pywikibot.ItemPage, set[HashableClaim]] = defaultdict(set)
     edit_summaries: dict[pywikibot.ItemPage, str] = {}
@@ -512,9 +512,12 @@ if __name__ == "__main__":
 
         SITE.login()
 
+    blocked_qids = blocklist()
+
     edits = process_graph(
         username=username,
         input=sys.stdin,
+        blocked_qids=blocked_qids,
     )
 
     for item, claims, summary in edits:
