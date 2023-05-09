@@ -132,12 +132,12 @@ def process_graph(
     def visit_wd_subject(
         item: pywikibot.ItemPage, predicate: URIRef, object: AnyObject
     ) -> None:
-        predicate_prefix, predicate_local_name = compute_qname(predicate)
+        predicate_prefix, predicate_local_name = _compute_qname(predicate)
 
         if predicate_prefix == "wdt":
             property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
-            target = resolve_object(graph, object)
-            did_change, claim = item_append_claim_target(item, property, target)
+            target = _resolve_object(graph, object)
+            did_change, claim = _item_append_claim_target(item, property, target)
             mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "p" and isinstance(object, BNode):
@@ -147,7 +147,7 @@ def process_graph(
             item.claims[predicate_local_name].append(claim)
             mark_changed(item, claim)
 
-            for predicate, object in predicate_objects(graph, object):
+            for predicate, object in _predicate_objects(graph, object):
                 visit_wds_subject(item, claim, predicate, object)
 
         elif predicate == WIKIDATABOTS.editSummary:
@@ -164,23 +164,23 @@ def process_graph(
         predicate: URIRef,
         object: AnyObject,
     ) -> None:
-        predicate_prefix, predicate_local_name = compute_qname(predicate)
+        predicate_prefix, predicate_local_name = _compute_qname(predicate)
 
         if predicate_prefix == "pq" or predicate_prefix == "pqv":
             property = get_property_page(predicate_local_name)
 
-            if graph_empty_node(graph, object):
+            if _graph_empty_node(graph, object):
                 if predicate_local_name in claim.qualifiers:
                     del claim.qualifiers[predicate_local_name]
                     mark_changed(item, claim, True)
             else:
-                target = resolve_object(graph, object)
-                did_change, _ = claim_append_qualifer(claim, property, target)
+                target = _resolve_object(graph, object)
+                did_change, _ = _claim_append_qualifer(claim, property, target)
                 mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "ps":
             property = get_property_page(predicate_local_name)
-            target = resolve_object(graph, object)
+            target = _resolve_object(graph, object)
             assert claim.getID() == property.getID()
 
             if not claim.target_equals(target):
@@ -189,7 +189,7 @@ def process_graph(
 
         elif predicate == WIKIBASE.rank:
             assert isinstance(object, URIRef)
-            did_change = claim_set_rank(claim, object)
+            did_change = _claim_set_rank(claim, object)
             mark_changed(item, claim, did_change)
 
         elif predicate == PROV.wasDerivedFrom:
@@ -197,12 +197,12 @@ def process_graph(
 
             source = defaultdict(list)
 
-            for predicate, object in predicate_objects(graph, object):
-                predicate_prefix, predicate_local_name = compute_qname(predicate)
+            for predicate, object in _predicate_objects(graph, object):
+                predicate_prefix, predicate_local_name = _compute_qname(predicate)
                 assert predicate_prefix == "pr"
                 property = get_property_page(predicate_local_name)
                 reference_claim = property.newClaim(is_reference=True)
-                reference_claim.setTarget(resolve_object(graph, object))
+                reference_claim.setTarget(_resolve_object(graph, object))
                 source[reference_claim.getID()].append(reference_claim)
 
             claim.sources.append(source)
@@ -213,17 +213,17 @@ def process_graph(
         else:
             print_warning("NotImplemented", f"Unknown wds triple: {predicate} {object}")
 
-    for subject in subjects(graph):
+    for subject in _subjects(graph):
         if isinstance(subject, BNode):
             continue
 
         assert isinstance(subject, URIRef)
-        prefix, local_name = compute_qname(subject)
+        prefix, local_name = _compute_qname(subject)
 
         if prefix == "wd":
             assert isinstance(subject, URIRef)
             item: pywikibot.ItemPage = get_item_page(local_name)
-            for predicate, object in predicate_objects(graph, subject):
+            for predicate, object in _predicate_objects(graph, subject):
                 visit_wd_subject(item, predicate, object)
 
         elif prefix == "wds":
@@ -231,13 +231,13 @@ def process_graph(
             claim: pywikibot.Claim = resolve_claim_guid(local_name)
             claim_item: pywikibot.ItemPage | None = claim.on_item
             assert claim_item
-            for predicate, object in predicate_objects(graph, subject):
+            for predicate, object in _predicate_objects(graph, subject):
                 visit_wds_subject(claim_item, claim, predicate, object)
 
         elif subject == WIKIDATABOTS.testSubject:
             assert isinstance(subject, URIRef)
             for object in graph.objects(subject, WIKIDATABOTS.assertValue):
-                assert resolve_object(graph, object)
+                assert _resolve_object(graph, object)
 
         else:
             print_warning("NotImplemented", f"Unknown subject: {subject}")
@@ -267,13 +267,13 @@ AnyPredicate = URIRef
 AnyObject = URIRef | BNode | Literal
 
 
-def subjects(graph: Graph) -> Iterator[AnySubject]:
+def _subjects(graph: Graph) -> Iterator[AnySubject]:
     for subject in graph.subjects():
         assert isinstance(subject, URIRef) or isinstance(subject, BNode)
         yield subject
 
 
-def predicate_objects(
+def _predicate_objects(
     graph: Graph, subject: AnySubject
 ) -> Iterator[tuple[AnyPredicate, AnyObject]]:
     for predicate, object in graph.predicate_objects(subject):
@@ -286,7 +286,7 @@ def predicate_objects(
         yield predicate, object
 
 
-def resolve_object(
+def _resolve_object(
     graph: Graph, object: AnyObject
 ) -> (
     pywikibot.ItemPage
@@ -296,7 +296,7 @@ def resolve_object(
     | str
 ):
     if isinstance(object, URIRef):
-        prefix, local_name = compute_qname(object)
+        prefix, local_name = _compute_qname(object)
         assert prefix == "wd"
         if local_name.startswith("Q"):
             return get_item_page(local_name)
@@ -390,11 +390,11 @@ def resolve_object(
     raise NotImplementedError("not implemented")
 
 
-def graph_empty_node(graph: Graph, object: AnyObject) -> bool:
+def _graph_empty_node(graph: Graph, object: AnyObject) -> bool:
     return isinstance(object, BNode) and len(list(graph.predicate_objects(object))) == 0
 
 
-def compute_qname(uri: URIRef) -> tuple[str, str]:
+def _compute_qname(uri: URIRef) -> tuple[str, str]:
     prefix, _, name = NS_MANAGER.compute_qname(uri)
     return (prefix, name)
 
@@ -426,7 +426,7 @@ def resolve_claim_guid(guid: str) -> pywikibot.Claim:
     assert False, f"Can't resolve statement GUID: {guid}"
 
 
-def item_append_claim_target(
+def _item_append_claim_target(
     item: pywikibot.ItemPage,
     property: pywikibot.PropertyPage,
     target: Any,
@@ -450,7 +450,7 @@ def item_append_claim_target(
     return (True, claim)
 
 
-def claim_append_qualifer(
+def _claim_append_qualifer(
     claim: pywikibot.Claim,
     property: pywikibot.PropertyPage,
     target: Any,
@@ -474,15 +474,15 @@ def claim_append_qualifer(
     return (True, qualifier)
 
 
-RANKS: dict[str, str] = {
+_RANKS: dict[str, str] = {
     str(WIKIBASE.NormalRank): "normal",
     str(WIKIBASE.DeprecatedRank): "deprecated",
     str(WIKIBASE.PreferredRank): "preferred",
 }
 
 
-def claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
-    rank_str: str = RANKS[str(rank)]
+def _claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
+    rank_str: str = _RANKS[str(rank)]
     if claim.rank == rank_str:
         return False
     claim.setRank(rank_str)
