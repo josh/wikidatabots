@@ -2,7 +2,7 @@ name: iTunes ETL
 
 on:
   schedule:
-    - cron: "0 2,6,10 * * *"
+    - cron: "0 1,5,9,13,17,21 * * *"
   workflow_dispatch:
 
 permissions:
