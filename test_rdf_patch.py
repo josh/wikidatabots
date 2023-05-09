@@ -225,6 +225,24 @@ def test_time_value() -> None:
     _ = list(process_graph(username, StringIO(triples)))
 
 
+def test_reference_value() -> None:
+    triples = """
+      wikidatabots:testSubject wikidatabots:assertValue _:b1.
+      _:b1 a wikibase:Reference ;
+        pr:P248 wd:Q37312 ;
+        pr:P345 "tt0111161" ;
+        pr:P813 "2021-06-23T00:00:00Z"^^xsd:dateTime ;
+        prv:P813 _:b2 .
+
+      _:b2 a wikibase:TimeValue ;
+        wikibase:timeValue "2021-06-23T00:00:00Z"^^xsd:dateTime ;
+        wikibase:timePrecision "11"^^xsd:integer ;
+        wikibase:timeTimezone "0"^^xsd:integer ;
+        wikibase:timeCalendarModel <http://www.wikidata.org/entity/Q1985727> .
+    """
+    _ = list(process_graph(username, StringIO(triples)))
+
+
 def test_resolve_items() -> None:
     triples = """
       wikidatabots:testSubject wikidatabots:assertValue wd:Q42.

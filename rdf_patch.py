@@ -3,7 +3,7 @@
 import datetime
 import logging
 import os
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
 
@@ -36,6 +36,7 @@ P = Namespace("http://www.wikidata.org/prop/")
 PQ = Namespace("http://www.wikidata.org/prop/qualifier/")
 PQV = Namespace("http://www.wikidata.org/prop/qualifier/value/")
 PR = Namespace("http://www.wikidata.org/prop/reference/")
+PRV = Namespace("http://www.wikidata.org/prop/reference/value/")
 PS = Namespace("http://www.wikidata.org/prop/statement/")
 PSV = Namespace("http://www.wikidata.org/prop/statement/value/")
 PROV = Namespace("http://www.w3.org/ns/prov#")
@@ -64,6 +65,7 @@ NS_MANAGER.bind("psv", PSV)
 NS_MANAGER.bind("pq", PQ)
 NS_MANAGER.bind("pqv", PQV)
 NS_MANAGER.bind("pr", PR)
+NS_MANAGER.bind("prv", PRV)
 NS_MANAGER.bind("wikidatabots", WIKIDATABOTS)
 
 PREFIXES = """
@@ -125,7 +127,7 @@ def process_graph(
 
     def mark_changed(
         item: pywikibot.ItemPage, claim: pywikibot.Claim, did_change: bool = True
-    ):
+    ) -> None:
         if did_change:
             changed_claims[item].add(HashableClaim(claim))
 
@@ -286,6 +288,28 @@ def _predicate_objects(
         yield predicate, object
 
 
+def _predicate_ns_objects(
+    graph: Graph, subject: AnyRDFSubject, predicate_ns: Namespace
+) -> Iterator[tuple[str, AnyRDFObject]]:
+    for predicate, object in _predicate_objects(graph, subject):
+        _, ns, name = NS_MANAGER.compute_qname(predicate)
+        if predicate_ns == ns:
+            yield name, object
+
+
+class WbSource:
+    _source: OrderedDict[str, list[pywikibot.Claim]]
+
+    def __init__(self):
+        self._source = OrderedDict()
+
+    def add_reference(self, pid: str, reference: pywikibot.Claim) -> None:
+        assert pid.startswith("P"), pid
+        if pid not in self._source:
+            self._source[pid] = []
+        self._source[pid].append(reference)
+
+
 def _resolve_object(
     graph: Graph, object: AnyRDFObject
 ) -> (
@@ -293,6 +317,7 @@ def _resolve_object(
     | pywikibot.PropertyPage
     | pywikibot.WbTime
     | pywikibot.WbQuantity
+    | WbSource
     | str
 ):
     if isinstance(object, URIRef):
@@ -307,6 +332,7 @@ def _resolve_object(
 
     elif isinstance(object, BNode):
         rdf_type = graph.value(object, RDF.type)
+
         if rdf_type == WIKIBASE.QuantityValue:
             if amount := graph.value(object, WIKIBASE.quantityAmount):
                 assert isinstance(amount, Literal)
@@ -370,6 +396,21 @@ def _resolve_object(
             if calendar_model:
                 data["calendarmodel"] = str(calendar_model)
             return pywikibot.WbTime.fromWikibase(data, site=SITE)
+
+        elif rdf_type == WIKIBASE.Reference:
+            source = WbSource()
+
+            for pr_name, pr_object in _predicate_ns_objects(graph, object, PR):
+                ref = get_property_page(pr_name).newClaim(is_reference=True)
+                ref.setTarget(_resolve_object(graph, pr_object))
+                source.add_reference(pr_name, ref)
+
+            for prv_name, prv_object in _predicate_ns_objects(graph, object, PRV):
+                ref = get_property_page(prv_name).newClaim(is_reference=True)
+                ref.setTarget(_resolve_object(graph, prv_object))
+                source.add_reference(prv_name, ref)
+
+            return source
 
     elif isinstance(object, Literal):
         if object.datatype is None:
