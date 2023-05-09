@@ -174,7 +174,7 @@ def process_graph(
         if predicate_prefix == "pq" or predicate_prefix == "pqv":
             property = get_property_page(predicate_local_name)
             target = _resolve_object(graph, object)
-            did_change, _ = _claim_append_qualifer(claim, property, target)
+            did_change = _claim_append_qualifer(claim, property, target)
             mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "pqe":
@@ -186,7 +186,7 @@ def process_graph(
                     mark_changed(item, claim, True)
             else:
                 target = _resolve_object(graph, object)
-                did_change, _ = _claim_set_qualifer(claim, property, target)
+                did_change = _claim_set_qualifer(claim, property, target)
                 mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "ps":
@@ -504,7 +504,7 @@ def _claim_append_qualifer(
     claim: pywikibot.Claim,
     property: pywikibot.PropertyPage,
     target: Any,
-) -> tuple[bool, pywikibot.Claim]:
+) -> bool:
     assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
     assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
 
@@ -515,20 +515,20 @@ def _claim_append_qualifer(
 
     for qualifier in qualifiers:
         if qualifier.target_equals(target):
-            return (False, qualifier)
+            return False
 
     qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
     qualifier.setTarget(target)
     claim.qualifiers[pid].append(qualifier)
 
-    return (True, qualifier)
+    return True
 
 
 def _claim_set_qualifer(
     claim: pywikibot.Claim,
     property: pywikibot.PropertyPage,
     target: Any,
-) -> tuple[bool, pywikibot.Claim]:
+) -> bool:
     assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
     assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
 
@@ -536,13 +536,13 @@ def _claim_set_qualifer(
     if pid in claim.qualifiers and len(claim.qualifiers[pid]) == 1:
         qualifier: pywikibot.Claim = claim.qualifiers[pid][0]
         if qualifier.target_equals(target):
-            return (False, qualifier)
+            return False
 
     qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
     qualifier.setTarget(target)
     claim.qualifiers[pid] = [qualifier]
 
-    return (True, qualifier)
+    return True
 
 
 _RANKS: dict[str, str] = {
