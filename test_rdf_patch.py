@@ -128,13 +128,10 @@ def test_noop_change_prop_qualifer() -> None:
 
 
 def test_delete_prop_qualifer() -> None:
-    triple = [
-        "wds:Q1292541-2203A57C-488F-4371-9F88-9A5EB91C4883",
-        "pq:P2241",
-        "[]",
-        ".",
-    ]
-    edits = list(process_graph(username, StringIO(" ".join(triple))))
+    triple = """
+    wds:Q1292541-2203A57C-488F-4371-9F88-9A5EB91C4883 pqe:P2241 [] .
+    """
+    edits = list(process_graph(username, StringIO(triple)))
     assert len(edits) == 1
     (item, claims, summary) = edits[0]
     assert item.id == "Q1292541"
@@ -171,6 +168,21 @@ def test_add_item_prop_qualifer() -> None:
         ".",
     ]
     edits = list(process_graph(username, StringIO(" ".join(triples))))
+    assert len(edits) == 1
+    (item, claims, summary) = edits[0]
+    assert item.id == "Q172241"
+    assert summary is None
+    assert len(claims) == 1
+    assert claims[0]["mainsnak"]["property"] == "P161"
+    assert claims[0]["mainsnak"]["datavalue"]["value"]["numeric-id"] == 48337
+    assert claims[0]["qualifiers"]["P4633"][0]["datavalue"]["value"] == "Narrator"
+
+
+def test_update_item_prop_qualifer_exclusive() -> None:
+    triples = """
+      wd:Q172241 p:P161 [ ps:P161 wd:Q48337 ; pqe:P4633 "Narrator" ] .
+    """
+    edits = list(process_graph(username, StringIO(triples)))
     assert len(edits) == 1
     (item, claims, summary) = edits[0]
     assert item.id == "Q172241"

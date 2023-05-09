@@ -34,6 +34,7 @@ class HashableClaim(object):
 
 P = Namespace("http://www.wikidata.org/prop/")
 PQ = Namespace("http://www.wikidata.org/prop/qualifier/")
+PQE = Namespace("http://www.wikidata.org/prop/qualifier/exclusive/")
 PQV = Namespace("http://www.wikidata.org/prop/qualifier/value/")
 PR = Namespace("http://www.wikidata.org/prop/reference/")
 PRV = Namespace("http://www.wikidata.org/prop/reference/value/")
@@ -63,6 +64,7 @@ NS_MANAGER.bind("wdno", WDNO)
 NS_MANAGER.bind("ps", PS)
 NS_MANAGER.bind("psv", PSV)
 NS_MANAGER.bind("pq", PQ)
+NS_MANAGER.bind("pqe", PQE)
 NS_MANAGER.bind("pqv", PQV)
 NS_MANAGER.bind("pr", PR)
 NS_MANAGER.bind("prv", PRV)
@@ -85,6 +87,7 @@ PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 PREFIX p: <http://www.wikidata.org/prop/>
 PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
+PREFIX pqe: <http://www.wikidata.org/prop/qualifier/exclusive/>
 PREFIX pqn: <http://www.wikidata.org/prop/qualifier/value-normalized/>
 PREFIX pqv: <http://www.wikidata.org/prop/qualifier/value/>
 PREFIX pr: <http://www.wikidata.org/prop/reference/>
@@ -170,6 +173,12 @@ def process_graph(
 
         if predicate_prefix == "pq" or predicate_prefix == "pqv":
             property = get_property_page(predicate_local_name)
+            target = _resolve_object(graph, object)
+            did_change, _ = _claim_append_qualifer(claim, property, target)
+            mark_changed(item, claim, did_change)
+
+        elif predicate_prefix == "pqe":
+            property = get_property_page(predicate_local_name)
 
             if _graph_empty_node(graph, object):
                 if predicate_local_name in claim.qualifiers:
@@ -177,7 +186,7 @@ def process_graph(
                     mark_changed(item, claim, True)
             else:
                 target = _resolve_object(graph, object)
-                did_change, _ = _claim_append_qualifer(claim, property, target)
+                did_change, _ = _claim_set_qualifer(claim, property, target)
                 mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "ps":
@@ -511,6 +520,27 @@ def _claim_append_qualifer(
     qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
     qualifier.setTarget(target)
     claim.qualifiers[pid].append(qualifier)
+
+    return (True, qualifier)
+
+
+def _claim_set_qualifer(
+    claim: pywikibot.Claim,
+    property: pywikibot.PropertyPage,
+    target: Any,
+) -> tuple[bool, pywikibot.Claim]:
+    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
+    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
+
+    pid: str = property.id
+    if pid in claim.qualifiers and len(claim.qualifiers[pid]) == 1:
+        qualifier: pywikibot.Claim = claim.qualifiers[pid][0]
+        if qualifier.target_equals(target):
+            return (False, qualifier)
+
+    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
+    qualifier.setTarget(target)
+    claim.qualifiers[pid] = [qualifier]
 
     return (True, qualifier)
 
