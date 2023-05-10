@@ -143,6 +143,11 @@ def process_graph(
             property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
             target = _resolve_object(graph, object)
             did_change, claim = _item_append_claim_target(item, property, target)
+            if claim.rank == "deprecated":
+                print_warning(
+                    "DeprecatedClaim",
+                    f"<{_claim_uri(claim)}> already exists, but is deprecated",
+                )
             mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "p" and isinstance(object, BNode):
@@ -474,6 +479,12 @@ def resolve_claim_guid(guid: str) -> pywikibot.Claim:
                 return claim
 
     assert False, f"Can't resolve statement GUID: {guid}"
+
+
+def _claim_uri(claim: pywikibot.Claim) -> str:
+    snak: str = claim.snak
+    guid = snak.replace("$", "-")
+    return f"http://www.wikidata.org/entity/statement/{guid}"
 
 
 def _item_append_claim_target(
