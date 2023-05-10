@@ -55,6 +55,7 @@ def _blocked_qids() -> pl.Series:
     )
 
 
+# MARK: pl.Expr.map
 _BLOCKED_EXPR = pl.lit(None).map(lambda s: _blocked_qids(), return_dtype=pl.Utf8)
 
 
