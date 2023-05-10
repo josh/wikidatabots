@@ -11,6 +11,7 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from sparql import sparql
 from wikidata import blocklist
@@ -158,15 +159,16 @@ def main() -> None:
     )
 
     rows = list(df.iter_rows(named=True))
-    for row in tqdm(rows, unit="row"):
-        _update_review_score_claim(
-            item=ItemPage(SITE, row["wd_qid"]),
-            opencritic_id=row["wd_opencritic_id"],
-            review_score=row["api_review_score"],
-            number_of_reviews=row["api_num_reviews"],
-            latest_review_date=row["api_latest_review_date"],
-            retrieved_at=row["api_retrieved_at"],
-        )
+    with logging_redirect_tqdm():
+        for row in tqdm(rows, unit="row"):
+            _update_review_score_claim(
+                item=ItemPage(SITE, row["wd_qid"]),
+                opencritic_id=row["wd_opencritic_id"],
+                review_score=row["api_review_score"],
+                number_of_reviews=row["api_num_reviews"],
+                latest_review_date=row["api_latest_review_date"],
+                retrieved_at=row["api_retrieved_at"],
+            )
 
 
 def _update_review_score_claim(

@@ -16,6 +16,7 @@ from typing import Any, Callable, Iterable, Iterator, TextIO, TypedDict
 
 import polars as pl
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from actions import log_group as _log_group
 from actions import warn
@@ -372,11 +373,12 @@ def apply_with_tqdm(
             return values
 
         with _log_group(log_group):
-            for item in tqdm(s, unit="row"):
-                if item is None:
-                    values.append(None)
-                else:
-                    values.append(function(item))
+            with logging_redirect_tqdm():
+                for item in tqdm(s, unit="row"):
+                    if item is None:
+                        values.append(None)
+                    else:
+                        values.append(function(item))
 
         return values
 
