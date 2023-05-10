@@ -197,7 +197,7 @@ def _find_movie_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("in_latest_sitemap")
             & pl.col("statement").pipe(is_blocked_item).is_not()
         )
-        .pipe(limit, _FOUND_LIMIT, desc="deprecated candidate ids")
+        .pipe(limit, _FOUND_LIMIT, desc="undeprecated candidate ids")
         .with_columns(
             region_not_found(
                 id=pl.col("id"), region=pl.lit("us"), sitemap_type="movie"
