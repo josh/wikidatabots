@@ -137,7 +137,7 @@ def _request_series(
         previous_status_code = response_codes[request_id]
         response_codes[request_id] = r.status_code
         if previous_status_code and previous_status_code != r.status_code:
-            if r.status_code in bad_statuses:
+            if previous_status_code in bad_statuses:
                 pass
             else:
                 warn(
