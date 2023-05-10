@@ -8,6 +8,7 @@ from appletv_etl import (
     LOC_SHOW_PATTERN,
     REGION_COUNT,
     not_found,
+    region_not_found,
     url_extract_id,
     valid_appletv_id,
 )
@@ -162,6 +163,43 @@ def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+_DEPRECATED_ID_QUERY = """
+SELECT ?statement ?id WHERE {
+  ?statement ps:P9586 ?id;
+    wikibase:rank wikibase:DeprecatedRank;
+    pq:P2241 wd:Q21441764.
+}
+"""
+
+_UNDEPRECATE_RDF_STATEMENT = pl.format(
+    "<{}> wikibase:rank wikibase:NormalRank ; pqe:P2241 [] ; "
+    'wikidatabots:editSummary "Restore Apple TV movie ID available on store" .',
+    pl.col("statement"),
+).alias("rdf_statement")
+
+
+def _find_movie_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
+    sitemap_df = (
+        sitemap_df.select("id", "in_latest_sitemap")
+        .groupby("id")
+        .agg(pl.col("in_latest_sitemap").any())
+    )
+
+    return (
+        sparql(_DEPRECATED_ID_QUERY, columns=["statement", "id"])
+        .join(sitemap_df, on="id", how="left")
+        .filter(pl.col("in_latest_sitemap"))
+        .pipe(limit, _NOT_FOUND_LIMIT, desc="deprecated candidate ids")
+        .with_columns(
+            region_not_found(
+                id=pl.col("id"), region=pl.lit("us"), sitemap_type="movie"
+            ).alias("us_not_found"),
+        )
+        .filter(pl.col("us_not_found").is_not())
+        .select(_UNDEPRECATE_RDF_STATEMENT)
+    )
+
+
 _ITUNES_QUERY = """
 SELECT ?item ?itunes_id WHERE {
   ?item wdt:P6398 ?itunes_id.
@@ -269,6 +307,7 @@ def main() -> None:
     pl.concat(
         [
             _find_movie_via_search(sitemap_df),
+            _find_movie_found(sitemap_df),
             _find_movie_not_found(sitemap_df),
             _find_show_via_itunes_season(itunes_df),
             _find_movie_via_itunes_redirect(itunes_df),

@@ -349,35 +349,48 @@ _REGIONS = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "cn"]
 REGION_COUNT = len(_REGIONS)
 
 
-def not_found(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
+def not_found(
+    df: pl.LazyFrame,
+    sitemap_type: _TYPE,
+    regions: list[str] = _REGIONS,
+) -> pl.LazyFrame:
     return (
         df.lazy()
         .with_columns(
-            pl.lit([_REGIONS]).alias("region"),
+            pl.lit([regions]).alias("region"),
         )
         .explode("region")
         .with_columns(
-            pl.format(
-                "https://tv.apple.com/{}/{}/{}",
-                pl.col("region"),
-                pl.lit(sitemap_type),
-                pl.col("id"),
-            )
-            .pipe(prepare_request, headers=_BROWSER_HEADERS)
-            .pipe(
-                request,
-                log_group="tv.apple.com",
-                timeout=_APPLETV_TIMEOUT,
-                retry_count=_RETRY_COUNT,
-            )
-            .pipe(response_text)
-            .str.contains('<div class="not-found">', literal=True)
-            .alias("not_found")
+            region_not_found(
+                id=pl.col("id"),
+                region=pl.col("region"),
+                sitemap_type=sitemap_type,
+            ).alias("not_found")
         )
         .groupby(*df.columns)
         .agg(
             pl.col("not_found").all().alias("all_not_found"),
         )
+    )
+
+
+def region_not_found(id: pl.Expr, region: pl.Expr, sitemap_type: _TYPE) -> pl.Expr:
+    return (
+        pl.format(
+            "https://tv.apple.com/{}/{}/{}",
+            region,
+            pl.lit(sitemap_type),
+            id,
+        )
+        .pipe(prepare_request, headers=_BROWSER_HEADERS)
+        .pipe(
+            request,
+            log_group="tv.apple.com",
+            timeout=_APPLETV_TIMEOUT,
+            retry_count=_RETRY_COUNT,
+        )
+        .pipe(response_text)
+        .str.contains('<div class="not-found">', literal=True)
     )
 
 
