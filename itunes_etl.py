@@ -10,7 +10,6 @@ from polars_requests import prepare_request, request, resolve_redirects, respons
 from polars_utils import (
     expr_indicies_sorted,
     groups_of,
-    limit,
     now,
     update_or_append,
     update_parquet,
@@ -473,9 +472,6 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
-_REDIRECT_CHECK_LIMIT = 2_500
-
-
 def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
     # MARK: pl.LazyFrame.cache
     df = df.cache()
@@ -486,7 +482,6 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
             & (pl.col("redirect_url").is_null() | pl.col("old_url").ne(pl.col("url"))),
         )
         .select("id", "url", "redirect_url")
-        .pipe(limit, _REDIRECT_CHECK_LIMIT, desc="missing redirect_url frame")
         .with_columns(
             pl.col("url")
             .pipe(
