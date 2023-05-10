@@ -349,7 +349,7 @@ def _extract_itunes_id(text: str) -> int | None:
     return None
 
 
-_REGIONS = ["us", "gb", "au", "br", "de", "ca", "it", "es", "fr", "jp", "cn"]
+_REGIONS = ["us", "ca", "gb", "au", "br", "de", "es", "fr", "it", "in", "jp", "cn"]
 REGION_COUNT = len(_REGIONS)
 
 
