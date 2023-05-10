@@ -35,6 +35,10 @@ def _sparql(query: str, _log_query: bool) -> bytes:
         headers={"Accept": "text/csv", "User-Agent": _USER_AGENT_STR},
         timeout=(1, 90),
     )
+
+    if "java.util.concurrent.TimeoutException" in r.text:
+        raise _requests.exceptions.Timeout(query, response=r)
+
     r.raise_for_status()
     duration = time.time() - start
 
