@@ -25,12 +25,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
@@ -43,7 +37,7 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/appletv/${TYPE}.parquet" "appletv.parquet"
+          aws s3 cp --region us-east-1 --no-sign-request "s3://wikidatabots/appletv/${TYPE}.parquet" "appletv.parquet"
         env:
           TYPE: ${{ matrix.type }}
 
@@ -52,6 +46,12 @@ jobs:
           python appletv_etl.py "$TYPE"
         env:
           TYPE: ${{ matrix.type }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
 
       - name: Upload to S3
         run: |

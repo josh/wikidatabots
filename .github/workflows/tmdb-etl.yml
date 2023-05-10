@@ -36,15 +36,9 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: us-east-1
-
       - name: Download from S3
         run: |
-          aws s3 cp "s3://wikidatabots/tmdb/${TYPE}.parquet" "tmdb.parquet"
+          aws s3 cp --region us-east-1 --no-sign-request "s3://wikidatabots/tmdb/${TYPE}.parquet" "tmdb.parquet"
         env:
           TYPE: ${{ matrix.type }}
 
@@ -54,6 +48,12 @@ jobs:
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
 
       - name: Upload to S3
         run: |
