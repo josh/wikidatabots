@@ -6,7 +6,7 @@ import os
 import polars as pl
 
 from polars_requests import prepare_request, request, response_date, response_text
-from polars_utils import align_to_index, limit, update_or_append, update_parquet
+from polars_utils import align_to_index, update_or_append, update_parquet
 
 _API_RETRY_COUNT = 3
 _API_RPS: float = 1 / 3
@@ -169,7 +169,6 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
     )
 
 
-_REFRESH_LIMIT = 500
 _OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 250
 _MISSING_DATA = pl.col("retrieved_at").is_null()
 _RECENTLY_REVIEWED = pl.col("recently_reviewed")
@@ -180,7 +179,6 @@ def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
         df.join(_fetch_recently_reviewed(), on="id", how="left")
         .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
         .select("id")
-        .pipe(limit, _REFRESH_LIMIT, desc="outdated ids")
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )

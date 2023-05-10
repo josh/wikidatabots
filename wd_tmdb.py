@@ -5,11 +5,10 @@ from typing import Literal
 
 import polars as pl
 
-from polars_utils import limit, print_rdf_statements
+from polars_utils import print_rdf_statements
 from sparql import sparql
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 
-_CHECK_LIMIT = 500
 _TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
 _TMDB_TYPE_TO_WD_PID: dict[TMDB_TYPE, _TMDB_ID_PID] = {
@@ -128,11 +127,6 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         wd_df.join(tmdb_df, on="imdb_numeric_id", how="left")
         .drop_nulls()
         .select(["item", "imdb_id"])
-        .pipe(
-            limit,
-            _CHECK_LIMIT,
-            desc=f"{tmdb_type} imdb_ids",
-        )
         .with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
         .select(["item", "tmdb_id"])
         .drop_nulls()
@@ -207,11 +201,6 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
         wd_df.join(tmdb_df, on="tvdb_id", how="left")
         .drop_nulls()
         .select(["item", "tvdb_id"])
-        .pipe(
-            limit,
-            _CHECK_LIMIT,
-            desc=f"{tmdb_type} tvdb_ids",
-        )
         .with_columns(pl.col("tvdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
         .select(["item", "tmdb_id"])
         .drop_nulls()
@@ -252,11 +241,6 @@ def find_tmdb_ids_not_found(
         .filter(pl.col("success").is_not())
         # .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
-        .pipe(
-            limit,
-            _CHECK_LIMIT,
-            desc=f"{tmdb_type} tmdb_ids",
-        )
         .with_columns(pl.col("tmdb_id").pipe(tmdb_exists, tmdb_type))
         .filter(pl.col("exists").is_not())
         .select(rdf_statement)

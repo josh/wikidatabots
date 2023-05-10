@@ -13,7 +13,6 @@ from polars_utils import (
     align_to_index,
     assert_expression,
     gzip_decompress,
-    limit,
     update_or_append,
     update_parquet,
 )
@@ -236,7 +235,6 @@ def tmdb_find(
 
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
-_OUTDATED_LIMIT = 5_000
 
 
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
@@ -244,7 +242,6 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
 
     new_external_ids_df = (
         df.filter(_CHANGED | _NEVER_FETCHED)
-        .pipe(limit, _OUTDATED_LIMIT, desc="outdated")
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
     )
