@@ -426,7 +426,9 @@ def _fetch_latest_sitemap(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame
     )
 
 
-_GC = pl.col("in_latest_sitemap").is_not() & pl.col("country").ne("us")
+_GC = pl.col("in_latest_sitemap").is_not() & (
+    pl.col("country").ne("us") | pl.col("jsonld_success").is_not()
+)
 
 
 def _gc(df: pl.LazyFrame) -> pl.LazyFrame:
