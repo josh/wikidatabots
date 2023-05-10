@@ -16,6 +16,7 @@ from polars_utils import limit, print_rdf_statements, sample
 from sparql import sparql, sparql_batch
 
 _SEARCH_LIMIT = 250
+_FOUND_LIMIT = 100
 _NOT_FOUND_LIMIT = floor(100 / REGION_COUNT)
 
 _SEARCH_QUERY = """
@@ -189,7 +190,7 @@ def _find_movie_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         sparql(_DEPRECATED_ID_QUERY, columns=["statement", "id"])
         .join(sitemap_df, on="id", how="left")
         .filter(pl.col("in_latest_sitemap"))
-        .pipe(limit, _NOT_FOUND_LIMIT, desc="deprecated candidate ids")
+        .pipe(limit, _FOUND_LIMIT, desc="deprecated candidate ids")
         .with_columns(
             region_not_found(
                 id=pl.col("id"), region=pl.lit("us"), sitemap_type="movie"
