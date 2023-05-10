@@ -156,10 +156,9 @@ def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         .select("statement", "id")
         .join(sitemap_df, on="id", how="left")
         .filter(
-            pl.col("in_latest_sitemap").is_not()
-            | pl.col("in_latest_sitemap").is_null()
-            | pl.col("statement").pipe(is_blocked_item).is_not()
+            pl.col("in_latest_sitemap").is_not() | pl.col("in_latest_sitemap").is_null()
         )
+        .filter(pl.col("statement").pipe(is_blocked_item).is_not())
         .pipe(limit, _NOT_FOUND_LIMIT, desc="deprecated candidate ids")
         .pipe(not_found, sitemap_type="movie")
         .filter(pl.col("all_not_found"))
