@@ -1,6 +1,8 @@
 # pyright: strict
 
 
+from functools import cache
+
 import polars as pl
 
 from polars_requests import prepare_request, request, response_text
@@ -22,6 +24,7 @@ _QUERY_DTYPE = pl.Struct(
 )
 
 
+@cache
 def _blocked_qids() -> pl.Series:
     return (
         pl.DataFrame({"pageids": [_BLOCKED_PAGE_ID]})
@@ -50,6 +53,13 @@ def _blocked_qids() -> pl.Series:
         .sort("qid")
         .to_series()
     )
+
+
+_BLOCKED_EXPR = pl.lit(None).map(lambda s: _blocked_qids(), return_dtype=pl.Utf8)
+
+
+def is_blocked_item(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(r"(Q[0-9]+)").is_in(_BLOCKED_EXPR)
 
 
 def blocklist() -> set[str]:
