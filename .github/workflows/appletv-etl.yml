@@ -13,7 +13,6 @@ jobs:
   run:
     runs-on: ubuntu-latest
     concurrency: appletv_${{ matrix.type }}
-    timeout-minutes: 60
 
     strategy:
       fail-fast: false

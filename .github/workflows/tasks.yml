@@ -48,7 +48,6 @@ jobs:
   rdf_patch:
     runs-on: ubuntu-latest
     concurrency: rdf_patch_${{ matrix.script }}
-    timeout-minutes: 60
 
     strategy:
       fail-fast: false

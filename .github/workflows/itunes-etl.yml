@@ -16,7 +16,6 @@ jobs:
   run:
     runs-on: ubuntu-latest
     concurrency: itunes
-    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v3
