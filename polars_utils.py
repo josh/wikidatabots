@@ -717,7 +717,7 @@ def describe_frame(
         cfg.set_tbl_width_chars(500)
 
         tqdm.write(f"## {source}", file=output)
-        tqdm.write(compute_stats(df, changes_df=changes_df), file=output)
+        tqdm.write(str(compute_stats(df, changes_df=changes_df)), file=output)
         tqdm.write(f"\nshape: ({df.shape[0]:,}, {df.shape[1]:,})", file=output)
 
         if changes_df is not None:
