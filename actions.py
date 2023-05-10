@@ -7,6 +7,8 @@ from threading import Lock, local
 from typing import Generator, Type
 from warnings import warn
 
+from tqdm import tqdm
+
 _GROUP_LOCK = Lock()
 _THREAD_LOCAL = local()
 
@@ -20,15 +22,15 @@ def log_group(name: str) -> Generator[None, None, None]:
     with _GROUP_LOCK:
         try:
             _THREAD_LOCAL.actions_log_group = name
-            print(f"::group::{name}", file=sys.stderr)
+            tqdm.write(f"::group::{name}", file=sys.stderr)
             yield
         finally:
-            print("::endgroup::", file=sys.stderr)
+            tqdm.write("::endgroup::", file=sys.stderr)
             del _THREAD_LOCAL.actions_log_group
 
 
 def print_warning(title: str, message: str) -> None:
-    print(f"::warning title={title}::{message}", file=sys.stderr)
+    tqdm.write(f"::warning title={title}::{message}", file=sys.stderr)
 
 
 def _formatwarning(
