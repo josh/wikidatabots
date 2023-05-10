@@ -33,7 +33,7 @@ jobs:
 
       - name: Download from S3
         run: |
-          aws s3 cp --no-sign-request "s3://wikidatabots/plex.parquet" "plex.parquet"
+          aws s3 cp --region us-east-1 --no-sign-request "s3://wikidatabots/plex.parquet" "plex.parquet"
 
       - name: Run script
         run: |
