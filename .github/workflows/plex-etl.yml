@@ -16,7 +16,6 @@ jobs:
   run:
     runs-on: ubuntu-latest
     concurrency: plex
-    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
