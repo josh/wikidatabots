@@ -14,6 +14,7 @@ from appletv_etl import (
 )
 from polars_utils import limit, print_rdf_statements, sample
 from sparql import sparql, sparql_batch
+from wikidata import is_blocked_item
 
 _SEARCH_LIMIT = 250
 _FOUND_LIMIT = 100
@@ -150,7 +151,10 @@ def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
 
     return (
         sparql(_ID_QUERY, columns=["statement", "id"])
-        .with_columns(pl.col("id").pipe(valid_appletv_id))
+        .with_columns(
+            pl.col("id").pipe(valid_appletv_id)
+            & pl.col("statement").pipe(is_blocked_item).is_not()
+        )
         .drop_nulls()
         .select("statement", "id")
         .join(sitemap_df, on="id", how="left")
@@ -189,7 +193,10 @@ def _find_movie_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         sparql(_DEPRECATED_ID_QUERY, columns=["statement", "id"])
         .join(sitemap_df, on="id", how="left")
-        .filter(pl.col("in_latest_sitemap"))
+        .filter(
+            pl.col("in_latest_sitemap")
+            & pl.col("statement").pipe(is_blocked_item).is_not()
+        )
         .pipe(limit, _FOUND_LIMIT, desc="deprecated candidate ids")
         .with_columns(
             region_not_found(
@@ -239,7 +246,10 @@ def _find_movie_via_itunes_redirect(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
 
     return (
         wd_df.join(itunes_df, on="itunes_id", how="left")
-        .filter(pl.col("appletv_id").is_not_null())
+        .filter(
+            pl.col("appletv_id").is_not_null()
+            & pl.col("item").pipe(is_blocked_item).is_not()
+        )
         .select(_ADD_VIA_ITUNES_STATEMENT)
     )
 
@@ -288,7 +298,10 @@ def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
 
     return (
         wd_df.join(itunes_seasons_df, on="itunes_season_id", how="left")
-        .filter(pl.col("appletv_show_id").is_not_null())
+        .filter(
+            pl.col("appletv_show_id").is_not_null()
+            & pl.col("item").pipe(is_blocked_item).is_not()
+        )
         .select("show_item", "appletv_show_id")
         .unique()
         .select(_ADD_VIA_ITUNES_SEASON_STATEMENT)
