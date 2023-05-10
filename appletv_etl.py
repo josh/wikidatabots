@@ -82,7 +82,11 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
         .select(
             pl.col("loc")
             .pipe(prepare_request)
-            .pipe(request, log_group="tv.apple.com/sitemaps_tv_type.xml.gz")
+            .pipe(
+                request,
+                log_group="tv.apple.com/sitemaps_tv_type.xml.gz",
+                timeout=30.0,
+            )
             .struct.field("data")
             .pipe(zlib_decompress)
             .pipe(
