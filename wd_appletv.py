@@ -12,7 +12,7 @@ from polars_utils import limit, print_rdf_statements, sample
 from sparql import sparql, sparql_batch
 from wikidata import is_blocked_item
 
-_SEARCH_LIMIT = 250
+_SEARCH_LIMIT = 500
 _FOUND_LIMIT = 100
 
 _SEARCH_QUERY = """
