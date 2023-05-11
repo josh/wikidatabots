@@ -1,6 +1,5 @@
 # pyright: strict
 
-import datetime
 import logging
 import os
 from typing import Literal
@@ -8,12 +7,7 @@ from typing import Literal
 import polars as pl
 
 from polars_requests import prepare_request, request, response_date, response_text
-from polars_utils import (
-    update_or_append,
-    update_parquet,
-    with_outlier_column,
-    xml_extract,
-)
+from polars_utils import update_or_append, update_parquet, xml_extract
 from sparql import sparql
 
 GUID_TYPE = Literal["episode", "movie", "season", "show"]
@@ -225,10 +219,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.pipe(_with_outlier_column)
-        .filter(_OLDEST_METADATA | _MISSING_METADATA | pl.col("is_outlier"))
-        .drop("is_outlier")
-        .pipe(fetch_metadata_guids)
+        df.filter(_OLDEST_METADATA | _MISSING_METADATA).pipe(fetch_metadata_guids)
         # MARK: pl.LazyFrame.cache
         .cache()
     )
@@ -252,25 +243,6 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
         df.pipe(update_or_append, df_updated.drop("similar_guids"), on="key")
         .pipe(update_or_append, df_similar, on="key")
         .pipe(_sort)
-    )
-
-
-_THIS_YEAR = datetime.date.today().year
-
-
-def _with_outlier_column(df: pl.LazyFrame) -> pl.LazyFrame:
-    return with_outlier_column(
-        df,
-        [
-            (pl.col("type") == "movie").alias("type_movie"),
-            (pl.col("type") == "show").alias("type_show"),
-            pl.col("success"),
-            (pl.col("year") < _THIS_YEAR).alias("past_year"),
-            pl.col("imdb_numeric_id"),
-            pl.col("tmdb_id"),
-            pl.col("tvdb_id"),
-        ],
-        max_count=1_000,
     )
 
 

@@ -3,16 +3,13 @@
 import datetime
 import gzip
 import html
-import logging
 import os
 import random
-import re
 import sys
 import xml.etree.ElementTree as ET
 import zlib
 from functools import partial
-from itertools import combinations
-from typing import Any, Callable, Iterable, Iterator, TextIO, TypedDict
+from typing import Any, Callable, Iterator, TextIO, TypedDict
 
 import polars as pl
 from tqdm import tqdm
@@ -128,27 +125,6 @@ def pyformat(
     )
 
 
-def expr_repl(expr: pl.Expr, strip_alias: bool = False) -> str:
-    expr_s: str = str(expr)
-    if strip_alias:
-        expr_s = re.sub(r'\.alias\("\w+"\)', "", expr_s)
-    return f"pl.{expr_s}"
-
-
-def drop_columns(df: pl.DataFrame, predicate: pl.Expr) -> pl.DataFrame:
-    return df.drop(_flagged_columns(df, predicate))
-
-
-def _flagged_columns(df: pl.DataFrame, predicate: pl.Expr) -> list[str]:
-    df = df.select(predicate)
-    if df.is_empty():
-        return []
-    assert set(df.dtypes) == {pl.Boolean}, "predicate must return a boolean"
-    assert len(df) == 1, "predicate must return a single row"
-    row = df.row(0, named=True)
-    return [col for col, flag in row.items() if flag]
-
-
 def now() -> pl.Expr:
     return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
 
@@ -208,10 +184,6 @@ def limit(
 
 
 _limit = limit
-
-
-def is_constant(expr: pl.Expr) -> pl.Expr:
-    return (expr == expr.first()).all()
 
 
 def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
@@ -523,104 +495,6 @@ def zlib_decompress(expr: pl.Expr) -> pl.Expr:
         return_dtype=pl.Utf8,
         log_group="zlib_decompress",
     )
-
-
-def with_outlier_column(
-    df: pl.LazyFrame,
-    exprs: Iterable[pl.Expr],
-    max_count: int,
-    outlier_name: str = "is_outlier",
-    rmax: int = 3,
-) -> pl.LazyFrame:
-    schema: dict[str, pl.PolarsDataType] = {}
-    for name in df.columns:
-        schema[name] = df.schema[name]
-    schema[outlier_name] = pl.Boolean
-
-    def _with_outlier_column(df: pl.DataFrame) -> pl.DataFrame:
-        flag_exprs = list(
-            outlier_exprs(
-                df,
-                exprs,
-                rmax=rmax,
-                max_count=max_count,
-            )
-        )
-
-        if flag_exprs:
-            expr_repr, s, count = random.choice(flag_exprs)
-            logging.info(f"Detected `{expr_repr}` outlier pattern with {count:,} rows")
-            return df.with_columns(s.alias(outlier_name))
-        else:
-            logging.info("No outlier patterns found")
-            return df.with_columns(pl.lit(False).alias(outlier_name))
-
-    # MARK: pl.LazyFrame.map
-    return df.map(
-        _with_outlier_column,
-        schema=schema,
-        projection_pushdown=False,  # Disable optimization to keep all columns
-    )
-
-
-_POWERSET_COL_SEP = "--7C69799--"
-
-
-def outlier_exprs(
-    df: pl.DataFrame,
-    exprs: Iterable[pl.Expr],
-    max_count: int,
-    rmax: int = 3,
-) -> Iterator[tuple[str, pl.Series, int]]:
-    col_expr: dict[str, pl.Expr] = {}
-    for expr in _expand_expr(df, exprs):
-        col_expr[expr.meta.output_name()] = expr
-
-    is_const_expr = pl.all().pipe(is_constant)
-
-    df = df.select(col_expr.values()).pipe(drop_columns, is_const_expr)
-    orig_columns = df.columns
-
-    for r in range(2, min(len(orig_columns), rmax + 1)):
-        col_exprs: list[pl.Expr] = []
-
-        for cols in combinations(orig_columns, r):
-            col1 = _POWERSET_COL_SEP.join(cols[:-1])
-            col2 = cols[-1]
-            if (col1 in df.columns) and (col2 in df.columns):
-                col_exprs.append(
-                    (pl.col(col1) & pl.col(col2)).alias(_POWERSET_COL_SEP.join(cols))
-                )
-
-        if col_exprs:
-            df = df.with_columns(col_exprs).pipe(drop_columns, is_const_expr)
-
-    for col in df.columns:
-        s = df[col]
-        count = int(s.sum())
-        if count > 0 and count < max_count:
-            expr_str = " & ".join(
-                expr_repl(col_expr[col], strip_alias=True)
-                for col in col.split(_POWERSET_COL_SEP)
-            )
-            yield expr_str, s, count
-
-
-def _expand_expr(df: pl.DataFrame, exprs: Iterable[pl.Expr]) -> Iterator[pl.Expr]:
-    for expr, s in zip(exprs, df.select(exprs), strict=True):
-        output_name = expr.meta.output_name()
-        if s.is_boolean() and (s.all() ^ s.any()):
-            yield expr
-            yield expr.is_not().alias(f"not_{output_name}")
-
-        null_count = s.null_count()
-        if null_count > 0 and null_count < s.len():
-            yield expr.is_null().alias(f"null_{output_name}")
-            yield expr.is_not_null().alias(f"not_null_{output_name}")
-
-        if not s.is_boolean():
-            yield expr.is_duplicated().alias(f"duplicated_{output_name}")
-            yield expr.is_unique().alias(f"unique_{output_name}")
 
 
 def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:

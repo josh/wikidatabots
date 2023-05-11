@@ -16,19 +16,14 @@ from polars_utils import (
     assert_expression,
     compute_stats,
     csv_extract,
-    drop_columns,
     expr_indicies_sorted,
-    expr_repl,
     frame_diff,
     groups_of,
-    is_constant,
     merge_with_indicator,
     now,
-    outlier_exprs,
     pyformat,
     sample,
     update_or_append,
-    with_outlier_column,
     xml_extract,
 )
 
@@ -166,48 +161,6 @@ def test_assert_count() -> None:
         ldf.collect()
 
 
-def test_expr_repl() -> None:
-    assert expr_repl(pl.col("a")) == 'pl.col("a")'
-    assert expr_repl(pl.col("a").alias("b")) == 'pl.col("a").alias("b")'
-    assert expr_repl(pl.col("a").alias("b"), strip_alias=True) == 'pl.col("a")'
-
-    assert expr_repl(pl.col("a").is_not_null()) == 'pl.col("a").is_not_null()'
-    assert (
-        expr_repl(pl.col("a").is_not_null().alias("b"))
-        == 'pl.col("a").is_not_null().alias("b")'
-    )
-    assert (
-        expr_repl(pl.col("a").alias("b").is_not_null())
-        == 'pl.col("a").alias("b").is_not_null()'
-    )
-    assert (
-        expr_repl(pl.col("a").is_not_null().alias("b"), strip_alias=True)
-        == 'pl.col("a").is_not_null()'
-    )
-    assert (
-        expr_repl(pl.col("a").alias("b").is_not_null(), strip_alias=True)
-        == 'pl.col("a").is_not_null()'
-    )
-
-
-@given(
-    df=dataframes(max_cols=5, max_size=20),
-    predicate=st.one_of(
-        [
-            st.just(pl.all().is_duplicated().all()),
-            st.just(pl.all().is_duplicated().any()),
-            st.just(pl.all().is_null().all()),
-            st.just(pl.all().is_null().any()),
-            st.just(pl.all().null_count() > 0),
-            st.just(pl.all().null_count() > 10),
-        ]
-    ),
-)
-def test_filter_drop_columns_properties(df: pl.DataFrame, predicate: pl.Expr) -> None:
-    df2 = drop_columns(df, predicate)
-    assert set(df2.columns).issubset(set(df.columns))
-
-
 def test_now() -> None:
     df = pl.LazyFrame({"a": [1, 2, 3]}).with_columns(
         now().alias("timestamp"),
@@ -220,34 +173,6 @@ def test_now() -> None:
 @settings(max_examples=5)
 def test_sample(df: pl.LazyFrame) -> None:
     assert len(df.pipe(sample, n=3).collect()) == 3
-
-
-def test_is_constant() -> None:
-    df = pl.DataFrame(
-        {
-            "a": [1, 2, 3],
-            "b": [3, 3, 3],
-            "c": [2, 2, None],
-            "d": [True, True, False],
-            "e": [True, True, True],
-            "f": [False, False, False],
-            "g": [True, True, None],
-            "h": [None, None, None],
-        }
-    )
-    df2 = pl.DataFrame(
-        {
-            "a": [False],
-            "b": [True],
-            "c": [False],
-            "d": [False],
-            "e": [True],
-            "f": [True],
-            "g": [False],
-            "h": [True],
-        }
-    )
-    assert_frame_equal(df.select(pl.all().pipe(is_constant)), df2)
 
 
 def test_csv_extract() -> None:
@@ -564,73 +489,6 @@ def test_apply_with_tqdm_properties(s: pl.Series) -> None:
     )
     assert df.schema == {"a": pl.Int64}
     assert len(df) == len(s)
-
-
-@given(
-    df=dataframes(
-        cols=[
-            column("a", dtype=pl.Int64),
-            column("b", dtype=pl.Boolean),
-            column("c", dtype=pl.Boolean, null_probability=0.5),
-            column("d", dtype=pl.Boolean, null_probability=0.1),
-            column("e", dtype=pl.Boolean, null_probability=0.01),
-        ]
-    )
-)
-def test_outlier_exprs(df: pl.DataFrame) -> None:
-    exprs = outlier_exprs(
-        df,
-        [
-            pl.col("a").is_not_null().alias("a_not_null"),
-            (pl.col("a") < pl.col("a").mean()).alias("a_lt_mean"),
-            pl.col("b"),
-            pl.col("c"),
-            pl.col("d"),
-            pl.col("e"),
-        ],
-        max_count=len(df),
-    )
-
-    for expr_str, s, count in exprs:
-        assert expr_str
-        assert count > 0
-        assert s.sum() == count
-
-
-@given(
-    df=dataframes(
-        cols=[
-            column("a", dtype=pl.Int64),
-            column("b", dtype=pl.Boolean),
-            column("c", dtype=pl.Boolean, null_probability=0.5),
-            column("d", dtype=pl.Boolean, null_probability=0.1),
-            column("e", dtype=pl.Boolean, null_probability=0.01),
-        ]
-    )
-)
-def test_with_outlier_column(df: pl.DataFrame) -> None:
-    ldf = with_outlier_column(
-        df.lazy(),
-        [
-            pl.col("a").is_not_null().alias("a_not_null"),
-            (pl.col("a") < pl.col("a").mean()).alias("a_lt_mean"),
-            pl.col("b"),
-            pl.col("c"),
-            pl.col("d"),
-            pl.col("e"),
-        ],
-        max_count=len(df),
-    )
-    assert ldf.schema == {
-        "a": pl.Int64,
-        "b": pl.Boolean,
-        "c": pl.Boolean,
-        "d": pl.Boolean,
-        "e": pl.Boolean,
-        "is_outlier": pl.Boolean,
-    }
-    df2 = ldf.collect()
-    assert len(df2) == len(df)
 
 
 def test_groups_of() -> None:
