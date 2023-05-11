@@ -350,35 +350,6 @@ def _extract_itunes_id(text: str) -> int | None:
     return None
 
 
-_REGIONS = ["us", "ca", "gb", "au", "br", "de", "es", "fr", "it", "in", "jp", "cn"]
-REGION_COUNT = len(_REGIONS)
-
-
-def not_found(
-    df: pl.LazyFrame,
-    sitemap_type: _TYPE,
-    regions: list[str] = _REGIONS,
-) -> pl.LazyFrame:
-    return (
-        df.lazy()
-        .with_columns(
-            pl.lit([regions]).alias("region"),
-        )
-        .explode("region")
-        .with_columns(
-            region_not_found(
-                id=pl.col("id"),
-                region=pl.col("region"),
-                sitemap_type=sitemap_type,
-            ).alias("not_found")
-        )
-        .groupby(*df.columns)
-        .agg(
-            pl.col("not_found").all().alias("all_not_found"),
-        )
-    )
-
-
 def region_not_found(id: pl.Expr, region: pl.Expr, sitemap_type: _TYPE) -> pl.Expr:
     return (
         pl.format(

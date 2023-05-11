@@ -1,13 +1,9 @@
 # pyright: strict
 
-from math import floor
-
 import polars as pl
 
 from appletv_etl import (
     LOC_SHOW_PATTERN,
-    REGION_COUNT,
-    not_found,
     region_not_found,
     url_extract_id,
     valid_appletv_id,
@@ -18,7 +14,6 @@ from wikidata import is_blocked_item
 
 _SEARCH_LIMIT = 250
 _FOUND_LIMIT = 100
-_NOT_FOUND_LIMIT = floor(100 / REGION_COUNT)
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item (SAMPLE(?appletv_id) AS ?has_appletv) WHERE {
@@ -124,45 +119,6 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         .unnest("result")
         .filter(pl.col("item").is_not_null() & pl.col("has_appletv").is_null())
         .select(_ADD_RDF_STATEMENT)
-    )
-
-
-_ID_QUERY = """
-SELECT ?statement ?id WHERE {
-  ?statement ps:P9586 ?id.
-  ?statement wikibase:rank ?rank.
-  FILTER(?rank != wikibase:DeprecatedRank)
-}
-"""
-
-_DEPRECATE_RDF_STATEMENT = pl.format(
-    "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
-    'wikidatabots:editSummary "Deprecate Apple TV movie ID delisted from store" .',
-    pl.col("statement"),
-).alias("rdf_statement")
-
-
-def _find_movie_not_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
-    sitemap_df = (
-        sitemap_df.select("id", "in_latest_sitemap")
-        .groupby("id")
-        .agg(pl.col("in_latest_sitemap").any())
-    )
-
-    return (
-        sparql(_ID_QUERY, columns=["statement", "id"])
-        .with_columns(pl.col("id").pipe(valid_appletv_id))
-        .drop_nulls()
-        .select("statement", "id")
-        .join(sitemap_df, on="id", how="left")
-        .filter(
-            pl.col("in_latest_sitemap").is_not() | pl.col("in_latest_sitemap").is_null()
-        )
-        .filter(pl.col("statement").pipe(is_blocked_item).is_not())
-        .pipe(limit, _NOT_FOUND_LIMIT, desc="deprecated candidate ids")
-        .pipe(not_found, sitemap_type="movie")
-        .filter(pl.col("all_not_found"))
-        .select(_DEPRECATE_RDF_STATEMENT)
     )
 
 
@@ -320,7 +276,6 @@ def main() -> None:
         [
             _find_movie_via_search(sitemap_df),
             _find_movie_found(sitemap_df),
-            _find_movie_not_found(sitemap_df),
             _find_show_via_itunes_season(itunes_df),
             _find_movie_via_itunes_redirect(itunes_df),
         ]
