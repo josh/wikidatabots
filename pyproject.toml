@@ -5,4 +5,4 @@ name = "wikidatabots"
 
 [tool.vulture]
 exclude = ["*test_*.py"]
-ignore_names = ["xxx_*", "main_*", "formatwarning", "status", "put_throttle", "maxlag"]
+ignore_names = ["formatwarning", "status", "put_throttle", "maxlag"]
