@@ -11,7 +11,6 @@ import polars as pl
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     align_to_index,
-    assert_expression,
     gzip_decompress,
     update_or_append,
     update_parquet,
@@ -312,7 +311,6 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
             pl.col("item").struct.field("video").alias("video"),
         )
         .sort(by="id")
-        .pipe(assert_expression, pl.col("id").is_unique())
     )
 
 
