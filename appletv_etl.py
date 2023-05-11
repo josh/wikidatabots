@@ -185,11 +185,9 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             .alias("response")
         )
         .with_columns(
-            pl.col("response").pipe(response_text).pipe(_parse_html_expr).alias("soup"),
-        )
-        .with_columns(
             (
-                pl.col("soup")
+                pl.col("response")
+                .pipe(response_text)
                 .pipe(
                     _extract_script_text,
                     script_type="application/ld+json",
@@ -199,7 +197,8 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
                 .alias("jsonld")
             ),
             (
-                pl.col("soup")
+                pl.col("response")
+                .pipe(response_text)
                 .pipe(
                     _extract_script_text,
                     script_type="fastboot/shoebox",
@@ -251,15 +250,6 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def _parse_html_expr(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr,
-        _parse_html,
-        return_dtype=pl.Object,
-        log_group="parse_html",
-    )
-
-
 def _parse_html(html: str) -> BeautifulSoup | None:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -285,9 +275,10 @@ def _extract_script_text(
     if script_id:
         attrs["id"] = script_id
 
-    def _soup_find_script_text(soup: BeautifulSoup) -> str | None:
-        if script := soup.find("script", attrs):
-            return script.text
+    def _soup_find_script_text(html: str) -> str | None:
+        if soup := _parse_html(html):
+            if script := soup.find("script", attrs):
+                return script.text
         return None
 
     return apply_with_tqdm(
