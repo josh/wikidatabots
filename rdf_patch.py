@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import sys
 from collections import OrderedDict, defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
@@ -572,7 +573,6 @@ def _claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
 
 if __name__ == "__main__":
     import argparse
-    import sys
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
     parser.add_argument("-n", "--dry-run", action="store_true")
