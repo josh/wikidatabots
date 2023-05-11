@@ -1,6 +1,5 @@
 # pyright: strict
 
-import logging
 import os
 from typing import Literal
 
@@ -365,5 +364,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()

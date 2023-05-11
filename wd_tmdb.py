@@ -1,6 +1,5 @@
 # pyright: strict
 
-import logging
 from typing import Literal
 
 import polars as pl
@@ -271,5 +270,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()

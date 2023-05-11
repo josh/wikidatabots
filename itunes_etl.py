@@ -1,6 +1,5 @@
 # pyright: strict
 
-import logging
 from functools import partial
 from typing import Literal
 
@@ -525,5 +524,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()

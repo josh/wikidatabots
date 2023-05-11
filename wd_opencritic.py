@@ -1,6 +1,5 @@
 # pyright: reportGeneralTypeIssues=false
 
-import logging
 import os
 import sys
 from collections import OrderedDict
@@ -12,7 +11,6 @@ import pywikibot
 import pywikibot.config
 from pywikibot import Claim, ItemPage, PropertyPage, WbQuantity, WbTime
 from tqdm import tqdm
-from tqdm.contrib.logging import logging_redirect_tqdm
 
 from sparql import sparql
 from wikidata import is_blocked_item
@@ -158,16 +156,15 @@ def main() -> None:
     )
 
     rows = list(df.iter_rows(named=True))
-    with logging_redirect_tqdm():
-        for row in tqdm(rows, unit="row"):
-            _update_review_score_claim(
-                item=ItemPage(SITE, row["wd_qid"]),
-                opencritic_id=row["wd_opencritic_id"],
-                review_score=row["api_review_score"],
-                number_of_reviews=row["api_num_reviews"],
-                latest_review_date=row["api_latest_review_date"],
-                retrieved_at=row["api_retrieved_at"],
-            )
+    for row in tqdm(rows, unit="row"):
+        _update_review_score_claim(
+            item=ItemPage(SITE, row["wd_qid"]),
+            opencritic_id=row["wd_opencritic_id"],
+            review_score=row["api_review_score"],
+            number_of_reviews=row["api_num_reviews"],
+            latest_review_date=row["api_latest_review_date"],
+            retrieved_at=row["api_retrieved_at"],
+        )
 
 
 def _update_review_score_claim(
@@ -279,6 +276,5 @@ def login() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     login()
     main()

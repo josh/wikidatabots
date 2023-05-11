@@ -1,7 +1,6 @@
 # pyright: strict
 
 import datetime
-import logging
 import os
 import sys
 from typing import Literal
@@ -355,5 +354,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()

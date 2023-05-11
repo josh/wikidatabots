@@ -1,6 +1,5 @@
 # pyright: strict
 
-import logging
 import os
 
 import polars as pl
@@ -200,5 +199,4 @@ def _main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     _main()

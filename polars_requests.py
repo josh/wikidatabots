@@ -8,7 +8,6 @@ import backoff
 import polars as pl
 import requests as _requests
 from tqdm import tqdm
-from tqdm.contrib.logging import logging_redirect_tqdm
 
 from actions import log_group as _log_group
 from actions import warn
@@ -163,20 +162,19 @@ def _request_series(
 
     values: list[_HTTPResponse | None] = []
     with _log_group(log_group):
-        with logging_redirect_tqdm():
-            request_id = 0
-            for request_ in tqdm(requests, unit="url", disable=disable_tqdm):
-                request: _HTTPRequest = request_
-                response = None
-                if request and request["url"]:
-                    r = request_with_retry(
-                        request_id,
-                        request["url"],
-                        _make_header_dict(request["headers"]),
-                    )
-                    response = _make_http_response(r)
-                request_id += 1
-                values.append(response)
+        request_id = 0
+        for request_ in tqdm(requests, unit="url", disable=disable_tqdm):
+            request: _HTTPRequest = request_
+            response = None
+            if request and request["url"]:
+                r = request_with_retry(
+                    request_id,
+                    request["url"],
+                    _make_header_dict(request["headers"]),
+                )
+                response = _make_http_response(r)
+            request_id += 1
+            values.append(response)
 
         session.close()
 

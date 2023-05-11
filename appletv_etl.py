@@ -1,7 +1,6 @@
 # pyright: strict
 
 import json
-import logging
 import re
 import sys
 from typing import Literal
@@ -426,5 +425,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()

@@ -1,7 +1,5 @@
 # pyright: strict
 
-import logging
-
 import polars as pl
 
 from plex_etl import GUID_TYPE, encode_plex_guids
@@ -108,5 +106,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     main()
