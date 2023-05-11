@@ -625,7 +625,6 @@ def print_rdf_statements(
     sample: bool = True,
     file: TextIO = sys.stdout,
 ) -> None:
-    assert limit <= 360
     assert df.schema == {"rdf_statement": pl.Utf8}
     df = df.pipe(_limit, limit, sample=sample, desc="rdf statements")
 

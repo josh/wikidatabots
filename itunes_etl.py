@@ -456,8 +456,6 @@ def _discover_ids(df: pl.LazyFrame) -> pl.LazyFrame:
             _appletv_sitemap_ids("show"),
         ]
     ).unique()
-    assert ids_df.schema == {"id": pl.UInt64}
-
     return df.pipe(update_or_append, ids_df, on="id").sort("id").unique("id")
 
 

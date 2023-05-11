@@ -237,7 +237,6 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
         # MARK: pl.LazyFrame.cache
         .cache()
     )
-    assert df_similar.schema == {"key": pl.Binary, "type": pl.Categorical}
 
     return (
         df.pipe(update_or_append, df_updated.drop("similar_guids"), on="key")
@@ -354,7 +353,6 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
             wikidata_search_guids(),
         ]
     ).unique(subset="key")
-    assert df_new.schema == {"key": pl.Binary, "type": pl.Categorical}
     return plex_df.pipe(update_or_append, df_new, on="key").pipe(_sort)
 
 
