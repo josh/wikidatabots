@@ -277,7 +277,7 @@ def test_align_to_index():
             "value": [1, 2, 5],
         }
     )
-    with pytest.raises(AssertionError):
+    with pytest.raises(pl.ComputeError):  # type: ignore
         align_to_index(df, name="id").collect()
 
 
