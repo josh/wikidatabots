@@ -13,7 +13,6 @@ from polars.testing.parametric import column, dataframes, series
 from polars_utils import (
     align_to_index,
     apply_with_tqdm,
-    assert_expression,
     compute_stats,
     csv_extract,
     expr_indicies_sorted,
@@ -49,25 +48,6 @@ def assert_called_once() -> Callable[[T], T]:
         return value
 
     return mock
-
-
-def test_assert_not_null():
-    df = pl.LazyFrame({"a": []})
-    ldf = df.pipe(assert_expression, pl.col("a").is_not_null())
-    ldf.collect()
-
-    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, None, 2]})
-
-    ldf = df.pipe(assert_expression, pl.col("a").is_not_null())
-    ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.col("b").is_not_null())
-    with pytest.raises(pl.ComputeError):  # type: ignore
-        ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.all().is_not_null())
-    with pytest.raises(pl.ComputeError):  # type: ignore
-        ldf.collect()
 
 
 def test_pyformat() -> None:
@@ -115,50 +95,6 @@ def test_merge_with_indicator() -> None:
         },
     )
     assert_frame_equal(df3, df4)
-
-
-def test_assert_unique():
-    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 1, 2]})
-
-    ldf = df.pipe(assert_expression, pl.col("a").drop_nulls().is_unique())
-    ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.col("b").drop_nulls().is_unique())
-    with pytest.raises(pl.ComputeError):  # type: ignore
-        ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.all().drop_nulls().is_unique())
-    with pytest.raises(pl.ComputeError):  # type: ignore
-        ldf.collect()
-
-
-def test_assert_count() -> None:
-    df = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 1, 2]})
-
-    ldf = df.pipe(assert_expression, pl.count() <= 3)
-    ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.count() <= 4)
-    ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.count() < 5)
-    ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.count() <= 2)
-    with pytest.raises(pl.ComputeError):  # type: ignore
-        ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.count() <= 1)
-    with pytest.raises(pl.ComputeError):  # type: ignore
-        ldf.collect()
-
-    ldf = df.pipe(assert_expression, pl.count() > 0)
-    ldf.collect()
-
-    df = pl.LazyFrame({"a": []})
-    ldf = df.pipe(assert_expression, pl.count() > 0)
-    with pytest.raises(pl.ComputeError):  # type: ignore
-        ldf.collect()
 
 
 def test_now() -> None:

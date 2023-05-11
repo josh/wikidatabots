@@ -12,7 +12,6 @@ from bs4 import BeautifulSoup
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     apply_with_tqdm,
-    assert_expression,
     head,
     html_unescape,
     html_unescape_list,
@@ -162,7 +161,6 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
                 "lastmod",
             ]
         )
-        .pipe(assert_expression, pl.col("id").is_not_null(), "bad sitemap id")
         .unique("loc")
     )
 

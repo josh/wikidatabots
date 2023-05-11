@@ -72,17 +72,6 @@ def _check_ldf(
     )
 
 
-def assert_expression(
-    ldf: pl.LazyFrame, expr: pl.Expr, message: str = ""
-) -> pl.LazyFrame:
-    def assert_expression_inner(df: pl.DataFrame) -> None:
-        for name, series in df.select(expr).to_dict().items():
-            assert series.dtype == pl.Boolean
-            assert series.is_empty() or series.all(), message.format(name)
-
-    return _check_ldf(ldf, assert_expression_inner)
-
-
 class _PyformatRow(TypedDict):
     args: list[Any]
     kwargs: dict[str, Any]
@@ -203,11 +192,19 @@ def expr_indicies_sorted(a: pl.Expr, b: pl.Expr) -> pl.Expr:
 
 
 def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
-    df = df.pipe(
-        assert_expression,
-        pl.col(name).is_not_null() & pl.col(name).is_unique() & (pl.col(name) >= 0),
-        f"Invalid {name} index",
-    ).cache()  # MARK: pl.LazyFrame.cache
+    def assert_expr(df: pl.DataFrame) -> None:
+        row = df.select(
+            pl.col(name).is_not_null().all().alias("not_null"),
+            pl.col(name).is_unique().all().alias("unique"),
+            pl.col(name).ge(0).all().alias("positive_int"),
+        ).row(0, named=True)
+
+        assert row["not_null"], f"column '{name}' has null values"
+        assert row["unique"], f"column '{name}' has non-unique values"
+        assert row["positive_int"], f"column '{name}' has negative values"
+
+    # MARK: pl.LazyFrame.cache
+    df = _check_ldf(df, assert_expr).cache()
 
     return df.select(
         pl.arange(
@@ -219,32 +216,18 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
 
 
 def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
-    df = (
-        df.pipe(
-            assert_expression,
-            pl.col(on).is_not_null(),
-            f"df '{on}' column has null values",
-        )
-        .pipe(
-            assert_expression,
-            pl.col(on).is_unique(),
-            f"df '{on}' column has non-unique values",
-        )
-        .cache()  # MARK: pl.LazyFrame.cache
-    )
-    other = (
-        other.pipe(
-            assert_expression,
-            pl.col(on).is_not_null(),
-            f"other df '{on}' column has null values",
-        )
-        .pipe(
-            assert_expression,
-            pl.col(on).is_unique(),
-            f"other df '{on}' column has non-unique values",
-        )
-        .cache()  # MARK: pl.LazyFrame.cache
-    )
+    def assert_expr(df: pl.DataFrame, df_label: str) -> None:
+        row = df.select(
+            pl.col(on).is_not_null().all().alias("not_null"),
+            pl.col(on).is_unique().all().alias("unique"),
+        ).row(0, named=True)
+
+        assert row["not_null"], f"{df_label} '{on}' column has null values"
+        assert row["unique"], f"{df_label} '{on}' column has non-unique values"
+
+    # MARK: pl.LazyFrame.cache
+    df = _check_ldf(df, partial(assert_expr, df_label="df")).cache()
+    other = _check_ldf(other, partial(assert_expr, df_label="other df")).cache()
 
     other_cols = list(other.columns)
     other_cols.remove(on)
