@@ -202,21 +202,7 @@ def expr_indicies_sorted(a: pl.Expr, b: pl.Expr) -> pl.Expr:
     return pl.when(a.is_in(b)).then(b.search_sorted(a, side="left")).otherwise(None)
 
 
-PL_INTEGERS = {
-    pl.Int8,
-    pl.Int16,
-    pl.Int32,
-    pl.Int64,
-    pl.UInt8,
-    pl.UInt16,
-    pl.UInt32,
-    pl.UInt64,
-}
-
-
 def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
-    assert df.schema[name] in PL_INTEGERS
-
     df = df.pipe(
         assert_expression,
         pl.col(name).is_not_null() & pl.col(name).is_unique() & (pl.col(name) >= 0),
