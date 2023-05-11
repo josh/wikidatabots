@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from collections import OrderedDict
 from datetime import date, datetime
 from typing import TypeVar
@@ -238,7 +239,7 @@ def _update_review_score_claim(
         claim.sources.append(OrderedDict(references))
 
     assert claim.toJSON()
-    logging.info(f"Editting {item.id}")
+    tqdm.write(f"Editting {item.id}", file=sys.stderr)
     item.editEntity(
         {"claims": [claim.toJSON()]},
         summary="Update OpenCritic review score",

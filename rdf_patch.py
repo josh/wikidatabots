@@ -1,7 +1,6 @@
 # pyright: reportGeneralTypeIssues=false
 
 import datetime
-import logging
 import os
 from collections import OrderedDict, defaultdict
 from functools import cache
@@ -264,7 +263,7 @@ def process_graph(
             continue
 
         summary: str | None = edit_summaries.get(item)
-        logging.info(f"Edit {item.id}: {summary}")
+        print(f"Edit {item.id}: {summary}", file=sys.stderr)
 
         claims_json: list[dict[str, Any]] = []
         for hclaim in claims:
@@ -272,7 +271,7 @@ def process_graph(
             claim_json: dict[str, Any] = claim.toJSON()
             assert claim_json, "Claim had serialization error"
             claims_json.append(claim_json)
-            logging.info(f" ⮑ {claim.id} / {claim.snak or '(new claim)'}")
+            print(f" ⮑ {claim.id} / {claim.snak or '(new claim)'}", file=sys.stderr)
 
         assert len(claims_json) > 0, "No claims to save"
         yield (item, claims_json, summary)
@@ -574,8 +573,6 @@ def _claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
 if __name__ == "__main__":
     import argparse
     import sys
-
-    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description="Process Wikidata RDF changes.")
     parser.add_argument("-n", "--dry-run", action="store_true")

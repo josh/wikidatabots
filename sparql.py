@@ -1,13 +1,14 @@
 # pyright: strict
 
-import logging
 import platform
+import sys
 import time
 from functools import partial
 
 import backoff
 import polars as pl
 import requests as _requests
+from tqdm import tqdm
 
 from actions import warn
 from polars_utils import apply_with_tqdm, csv_extract
@@ -26,7 +27,7 @@ class SlowQueryWarning(Warning):
 )
 def _sparql(query: str, _log_query: bool) -> bytes:
     if _log_query:
-        logging.info(query)
+        tqdm.write(query, file=sys.stderr)
 
     start = time.time()
     r = _requests.post(
@@ -43,10 +44,10 @@ def _sparql(query: str, _log_query: bool) -> bytes:
     duration = time.time() - start
 
     if duration > 45:
-        logging.warning(f"sparql: {duration:,.2f}s")
+        tqdm.write(f"sparql: {duration:,.2f}s", file=sys.stderr)
         warn(f"sparql: {duration:,.2f}s", SlowQueryWarning)
     elif duration > 5:
-        logging.info(f"sparql: {duration:,.2f}s")
+        tqdm.write(f"sparql: {duration:,.2f}s", file=sys.stderr)
 
     return r.content
 
