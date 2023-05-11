@@ -370,7 +370,7 @@ def region_not_found(id: pl.Expr, region: pl.Expr, sitemap_type: _TYPE) -> pl.Ex
     )
 
 
-_JSONLD_LIMIT = 2_500
+_JSONLD_LIMIT = 5_000
 _OUTDATED_JSONLD = pl.col("country").eq("us") & pl.col("retrieved_at").is_null()
 
 
