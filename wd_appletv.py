@@ -2,18 +2,12 @@
 
 import polars as pl
 
-from appletv_etl import (
-    LOC_SHOW_PATTERN,
-    region_not_found,
-    url_extract_id,
-    valid_appletv_id,
-)
-from polars_utils import limit, print_rdf_statements, sample
+from appletv_etl import LOC_SHOW_PATTERN, url_extract_id, valid_appletv_id
+from polars_utils import print_rdf_statements, sample
 from sparql import sparql, sparql_batch
 from wikidata import is_blocked_item
 
 _SEARCH_LIMIT = 500
-_FOUND_LIMIT = 100
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item (SAMPLE(?appletv_id) AS ?has_appletv) WHERE {
@@ -119,46 +113,6 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         .unnest("result")
         .filter(pl.col("item").is_not_null() & pl.col("has_appletv").is_null())
         .select(_ADD_RDF_STATEMENT)
-    )
-
-
-_DEPRECATED_ID_QUERY = """
-SELECT ?statement ?id WHERE {
-  ?statement ps:P9586 ?id;
-    wikibase:rank wikibase:DeprecatedRank;
-    pq:P2241 wd:Q21441764.
-}
-"""
-
-_UNDEPRECATE_RDF_STATEMENT = pl.format(
-    "<{}> wikibase:rank wikibase:NormalRank ; pqe:P2241 [] ; "
-    'wikidatabots:editSummary "Restore Apple TV movie ID available on store" .',
-    pl.col("statement"),
-).alias("rdf_statement")
-
-
-def _find_movie_found(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
-    sitemap_df = (
-        sitemap_df.select("id", "in_latest_sitemap")
-        .groupby("id")
-        .agg(pl.col("in_latest_sitemap").any())
-    )
-
-    return (
-        sparql(_DEPRECATED_ID_QUERY, columns=["statement", "id"])
-        .join(sitemap_df, on="id", how="left")
-        .filter(
-            pl.col("in_latest_sitemap")
-            & pl.col("statement").pipe(is_blocked_item).is_not()
-        )
-        .pipe(limit, _FOUND_LIMIT, desc="undeprecated candidate ids")
-        .with_columns(
-            region_not_found(
-                id=pl.col("id"), region=pl.lit("us"), sitemap_type="movie"
-            ).alias("us_not_found"),
-        )
-        .filter(pl.col("us_not_found").is_not())
-        .select(_UNDEPRECATE_RDF_STATEMENT)
     )
 
 
@@ -275,7 +229,6 @@ def main() -> None:
     pl.concat(
         [
             _find_movie_via_search(sitemap_df),
-            _find_movie_found(sitemap_df),
             _find_show_via_itunes_season(itunes_df),
             _find_movie_via_itunes_redirect(itunes_df),
         ]

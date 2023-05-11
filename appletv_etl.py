@@ -21,9 +21,6 @@ from polars_utils import (
     zlib_decompress,
 )
 
-_APPLETV_TIMEOUT = 30.0
-_RETRY_COUNT = 10
-
 _USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/605.1.15 (KHTML, like Gecko) "
@@ -345,26 +342,6 @@ def _extract_itunes_id(text: str) -> int | None:
                             return int(m.group(1))
 
     return None
-
-
-def region_not_found(id: pl.Expr, region: pl.Expr, sitemap_type: _TYPE) -> pl.Expr:
-    return (
-        pl.format(
-            "https://tv.apple.com/{}/{}/{}",
-            region,
-            pl.lit(sitemap_type),
-            id,
-        )
-        .pipe(prepare_request, headers=_BROWSER_HEADERS)
-        .pipe(
-            request,
-            log_group="tv.apple.com",
-            timeout=_APPLETV_TIMEOUT,
-            retry_count=_RETRY_COUNT,
-        )
-        .pipe(response_text)
-        .str.contains('<div class="not-found">', literal=True)
-    )
 
 
 _JSONLD_LIMIT = 5_000
