@@ -1,6 +1,5 @@
 # pyright: strict
 
-import logging
 import time
 from functools import partial
 from typing import Callable, Iterable, ParamSpec, TypedDict, TypeVar
@@ -118,7 +117,6 @@ def _request_series(
     disable_tqdm = len(requests) <= 1
 
     response_codes: list[int | None] = [None] * len(requests)
-    elapsed_times: list[float | None] = [None] * len(requests)
 
     def request_with_retry(
         request_id: int,
@@ -146,7 +144,6 @@ def _request_series(
                 )
 
         elapsed_time = time.time() - start_time
-        elapsed_times[request_id] = elapsed_time
 
         if r.status_code in ok_statuses:
             pass
@@ -181,8 +178,6 @@ def _request_series(
                 request_id += 1
                 values.append(response)
 
-        elapsed_times_s = pl.Series(elapsed_times)
-        logging.info("Elapsed times: %s", elapsed_times_s.describe())
         session.close()
 
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
