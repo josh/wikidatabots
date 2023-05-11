@@ -559,9 +559,9 @@ def describe_frame(
         cfg.set_tbl_rows(-1)
         cfg.set_tbl_width_chars(500)
 
-        tqdm.write(f"## {source}", file=output)
-        tqdm.write(str(compute_stats(df, changes_df=changes_df)), file=output)
-        tqdm.write(f"\nshape: ({df.shape[0]:,}, {df.shape[1]:,})", file=output)
+        print(f"## {source}", file=output)
+        print(str(compute_stats(df, changes_df=changes_df)), file=output)
+        print(f"\nshape: ({df.shape[0]:,}, {df.shape[1]:,})", file=output)
 
         if changes_df is not None:
             changes = changes_df.row(0, named=True)
@@ -570,14 +570,14 @@ def describe_frame(
                 changes["removed"],
                 changes["updated"],
             )
-            tqdm.write(f"changes: +{added:,} -{removed:,} ~{updated:,}", file=output)
+            print(f"changes: +{added:,} -{removed:,} ~{updated:,}", file=output)
 
         mb = df.estimated_size("mb")
         if mb > 2:
-            tqdm.write(f"rss: {mb:,.1f}MB", file=output)
+            print(f"rss: {mb:,.1f}MB", file=output)
         else:
             kb = df.estimated_size("kb")
-            tqdm.write(f"rss: {kb:,.1f}KB", file=output)
+            print(f"rss: {kb:,.1f}KB", file=output)
 
     return df
 
@@ -613,4 +613,4 @@ def print_rdf_statements(
 
     # MARK: pl.LazyFrame.collect
     for (line,) in df.collect().iter_rows():
-        tqdm.write(line, file=file)
+        print(line, file=file)
