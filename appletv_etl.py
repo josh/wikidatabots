@@ -14,7 +14,6 @@ from polars_utils import (
     head,
     html_unescape,
     html_unescape_list,
-    limit,
     update_or_append,
     update_parquet,
     xml_extract,
@@ -335,7 +334,6 @@ def _extract_itunes_id(text: str) -> int | None:
     return None
 
 
-_JSONLD_LIMIT = 5_000
 _OUTDATED_JSONLD = pl.col("country").eq("us") & pl.col("retrieved_at").is_null()
 
 
@@ -349,7 +347,6 @@ def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
             pl.col("priority"),
             descending=True,
         )
-        .pipe(limit, _JSONLD_LIMIT, sample=False, desc="jsonld")
         .select("loc")
         .pipe(fetch_jsonld_columns)
     )
