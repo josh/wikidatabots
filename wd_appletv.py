@@ -106,6 +106,8 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         )
         .join(wd_df, on="id", how="left")
         .filter(pl.col("wd_exists").is_null())
+        .sort(pl.col("published_at"), descending=True)
+        .head(_SEARCH_LIMIT * 10)
         .pipe(sample, n=_SEARCH_LIMIT)
         .pipe(find_wd_movie_via_search)
         .filter(pl.col("results").arr.lengths() == 1)
