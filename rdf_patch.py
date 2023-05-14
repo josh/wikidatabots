@@ -213,18 +213,9 @@ def process_graph(
 
         elif predicate == PROV.wasDerivedFrom:
             assert isinstance(object, BNode)
-
-            source = defaultdict(list)
-
-            for predicate, object in _predicate_objects(graph, object):
-                predicate_prefix, predicate_local_name = _compute_qname(predicate)
-                assert predicate_prefix == "pr"
-                property = get_property_page(predicate_local_name)
-                reference_claim = property.newClaim(is_reference=True)
-                reference_claim.setTarget(_resolve_object(graph, object))
-                source[reference_claim.getID()].append(reference_claim)
-
-            claim.sources.append(source)
+            source = _resolve_object_bnode_reference(graph, object)
+            claim.sources.append(source._source)
+            mark_changed(item, claim, True)
 
         elif predicate == WIKIDATABOTS.editSummary:
             edit_summaries[item] = object.toPython()
@@ -338,114 +329,142 @@ def _resolve_object(
     | str
 ):
     if isinstance(object, URIRef):
-        prefix, local_name = _compute_qname(object)
-        assert prefix == "wd"
-        if local_name.startswith("Q"):
-            return get_item_page(local_name)
-        elif local_name.startswith("P"):
-            return get_property_page(local_name)
-        else:
-            raise NotImplementedError(f"Unknown item: {object}")
-
+        return _resolve_object_uriref(object)
     elif isinstance(object, BNode):
-        rdf_type = graph.value(object, RDF.type)
-
-        if rdf_type == WIKIBASE.QuantityValue:
-            if amount := graph.value(object, WIKIBASE.quantityAmount):
-                assert isinstance(amount, Literal)
-                assert amount.datatype == XSD.decimal
-            if upper_bound := graph.value(object, WIKIBASE.quantityUpperBound):
-                assert isinstance(upper_bound, Literal)
-                assert upper_bound.datatype == XSD.decimal
-            if lower_bound := graph.value(object, WIKIBASE.quantityLowerBound):
-                assert isinstance(lower_bound, Literal)
-                assert lower_bound.datatype == XSD.decimal
-            if unit := graph.value(object, WIKIBASE.quantityUnit):
-                assert isinstance(unit, URIRef)
-
-            data = {
-                "amount": None,
-                "upperBound": None,
-                "lowerBound": None,
-                "unit": "1",
-            }
-            if amount:
-                data["amount"] = f"+{amount}"
-            if upper_bound:
-                data["upperBound"] = f"+{upper_bound}"
-            if lower_bound:
-                data["lowerBound"] = f"+{lower_bound}"
-            if unit:
-                data["unit"] = str(unit)
-            return pywikibot.WbQuantity.fromWikibase(data, site=SITE)
-
-        elif rdf_type == WIKIBASE.TimeValue:
-            if value := graph.value(object, WIKIBASE.timeValue):
-                assert isinstance(value, Literal)
-                assert value.datatype is None or value.datatype == XSD.dateTime
-            if precision := graph.value(object, WIKIBASE.timePrecision):
-                assert isinstance(precision, Literal)
-                assert precision.datatype == XSD.integer
-                assert 0 <= precision.toPython() <= 14
-            if timezone := graph.value(object, WIKIBASE.timeTimezone):
-                assert isinstance(timezone, Literal)
-                assert timezone.datatype == XSD.integer
-            if calendar_model := graph.value(object, WIKIBASE.timeCalendarModel):
-                assert isinstance(calendar_model, URIRef)
-
-            data = {
-                "time": None,
-                "precision": 11,
-                "after": 0,
-                "before": 0,
-                "timezone": 0,
-                "calendarmodel": "https://www.wikidata.org/wiki/Q1985727",
-            }
-            if value:
-                value_dt = value.toPython()
-                if not isinstance(value_dt, datetime.datetime):
-                    value_dt = datetime.datetime.fromisoformat(value_dt)
-                data["time"] = value_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-            if precision:
-                data["precision"] = precision.toPython()
-            if timezone:
-                data["timezone"] = timezone.toPython()
-            if calendar_model:
-                data["calendarmodel"] = str(calendar_model)
-            return pywikibot.WbTime.fromWikibase(data, site=SITE)
-
-        elif rdf_type == WIKIBASE.Reference:
-            source = WbSource()
-
-            for pr_name, pr_object in _predicate_ns_objects(graph, object, PR):
-                ref = get_property_page(pr_name).newClaim(is_reference=True)
-                ref.setTarget(_resolve_object(graph, pr_object))
-                source.add_reference(pr_name, ref)
-
-            for prv_name, prv_object in _predicate_ns_objects(graph, object, PRV):
-                ref = get_property_page(prv_name).newClaim(is_reference=True)
-                ref.setTarget(_resolve_object(graph, prv_object))
-                source.add_reference(prv_name, ref)
-
-            return source
-
+        return _resolve_object_bnode(graph, object)
     elif isinstance(object, Literal):
-        if object.datatype is None:
-            return str(object)
-        elif object.datatype == XSD.dateTime or object.datatype == XSD.date:
-            data = {
-                "time": object.toPython().strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "precision": 11,
-                "after": 0,
-                "before": 0,
-                "timezone": 0,
-                "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
-            }
-            return pywikibot.WbTime.fromWikibase(data, site=SITE)
+        return _resolve_object_literal(object)
 
-        assert f"not implemented datatype: {object.datatype}"
 
-    raise NotImplementedError("not implemented")
+def _resolve_object_uriref(
+    object: URIRef,
+) -> pywikibot.ItemPage | pywikibot.PropertyPage:
+    prefix, local_name = _compute_qname(object)
+    assert prefix == "wd"
+    if local_name.startswith("Q"):
+        return get_item_page(local_name)
+    elif local_name.startswith("P"):
+        return get_property_page(local_name)
+    else:
+        raise NotImplementedError(f"Unknown item: {object}")
+
+
+def _resolve_object_bnode(
+    graph: Graph, object: BNode, rdf_type: URIRef | None = None
+) -> pywikibot.WbQuantity | pywikibot.WbTime | WbSource:
+    if not rdf_type:
+        rdf_type = graph.value(object, RDF.type)
+    assert rdf_type is None or isinstance(rdf_type, URIRef)
+
+    if rdf_type == WIKIBASE.TimeValue:
+        return _resolve_object_bnode_time_value(graph, object)
+    elif rdf_type == WIKIBASE.QuantityValue:
+        return _resolve_object_bnode_quantity_value(graph, object)
+    elif rdf_type == WIKIBASE.Reference:
+        return _resolve_object_bnode_reference(graph, object)
+    else:
+        raise NotImplementedError(f"Unknown bnode: {rdf_type}")
+
+
+def _resolve_object_bnode_time_value(graph: Graph, object: BNode) -> pywikibot.WbTime:
+    if value := graph.value(object, WIKIBASE.timeValue):
+        assert isinstance(value, Literal)
+        assert value.datatype is None or value.datatype == XSD.dateTime
+    if precision := graph.value(object, WIKIBASE.timePrecision):
+        assert isinstance(precision, Literal)
+        assert precision.datatype == XSD.integer
+        assert 0 <= precision.toPython() <= 14
+    if timezone := graph.value(object, WIKIBASE.timeTimezone):
+        assert isinstance(timezone, Literal)
+        assert timezone.datatype == XSD.integer
+    if calendar_model := graph.value(object, WIKIBASE.timeCalendarModel):
+        assert isinstance(calendar_model, URIRef)
+
+    data = {
+        "time": None,
+        "precision": 11,
+        "after": 0,
+        "before": 0,
+        "timezone": 0,
+        "calendarmodel": "https://www.wikidata.org/wiki/Q1985727",
+    }
+    if value:
+        value_dt = value.toPython()
+        if not isinstance(value_dt, datetime.datetime):
+            value_dt = datetime.datetime.fromisoformat(value_dt)
+        data["time"] = value_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if precision:
+        data["precision"] = precision.toPython()
+    if timezone:
+        data["timezone"] = timezone.toPython()
+    if calendar_model:
+        data["calendarmodel"] = str(calendar_model)
+    return pywikibot.WbTime.fromWikibase(data, site=SITE)
+
+
+def _resolve_object_bnode_quantity_value(
+    graph: Graph, object: BNode
+) -> pywikibot.WbQuantity:
+    if amount := graph.value(object, WIKIBASE.quantityAmount):
+        assert isinstance(amount, Literal)
+        assert amount.datatype == XSD.decimal
+    if upper_bound := graph.value(object, WIKIBASE.quantityUpperBound):
+        assert isinstance(upper_bound, Literal)
+        assert upper_bound.datatype == XSD.decimal
+    if lower_bound := graph.value(object, WIKIBASE.quantityLowerBound):
+        assert isinstance(lower_bound, Literal)
+        assert lower_bound.datatype == XSD.decimal
+    if unit := graph.value(object, WIKIBASE.quantityUnit):
+        assert isinstance(unit, URIRef)
+
+    data = {
+        "amount": None,
+        "upperBound": None,
+        "lowerBound": None,
+        "unit": "1",
+    }
+    if amount:
+        data["amount"] = f"+{amount}"
+    if upper_bound:
+        data["upperBound"] = f"+{upper_bound}"
+    if lower_bound:
+        data["lowerBound"] = f"+{lower_bound}"
+    if unit:
+        data["unit"] = str(unit)
+    return pywikibot.WbQuantity.fromWikibase(data, site=SITE)
+
+
+def _resolve_object_bnode_reference(graph: Graph, object: BNode) -> WbSource:
+    source = WbSource()
+
+    for pr_name, pr_object in _predicate_ns_objects(graph, object, PR):
+        ref = get_property_page(pr_name).newClaim(is_reference=True)
+        ref.setTarget(_resolve_object(graph, pr_object))
+        source.add_reference(pr_name, ref)
+
+    for prv_name, prv_object in _predicate_ns_objects(graph, object, PRV):
+        ref = get_property_page(prv_name).newClaim(is_reference=True)
+        ref.setTarget(_resolve_object(graph, prv_object))
+        source.add_reference(prv_name, ref)
+
+    return source
+
+
+def _resolve_object_literal(object: Literal) -> str | pywikibot.WbTime:
+    if object.datatype is None:
+        return str(object)
+    elif object.datatype == XSD.dateTime or object.datatype == XSD.date:
+        data = {
+            "time": object.toPython().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "precision": 11,
+            "after": 0,
+            "before": 0,
+            "timezone": 0,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+        }
+        return pywikibot.WbTime.fromWikibase(data, site=SITE)
+    else:
+        raise NotImplementedError(f"not implemented datatype: {object.datatype}")
 
 
 def _graph_empty_node(graph: Graph, object: AnyRDFObject) -> bool:
