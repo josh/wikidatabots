@@ -24,13 +24,6 @@ SELECT ?item ?opencritic_id ?statement
     OPTIONAL { ?statement pq:P459 wd:Q114712322. }
     OPTIONAL { ?statement pq:P585 ?point_in_time. }
     OPTIONAL { ?statement pq:P7887 ?number_of_reviews. }
-
-    OPTIONAL {
-      ?statement prov:wasOnlyDerivedFrom ?reference.
-      ?reference pr:P2864 ?opencritic_id.
-      OPTIONAL { ?reference pr:P248 wd:Q21039459. }
-      OPTIONAL { ?reference pr:P813 ?retrieved. }
-    }
   }
 }
 """
