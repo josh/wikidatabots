@@ -36,6 +36,7 @@ P = Namespace("http://www.wikidata.org/prop/")
 PQ = Namespace("http://www.wikidata.org/prop/qualifier/")
 PQE = Namespace("http://www.wikidata.org/prop/qualifier/exclusive/")
 PQV = Namespace("http://www.wikidata.org/prop/qualifier/value/")
+PQVE = Namespace("http://www.wikidata.org/prop/qualifier/value-exclusive/")
 PR = Namespace("http://www.wikidata.org/prop/reference/")
 PRV = Namespace("http://www.wikidata.org/prop/reference/value/")
 PS = Namespace("http://www.wikidata.org/prop/statement/")
@@ -66,6 +67,7 @@ NS_MANAGER.bind("psv", PSV)
 NS_MANAGER.bind("pq", PQ)
 NS_MANAGER.bind("pqe", PQE)
 NS_MANAGER.bind("pqv", PQV)
+NS_MANAGER.bind("pqve", PQVE)
 NS_MANAGER.bind("pr", PR)
 NS_MANAGER.bind("prv", PRV)
 NS_MANAGER.bind("wikidatabots", WIKIDATABOTS)
@@ -90,6 +92,7 @@ PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
 PREFIX pqe: <http://www.wikidata.org/prop/qualifier/exclusive/>
 PREFIX pqn: <http://www.wikidata.org/prop/qualifier/value-normalized/>
 PREFIX pqv: <http://www.wikidata.org/prop/qualifier/value/>
+PREFIX pqve: <http://www.wikidata.org/prop/qualifier/value-exclusive/>
 PREFIX pr: <http://www.wikidata.org/prop/reference/>
 PREFIX prn: <http://www.wikidata.org/prop/reference/value-normalized/>
 PREFIX prv: <http://www.wikidata.org/prop/reference/value/>
@@ -182,7 +185,7 @@ def process_graph(
             did_change = _claim_append_qualifer(claim, property, target)
             mark_changed(item, claim, did_change)
 
-        elif predicate_prefix == "pqe":
+        elif predicate_prefix == "pqe" or predicate_prefix == "pqve":
             property = get_property_page(predicate_local_name)
 
             if _graph_empty_node(graph, object):
