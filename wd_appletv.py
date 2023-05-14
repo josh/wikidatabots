@@ -3,7 +3,7 @@
 import polars as pl
 
 from appletv_etl import LOC_SHOW_PATTERN, url_extract_id, valid_appletv_id
-from polars_utils import print_rdf_statements, sample
+from polars_utils import print_rdf_statements, weighted_sample
 from sparql import sparql, sparql_batch
 from wikidata import is_blocked_item
 
@@ -107,8 +107,7 @@ def _find_movie_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         .join(wd_df, on="id", how="left")
         .filter(pl.col("wd_exists").is_null())
         .sort(pl.col("published_at"), descending=True)
-        .head(_SEARCH_LIMIT * 10)
-        .pipe(sample, n=_SEARCH_LIMIT)
+        .pipe(weighted_sample, n=_SEARCH_LIMIT)
         .pipe(find_wd_movie_via_search)
         .filter(pl.col("results").arr.lengths() == 1)
         .with_columns(pl.col("results").arr.first().alias("result"))
