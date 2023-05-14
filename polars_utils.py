@@ -11,6 +11,7 @@ import zlib
 from functools import partial
 from typing import Any, Callable, Iterator, TextIO, TypedDict
 
+import numpy as np
 import polars as pl
 from tqdm import tqdm
 
@@ -115,6 +116,29 @@ def pyformat(
 
 def now() -> pl.Expr:
     return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
+
+
+def position_weights() -> pl.Expr:
+    size = pl.count()
+    row_nr = pl.arange(1, size + 1)
+    cumsum = (size * (size + 1)) / 2
+    weights = row_nr / cumsum
+    return weights.reverse()
+
+
+def _weighted_random(s: pl.Series) -> pl.Series:
+    size = len(s)
+    values = np.random.choice(size, size=size, replace=False, p=s)
+    return pl.Series(values=values, dtype=pl.UInt32)
+
+
+def weighted_random(weights: pl.Expr) -> pl.Expr:
+    return weights.map(_weighted_random, return_dtype=pl.UInt32)
+
+
+def weighted_sample(df: pl.LazyFrame, n: int) -> pl.LazyFrame:
+    weighted_args = position_weights().pipe(weighted_random)
+    return df.sort(by=weighted_args).head(n=n)
 
 
 # TODO: Try to upstream this to polars
