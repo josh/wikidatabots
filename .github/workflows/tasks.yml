@@ -10,41 +10,11 @@ permissions:
   contents: read
 
 env:
+  RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
   TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  pywikibot:
-    runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        property:
-          - "wd_opencritic"
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run script
-        run: |
-          python "$PROPERTY_ID.py"
-        env:
-          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
-          PROPERTY_ID: ${{ matrix.property }}
-          WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
-
   rdf_patch:
     runs-on: ubuntu-latest
     concurrency: rdf_patch_${{ matrix.script }}
@@ -55,6 +25,7 @@ jobs:
         script:
           - "wd_appletv"
           - "wd_itunes"
+          - "wd_opencritic"
           - "wd_plex"
           - "wd_tmdb"
 
