@@ -211,10 +211,13 @@ def process_graph(
             did_change = _claim_set_rank(claim, object)
             mark_changed(item, claim, did_change)
 
-        elif predicate == PROV.wasDerivedFrom:
+        elif predicate == PROV.wasDerivedFrom or predicate == PROV.wasOnlyDerivedFrom:
             assert isinstance(object, BNode)
             source = _resolve_object_bnode_reference(graph, object)
-            claim.sources.append(source._source)
+            if predicate == PROV.wasOnlyDerivedFrom:
+                claim.sources = [source._source]
+            else:
+                claim.sources.append(source._source)
             mark_changed(item, claim, True)
 
         elif predicate == WIKIDATABOTS.editSummary:
