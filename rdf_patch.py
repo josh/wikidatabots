@@ -157,11 +157,13 @@ def process_graph(
             property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
 
             claim: pywikibot.Claim = property.newClaim()
+            if predicate_local_name not in item.claims:
+                item.claims[predicate_local_name] = []
             item.claims[predicate_local_name].append(claim)
             mark_changed(item, claim)
 
-            for predicate, object in _predicate_objects(graph, object):
-                visit_wds_subject(item, claim, predicate, object)
+            for predicate, p_object in _predicate_objects(graph, object):
+                visit_wds_subject(item, claim, predicate, p_object)
 
         elif predicate == WIKIDATABOTS.editSummary:
             edit_summaries[item] = object.toPython()
