@@ -133,6 +133,7 @@ def _weighted_random(s: pl.Series) -> pl.Series:
 
 
 def weighted_random(weights: pl.Expr) -> pl.Expr:
+    # MARK: pl.Expr.map
     return weights.map(_weighted_random, return_dtype=pl.UInt32)
 
 
