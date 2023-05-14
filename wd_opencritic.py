@@ -52,7 +52,8 @@ _ADD_STATEMENT_TEMPLATE = """
     pr:P248 wd:Q21039459;
     pr:P2864 "{}";
     pr:P813 "{}"^^xsd:date
-  ]
+  ];
+  wikidatabots:editSummary "Add OpenCritic review score"
 ].
 """
 
@@ -71,7 +72,8 @@ _UPDATE_STATEMENT_TEMPLATE = """
     pr:P248 wd:Q21039459;
     pr:P2864 "{}";
     pr:P813 "{}"^^xsd:date
-  ].
+  ];
+  wikidatabots:editSummary "Update OpenCritic review score".
 """
 
 
