@@ -177,7 +177,7 @@ _RECENTLY_REVIEWED = pl.col("recently_reviewed")
 
 def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.join(_fetch_recently_reviewed(), on="id", how="left")
+        df.join(_fetch_recently_reviewed(), on="id", how="outer")
         .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
         .select("id")
         .with_columns(
