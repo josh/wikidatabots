@@ -255,7 +255,9 @@ def find_tmdb_ids_not_found(
     )
 
 
-def main() -> None:
+def _main() -> None:
+    pl.enable_string_cache(True)
+
     pl.concat(
         [
             find_tmdb_ids_via_imdb_id("movie"),
@@ -270,4 +272,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _main()

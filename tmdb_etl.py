@@ -339,7 +339,9 @@ def _insert_tmdb_export_flag(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     )
 
 
-def main() -> None:
+def _main() -> None:
+    pl.enable_string_cache(True)
+
     tmdb_type = sys.argv[1]
     assert tmdb_type in _TMDB_TYPES
 
@@ -354,4 +356,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _main()

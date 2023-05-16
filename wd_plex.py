@@ -100,10 +100,11 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
     )
 
 
-def main() -> None:
-    with pl.StringCache():
-        find_plex_guids_via_tmdb_id().pipe(print_rdf_statements)
+def _main() -> None:
+    pl.enable_string_cache(True)
+
+    find_plex_guids_via_tmdb_id().pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":
-    main()
+    _main()

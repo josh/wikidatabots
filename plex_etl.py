@@ -355,13 +355,14 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     return plex_df.pipe(update_or_append, df_new, on="key").pipe(_sort)
 
 
-def main() -> None:
+def _main() -> None:
+    pl.enable_string_cache(True)
+
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         return df.pipe(_discover_guids).pipe(_backfill_metadata)
 
-    with pl.StringCache():
-        update_parquet("plex.parquet", update, key="key")
+    update_parquet("plex.parquet", update, key="key")
 
 
 if __name__ == "__main__":
-    main()
+    _main()

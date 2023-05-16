@@ -42,7 +42,9 @@ def _itunes_from_appletv_ids(
     )
 
 
-def main() -> None:
+def _main() -> None:
+    pl.enable_string_cache(True)
+
     itunes_df = pl.scan_parquet(
         "s3://wikidatabots/itunes.parquet",
         storage_options={"anon": True},
@@ -64,4 +66,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _main()

@@ -77,7 +77,9 @@ _UPDATE_STATEMENT_TEMPLATE = """
 """
 
 
-def main() -> None:
+def _main() -> None:
+    pl.enable_string_cache(True)
+
     wd_df = (
         sparql(_QUERY, schema=_QUERY_SCHEMA)
         .unique("item", keep="none")
@@ -150,4 +152,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    _main()

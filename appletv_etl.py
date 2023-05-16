@@ -373,7 +373,9 @@ def _gc(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.filter(_GC.is_not())
 
 
-def main() -> None:
+def _main() -> None:
+    pl.enable_string_cache(True)
+
     sitemap_type = sys.argv[1]
     assert sitemap_type in _TYPES
 
@@ -385,9 +387,8 @@ def main() -> None:
             .pipe(_gc)
         )
 
-    with pl.StringCache():
-        update_parquet("appletv.parquet", update, key="loc")
+    update_parquet("appletv.parquet", update, key="loc")
 
 
 if __name__ == "__main__":
-    main()
+    _main()

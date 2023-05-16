@@ -507,7 +507,9 @@ _COLUMN_ORDER: list[str] = [
 ]
 
 
-def main() -> None:
+def _main() -> None:
+    pl.enable_string_cache(True)
+
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         return (
             df.select(_COLUMN_ORDER)
@@ -519,9 +521,8 @@ def main() -> None:
             .select(_COLUMN_ORDER)
         )
 
-    with pl.StringCache():
-        update_parquet("itunes.parquet", update, key="id")
+    update_parquet("itunes.parquet", update, key="id")
 
 
 if __name__ == "__main__":
-    main()
+    _main()
