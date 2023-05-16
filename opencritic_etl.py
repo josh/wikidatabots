@@ -49,8 +49,9 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
             request,
             log_group=_LOG_GROUP,
             min_time=_API_RPS,
-            ok_statuses={200, 400},
             retry_count=_API_RETRY_COUNT,
+            ok_statuses={200, 400},
+            bad_statuses={429},
         )
         # MARK: pl.Expr.map
         .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
@@ -154,6 +155,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
                 log_group=_LOG_GROUP,
                 min_time=_API_RPS,
                 retry_count=_API_RETRY_COUNT,
+                bad_statuses={429},
             )
             .alias("response")
             .pipe(response_text)
