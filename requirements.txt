@@ -7,7 +7,7 @@ polars==0.17.13
 pytest==7.3.1
 pywikibot==8.1.2
 rdflib===6.3.2
-requests==2.30.0
+requests==2.31.0
 s3fs==2023.5.0
 tqdm==4.65.0
 wikitextparser==0.51.2
