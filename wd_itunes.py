@@ -37,7 +37,7 @@ def _itunes_from_appletv_ids(
         sparql(_APPLETV_QUERY, columns=["item", "appletv_id"])
         .join(appletv_df, on="appletv_id", how="left")
         .join(itunes_df, left_on="itunes_id", right_on="id", how="left")
-        .filter(pl.col("any_country"))
+        .filter(pl.col("us_country"))
         .select(_ADD_RDF_STATEMENT)
     )
 
