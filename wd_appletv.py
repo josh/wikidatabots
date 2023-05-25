@@ -145,7 +145,7 @@ def _find_movie_via_itunes_redirect(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
     wd_df = sparql(_ITUNES_QUERY, schema={"item": pl.Utf8, "itunes_id": pl.UInt64})
 
     itunes_df = (
-        itunes_df.filter((pl.col("kind") == "feature-movie") & pl.col("any_country"))
+        itunes_df.filter((pl.col("kind") == "feature-movie") & pl.col("us_country"))
         .with_columns(
             pl.col("redirect_url").pipe(url_extract_id).alias("appletv_id"),
         )
@@ -194,7 +194,7 @@ def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
 
     itunes_seasons_df = (
         itunes_df.filter(pl.col("type") == "TV Season")
-        .filter(pl.col("any_country"))
+        .filter(pl.col("us_country"))
         .select(
             pl.col("id").alias("itunes_season_id"),
             pl.col("redirect_url")

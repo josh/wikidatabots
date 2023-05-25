@@ -48,7 +48,7 @@ def _main() -> None:
     itunes_df = pl.scan_parquet(
         "s3://wikidatabots/itunes.parquet",
         storage_options={"anon": True},
-    ).select(["id", "any_country", "us_country"])
+    ).select(["id", "us_country"])
 
     appletv_df = pl.scan_parquet(
         "s3://wikidatabots/appletv/movie.parquet",
