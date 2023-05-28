@@ -276,6 +276,7 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
                 request,
                 log_group="files.tmdb.org/p/exports",
                 retry_count=_API_RETRY_COUNT,
+                bad_statuses={403},
             )
             .struct.field("data")
             .pipe(gzip_decompress)
