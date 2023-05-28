@@ -179,7 +179,10 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
 
-def tmdb_exists(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
+_EXISTS_TMDB_TYPE = Literal["movie", "tv", "person", "collection"]
+
+
+def tmdb_exists(expr: pl.Expr, tmdb_type: _EXISTS_TMDB_TYPE) -> pl.Expr:
     return (
         pl.format("https://api.themoviedb.org/3/{}/{}", pl.lit(tmdb_type), expr)
         .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})

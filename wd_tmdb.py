@@ -244,12 +244,21 @@ def find_tmdb_ids_not_found(
     query = _NOT_DEPRECATED_QUERY.replace("P0000", _TMDB_TYPE_TO_WD_PID[tmdb_type])
     df = sparql(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
 
+    if tmdb_type == "movie":
+        exists_expr = (
+            tmdb_exists(pl.col("tmdb_id"), "movie")
+            .or_(tmdb_exists(pl.col("tmdb_id"), "collection"))
+            .alias("exists")
+        )
+    else:
+        exists_expr = tmdb_exists(pl.col("tmdb_id"), tmdb_type).alias("exists")
+
     return (
         df.join(tmdb_df, on="id", how="left")
         .filter(pl.col("success").is_not())
         # .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
-        .with_columns(pl.col("tmdb_id").pipe(tmdb_exists, tmdb_type))
+        .with_columns(exists_expr)
         .filter(pl.col("exists").is_not())
         .select(rdf_statement)
     )

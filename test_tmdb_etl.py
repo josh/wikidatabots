@@ -94,6 +94,11 @@ def test_tmdb_exists() -> None:
     df3 = df.with_columns(pl.Series("exists", [], dtype=pl.Boolean))
     assert_frame_equal(df2, df3)
 
+    df = pl.LazyFrame({"tmdb_id": [2, 87255]})
+    df2 = df.with_columns(pl.col("tmdb_id").pipe(tmdb_exists, "collection"))
+    df3 = df.with_columns(pl.Series("exists", [False, True]))
+    assert_frame_equal(df2, df3)
+
 
 def test_tmdb_external_ids() -> None:
     ids = pl.Series("id", [1, 2, 3, 4], dtype=pl.UInt32)
