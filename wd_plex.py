@@ -77,9 +77,9 @@ def _wikidata_all_tmdb_ids() -> pl.LazyFrame:
 
 _RDF_STATEMENT = pl.format(
     '<{}> wdt:P11460 "{}" ; '
-    'wikidatabots:editSummary "Add Plex GUID claim via associated {}" .',
+    'wikidatabots:editSummary "Add Plex key via associated {}" .',
     pl.col("item"),
-    pl.col("guid"),
+    pl.col("hexkey"),
     pl.col("source_label"),
 ).alias("rdf_statement")
 
@@ -88,6 +88,9 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
     return (
         _wikidata_all_tmdb_ids()
         .join(_plex_guids(), on=["type", "tmdb_id"], how="inner")
+        .with_columns(
+            pl.col("key").bin.encode("hex").alias("hexkey"),
+        )
         .with_columns(
             pl.when(pl.col("type") == "movie")
             .then(pl.lit("TMDb movie ID"))
