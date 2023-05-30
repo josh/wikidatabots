@@ -3,7 +3,7 @@ beautifulsoup4==4.12.2
 hypothesis==6.75.6
 lxml==4.9.2
 numpy==1.24.3
-polars==0.17.13
+polars==0.18.0
 pytest==7.3.1
 pywikibot==8.1.2
 rdflib===6.3.2
