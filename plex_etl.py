@@ -201,6 +201,10 @@ def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex")
 
 
+def decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
+    return _decode_plex_guid_key(expr)
+
+
 def _decode_plex_any_key(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_ANY_KEY_RE, 3).str.decode("hex")
 

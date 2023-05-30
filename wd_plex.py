@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from plex_etl import GUID_TYPE
+from plex_etl import GUID_TYPE, decode_plex_guid_key
 from polars_utils import print_rdf_statements
 from sparql import sparql
 
@@ -99,10 +99,40 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
     )
 
 
+_LEGACY_FORMAT_QUERY = """
+SELECT ?statement ?guid WHERE {
+  ?statement ps:P11460 ?guid.
+  FILTER(STRSTARTS(?guid, "plex://"))
+}
+"""
+
+_RDF_MIGRATE_STATEMENT = pl.format(
+    '<{}> ps:P11460 "{}" ; ' 'wikidatabots:editSummary "Migrate Plex key format" .',
+    pl.col("statement"),
+    pl.col("hexkey"),
+).alias("rdf_statement")
+
+
+def find_plex_guids_in_legacy_format() -> pl.LazyFrame:
+    return (
+        sparql(_LEGACY_FORMAT_QUERY, schema={"statement": pl.Utf8, "guid": pl.Utf8})
+        .with_columns(
+            pl.col("guid").pipe(decode_plex_guid_key).bin.encode("hex").alias("hexkey")
+        )
+        .filter(pl.col("hexkey").is_not_null())
+        .select(_RDF_MIGRATE_STATEMENT)
+    )
+
+
 def _main() -> None:
     pl.enable_string_cache(True)
 
-    find_plex_guids_via_tmdb_id().pipe(print_rdf_statements)
+    pl.concat(
+        [
+            find_plex_guids_in_legacy_format(),
+            find_plex_guids_via_tmdb_id(),
+        ]
+    ).pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":
