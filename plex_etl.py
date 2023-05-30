@@ -12,6 +12,7 @@ from sparql import sparql
 GUID_TYPE = Literal["episode", "movie", "season", "show"]
 
 _GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
+_ANY_KEY_RE = r"(plex://(episode|movie|season|show)/)?([a-f0-9]{24})"
 
 _PLEX_API_RETRY_COUNT = 3
 
@@ -97,8 +98,7 @@ def wikidata_plex_guids() -> pl.LazyFrame:
             columns=["guid"],
         )
         .select(
-            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
-            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
+            pl.col("guid").pipe(_decode_plex_any_key).alias("key"),
         )
         .drop_nulls()
         .unique(subset="key")
@@ -199,6 +199,10 @@ def wikidata_search_guids() -> pl.LazyFrame:
 
 def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex")
+
+
+def _decode_plex_any_key(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(_ANY_KEY_RE, 3).str.decode("hex")
 
 
 def _decode_plex_guid_type(expr: pl.Expr) -> pl.Expr:

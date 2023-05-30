@@ -26,7 +26,7 @@ def teardown_module() -> None:
 
 def test_wikidata_plex_guids() -> None:
     ldf = wikidata_plex_guids()
-    assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
+    assert ldf.schema == {"key": pl.Binary}
     assert len(ldf.collect()) > 0
 
 
