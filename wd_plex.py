@@ -2,20 +2,16 @@
 
 import polars as pl
 
-from plex_etl import GUID_TYPE, encode_plex_guids
+from plex_etl import GUID_TYPE
 from polars_utils import print_rdf_statements
 from sparql import sparql
 
 
 def _plex_guids() -> pl.LazyFrame:
-    return (
-        pl.scan_parquet(
-            "s3://wikidatabots/plex.parquet",
-            storage_options={"anon": True},
-        )
-        .select(["type", "tmdb_id", "key"])
-        .pipe(encode_plex_guids)
-    )
+    return pl.scan_parquet(
+        "s3://wikidatabots/plex.parquet",
+        storage_options={"anon": True},
+    ).select(["type", "tmdb_id", "key"])
 
 
 _TMDB_MOVIE_QUERY = """

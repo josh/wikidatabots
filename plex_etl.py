@@ -334,16 +334,6 @@ def _extract_guid(pattern: str) -> pl.Expr:
     )
 
 
-def encode_plex_guids(df: pl.LazyFrame) -> pl.LazyFrame:
-    return df.with_columns(
-        pl.format(
-            "plex://{}/{}",
-            pl.col("type"),
-            pl.col("key").bin.encode("hex"),
-        ).alias("guid")
-    )
-
-
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     df_new = pl.concat(
         [

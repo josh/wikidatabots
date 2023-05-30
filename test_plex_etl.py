@@ -7,7 +7,6 @@ import pytest
 from polars.testing import assert_frame_equal
 
 from plex_etl import (
-    encode_plex_guids,
     fetch_metadata_guids,
     plex_search_guids,
     wikidata_plex_guids,
@@ -29,42 +28,6 @@ def test_wikidata_plex_guids() -> None:
     ldf = wikidata_plex_guids()
     assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
     assert len(ldf.collect()) > 0
-
-
-def test_encode_plex_guids() -> None:
-    df1 = pl.LazyFrame(
-        {
-            "type": pl.Series(
-                ["episode", "movie", "season", "show"], dtype=pl.Categorical
-            ),
-            "key": [
-                b"]\x9c\x11\x15N\xef\xaa\x00\x1fcd\xe0",
-                b"]whhoE!\x00\x1e\xaa\\\xac",
-                b"]\x9c\t\xbd<?\x87\x00\x1f6\x13D",
-                b"]\x9c\x08TN\xef\xaa\x00\x1f]\xaaP",
-            ],
-        }
-    )
-    df2 = pl.LazyFrame(
-        {
-            "type": pl.Series(
-                ["episode", "movie", "season", "show"], dtype=pl.Categorical
-            ),
-            "key": [
-                b"]\x9c\x11\x15N\xef\xaa\x00\x1fcd\xe0",
-                b"]whhoE!\x00\x1e\xaa\\\xac",
-                b"]\x9c\t\xbd<?\x87\x00\x1f6\x13D",
-                b"]\x9c\x08TN\xef\xaa\x00\x1f]\xaaP",
-            ],
-            "guid": [
-                "plex://episode/5d9c11154eefaa001f6364e0",
-                "plex://movie/5d7768686f4521001eaa5cac",
-                "plex://season/5d9c09bd3c3f87001f361344",
-                "plex://show/5d9c08544eefaa001f5daa50",
-            ],
-        }
-    )
-    assert_frame_equal(encode_plex_guids(df1), df2)
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
