@@ -273,7 +273,7 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
                     "id": pl.col("id")
                     .pipe(groups_of, n=batch_size)
                     .cast(pl.List(pl.Utf8))
-                    .arr.join(separator=","),
+                    .list.join(separator=","),
                     "country": country,
                 },
             )

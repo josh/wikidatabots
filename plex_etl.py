@@ -149,10 +149,10 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             .str.json_extract(_SEARCH_METACONTAINER_JSON_DTYPE)
             .struct.field("MediaContainer")
             .struct.field("SearchResults")
-            .arr.eval(
+            .list.eval(
                 pl.element()
                 .struct.field("SearchResult")
-                .arr.eval(pl.element().struct.field("Metadata").struct.field("guid"))
+                .list.eval(pl.element().struct.field("Metadata").struct.field("guid"))
                 .flatten()
             )
             .flatten()
@@ -296,7 +296,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 .str.json_extract(_METACONTAINER_JSON_DTYPE)
                 .struct.field("MediaContainer")
                 .struct.field("Metadata")
-                .arr.first()
+                .list.first()
                 .alias("metadata")
             ),
         )
@@ -312,7 +312,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             (
                 pl.col("metadata")
                 .struct.field("Similar")
-                .arr.eval(pl.element().struct.field("guid"))
+                .list.eval(pl.element().struct.field("guid"))
                 .alias("similar_guids")
             ),
         )
@@ -323,14 +323,14 @@ def _extract_guid(pattern: str) -> pl.Expr:
     return (
         pl.col("metadata")
         .struct.field("Guid")
-        .arr.eval(
+        .list.eval(
             pl.element()
             .struct.field("id")
             .str.extract(pattern, 1)
             .cast(pl.UInt32)
             .drop_nulls(),
         )
-        .arr.first()
+        .list.first()
     )
 
 
