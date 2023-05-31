@@ -84,7 +84,6 @@ def plex_library_guids() -> pl.LazyFrame:
         .unnest("item")
         .select(
             pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
-            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
         )
         .drop_nulls()
         .unique(subset="key")
@@ -161,7 +160,6 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
         .unique("guid")
         .select(
             pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
-            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
         )
         .drop_nulls()
         .unique(subset="key")

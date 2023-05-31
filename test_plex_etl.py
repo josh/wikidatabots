@@ -72,13 +72,13 @@ def test_fetch_metadata_guids() -> None:
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_plex_search_guids() -> None:
     df = pl.LazyFrame({"query": ["Top Gun"]}).pipe(plex_search_guids).collect()
-    assert df.schema == {"key": pl.Binary, "type": pl.Categorical}
+    assert df.schema == {"key": pl.Binary}
     assert len(df) > 0
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_wikidata_search_guids() -> None:
     ldf = wikidata_search_guids()
-    assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
+    assert ldf.schema == {"key": pl.Binary}
     df = ldf.collect()
     assert len(df) > 0
