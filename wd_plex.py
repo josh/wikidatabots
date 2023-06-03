@@ -132,7 +132,7 @@ def _main() -> None:
             find_plex_guids_in_legacy_format(),
             find_plex_guids_via_tmdb_id(),
         ]
-    ).pipe(print_rdf_statements)
+    ).pipe(print_rdf_statements, sample=False)
 
 
 if __name__ == "__main__":
