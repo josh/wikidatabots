@@ -105,13 +105,13 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
             (
                 pl.col("data")
                 .struct.field("imdb_id")
-                .pipe(extract_imdb_numeric_id, tmdb_type)
+                .pipe(extract_imdb_numeric_id, tmdb_type)  # type: ignore
             ),
             pl.col("data").struct.field("tvdb_id").alias("tvdb_id"),
             (
                 pl.col("data")
                 .struct.field("wikidata_id")
-                .pipe(_extract_wikidata_numeric_id)
+                .pipe(_extract_wikidata_numeric_id)  # type: ignore
             ),
         )
         .drop(["response", "data"])

@@ -96,13 +96,13 @@ def pyformat(
     packed_expr: pl.Expr
     if len(args) > 0 and len(kwargs) > 0:
         packed_expr = pl.struct(
-            args=pl.concat_list(*args),
-            kwargs=pl.struct(**kwargs),
+            args=pl.concat_list(*args),  # type: ignore
+            kwargs=pl.struct(**kwargs),  # type: ignore
         )
     elif len(args) > 0 and len(kwargs) == 0:
-        packed_expr = pl.struct(args=pl.concat_list(*args))
+        packed_expr = pl.struct(args=pl.concat_list(*args))  # type: ignore
     elif len(args) == 0 and len(kwargs) > 0:
-        packed_expr = pl.struct(kwargs=pl.struct(**kwargs))
+        packed_expr = pl.struct(kwargs=pl.struct(**kwargs))  # type: ignore
     else:
         raise ValueError("must provide at least one argument")
 

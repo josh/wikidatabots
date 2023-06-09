@@ -66,11 +66,11 @@ def find_wd_movie_via_search(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.with_columns(
         pl.format(
             _SEARCH_QUERY,
-            pl.col("title").pipe(_quote_str),
-            pl.col("directors").pipe(_quote_arr_str),
+            pl.col("title").pipe(_quote_str),  # type: ignore
+            pl.col("directors").pipe(_quote_arr_str),  # type: ignore
             pl.col("published_at").dt.year(),
             pl.col("published_at").dt.year() + 1,
-            pl.col("title").pipe(_quote_str),
+            pl.col("title").pipe(_quote_str),  # type: ignore
         )
         .pipe(sparql_batch, columns=["item", "has_appletv"])
         .alias("results"),

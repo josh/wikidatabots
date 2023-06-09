@@ -88,7 +88,7 @@ def test_request() -> None:
                 .pipe(response_header_value, name="Content-Type")
                 .alias("content_type")
             ),
-            pl.col("response").pipe(response_text),
+            pl.col("response").pipe(response_text),  # type: ignore
         )
         .with_columns(
             pl.col("response_text")
