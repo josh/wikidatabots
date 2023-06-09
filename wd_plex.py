@@ -1,5 +1,7 @@
 # pyright: strict
 
+from datetime import datetime
+
 import polars as pl
 
 from plex_etl import GUID_TYPE, decode_plex_guid_key
@@ -11,7 +13,7 @@ def _plex_guids() -> pl.LazyFrame:
     return pl.scan_parquet(
         "s3://wikidatabots/plex.parquet",
         storage_options={"anon": True},
-    ).select(["type", "tmdb_id", "key"])
+    ).select(["type", "tmdb_id", "key", "retrieved_at"])
 
 
 _TMDB_MOVIE_QUERY = """
@@ -79,6 +81,9 @@ _RDF_STATEMENT = pl.format(
     pl.col("source_label"),
 ).alias("rdf_statement")
 
+# TODO: Restrict to 2 weeks
+_FRESH_METADATA = pl.col("retrieved_at").dt.offset_by("50w") >= datetime.now()
+
 
 def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
     return (
@@ -95,6 +100,7 @@ def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
             .otherwise(None)
             .alias("source_label")
         )
+        .filter(_FRESH_METADATA)
         .select(_RDF_STATEMENT)
     )
 
