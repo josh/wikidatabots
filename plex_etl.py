@@ -166,7 +166,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-_TITLE_QUERY = """
+_MOVIE_TITLE_QUERY = """
 SELECT ?title WHERE {
   SERVICE bd:sample {
     ?item wdt:P4947 _:b1.
@@ -179,17 +179,38 @@ SELECT ?title WHERE {
 }
 """
 
-
-def _wd_random_titles(limit: int) -> pl.LazyFrame:
-    return sparql(_TITLE_QUERY.replace("?limit", str(limit)), columns=["title"])
-
+_TV_TITLE_QUERY = """
+SELECT ?title WHERE {
+  SERVICE bd:sample {
+    ?item wdt:P4983 _:b1.
+    bd:serviceParam bd:sample.limit ?limit ;
+      bd:sample.sampleType "RANDOM".
+  }
+  ?item wdt:P1476 ?title.
+  OPTIONAL { ?item wdt:P11460 ?plex_guid. }
+  FILTER(!(BOUND(?plex_guid)))
+}
+"""
 
 _SEARCH_LIMIT = 250
 
 
-def wikidata_search_guids() -> pl.LazyFrame:
+def _wd_random_titles(limit: int, tmdb_type: Literal["movie", "tv"]) -> pl.LazyFrame:
+    if tmdb_type == "movie":
+        query = _MOVIE_TITLE_QUERY
+    elif tmdb_type == "tv":
+        query = _TV_TITLE_QUERY
+    return sparql(query.replace("?limit", str(limit)), columns=["title"])
+
+
+def wikidata_search_guids(limit: int = _SEARCH_LIMIT) -> pl.LazyFrame:
     return (
-        _wd_random_titles(limit=_SEARCH_LIMIT)
+        pl.concat(
+            [
+                _wd_random_titles(limit=limit, tmdb_type="movie"),
+                _wd_random_titles(limit=limit, tmdb_type="tv"),
+            ]
+        )
         .rename({"title": "query"})
         .pipe(plex_search_guids)
     )
