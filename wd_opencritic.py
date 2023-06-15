@@ -21,7 +21,7 @@ SELECT ?item ?opencritic_id ?statement
     ?statement ps:P444 ?review_score.
     ?statement pq:P447 wd:Q21039459.
 
-    OPTIONAL { ?statement pq:P459 wd:Q114712322. }
+    OPTIONAL { ?statement pq:P459 ?determination_method. }
     OPTIONAL { ?statement pq:P585 ?point_in_time. }
     OPTIONAL { ?statement pq:P7887 ?number_of_reviews. }
   }
@@ -41,7 +41,7 @@ _ADD_STATEMENT_TEMPLATE = """
 <{}> p:P444 [
   ps:P444 "{}";
   pqe:P447 wd:Q21039459;
-  pqe:P459 wd:Q114712322;
+  pqe:P459 wd:{};
   pqe:P585 "{}"^^xsd:date;
   pqve:P7887 [
     rdf:type wikibase:QuantityValue;
@@ -61,7 +61,7 @@ _UPDATE_STATEMENT_TEMPLATE = """
 <{}>
   ps:P444 "{}";
   pqe:P447 wd:Q21039459;
-  pqe:P459 wd:Q114712322;
+  pqe:P459 wd:{};
   pqe:P585 "{}"^^xsd:date;
   pqve:P7887 [
     rdf:type wikibase:QuantityValue;
@@ -77,9 +77,10 @@ _UPDATE_STATEMENT_TEMPLATE = """
 """
 
 
-def _find_opencritic_top_critic_average() -> pl.LazyFrame:
-    wd_df = (
-        sparql(_QUERY, schema=_QUERY_SCHEMA)
+def _wd_review_scores(determination_method_qid: str) -> pl.LazyFrame:
+    query = _QUERY.replace("?determination_method", f"wd:{determination_method_qid}")
+    return (
+        sparql(query, schema=_QUERY_SCHEMA)
         .unique("item", keep="none")
         .with_columns(
             pl.col("item")
@@ -92,6 +93,12 @@ def _find_opencritic_top_critic_average() -> pl.LazyFrame:
         )
         .select(pl.all().prefix("wd_"))
     )
+
+
+def _find_opencritic_top_critic_average() -> pl.LazyFrame:
+    determination_method_qid = "Q114712322"
+
+    wd_df = _wd_review_scores(determination_method_qid)
 
     api_df = pl.scan_parquet(
         "s3://wikidatabots/opencritic.parquet",
@@ -126,6 +133,7 @@ def _find_opencritic_top_critic_average() -> pl.LazyFrame:
                     _ADD_STATEMENT_TEMPLATE,
                     "wd_item",
                     "api_review_score",
+                    pl.lit(determination_method_qid),
                     "api_latest_review_date",
                     "api_num_reviews",
                     "wd_opencritic_id",
@@ -137,6 +145,7 @@ def _find_opencritic_top_critic_average() -> pl.LazyFrame:
                     _UPDATE_STATEMENT_TEMPLATE,
                     "wd_statement",
                     "api_review_score",
+                    pl.lit(determination_method_qid),
                     "api_latest_review_date",
                     "api_num_reviews",
                     "wd_opencritic_id",
