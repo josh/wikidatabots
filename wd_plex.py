@@ -81,8 +81,7 @@ _RDF_STATEMENT = pl.format(
     pl.col("source_label"),
 ).alias("rdf_statement")
 
-# TODO: Restrict to 2 weeks
-_FRESH_METADATA = pl.col("retrieved_at").dt.offset_by("50w") >= datetime.now()
+_FRESH_METADATA = pl.col("retrieved_at").dt.offset_by("2w") >= datetime.now()
 
 
 def find_plex_guids_via_tmdb_id() -> pl.LazyFrame:
