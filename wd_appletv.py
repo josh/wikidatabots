@@ -7,7 +7,7 @@ from polars_utils import print_rdf_statements, weighted_sample
 from sparql import sparql, sparql_batch
 from wikidata import is_blocked_item
 
-_SEARCH_LIMIT = 500
+_SEARCH_LIMIT = 1_000
 
 _SEARCH_QUERY = """
 SELECT DISTINCT ?item (SAMPLE(?appletv_id) AS ?has_appletv) WHERE {
