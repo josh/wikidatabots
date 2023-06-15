@@ -77,9 +77,7 @@ _UPDATE_STATEMENT_TEMPLATE = """
 """
 
 
-def _main() -> None:
-    pl.enable_string_cache(True)
-
+def _find_opencritic_top_critic_average() -> pl.LazyFrame:
     wd_df = (
         sparql(_QUERY, schema=_QUERY_SCHEMA)
         .unique("item", keep="none")
@@ -100,7 +98,7 @@ def _main() -> None:
         storage_options={"anon": True},
     ).select(pl.all().prefix("api_"))
 
-    (
+    return (
         wd_df.join(api_df, left_on="wd_opencritic_id", right_on="api_id", how="left")
         .filter(
             pl.col("wd_qid").pipe(is_blocked_item).is_not()
@@ -145,10 +143,19 @@ def _main() -> None:
                     "api_retrieved_on",
                 )
             )
-            .alias("rdf_statement"),
+            .alias("rdf_statement")
         )
-        .pipe(print_rdf_statements)
     )
+
+
+def _main() -> None:
+    pl.enable_string_cache(True)
+
+    pl.concat(
+        [
+            _find_opencritic_top_critic_average(),
+        ]
+    ).pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":
