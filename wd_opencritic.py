@@ -6,6 +6,8 @@ from polars_utils import print_rdf_statements
 from sparql import sparql
 from wikidata import is_blocked_item
 
+_NUM_REVIEWS_THRESHOLD = 10
+
 _QUERY = """
 SELECT ?item ?opencritic_id ?statement
       ?review_score ?point_in_time ?number_of_reviews WHERE {
@@ -21,7 +23,7 @@ SELECT ?item ?opencritic_id ?statement
     ?statement ps:P444 ?review_score.
     ?statement pq:P447 wd:Q21039459.
 
-    OPTIONAL { ?statement pq:P459 ?determination_method. }
+    ?statement pq:P459 ?determination_method.
     OPTIONAL { ?statement pq:P585 ?point_in_time. }
     OPTIONAL { ?statement pq:P7887 ?number_of_reviews. }
   }
@@ -95,7 +97,38 @@ def _wd_review_scores(determination_method_qid: str) -> pl.LazyFrame:
     )
 
 
-def _find_opencritic_top_critic_average() -> pl.LazyFrame:
+def _rdf_statement(determination_method_qid: str) -> pl.Expr:
+    return (
+        pl.when(pl.col("wd_statement").is_null())
+        .then(
+            pl.format(
+                _ADD_STATEMENT_TEMPLATE,
+                "wd_item",
+                "api_review_score",
+                pl.lit(determination_method_qid),
+                "api_latest_review_date",
+                "api_num_reviews",
+                "wd_opencritic_id",
+                "api_retrieved_on",
+            )
+        )
+        .otherwise(
+            pl.format(
+                _UPDATE_STATEMENT_TEMPLATE,
+                "wd_statement",
+                "api_review_score",
+                pl.lit(determination_method_qid),
+                "api_latest_review_date",
+                "api_num_reviews",
+                "wd_opencritic_id",
+                "api_retrieved_on",
+            )
+        )
+        .alias("rdf_statement")
+    )
+
+
+def _find_opencritic_top_critic_score() -> pl.LazyFrame:
     determination_method_qid = "Q114712322"
 
     wd_df = _wd_review_scores(determination_method_qid)
@@ -124,45 +157,61 @@ def _find_opencritic_top_critic_average() -> pl.LazyFrame:
             pl.col("wd_review_score").is_null()
             | pl.col("wd_number_of_reviews").is_null()
             | pl.col("wd_review_score").ne(pl.col("api_review_score"))
-            | pl.col("wd_number_of_reviews").add(10).lt(pl.col("api_num_reviews"))
+            | pl.col("wd_number_of_reviews")
+            .add(_NUM_REVIEWS_THRESHOLD)
+            .lt(pl.col("api_num_reviews"))
         )
-        .select(
-            pl.when(pl.col("wd_statement").is_null())
-            .then(
-                pl.format(
-                    _ADD_STATEMENT_TEMPLATE,
-                    "wd_item",
-                    "api_review_score",
-                    pl.lit(determination_method_qid),
-                    "api_latest_review_date",
-                    "api_num_reviews",
-                    "wd_opencritic_id",
-                    "api_retrieved_on",
-                )
-            )
-            .otherwise(
-                pl.format(
-                    _UPDATE_STATEMENT_TEMPLATE,
-                    "wd_statement",
-                    "api_review_score",
-                    pl.lit(determination_method_qid),
-                    "api_latest_review_date",
-                    "api_num_reviews",
-                    "wd_opencritic_id",
-                    "api_retrieved_on",
-                )
-            )
-            .alias("rdf_statement")
+        .select(_rdf_statement(determination_method_qid))
+    )
+
+
+def _find_opencritic_percent_recommended() -> pl.LazyFrame:
+    determination_method_qid = "Q1"
+
+    wd_df = _wd_review_scores(determination_method_qid)
+
+    api_df = pl.scan_parquet(
+        "s3://wikidatabots/opencritic.parquet",
+        storage_options={"anon": True},
+    ).select(pl.all().prefix("api_"))
+
+    return (
+        wd_df.join(api_df, left_on="wd_opencritic_id", right_on="api_id", how="left")
+        .filter(
+            pl.col("wd_qid").pipe(is_blocked_item).is_not()
+            & pl.col("api_percent_recommended").is_not_null()
+            & pl.col("api_latest_review_date").is_not_null()
+            & pl.col("api_retrieved_at").is_not_null()
+            & pl.col("api_num_reviews").gt(0)
         )
+        .with_columns(
+            pl.format(
+                "{}%", pl.col("api_percent_recommended").round(0).cast(pl.UInt8)
+            ).alias("api_review_score"),
+            pl.col("api_retrieved_at").dt.date().alias("api_retrieved_on"),
+        )
+        .filter(
+            pl.col("wd_review_score").is_null()
+            | pl.col("wd_number_of_reviews").is_null()
+            | pl.col("wd_review_score").ne(pl.col("api_review_score"))
+            | pl.col("wd_number_of_reviews")
+            .add(_NUM_REVIEWS_THRESHOLD)
+            .lt(pl.col("api_num_reviews"))
+        )
+        .select(_rdf_statement(determination_method_qid))
     )
 
 
 def _main() -> None:
     pl.enable_string_cache(True)
 
+    # TMP: Discard for now
+    _ = _find_opencritic_percent_recommended()
+
     pl.concat(
         [
-            _find_opencritic_top_critic_average(),
+            _find_opencritic_top_critic_score(),
+            # _find_opencritic_percent_recommended(),
         ]
     ).pipe(print_rdf_statements)
 
