@@ -182,6 +182,7 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
             & pl.col("api_percent_recommended").is_not_null()
             & pl.col("api_latest_review_date").is_not_null()
             & pl.col("api_retrieved_at").is_not_null()
+            & pl.col("api_percent_recommended").gt(0)
             & pl.col("api_num_reviews").gt(0)
         )
         .with_columns(
@@ -205,15 +206,18 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
 def _main() -> None:
     pl.enable_string_cache(True)
 
+    _find_opencritic_top_critic_score().pipe(print_rdf_statements)
+
     # TMP: Discard for now
     _ = _find_opencritic_percent_recommended()
+    # .pipe(print_rdf_statements, limit=3)
 
-    pl.concat(
-        [
-            _find_opencritic_top_critic_score(),
-            # _find_opencritic_percent_recommended(),
-        ]
-    ).pipe(print_rdf_statements)
+    # pl.concat(
+    #     [
+    #         _find_opencritic_top_critic_score(),
+    #         _find_opencritic_percent_recommended(),
+    #     ]
+    # ).pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":
