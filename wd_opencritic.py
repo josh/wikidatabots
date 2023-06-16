@@ -166,7 +166,7 @@ def _find_opencritic_top_critic_score() -> pl.LazyFrame:
 
 
 def _find_opencritic_percent_recommended() -> pl.LazyFrame:
-    determination_method_qid = "Q1"
+    determination_method_qid = "Q119576498"
 
     wd_df = _wd_review_scores(determination_method_qid)
 
@@ -208,9 +208,8 @@ def _main() -> None:
 
     _find_opencritic_top_critic_score().pipe(print_rdf_statements)
 
-    # TMP: Discard for now
-    _ = _find_opencritic_percent_recommended()
-    # .pipe(print_rdf_statements, limit=3)
+    # Slowly rollout
+    _find_opencritic_percent_recommended().pipe(print_rdf_statements, limit=3)
 
     # pl.concat(
     #     [
