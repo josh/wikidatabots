@@ -283,12 +283,12 @@ def prepare_request(
 def response_header_value(response: pl.Expr, name: str) -> pl.Expr:
     return (
         response.struct.field("headers")
-        .arr.eval(
+        .list.eval(
             pl.element()
             .where(pl.element().struct.field("name") == name)
             .struct.field("value")
         )
-        .arr.first()
+        .list.first()
         .alias(name)
     )
 
