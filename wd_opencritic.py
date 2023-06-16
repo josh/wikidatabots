@@ -209,7 +209,7 @@ def _main() -> None:
     _find_opencritic_top_critic_score().pipe(print_rdf_statements)
 
     # Slowly rollout
-    _find_opencritic_percent_recommended().pipe(print_rdf_statements, limit=3)
+    _find_opencritic_percent_recommended().pipe(print_rdf_statements, limit=25)
 
     # pl.concat(
     #     [
