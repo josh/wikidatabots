@@ -98,7 +98,7 @@ def _tidy_game(s: pl.Series) -> pl.Series:
             pl.col(pl.Float32).map_dict({-1: None}, default=pl.first()),
         )
         .with_columns(
-            pl.col("^*At$").str.strptime(pl.Datetime(time_unit="ms"), "%+", utc=True),
+            pl.col("^*At$").str.strptime(pl.Datetime(time_unit="ms"), "%+"),
             pl.col("^*Date$").str.strptime(pl.Date, "%+"),
         )
         .rename(

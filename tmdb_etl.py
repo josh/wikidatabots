@@ -139,7 +139,9 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
             datetime.date.today(),
             interval="1d",
             eager=False,
-        ).alias("date")
+        )
+        .explode()
+        .alias("date")
     )
 
     return df.pipe(
@@ -168,7 +170,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
             .pipe(response_text)
             .str.json_extract(dtype=_CHANGES_RESPONSE_DTYPE)
             .struct.field("results")
-            .arr.reverse()
+            .list.reverse()
             .alias("results")
         )
         .explode("results")
@@ -228,7 +230,7 @@ def tmdb_find(
         .pipe(response_text)
         .str.json_extract(dtype=_FIND_RESPONSE_DTYPE)
         .struct.field(f"{tmdb_type}_results")
-        .arr.first()
+        .list.first()
         .struct.field("id")
         .alias("tmdb_id")
     )

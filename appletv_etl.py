@@ -226,7 +226,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             (
                 pl.col("jsonld")
                 .struct.field("director")
-                .arr.eval(pl.element().struct.field("name"))
+                .list.eval(pl.element().struct.field("name"))
                 .pipe(html_unescape_list)
                 .alias("directors")
             ),
