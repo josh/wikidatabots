@@ -275,7 +275,7 @@ _METADATA_DTYPE = pl.Struct(
     {
         "guid": pl.Utf8,
         "ratingKey": pl.Utf8,
-        "type": pl.Categorical,
+        "type": pl.Utf8,
         "title": pl.Utf8,
         "year": pl.UInt16,
         "Similar": pl.List(pl.Struct({"guid": pl.Utf8})),
@@ -329,7 +329,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
         )
         .select(
             pl.col("key"),
-            pl.col("metadata").struct.field("type").alias("type"),
+            pl.col("metadata").struct.field("type").cast(pl.Categorical).alias("type"),
             (pl.col("status_code") == 200).alias("success"),
             pl.col("retrieved_at"),
             pl.col("metadata").struct.field("year").alias("year"),
