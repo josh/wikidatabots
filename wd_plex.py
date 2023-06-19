@@ -13,7 +13,7 @@ def _plex_guids() -> pl.LazyFrame:
     return pl.scan_parquet(
         "s3://wikidatabots/plex.parquet",
         storage_options={"anon": True},
-    ).select(["type", "tmdb_id", "key", "retrieved_at"])
+    ).select(["type", "tmdb_id", "key", "success", "retrieved_at"])
 
 
 _TMDB_MOVIE_QUERY = """
@@ -129,6 +129,35 @@ def find_plex_guids_in_legacy_format() -> pl.LazyFrame:
     )
 
 
+_NOT_DEPRECATED_QUERY = """
+SELECT ?statement ?hexkey WHERE {
+  ?statement ps:P11460 ?hexkey.
+  ?statement wikibase:rank ?rank.
+  FILTER(?rank != wikibase:DeprecatedRank)
+}
+"""
+
+_DEPRECATE_RDF_STATEMENT = pl.format(
+    "<{}> wikibase:rank wikibase:DeprecatedRank ; pq:P2241 wd:Q21441764 ; "
+    'wikidatabots:editSummary "{}" .',
+    pl.col("statement"),
+    pl.lit("Deprecate removed Plex ID"),
+).alias("rdf_statement")
+
+
+def find_plex_keys_not_found() -> pl.LazyFrame:
+    plex_df = _plex_guids().with_columns(
+        pl.col("key").bin.encode("hex").alias("hexkey")
+    )
+
+    return (
+        sparql(_NOT_DEPRECATED_QUERY, columns=["statement", "hexkey"])
+        .join(plex_df, on="hexkey", how="left")
+        .filter(_FRESH_METADATA & pl.col("success").is_not())
+        .select(_DEPRECATE_RDF_STATEMENT)
+    )
+
+
 def _main() -> None:
     pl.enable_string_cache(True)
 
@@ -136,6 +165,7 @@ def _main() -> None:
         [
             find_plex_guids_in_legacy_format(),
             find_plex_guids_via_tmdb_id(),
+            find_plex_keys_not_found(),
         ]
     ).pipe(print_rdf_statements)
 
