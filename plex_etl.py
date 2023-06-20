@@ -236,7 +236,7 @@ def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.sort(by=pl.col("key").bin.encode("hex"))
 
 
-_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") < 1_000
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_000
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
