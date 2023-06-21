@@ -206,10 +206,9 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
 def _main() -> None:
     pl.enable_string_cache(True)
 
+    # TODO: Combine these
     _find_opencritic_top_critic_score().pipe(print_rdf_statements)
-
-    # Slowly rollout
-    _find_opencritic_percent_recommended().pipe(print_rdf_statements, limit=50)
+    _find_opencritic_percent_recommended().pipe(print_rdf_statements)
 
     # pl.concat(
     #     [
