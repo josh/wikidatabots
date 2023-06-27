@@ -182,6 +182,7 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
             & pl.col("api_percent_recommended").is_not_null()
             & pl.col("api_latest_review_date").is_not_null()
             & pl.col("api_retrieved_at").is_not_null()
+            & pl.col("api_percent_recommended").gt(0)
             & pl.col("api_num_reviews").gt(0)
         )
         .with_columns(
