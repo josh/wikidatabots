@@ -284,7 +284,7 @@ AnyRDFObject = URIRef | BNode | Literal
 
 
 def _subjects(graph: Graph) -> Iterator[AnyRDFSubject]:
-    for subject in graph.subjects():
+    for subject in graph.subjects(unique=True):
         assert isinstance(subject, URIRef) or isinstance(subject, BNode)
         yield subject
 
@@ -292,7 +292,7 @@ def _subjects(graph: Graph) -> Iterator[AnyRDFSubject]:
 def _predicate_objects(
     graph: Graph, subject: AnyRDFSubject
 ) -> Iterator[tuple[AnyRDFPredicate, AnyRDFObject]]:
-    for predicate, object in graph.predicate_objects(subject):
+    for predicate, object in graph.predicate_objects(subject, unique=True):
         assert isinstance(predicate, URIRef)
         assert (
             isinstance(object, URIRef)
