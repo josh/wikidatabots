@@ -1,6 +1,7 @@
 # pyright: strict
 
 import os
+import sys
 
 import polars as pl
 
@@ -187,14 +188,22 @@ def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
+    retrieved_at = df.select(pl.col("retrieved_at").min()).item()
+    print(f"Oldest retrieved_at: {retrieved_at}", file=sys.stderr)
+    return df
+
+
 def _main() -> None:
     pl.enable_string_cache(True)
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         # MARK: pl.LazyFrame.cache
         df = df.cache()
-        return df.pipe(update_or_append, _refresh_games(df), on="id").pipe(
-            align_to_index, name="id"
+        return (
+            df.pipe(update_or_append, _refresh_games(df), on="id")
+            .pipe(align_to_index, name="id")
+            .map(_log_retrieved_at)
         )
 
     update_parquet("opencritic.parquet", update, key="id")

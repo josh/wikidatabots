@@ -373,20 +373,17 @@ def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     return plex_df.pipe(update_or_append, df_new, on="key").pipe(_sort)
 
 
-def _log_retrieved_at(df: pl.LazyFrame) -> pl.LazyFrame:
-    def _log_inner(df: pl.DataFrame) -> pl.DataFrame:
-        retrieved_at = df.select(pl.col("retrieved_at").min()).item()
-        print(f"Oldest retrieved_at: {retrieved_at}", file=sys.stderr)
-        return df
-
-    return df.map(_log_inner)
+def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
+    retrieved_at = df.select(pl.col("retrieved_at").min()).item()
+    print(f"Oldest retrieved_at: {retrieved_at}", file=sys.stderr)
+    return df
 
 
 def _main() -> None:
     pl.enable_string_cache(True)
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.pipe(_discover_guids).pipe(_backfill_metadata).pipe(_log_retrieved_at)
+        return df.pipe(_discover_guids).pipe(_backfill_metadata).map(_log_retrieved_at)
 
     update_parquet("plex.parquet", update, key="key")
 

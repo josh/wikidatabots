@@ -1,5 +1,6 @@
 # pyright: strict
 
+import sys
 from functools import partial
 from typing import Literal
 
@@ -495,6 +496,12 @@ def _backfill_redirect_url(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.pipe(update_or_append, df_updated, on="id").sort("id")
 
 
+def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
+    retrieved_at = df.select(pl.col("retrieved_at").min()).item()
+    print(f"Oldest retrieved_at: {retrieved_at}", file=sys.stderr)
+    return df
+
+
 _COLUMN_ORDER: list[str] = [
     "id",
     "retrieved_at",
@@ -518,6 +525,7 @@ def _main() -> None:
             .pipe(_backfill_metadata)
             .pipe(_backfill_redirect_url)
             .drop("old_url")
+            .map(_log_retrieved_at)
             .select(_COLUMN_ORDER)
         )
 
