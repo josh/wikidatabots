@@ -213,7 +213,7 @@ def wikidata_search_guids(limit: int = _SEARCH_LIMIT) -> pl.LazyFrame:
             ]
         )
         .select(
-            pl.col("title").str.replace("#", "").alias("query"),
+            pl.col("title").str.replace(r"#|&", "").alias("query"),
         )
         .pipe(plex_search_guids)
     )
