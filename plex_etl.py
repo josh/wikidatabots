@@ -212,7 +212,9 @@ def wikidata_search_guids(limit: int = _SEARCH_LIMIT) -> pl.LazyFrame:
                 _wd_random_titles(limit=limit, tmdb_type="tv"),
             ]
         )
-        .rename({"title": "query"})
+        .select(
+            pl.col("title").str.replace("#", "").alias("query"),
+        )
         .pipe(plex_search_guids)
     )
 
