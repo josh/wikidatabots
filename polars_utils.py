@@ -120,7 +120,7 @@ def now() -> pl.Expr:
 
 def position_weights() -> pl.Expr:
     size = pl.count()
-    row_nr = pl.arange(1, size + 1)
+    row_nr = pl.int_range(1, size + 1)
     cumsum = (size * (size + 1)) / 2
     weights = row_nr / cumsum
     return weights.reverse()
@@ -231,10 +231,10 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     df = _check_ldf(df, assert_expr).cache()
 
     return df.select(
-        pl.arange(
+        pl.int_range(
             0,
             pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
-            dtype=df.schema[name],
+            dtype=df.schema[name],  # type: ignore
         ).alias(name)
     ).join(df, on=name, how="left")
 
