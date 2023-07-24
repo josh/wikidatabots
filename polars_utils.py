@@ -96,11 +96,11 @@ def pyformat(
     packed_expr: pl.Expr
     if len(args) > 0 and len(kwargs) > 0:
         packed_expr = pl.struct(
-            args=pl.concat_list(*args),  # type: ignore
+            args=pl.concat_list(*args),
             kwargs=pl.struct(**kwargs),  # type: ignore
         )
     elif len(args) > 0 and len(kwargs) == 0:
-        packed_expr = pl.struct(args=pl.concat_list(*args))  # type: ignore
+        packed_expr = pl.struct(args=pl.concat_list(*args))
     elif len(args) == 0 and len(kwargs) > 0:
         packed_expr = pl.struct(kwargs=pl.struct(**kwargs))  # type: ignore
     else:
@@ -120,7 +120,7 @@ def now() -> pl.Expr:
 
 def position_weights() -> pl.Expr:
     size = pl.count()
-    row_nr = pl.arange(1, size + 1)
+    row_nr = pl.int_range(1, size + 1)
     cumsum = (size * (size + 1)) / 2
     weights = row_nr / cumsum
     return weights.reverse()
@@ -230,11 +230,13 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     # MARK: pl.LazyFrame.cache
     df = _check_ldf(df, assert_expr).cache()
 
+    dtype: Any = df.schema[name]  # type: ignore
+
     return df.select(
-        pl.arange(
+        pl.int_range(
             0,
             pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
-            dtype=df.schema[name],
+            dtype=dtype,
         ).alias(name)
     ).join(df, on=name, how="left")
 
