@@ -10,10 +10,11 @@ from sparql import sparql
 
 
 def _plex_guids() -> pl.LazyFrame:
-    return pl.scan_parquet(
+    return pl.read_parquet(
         "s3://wikidatabots/plex.parquet",
+        columns=["type", "tmdb_id", "key", "success", "retrieved_at"],
         storage_options={"anon": True},
-    ).select(["type", "tmdb_id", "key", "success", "retrieved_at"])
+    ).lazy()
 
 
 _TMDB_MOVIE_QUERY = """
