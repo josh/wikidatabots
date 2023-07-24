@@ -96,11 +96,11 @@ def pyformat(
     packed_expr: pl.Expr
     if len(args) > 0 and len(kwargs) > 0:
         packed_expr = pl.struct(
-            args=pl.concat_list(*args),  # type: ignore
+            args=pl.concat_list(*args),
             kwargs=pl.struct(**kwargs),  # type: ignore
         )
     elif len(args) > 0 and len(kwargs) == 0:
-        packed_expr = pl.struct(args=pl.concat_list(*args))  # type: ignore
+        packed_expr = pl.struct(args=pl.concat_list(*args))
     elif len(args) == 0 and len(kwargs) > 0:
         packed_expr = pl.struct(kwargs=pl.struct(**kwargs))  # type: ignore
     else:
@@ -230,11 +230,13 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     # MARK: pl.LazyFrame.cache
     df = _check_ldf(df, assert_expr).cache()
 
+    dtype: Any = df.schema[name]  # type: ignore
+
     return df.select(
         pl.int_range(
             0,
             pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
-            dtype=df.schema[name],  # type: ignore
+            dtype=dtype,
         ).alias(name)
     ).join(df, on=name, how="left")
 
