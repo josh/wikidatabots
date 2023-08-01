@@ -564,7 +564,12 @@ def compute_stats(
         _percent_col("null"),
         _percent_col("true"),
         _percent_col("false"),
-        pl.when(pl.col("is_unique")).then("true").otherwise("").alias("unique"),
+        (
+            pl.when(pl.col("is_unique"))
+            .then(pl.lit("true"))
+            .otherwise(pl.lit(""))
+            .alias("unique")
+        ),
         _int_col("updated"),
     ).fill_null("")
 
