@@ -134,7 +134,8 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
     df = df.cache()  # MARK: pl.LazyFrame.cache
 
     dates_df = df.select(
-        pl.date_range(
+        # TODO: Use pl.date_range()
+        pl.date_ranges(
             pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
             datetime.date.today(),
             interval="1d",
