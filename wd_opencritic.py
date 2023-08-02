@@ -133,14 +133,10 @@ def _find_opencritic_top_critic_score() -> pl.LazyFrame:
 
     wd_df = _wd_review_scores(determination_method_qid)
 
-    api_df = (
-        pl.read_parquet(
-            "s3://wikidatabots/opencritic.parquet",
-            storage_options={"anon": True},
-        )
-        .select(pl.all().prefix("api_"))
-        .lazy()
-    )
+    api_df = pl.scan_parquet(
+        "s3://wikidatabots/opencritic.parquet",
+        storage_options={"anon": True},
+    ).select(pl.all().prefix("api_"))
 
     return (
         wd_df.join(api_df, left_on="wd_opencritic_id", right_on="api_id", how="left")
@@ -174,14 +170,10 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
 
     wd_df = _wd_review_scores(determination_method_qid)
 
-    api_df = (
-        pl.read_parquet(
-            "s3://wikidatabots/opencritic.parquet",
-            storage_options={"anon": True},
-        )
-        .select(pl.all().prefix("api_"))
-        .lazy()
-    )
+    api_df = pl.scan_parquet(
+        "s3://wikidatabots/opencritic.parquet",
+        storage_options={"anon": True},
+    ).select(pl.all().prefix("api_"))
 
     return (
         wd_df.join(api_df, left_on="wd_opencritic_id", right_on="api_id", how="left")
