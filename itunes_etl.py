@@ -437,11 +437,12 @@ def wikidata_itunes_all_ids() -> pl.LazyFrame:
 
 def _appletv_sitemap_ids(type: Literal["movie", "show"]) -> pl.LazyFrame:
     return (
-        pl.scan_parquet(
+        pl.read_parquet(
             f"s3://wikidatabots/appletv/{type}.parquet",
+            columns=["itunes_id"],
             storage_options={"anon": True},
         )
-        .select("itunes_id")
+        .lazy()
         .rename({"itunes_id": "id"})
         .filter(pl.col("id").is_not_null())
         .unique()

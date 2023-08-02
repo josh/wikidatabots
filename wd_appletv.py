@@ -220,14 +220,14 @@ def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
 def _main() -> None:
     pl.enable_string_cache(True)
 
-    sitemap_df = pl.scan_parquet(
+    sitemap_df = pl.read_parquet(
         "s3://wikidatabots/appletv/movie.parquet",
         storage_options={"anon": True},
-    )
-    itunes_df = pl.scan_parquet(
+    ).lazy()
+    itunes_df = pl.read_parquet(
         "s3://wikidatabots/itunes.parquet",
         storage_options={"anon": True},
-    )
+    ).lazy()
 
     pl.concat(
         [
