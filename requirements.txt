@@ -6,7 +6,7 @@ numpy==1.25.2
 polars==0.18.11
 pytest==7.4.0
 pywikibot==8.3.0
-rdflib===6.3.2
+rdflib===7.0.0
 requests==2.31.0
 s3fs==2023.6.0
 tqdm==4.65.0
