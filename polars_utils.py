@@ -26,6 +26,277 @@ def github_step_summary() -> TextIO:
         return sys.stderr
 
 
+class _PyformatRow(TypedDict):
+    args: list[Any]
+    kwargs: dict[str, Any]
+
+
+def apply_with_tqdm(
+    expr: pl.Expr,
+    function: Callable[[Any], Any],
+    return_dtype: pl.PolarsDataType | None = None,
+    log_group: str = "apply(unknown)",
+) -> pl.Expr:
+    def apply_function(s: pl.Series) -> list[Any]:
+        values: list[Any] = []
+        size = len(s)
+
+        if size == 0:
+            return values
+
+        with _log_group(log_group):
+            for item in tqdm(s, unit="row"):
+                if item is None:
+                    values.append(None)
+                else:
+                    values.append(function(item))
+
+        return values
+
+    def map_function(s: pl.Series) -> pl.Series:
+        return pl.Series(values=apply_function(s), dtype=return_dtype)
+
+    # MARK: pl.Expr.map
+    return expr.map(map_function, return_dtype=return_dtype)
+
+
+def pyformat(
+    format_string: str,
+    *args: pl.Expr | str,
+    **kwargs: pl.Expr | str,
+) -> pl.Expr:
+    def _format(row: _PyformatRow) -> str | None:
+        row_args = row.get("args", [])
+        row_kwargs = row.get("kwargs", {})
+
+        if any(v is None for v in row_args):
+            return None
+        elif any(v is None for v in row_kwargs.values()):
+            return None
+        else:
+            return format_string.format(*row_args, **row_kwargs)
+
+    packed_expr: pl.Expr
+    if len(args) > 0 and len(kwargs) > 0:
+        packed_expr = pl.struct(
+            args=pl.concat_list(*args),
+            kwargs=pl.struct(**kwargs),  # type: ignore
+        )
+    elif len(args) > 0 and len(kwargs) == 0:
+        packed_expr = pl.struct(args=pl.concat_list(*args))
+    elif len(args) == 0 and len(kwargs) > 0:
+        packed_expr = pl.struct(kwargs=pl.struct(**kwargs))  # type: ignore
+    else:
+        raise ValueError("must provide at least one argument")
+
+    return packed_expr.pipe(
+        apply_with_tqdm,
+        _format,
+        return_dtype=pl.Utf8,
+        log_group="pyformat",
+    )
+
+
+_INDICATOR_EXPR = (
+    pl.when(pl.col("_merge_left") & pl.col("_merge_right"))
+    .then(pl.lit("both", dtype=pl.Categorical))
+    .when(pl.col("_merge_left"))
+    .then(pl.lit("left_only", dtype=pl.Categorical))
+    .when(pl.col("_merge_right"))
+    .then(pl.lit("right_only", dtype=pl.Categorical))
+    .otherwise(None)
+    .alias("_merge")
+)
+
+
+def merge_with_indicator(
+    left_df: pl.LazyFrame,
+    right_df: pl.LazyFrame,
+    on: str | pl.Expr,
+    suffix: str = "_right",
+) -> pl.LazyFrame:
+    left_df = left_df.with_columns(pl.lit(True).alias("_merge_left"))
+    right_df = right_df.with_columns(pl.lit(True).alias("_merge_right"))
+    return (
+        left_df.join(right_df, on=on, how="outer", suffix=suffix)
+        .with_columns(_INDICATOR_EXPR)
+        .drop("_merge_left", "_merge_right")
+    )
+
+
+def frame_diff(
+    df1: pl.LazyFrame,
+    df2: pl.LazyFrame,
+    on: str,
+    suffix: str = "_updated",
+) -> pl.LazyFrame:
+    cols = [col for col in df1.columns if col != on]
+    assert len(cols) >= 1
+
+    compute_col_updated_exprs = [
+        (
+            pl.col(col)
+            .pipe(pl.Expr.__ne__, pl.col(f"{col}_right"))
+            .pipe(pl.Expr.__and__, pl.col("_merge") == "both")
+            .alias(f"{col}{suffix}")
+        )
+        for col in cols
+    ]
+
+    updated_cols = [pl.col(f"{col}{suffix}") for col in cols]
+    any_updated_col = pl.Expr.or_(*updated_cols)
+
+    return (
+        df1.pipe(merge_with_indicator, df2, on=on)
+        .with_columns(compute_col_updated_exprs)
+        .select(
+            (pl.col("_merge") == "right_only").alias("added"),
+            (pl.col("_merge") == "left_only").alias("removed"),
+            any_updated_col.alias("updated"),
+            *updated_cols,
+        )
+        .select(pl.all().sum())
+    )
+
+
+def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:
+    if isinstance(dtype, pl.DataType):
+        return dtype._string_repr()  # type: ignore
+    else:
+        return dtype._string_repr(dtype)  # type: ignore
+
+
+def compute_stats(
+    df: pl.DataFrame,
+    changes_df: pl.DataFrame | None = None,
+) -> pl.DataFrame:
+    def _count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
+        df2 = df.select(expr)
+        if df2.is_empty():
+            schema = {"column": pl.Utf8, column_name: pl.UInt32}
+            return pl.DataFrame(schema=schema)
+        return df2.transpose(include_header=True, column_names=[column_name])
+
+    simple_cols = [col for col in df.columns if not df.schema[col].is_nested]
+
+    count = len(df)
+    null_count_df = _count_columns("null_count", pl.all().null_count())
+    is_unique_df = _count_columns(
+        "is_unique", pl.col(*simple_cols).drop_nulls().is_unique().all()
+    )
+    true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
+    false_count_df = _count_columns(
+        "false_count", pl.col(pl.Boolean).drop_nulls().is_not().sum()
+    )
+
+    def _percent_col(name: str) -> pl.Expr:
+        return (
+            pl.when(pl.col(f"{name}_count") > 0)
+            .then(
+                pyformat(
+                    "{:,.0f} ({:.1%})",
+                    pl.col(f"{name}_count"),
+                    pl.col(f"{name}_count") / count,
+                )
+            )
+            .otherwise(None)
+            .alias(name)
+        )
+
+    def _int_col(name: str) -> pl.Expr:
+        return (
+            pl.when(pl.col(f"{name}_count") > 0)
+            .then(pyformat("{:,}", pl.col(f"{name}_count")))
+            .otherwise(None)
+            .alias(name)
+        )
+
+    joined_df = (
+        null_count_df.join(is_unique_df, on="column", how="left")
+        .join(true_count_df, on="column", how="left")
+        .join(false_count_df, on="column", how="left")
+    )
+
+    if changes_df is not None:
+        updated_count_df = changes_df.select(
+            pl.col("^.+_updated$").map_alias(lambda n: n.replace("_updated", ""))
+        ).transpose(include_header=True, column_names=["updated_count"])
+        joined_df = joined_df.join(updated_count_df, on="column", how="left")
+    else:
+        joined_df = joined_df.with_columns(pl.lit(0).alias("updated_count"))
+
+    return joined_df.select(
+        pl.col("column").alias("name"),
+        # MARK: pl.Expr.apply
+        pl.col("column").apply(df.schema.get).apply(_dtype_str_repr).alias("dtype"),
+        _percent_col("null"),
+        _percent_col("true"),
+        _percent_col("false"),
+        (
+            pl.when(pl.col("is_unique"))
+            .then(pl.lit("true"))
+            .otherwise(pl.lit(""))
+            .alias("unique")
+        ),
+        _int_col("updated"),
+    ).fill_null("")
+
+
+def describe_frame(
+    df: pl.DataFrame,
+    source: str,
+    output: TextIO,
+    changes_df: pl.DataFrame | None = None,
+) -> pl.DataFrame:
+    with pl.Config() as cfg:
+        cfg.set_fmt_str_lengths(100)
+        cfg.set_tbl_cols(-1)
+        cfg.set_tbl_column_data_type_inline(True)
+        cfg.set_tbl_formatting("ASCII_MARKDOWN")
+        cfg.set_tbl_hide_dataframe_shape(True)
+        cfg.set_tbl_rows(-1)
+        cfg.set_tbl_width_chars(500)
+
+        print(f"## {source}", file=output)
+        print(str(compute_stats(df, changes_df=changes_df)), file=output)
+        print(f"\nshape: ({df.shape[0]:,}, {df.shape[1]:,})", file=output)
+
+        if changes_df is not None:
+            changes = changes_df.row(0, named=True)
+            added, removed, updated = (
+                changes["added"],
+                changes["removed"],
+                changes["updated"],
+            )
+            print(f"changes: +{added:,} -{removed:,} ~{updated:,}", file=output)
+
+        mb = df.estimated_size("mb")
+        if mb > 2:
+            print(f"rss: {mb:,.1f}MB", file=output)
+        else:
+            kb = df.estimated_size("kb")
+            print(f"rss: {kb:,.1f}KB", file=output)
+
+    return df
+
+
+def describe_frame_with_diff(
+    df_old: pl.DataFrame,
+    df_new: pl.DataFrame,
+    key: str,
+    source: str,
+    output: TextIO,
+) -> pl.DataFrame:
+    # MARK: pl.LazyFrame.collect
+    changes_df = frame_diff(df_old.lazy(), df_new.lazy(), on=key).collect()
+    return describe_frame(
+        df_new,
+        changes_df=changes_df,
+        source=source,
+        output=output,
+    )
+
+
 def update_parquet(
     filename: str,
     transform: Callable[[pl.LazyFrame], pl.LazyFrame],
@@ -69,48 +340,6 @@ def _check_ldf(
         _inner_check,
         validate_output_schema=False,
         streamable=False,
-    )
-
-
-class _PyformatRow(TypedDict):
-    args: list[Any]
-    kwargs: dict[str, Any]
-
-
-def pyformat(
-    format_string: str,
-    *args: pl.Expr | str,
-    **kwargs: pl.Expr | str,
-) -> pl.Expr:
-    def _format(row: _PyformatRow) -> str | None:
-        row_args = row.get("args", [])
-        row_kwargs = row.get("kwargs", {})
-
-        if any(v is None for v in row_args):
-            return None
-        elif any(v is None for v in row_kwargs.values()):
-            return None
-        else:
-            return format_string.format(*row_args, **row_kwargs)
-
-    packed_expr: pl.Expr
-    if len(args) > 0 and len(kwargs) > 0:
-        packed_expr = pl.struct(
-            args=pl.concat_list(*args),
-            kwargs=pl.struct(**kwargs),  # type: ignore
-        )
-    elif len(args) > 0 and len(kwargs) == 0:
-        packed_expr = pl.struct(args=pl.concat_list(*args))
-    elif len(args) == 0 and len(kwargs) > 0:
-        packed_expr = pl.struct(kwargs=pl.struct(**kwargs))  # type: ignore
-    else:
-        raise ValueError("must provide at least one argument")
-
-    return packed_expr.pipe(
-        apply_with_tqdm,
-        _format,
-        return_dtype=pl.Utf8,
-        log_group="pyformat",
     )
 
 
@@ -264,97 +493,6 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
     )
 
 
-_INDICATOR_EXPR = (
-    pl.when(pl.col("_merge_left") & pl.col("_merge_right"))
-    .then(pl.lit("both", dtype=pl.Categorical))
-    .when(pl.col("_merge_left"))
-    .then(pl.lit("left_only", dtype=pl.Categorical))
-    .when(pl.col("_merge_right"))
-    .then(pl.lit("right_only", dtype=pl.Categorical))
-    .otherwise(None)
-    .alias("_merge")
-)
-
-
-def merge_with_indicator(
-    left_df: pl.LazyFrame,
-    right_df: pl.LazyFrame,
-    on: str | pl.Expr,
-    suffix: str = "_right",
-) -> pl.LazyFrame:
-    left_df = left_df.with_columns(pl.lit(True).alias("_merge_left"))
-    right_df = right_df.with_columns(pl.lit(True).alias("_merge_right"))
-    return (
-        left_df.join(right_df, on=on, how="outer", suffix=suffix)
-        .with_columns(_INDICATOR_EXPR)
-        .drop("_merge_left", "_merge_right")
-    )
-
-
-def frame_diff(
-    df1: pl.LazyFrame,
-    df2: pl.LazyFrame,
-    on: str,
-    suffix: str = "_updated",
-) -> pl.LazyFrame:
-    cols = [col for col in df1.columns if col != on]
-    assert len(cols) >= 1
-
-    compute_col_updated_exprs = [
-        (
-            pl.col(col)
-            .pipe(pl.Expr.__ne__, pl.col(f"{col}_right"))
-            .pipe(pl.Expr.__and__, pl.col("_merge") == "both")
-            .alias(f"{col}{suffix}")
-        )
-        for col in cols
-    ]
-
-    updated_cols = [pl.col(f"{col}{suffix}") for col in cols]
-    any_updated_col = pl.Expr.or_(*updated_cols)
-
-    return (
-        df1.pipe(merge_with_indicator, df2, on=on)
-        .with_columns(compute_col_updated_exprs)
-        .select(
-            (pl.col("_merge") == "right_only").alias("added"),
-            (pl.col("_merge") == "left_only").alias("removed"),
-            any_updated_col.alias("updated"),
-            *updated_cols,
-        )
-        .select(pl.all().sum())
-    )
-
-
-def apply_with_tqdm(
-    expr: pl.Expr,
-    function: Callable[[Any], Any],
-    return_dtype: pl.PolarsDataType | None = None,
-    log_group: str = "apply(unknown)",
-) -> pl.Expr:
-    def apply_function(s: pl.Series) -> list[Any]:
-        values: list[Any] = []
-        size = len(s)
-
-        if size == 0:
-            return values
-
-        with _log_group(log_group):
-            for item in tqdm(s, unit="row"):
-                if item is None:
-                    values.append(None)
-                else:
-                    values.append(function(item))
-
-        return values
-
-    def map_function(s: pl.Series) -> pl.Series:
-        return pl.Series(values=apply_function(s), dtype=return_dtype)
-
-    # MARK: pl.Expr.map
-    return expr.map(map_function, return_dtype=return_dtype)
-
-
 def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
     return pl.read_csv(data, dtypes=dtype.to_schema()).to_struct("")
 
@@ -372,6 +510,26 @@ def csv_extract(
         return_dtype=dtype,
         log_group=log_group,
     )
+
+
+XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None
+
+
+def _xml_element_struct_field(
+    element: ET.Element,
+    dtype: pl.Struct,
+) -> dict[str, XMLValue]:
+    obj: dict[str, XMLValue] = {}
+    for field in dtype.fields:
+        if isinstance(field.dtype, pl.List):
+            inner_dtype = field.dtype.inner
+            assert inner_dtype
+            values = _xml_element_field_iter(element, field.name, inner_dtype)
+            obj[field.name] = list(values)
+        else:
+            values = _xml_element_field_iter(element, field.name, field.dtype)
+            obj[field.name] = next(values, None)
+    return obj
 
 
 def _parse_xml_to_series(
@@ -399,26 +557,6 @@ def xml_extract(
         return_dtype=dtype,
         log_group=log_group,
     )
-
-
-XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None
-
-
-def _xml_element_struct_field(
-    element: ET.Element,
-    dtype: pl.Struct,
-) -> dict[str, XMLValue]:
-    obj: dict[str, XMLValue] = {}
-    for field in dtype.fields:
-        if isinstance(field.dtype, pl.List):
-            inner_dtype = field.dtype.inner
-            assert inner_dtype
-            values = _xml_element_field_iter(element, field.name, inner_dtype)
-            obj[field.name] = list(values)
-        else:
-            values = _xml_element_field_iter(element, field.name, field.dtype)
-            obj[field.name] = next(values, None)
-    return obj
 
 
 def _xml_element_field_iter(
@@ -488,144 +626,6 @@ def zlib_decompress(expr: pl.Expr) -> pl.Expr:
         _zlib_decompress,
         return_dtype=pl.Utf8,
         log_group="zlib_decompress",
-    )
-
-
-def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:
-    if isinstance(dtype, pl.DataType):
-        return dtype._string_repr()  # type: ignore
-    else:
-        return dtype._string_repr(dtype)  # type: ignore
-
-
-def compute_stats(
-    df: pl.DataFrame,
-    changes_df: pl.DataFrame | None = None,
-) -> pl.DataFrame:
-    def _count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
-        df2 = df.select(expr)
-        if df2.is_empty():
-            schema = {"column": pl.Utf8, column_name: pl.UInt32}
-            return pl.DataFrame(schema=schema)
-        return df2.transpose(include_header=True, column_names=[column_name])
-
-    simple_cols = [col for col in df.columns if not df.schema[col].is_nested]
-
-    count = len(df)
-    null_count_df = _count_columns("null_count", pl.all().null_count())
-    is_unique_df = _count_columns(
-        "is_unique", pl.col(*simple_cols).drop_nulls().is_unique().all()
-    )
-    true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
-    false_count_df = _count_columns(
-        "false_count", pl.col(pl.Boolean).drop_nulls().is_not().sum()
-    )
-
-    def _percent_col(name: str) -> pl.Expr:
-        return (
-            pl.when(pl.col(f"{name}_count") > 0)
-            .then(
-                pyformat(
-                    "{:,.0f} ({:.1%})",
-                    pl.col(f"{name}_count"),
-                    pl.col(f"{name}_count") / count,
-                )
-            )
-            .otherwise(None)
-            .alias(name)
-        )
-
-    def _int_col(name: str) -> pl.Expr:
-        return (
-            pl.when(pl.col(f"{name}_count") > 0)
-            .then(pyformat("{:,}", pl.col(f"{name}_count")))
-            .otherwise(None)
-            .alias(name)
-        )
-
-    joined_df = (
-        null_count_df.join(is_unique_df, on="column", how="left")
-        .join(true_count_df, on="column", how="left")
-        .join(false_count_df, on="column", how="left")
-    )
-
-    if changes_df is not None:
-        updated_count_df = changes_df.select(
-            pl.col("^.+_updated$").map_alias(lambda n: n.replace("_updated", ""))
-        ).transpose(include_header=True, column_names=["updated_count"])
-        joined_df = joined_df.join(updated_count_df, on="column", how="left")
-    else:
-        joined_df = joined_df.with_columns(pl.lit(0).alias("updated_count"))
-
-    return joined_df.select(
-        pl.col("column").alias("name"),
-        # MARK: pl.Expr.apply
-        pl.col("column").apply(df.schema.get).apply(_dtype_str_repr).alias("dtype"),
-        _percent_col("null"),
-        _percent_col("true"),
-        _percent_col("false"),
-        (
-            pl.when(pl.col("is_unique"))
-            .then(pl.lit("true"))
-            .otherwise(pl.lit(""))
-            .alias("unique")
-        ),
-        _int_col("updated"),
-    ).fill_null("")
-
-
-def describe_frame(
-    df: pl.DataFrame,
-    source: str,
-    output: TextIO,
-    changes_df: pl.DataFrame | None = None,
-) -> pl.DataFrame:
-    with pl.Config() as cfg:
-        cfg.set_fmt_str_lengths(100)
-        cfg.set_tbl_cols(-1)
-        cfg.set_tbl_column_data_type_inline(True)
-        cfg.set_tbl_formatting("ASCII_MARKDOWN")
-        cfg.set_tbl_hide_dataframe_shape(True)
-        cfg.set_tbl_rows(-1)
-        cfg.set_tbl_width_chars(500)
-
-        print(f"## {source}", file=output)
-        print(str(compute_stats(df, changes_df=changes_df)), file=output)
-        print(f"\nshape: ({df.shape[0]:,}, {df.shape[1]:,})", file=output)
-
-        if changes_df is not None:
-            changes = changes_df.row(0, named=True)
-            added, removed, updated = (
-                changes["added"],
-                changes["removed"],
-                changes["updated"],
-            )
-            print(f"changes: +{added:,} -{removed:,} ~{updated:,}", file=output)
-
-        mb = df.estimated_size("mb")
-        if mb > 2:
-            print(f"rss: {mb:,.1f}MB", file=output)
-        else:
-            kb = df.estimated_size("kb")
-            print(f"rss: {kb:,.1f}KB", file=output)
-
-    return df
-
-
-def describe_frame_with_diff(
-    df_old: pl.DataFrame,
-    df_new: pl.DataFrame,
-    key: str,
-    source: str,
-    output: TextIO,
-) -> pl.DataFrame:
-    # MARK: pl.LazyFrame.collect
-    changes_df = frame_diff(df_old.lazy(), df_new.lazy(), on=key).collect()
-    return describe_frame(
-        df_new,
-        changes_df=changes_df,
-        source=source,
-        output=output,
     )
 
 

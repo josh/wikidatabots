@@ -221,16 +221,6 @@ _COUNTRIES: list[_COUNTRY] = [
 _LOOKUP_BATCH_SIZE = 180
 
 
-def lookup_itunes_id(
-    expr: pl.Expr, country: str, batch_size: int = _LOOKUP_BATCH_SIZE
-) -> pl.Expr:
-    # MARK: pl.Expr.map
-    return expr.map(
-        partial(_lookup_itunes_id, country=country, batch_size=batch_size),
-        return_dtype=_LOOKUP_DTYPE,
-    )
-
-
 _RESULT_DTYPE = pl.Struct(
     {
         "wrapperType": pl.Utf8,
@@ -260,6 +250,40 @@ _LOOKUP_DTYPE = pl.Struct(
         pl.Field("kind", pl.Utf8),
     ]
 )
+
+
+def _lookup_result(expr: pl.Expr) -> pl.Expr:
+    return (
+        pl.when(expr.struct.field("wrapperType") == "collection")
+        .then(
+            pl.struct(
+                expr.struct.field("collectionId").alias("id"),
+                expr.struct.field("collectionType").alias("type"),
+                expr.struct.field("collectionName").alias("name"),
+                expr.struct.field("collectionViewUrl").alias("url"),
+                pl.lit(None).alias("kind"),
+            )
+        )
+        .when(expr.struct.field("wrapperType") == "artist")
+        .then(
+            pl.struct(
+                expr.struct.field("artistId").alias("id"),
+                expr.struct.field("artistType").alias("type"),
+                expr.struct.field("artistName").alias("name"),
+                expr.struct.field("artistLinkUrl").alias("url"),
+                pl.lit(None).alias("kind"),
+            )
+        )
+        .otherwise(
+            pl.struct(
+                expr.struct.field("trackId").alias("id"),
+                pl.lit(None).alias("type"),
+                expr.struct.field("trackName").alias("name"),
+                expr.struct.field("trackViewUrl").alias("url"),
+                expr.struct.field("kind").alias("kind"),
+            )
+        )
+    )
 
 
 def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
@@ -309,37 +333,13 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
     )
 
 
-def _lookup_result(expr: pl.Expr) -> pl.Expr:
-    return (
-        pl.when(expr.struct.field("wrapperType") == "collection")
-        .then(
-            pl.struct(
-                expr.struct.field("collectionId").alias("id"),
-                expr.struct.field("collectionType").alias("type"),
-                expr.struct.field("collectionName").alias("name"),
-                expr.struct.field("collectionViewUrl").alias("url"),
-                pl.lit(None).alias("kind"),
-            )
-        )
-        .when(expr.struct.field("wrapperType") == "artist")
-        .then(
-            pl.struct(
-                expr.struct.field("artistId").alias("id"),
-                expr.struct.field("artistType").alias("type"),
-                expr.struct.field("artistName").alias("name"),
-                expr.struct.field("artistLinkUrl").alias("url"),
-                pl.lit(None).alias("kind"),
-            )
-        )
-        .otherwise(
-            pl.struct(
-                expr.struct.field("trackId").alias("id"),
-                pl.lit(None).alias("type"),
-                expr.struct.field("trackName").alias("name"),
-                expr.struct.field("trackViewUrl").alias("url"),
-                expr.struct.field("kind").alias("kind"),
-            )
-        )
+def lookup_itunes_id(
+    expr: pl.Expr, country: str, batch_size: int = _LOOKUP_BATCH_SIZE
+) -> pl.Expr:
+    # MARK: pl.Expr.map
+    return expr.map(
+        partial(_lookup_itunes_id, country=country, batch_size=batch_size),
+        return_dtype=_LOOKUP_DTYPE,
     )
 
 

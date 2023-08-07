@@ -169,6 +169,91 @@ _JSONLD_DTYPE = pl.Struct(
 )
 
 
+def _parse_html(html: str) -> BeautifulSoup | None:
+    soup = BeautifulSoup(html, "html.parser")
+
+    if soup.find("h1", string="This content is no longer available."):
+        return None
+
+    link = soup.find("link", attrs={"rel": "canonical"})
+    if not link:
+        return None
+
+    return soup
+
+
+def _extract_script_text(
+    expr: pl.Expr,
+    log_group: str,
+    script_type: str | None = None,
+    script_id: str | None = None,
+) -> pl.Expr:
+    attrs = {}
+    if script_type:
+        attrs["type"] = script_type
+    if script_id:
+        attrs["id"] = script_id
+
+    def _soup_find_script_text(html: str) -> str | None:
+        if soup := _parse_html(html):
+            if script := soup.find("script", attrs):
+                return script.text
+        return None
+
+    return apply_with_tqdm(
+        expr,
+        _soup_find_script_text,
+        return_dtype=pl.Utf8,
+        log_group=log_group,
+    )
+
+
+def _extract_itunes_id(text: str) -> int | None:
+    for data in json.loads(text).values():
+        if "content" in data and "playables" in data["content"]:
+            for playable in data["content"]["playables"]:
+                if playable.get("isItunes", False) is True:
+                    return int(playable["externalId"])
+
+        if "playables" in data:
+            for playable in data["playables"].values():
+                if playable["channelId"] == "tvs.sbd.9001":
+                    return int(playable["externalId"])
+
+        if "howToWatch" in data:
+            for way in data["howToWatch"]:
+                if way["channelId"] != "tvs.sbd.9001":
+                    continue
+
+                if way.get("punchoutUrls"):
+                    m = re.match(
+                        r"itmss://itunes.apple.com/[a-z]{2}/[^/]+/[^/]+/id(\d+)",
+                        way["punchoutUrls"]["open"],
+                    )
+                    if m:
+                        return int(m.group(1))
+
+                if way.get("versions"):
+                    for version in way["versions"]:
+                        m = re.match(
+                            r"tvs.sbd.9001:(\d+)",
+                            version["playableId"],
+                        )
+                        if m:
+                            return int(m.group(1))
+
+    return None
+
+
+def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
+    return apply_with_tqdm(
+        expr,
+        _extract_itunes_id,
+        return_dtype=pl.Int64,
+        log_group="extract_itunes_id",
+    )
+
+
 def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.with_columns(
@@ -247,91 +332,6 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
             "itunes_id",
         )
     )
-
-
-def _parse_html(html: str) -> BeautifulSoup | None:
-    soup = BeautifulSoup(html, "html.parser")
-
-    if soup.find("h1", string="This content is no longer available."):
-        return None
-
-    link = soup.find("link", attrs={"rel": "canonical"})
-    if not link:
-        return None
-
-    return soup
-
-
-def _extract_script_text(
-    expr: pl.Expr,
-    log_group: str,
-    script_type: str | None = None,
-    script_id: str | None = None,
-) -> pl.Expr:
-    attrs = {}
-    if script_type:
-        attrs["type"] = script_type
-    if script_id:
-        attrs["id"] = script_id
-
-    def _soup_find_script_text(html: str) -> str | None:
-        if soup := _parse_html(html):
-            if script := soup.find("script", attrs):
-                return script.text
-        return None
-
-    return apply_with_tqdm(
-        expr,
-        _soup_find_script_text,
-        return_dtype=pl.Utf8,
-        log_group=log_group,
-    )
-
-
-def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr,
-        _extract_itunes_id,
-        return_dtype=pl.Int64,
-        log_group="extract_itunes_id",
-    )
-
-
-def _extract_itunes_id(text: str) -> int | None:
-    for data in json.loads(text).values():
-        if "content" in data and "playables" in data["content"]:
-            for playable in data["content"]["playables"]:
-                if playable.get("isItunes", False) is True:
-                    return int(playable["externalId"])
-
-        if "playables" in data:
-            for playable in data["playables"].values():
-                if playable["channelId"] == "tvs.sbd.9001":
-                    return int(playable["externalId"])
-
-        if "howToWatch" in data:
-            for way in data["howToWatch"]:
-                if way["channelId"] != "tvs.sbd.9001":
-                    continue
-
-                if way.get("punchoutUrls"):
-                    m = re.match(
-                        r"itmss://itunes.apple.com/[a-z]{2}/[^/]+/[^/]+/id(\d+)",
-                        way["punchoutUrls"]["open"],
-                    )
-                    if m:
-                        return int(m.group(1))
-
-                if way.get("versions"):
-                    for version in way["versions"]:
-                        m = re.match(
-                            r"tvs.sbd.9001:(\d+)",
-                            version["playableId"],
-                        )
-                        if m:
-                            return int(m.group(1))
-
-    return None
 
 
 _OUTDATED_JSONLD = pl.col("country").eq("us") & pl.col("retrieved_at").is_null()

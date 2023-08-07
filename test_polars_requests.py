@@ -46,13 +46,13 @@ def _st_http_data():
     return st.binary(max_size=10)
 
 
-def _st_http_data_utf8():
-    return _st_binary_utf8()
-
-
 @composite
 def _st_binary_utf8(draw: DrawFn) -> bytes:
     return draw(st.text(max_size=5)).encode("utf-8")
+
+
+def _st_http_data_utf8():
+    return _st_binary_utf8()
 
 
 def _st_http_response_dict(utf8_data: bool = False):

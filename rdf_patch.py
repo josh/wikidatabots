@@ -23,13 +23,13 @@ class HashableClaim(object):
     def __init__(self, claim: pywikibot.Claim):
         self.claim = claim
 
-    def __hash__(self):
-        return 0
-
     def __eq__(self, other):
         if not isinstance(other, HashableClaim):
             return False
         return self.claim == other.claim
+
+    def __hash__(self):
+        return 0
 
 
 P = Namespace("http://www.wikidata.org/prop/")
@@ -112,6 +112,327 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX wikidatabots: <https://github.com/josh/wikidatabots#>
 
 """
+
+
+AnyRDFSubject = URIRef | BNode
+AnyRDFPredicate = URIRef
+AnyRDFObject = URIRef | BNode | Literal
+
+
+def _subjects(graph: Graph) -> Iterator[AnyRDFSubject]:
+    for subject in graph.subjects(unique=True):
+        assert isinstance(subject, URIRef) or isinstance(subject, BNode)
+        yield subject
+
+
+def _predicate_objects(
+    graph: Graph, subject: AnyRDFSubject
+) -> Iterator[tuple[AnyRDFPredicate, AnyRDFObject]]:
+    for predicate, object in graph.predicate_objects(subject, unique=True):
+        assert isinstance(predicate, URIRef)
+        assert (
+            isinstance(object, URIRef)
+            or isinstance(object, BNode)
+            or isinstance(object, Literal)
+        )
+        yield predicate, object
+
+
+def _predicate_ns_objects(
+    graph: Graph, subject: AnyRDFSubject, predicate_ns: Namespace
+) -> Iterator[tuple[str, AnyRDFObject]]:
+    for predicate, object in _predicate_objects(graph, subject):
+        _, ns, name = NS_MANAGER.compute_qname(predicate)
+        if predicate_ns == ns:
+            yield name, object
+
+
+class WbSource:
+    _source: OrderedDict[str, list[pywikibot.Claim]]
+
+    def __init__(self):
+        self._source = OrderedDict()
+
+    def add_reference(self, pid: str, reference: pywikibot.Claim) -> None:
+        assert pid.startswith("P"), pid
+        if pid not in self._source:
+            self._source[pid] = []
+        self._source[pid].append(reference)
+
+
+def _compute_qname(uri: URIRef) -> tuple[str, str]:
+    prefix, _, name = NS_MANAGER.compute_qname(uri)
+    return (prefix, name)
+
+
+@cache
+def get_item_page(qid: str) -> pywikibot.ItemPage:
+    assert qid.startswith("Q"), qid
+    return pywikibot.ItemPage(SITE, qid)
+
+
+@cache
+def get_property_page(pid: str) -> pywikibot.PropertyPage:
+    assert pid.startswith("P"), pid
+    return pywikibot.PropertyPage(SITE, pid)
+
+
+def _resolve_object_uriref(
+    object: URIRef,
+) -> pywikibot.ItemPage | pywikibot.PropertyPage:
+    prefix, local_name = _compute_qname(object)
+    assert prefix == "wd"
+    if local_name.startswith("Q"):
+        return get_item_page(local_name)
+    elif local_name.startswith("P"):
+        return get_property_page(local_name)
+    else:
+        raise NotImplementedError(f"Unknown item: {object}")
+
+
+def _resolve_object_literal(object: Literal) -> str | pywikibot.WbTime:
+    if object.datatype is None:
+        return str(object)
+    elif object.datatype == XSD.dateTime or object.datatype == XSD.date:
+        data = {
+            "time": object.toPython().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "precision": 11,
+            "after": 0,
+            "before": 0,
+            "timezone": 0,
+            "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
+        }
+        return pywikibot.WbTime.fromWikibase(data, site=SITE)
+    else:
+        raise NotImplementedError(f"not implemented datatype: {object.datatype}")
+
+
+def _resolve_object(
+    graph: Graph, object: AnyRDFObject
+) -> (
+    pywikibot.ItemPage
+    | pywikibot.PropertyPage
+    | pywikibot.WbTime
+    | pywikibot.WbQuantity
+    | WbSource
+    | str
+):
+    if isinstance(object, URIRef):
+        return _resolve_object_uriref(object)
+    elif isinstance(object, BNode):
+        return _resolve_object_bnode(graph, object)
+    elif isinstance(object, Literal):
+        return _resolve_object_literal(object)
+
+
+def _resolve_object_bnode_time_value(graph: Graph, object: BNode) -> pywikibot.WbTime:
+    if value := graph.value(object, WIKIBASE.timeValue):
+        assert isinstance(value, Literal)
+        assert value.datatype is None or value.datatype == XSD.dateTime
+    if precision := graph.value(object, WIKIBASE.timePrecision):
+        assert isinstance(precision, Literal)
+        assert precision.datatype == XSD.integer
+        assert 0 <= precision.toPython() <= 14
+    if timezone := graph.value(object, WIKIBASE.timeTimezone):
+        assert isinstance(timezone, Literal)
+        assert timezone.datatype == XSD.integer
+    if calendar_model := graph.value(object, WIKIBASE.timeCalendarModel):
+        assert isinstance(calendar_model, URIRef)
+
+    data = {
+        "time": None,
+        "precision": 11,
+        "after": 0,
+        "before": 0,
+        "timezone": 0,
+        "calendarmodel": "https://www.wikidata.org/wiki/Q1985727",
+    }
+    if value:
+        value_dt = value.toPython()
+        if not isinstance(value_dt, datetime.datetime):
+            value_dt = datetime.datetime.fromisoformat(value_dt)
+        data["time"] = value_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if precision:
+        data["precision"] = precision.toPython()
+    if timezone:
+        data["timezone"] = timezone.toPython()
+    if calendar_model:
+        data["calendarmodel"] = str(calendar_model)
+    return pywikibot.WbTime.fromWikibase(data, site=SITE)
+
+
+def _resolve_object_bnode_quantity_value(
+    graph: Graph, object: BNode
+) -> pywikibot.WbQuantity:
+    if amount := graph.value(object, WIKIBASE.quantityAmount):
+        assert isinstance(amount, Literal)
+        assert amount.datatype == XSD.decimal
+    if upper_bound := graph.value(object, WIKIBASE.quantityUpperBound):
+        assert isinstance(upper_bound, Literal)
+        assert upper_bound.datatype == XSD.decimal
+    if lower_bound := graph.value(object, WIKIBASE.quantityLowerBound):
+        assert isinstance(lower_bound, Literal)
+        assert lower_bound.datatype == XSD.decimal
+    if unit := graph.value(object, WIKIBASE.quantityUnit):
+        assert isinstance(unit, URIRef)
+
+    data = {
+        "amount": None,
+        "upperBound": None,
+        "lowerBound": None,
+        "unit": "1",
+    }
+    if amount:
+        data["amount"] = f"+{amount}"
+    if upper_bound:
+        data["upperBound"] = f"+{upper_bound}"
+    if lower_bound:
+        data["lowerBound"] = f"+{lower_bound}"
+    if unit:
+        data["unit"] = str(unit)
+    return pywikibot.WbQuantity.fromWikibase(data, site=SITE)
+
+
+def _resolve_object_bnode(
+    graph: Graph, object: BNode, rdf_type: URIRef | None = None
+) -> pywikibot.WbQuantity | pywikibot.WbTime | WbSource:
+    if not rdf_type:
+        rdf_type = graph.value(object, RDF.type)
+    assert rdf_type is None or isinstance(rdf_type, URIRef)
+
+    if rdf_type == WIKIBASE.TimeValue:
+        return _resolve_object_bnode_time_value(graph, object)
+    elif rdf_type == WIKIBASE.QuantityValue:
+        return _resolve_object_bnode_quantity_value(graph, object)
+    elif rdf_type == WIKIBASE.Reference:
+        return _resolve_object_bnode_reference(graph, object)
+    else:
+        raise NotImplementedError(f"Unknown bnode: {rdf_type}")
+
+
+def _resolve_object_bnode_reference(graph: Graph, object: BNode) -> WbSource:
+    source = WbSource()
+
+    for pr_name, pr_object in _predicate_ns_objects(graph, object, PR):
+        ref = get_property_page(pr_name).newClaim(is_reference=True)
+        ref.setTarget(_resolve_object(graph, pr_object))
+        source.add_reference(pr_name, ref)
+
+    for prv_name, prv_object in _predicate_ns_objects(graph, object, PRV):
+        ref = get_property_page(prv_name).newClaim(is_reference=True)
+        ref.setTarget(_resolve_object(graph, prv_object))
+        source.add_reference(prv_name, ref)
+
+    return source
+
+
+def _graph_empty_node(graph: Graph, object: AnyRDFObject) -> bool:
+    return isinstance(object, BNode) and len(list(graph.predicate_objects(object))) == 0
+
+
+@cache
+def resolve_claim_guid(guid: str) -> pywikibot.Claim:
+    qid, hash = guid.split("-", 1)
+    snak = f"{qid}${hash}"
+
+    item = get_item_page(qid.upper())
+
+    for property in item.claims:
+        for claim in item.claims[property]:
+            if snak == claim.snak:
+                return claim
+
+    assert False, f"Can't resolve statement GUID: {guid}"
+
+
+def _claim_uri(claim: pywikibot.Claim) -> str:
+    snak: str = claim.snak
+    guid = snak.replace("$", "-")
+    return f"http://www.wikidata.org/entity/statement/{guid}"
+
+
+def _item_append_claim_target(
+    item: pywikibot.ItemPage,
+    property: pywikibot.PropertyPage,
+    target: Any,
+) -> tuple[bool, pywikibot.Claim]:
+    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
+    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
+
+    pid: str = property.id
+    if pid not in item.claims:
+        item.claims[pid] = []
+    claims = item.claims[pid]
+
+    for claim in claims:
+        if claim.target_equals(target):
+            return (False, claim)
+
+    claim: pywikibot.Claim = property.newClaim()
+    claim.setTarget(target)
+    item.claims[pid].append(claim)
+
+    return (True, claim)
+
+
+def _claim_append_qualifer(
+    claim: pywikibot.Claim,
+    property: pywikibot.PropertyPage,
+    target: Any,
+) -> bool:
+    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
+    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
+
+    pid: str = property.id
+    if pid not in claim.qualifiers:
+        claim.qualifiers[pid] = []
+    qualifiers = claim.qualifiers[pid]
+
+    for qualifier in qualifiers:
+        if qualifier.target_equals(target):
+            return False
+
+    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
+    qualifier.setTarget(target)
+    claim.qualifiers[pid].append(qualifier)
+
+    return True
+
+
+def _claim_set_qualifer(
+    claim: pywikibot.Claim,
+    property: pywikibot.PropertyPage,
+    target: Any,
+) -> bool:
+    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
+    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
+
+    pid: str = property.id
+    if pid in claim.qualifiers and len(claim.qualifiers[pid]) == 1:
+        qualifier: pywikibot.Claim = claim.qualifiers[pid][0]
+        if qualifier.target_equals(target):
+            return False
+
+    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
+    qualifier.setTarget(target)
+    claim.qualifiers[pid] = [qualifier]
+
+    return True
+
+
+_RANKS: dict[str, str] = {
+    str(WIKIBASE.NormalRank): "normal",
+    str(WIKIBASE.DeprecatedRank): "deprecated",
+    str(WIKIBASE.PreferredRank): "preferred",
+}
+
+
+def _claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
+    rank_str: str = _RANKS[str(rank)]
+    if claim.rank == rank_str:
+        return False
+    claim.setRank(rank_str)
+    return True
 
 
 def process_graph(
@@ -276,327 +597,6 @@ def process_graph(
 
         assert len(claims_json) > 0, "No claims to save"
         yield (item, claims_json, summary)
-
-
-AnyRDFSubject = URIRef | BNode
-AnyRDFPredicate = URIRef
-AnyRDFObject = URIRef | BNode | Literal
-
-
-def _subjects(graph: Graph) -> Iterator[AnyRDFSubject]:
-    for subject in graph.subjects(unique=True):
-        assert isinstance(subject, URIRef) or isinstance(subject, BNode)
-        yield subject
-
-
-def _predicate_objects(
-    graph: Graph, subject: AnyRDFSubject
-) -> Iterator[tuple[AnyRDFPredicate, AnyRDFObject]]:
-    for predicate, object in graph.predicate_objects(subject, unique=True):
-        assert isinstance(predicate, URIRef)
-        assert (
-            isinstance(object, URIRef)
-            or isinstance(object, BNode)
-            or isinstance(object, Literal)
-        )
-        yield predicate, object
-
-
-def _predicate_ns_objects(
-    graph: Graph, subject: AnyRDFSubject, predicate_ns: Namespace
-) -> Iterator[tuple[str, AnyRDFObject]]:
-    for predicate, object in _predicate_objects(graph, subject):
-        _, ns, name = NS_MANAGER.compute_qname(predicate)
-        if predicate_ns == ns:
-            yield name, object
-
-
-class WbSource:
-    _source: OrderedDict[str, list[pywikibot.Claim]]
-
-    def __init__(self):
-        self._source = OrderedDict()
-
-    def add_reference(self, pid: str, reference: pywikibot.Claim) -> None:
-        assert pid.startswith("P"), pid
-        if pid not in self._source:
-            self._source[pid] = []
-        self._source[pid].append(reference)
-
-
-def _resolve_object(
-    graph: Graph, object: AnyRDFObject
-) -> (
-    pywikibot.ItemPage
-    | pywikibot.PropertyPage
-    | pywikibot.WbTime
-    | pywikibot.WbQuantity
-    | WbSource
-    | str
-):
-    if isinstance(object, URIRef):
-        return _resolve_object_uriref(object)
-    elif isinstance(object, BNode):
-        return _resolve_object_bnode(graph, object)
-    elif isinstance(object, Literal):
-        return _resolve_object_literal(object)
-
-
-def _resolve_object_uriref(
-    object: URIRef,
-) -> pywikibot.ItemPage | pywikibot.PropertyPage:
-    prefix, local_name = _compute_qname(object)
-    assert prefix == "wd"
-    if local_name.startswith("Q"):
-        return get_item_page(local_name)
-    elif local_name.startswith("P"):
-        return get_property_page(local_name)
-    else:
-        raise NotImplementedError(f"Unknown item: {object}")
-
-
-def _resolve_object_bnode(
-    graph: Graph, object: BNode, rdf_type: URIRef | None = None
-) -> pywikibot.WbQuantity | pywikibot.WbTime | WbSource:
-    if not rdf_type:
-        rdf_type = graph.value(object, RDF.type)
-    assert rdf_type is None or isinstance(rdf_type, URIRef)
-
-    if rdf_type == WIKIBASE.TimeValue:
-        return _resolve_object_bnode_time_value(graph, object)
-    elif rdf_type == WIKIBASE.QuantityValue:
-        return _resolve_object_bnode_quantity_value(graph, object)
-    elif rdf_type == WIKIBASE.Reference:
-        return _resolve_object_bnode_reference(graph, object)
-    else:
-        raise NotImplementedError(f"Unknown bnode: {rdf_type}")
-
-
-def _resolve_object_bnode_time_value(graph: Graph, object: BNode) -> pywikibot.WbTime:
-    if value := graph.value(object, WIKIBASE.timeValue):
-        assert isinstance(value, Literal)
-        assert value.datatype is None or value.datatype == XSD.dateTime
-    if precision := graph.value(object, WIKIBASE.timePrecision):
-        assert isinstance(precision, Literal)
-        assert precision.datatype == XSD.integer
-        assert 0 <= precision.toPython() <= 14
-    if timezone := graph.value(object, WIKIBASE.timeTimezone):
-        assert isinstance(timezone, Literal)
-        assert timezone.datatype == XSD.integer
-    if calendar_model := graph.value(object, WIKIBASE.timeCalendarModel):
-        assert isinstance(calendar_model, URIRef)
-
-    data = {
-        "time": None,
-        "precision": 11,
-        "after": 0,
-        "before": 0,
-        "timezone": 0,
-        "calendarmodel": "https://www.wikidata.org/wiki/Q1985727",
-    }
-    if value:
-        value_dt = value.toPython()
-        if not isinstance(value_dt, datetime.datetime):
-            value_dt = datetime.datetime.fromisoformat(value_dt)
-        data["time"] = value_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    if precision:
-        data["precision"] = precision.toPython()
-    if timezone:
-        data["timezone"] = timezone.toPython()
-    if calendar_model:
-        data["calendarmodel"] = str(calendar_model)
-    return pywikibot.WbTime.fromWikibase(data, site=SITE)
-
-
-def _resolve_object_bnode_quantity_value(
-    graph: Graph, object: BNode
-) -> pywikibot.WbQuantity:
-    if amount := graph.value(object, WIKIBASE.quantityAmount):
-        assert isinstance(amount, Literal)
-        assert amount.datatype == XSD.decimal
-    if upper_bound := graph.value(object, WIKIBASE.quantityUpperBound):
-        assert isinstance(upper_bound, Literal)
-        assert upper_bound.datatype == XSD.decimal
-    if lower_bound := graph.value(object, WIKIBASE.quantityLowerBound):
-        assert isinstance(lower_bound, Literal)
-        assert lower_bound.datatype == XSD.decimal
-    if unit := graph.value(object, WIKIBASE.quantityUnit):
-        assert isinstance(unit, URIRef)
-
-    data = {
-        "amount": None,
-        "upperBound": None,
-        "lowerBound": None,
-        "unit": "1",
-    }
-    if amount:
-        data["amount"] = f"+{amount}"
-    if upper_bound:
-        data["upperBound"] = f"+{upper_bound}"
-    if lower_bound:
-        data["lowerBound"] = f"+{lower_bound}"
-    if unit:
-        data["unit"] = str(unit)
-    return pywikibot.WbQuantity.fromWikibase(data, site=SITE)
-
-
-def _resolve_object_bnode_reference(graph: Graph, object: BNode) -> WbSource:
-    source = WbSource()
-
-    for pr_name, pr_object in _predicate_ns_objects(graph, object, PR):
-        ref = get_property_page(pr_name).newClaim(is_reference=True)
-        ref.setTarget(_resolve_object(graph, pr_object))
-        source.add_reference(pr_name, ref)
-
-    for prv_name, prv_object in _predicate_ns_objects(graph, object, PRV):
-        ref = get_property_page(prv_name).newClaim(is_reference=True)
-        ref.setTarget(_resolve_object(graph, prv_object))
-        source.add_reference(prv_name, ref)
-
-    return source
-
-
-def _resolve_object_literal(object: Literal) -> str | pywikibot.WbTime:
-    if object.datatype is None:
-        return str(object)
-    elif object.datatype == XSD.dateTime or object.datatype == XSD.date:
-        data = {
-            "time": object.toPython().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "precision": 11,
-            "after": 0,
-            "before": 0,
-            "timezone": 0,
-            "calendarmodel": "http://www.wikidata.org/entity/Q1985727",
-        }
-        return pywikibot.WbTime.fromWikibase(data, site=SITE)
-    else:
-        raise NotImplementedError(f"not implemented datatype: {object.datatype}")
-
-
-def _graph_empty_node(graph: Graph, object: AnyRDFObject) -> bool:
-    return isinstance(object, BNode) and len(list(graph.predicate_objects(object))) == 0
-
-
-def _compute_qname(uri: URIRef) -> tuple[str, str]:
-    prefix, _, name = NS_MANAGER.compute_qname(uri)
-    return (prefix, name)
-
-
-@cache
-def get_item_page(qid: str) -> pywikibot.ItemPage:
-    assert qid.startswith("Q"), qid
-    return pywikibot.ItemPage(SITE, qid)
-
-
-@cache
-def get_property_page(pid: str) -> pywikibot.PropertyPage:
-    assert pid.startswith("P"), pid
-    return pywikibot.PropertyPage(SITE, pid)
-
-
-@cache
-def resolve_claim_guid(guid: str) -> pywikibot.Claim:
-    qid, hash = guid.split("-", 1)
-    snak = f"{qid}${hash}"
-
-    item = get_item_page(qid.upper())
-
-    for property in item.claims:
-        for claim in item.claims[property]:
-            if snak == claim.snak:
-                return claim
-
-    assert False, f"Can't resolve statement GUID: {guid}"
-
-
-def _claim_uri(claim: pywikibot.Claim) -> str:
-    snak: str = claim.snak
-    guid = snak.replace("$", "-")
-    return f"http://www.wikidata.org/entity/statement/{guid}"
-
-
-def _item_append_claim_target(
-    item: pywikibot.ItemPage,
-    property: pywikibot.PropertyPage,
-    target: Any,
-) -> tuple[bool, pywikibot.Claim]:
-    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
-    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
-
-    pid: str = property.id
-    if pid not in item.claims:
-        item.claims[pid] = []
-    claims = item.claims[pid]
-
-    for claim in claims:
-        if claim.target_equals(target):
-            return (False, claim)
-
-    claim: pywikibot.Claim = property.newClaim()
-    claim.setTarget(target)
-    item.claims[pid].append(claim)
-
-    return (True, claim)
-
-
-def _claim_append_qualifer(
-    claim: pywikibot.Claim,
-    property: pywikibot.PropertyPage,
-    target: Any,
-) -> bool:
-    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
-    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
-
-    pid: str = property.id
-    if pid not in claim.qualifiers:
-        claim.qualifiers[pid] = []
-    qualifiers = claim.qualifiers[pid]
-
-    for qualifier in qualifiers:
-        if qualifier.target_equals(target):
-            return False
-
-    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
-    qualifier.setTarget(target)
-    claim.qualifiers[pid].append(qualifier)
-
-    return True
-
-
-def _claim_set_qualifer(
-    claim: pywikibot.Claim,
-    property: pywikibot.PropertyPage,
-    target: Any,
-) -> bool:
-    assert not isinstance(target, URIRef), f"Pass target as ItemPage: {target}"
-    assert not isinstance(target, Literal), f"Pass target as Python value: {target}"
-
-    pid: str = property.id
-    if pid in claim.qualifiers and len(claim.qualifiers[pid]) == 1:
-        qualifier: pywikibot.Claim = claim.qualifiers[pid][0]
-        if qualifier.target_equals(target):
-            return False
-
-    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
-    qualifier.setTarget(target)
-    claim.qualifiers[pid] = [qualifier]
-
-    return True
-
-
-_RANKS: dict[str, str] = {
-    str(WIKIBASE.NormalRank): "normal",
-    str(WIKIBASE.DeprecatedRank): "deprecated",
-    str(WIKIBASE.PreferredRank): "preferred",
-}
-
-
-def _claim_set_rank(claim: pywikibot.Claim, rank: URIRef) -> bool:
-    rank_str: str = _RANKS[str(rank)]
-    if claim.rank == rank_str:
-        return False
-    claim.setRank(rank_str)
-    return True
 
 
 if __name__ == "__main__":

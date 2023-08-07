@@ -61,6 +61,10 @@ def _plex_server(name: str) -> pl.LazyFrame:
     )
 
 
+def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(_GUID_RE, 2).str.decode("hex")
+
+
 def plex_library_guids() -> pl.LazyFrame:
     return (
         _plex_server(name=os.environ["PLEX_SERVER"])
@@ -89,6 +93,10 @@ def plex_library_guids() -> pl.LazyFrame:
         .drop_nulls()
         .unique(subset="key")
     )
+
+
+def _decode_plex_any_key(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(_ANY_KEY_RE, 3).str.decode("hex")
 
 
 def wikidata_plex_guids() -> pl.LazyFrame:
@@ -219,16 +227,8 @@ def wikidata_search_guids(limit: int = _SEARCH_LIMIT) -> pl.LazyFrame:
     )
 
 
-def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract(_GUID_RE, 2).str.decode("hex")
-
-
 def decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
     return _decode_plex_guid_key(expr)
-
-
-def _decode_plex_any_key(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract(_ANY_KEY_RE, 3).str.decode("hex")
 
 
 def _decode_plex_guid_type(expr: pl.Expr) -> pl.Expr:
@@ -241,37 +241,6 @@ def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
 
 _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_000
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
-
-
-def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
-    # MARK: pl.LazyFrame.cache
-    df = df.cache()
-
-    df_updated = (
-        df.filter(_OLDEST_METADATA | _MISSING_METADATA).pipe(fetch_metadata_guids)
-        # MARK: pl.LazyFrame.cache
-        .cache()
-    )
-
-    df_similar = (
-        df_updated.select("similar_guids")
-        .explode("similar_guids")
-        .rename({"similar_guids": "guid"})
-        .select(
-            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
-            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
-        )
-        .drop_nulls()
-        .unique(subset="key")
-        # MARK: pl.LazyFrame.cache
-        .cache()
-    )
-
-    return (
-        df.pipe(update_or_append, df_updated.drop("similar_guids"), on="key")
-        .pipe(update_or_append, df_similar, on="key")
-        .pipe(_sort)
-    )
 
 
 _METADATA_DTYPE = pl.Struct(
@@ -289,6 +258,21 @@ _METADATA_DTYPE = pl.Struct(
 _METACONTAINER_JSON_DTYPE: pl.PolarsDataType = pl.Struct(
     {"MediaContainer": pl.Struct({"Metadata": pl.List(_METADATA_DTYPE)})}
 )
+
+
+def _extract_guid(pattern: str) -> pl.Expr:
+    return (
+        pl.col("metadata")
+        .struct.field("Guid")
+        .list.eval(
+            pl.element()
+            .struct.field("id")
+            .str.extract(pattern, 1)
+            .cast(pl.UInt32)
+            .drop_nulls(),
+        )
+        .list.first()
+    )
 
 
 def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
@@ -349,18 +333,34 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-def _extract_guid(pattern: str) -> pl.Expr:
-    return (
-        pl.col("metadata")
-        .struct.field("Guid")
-        .list.eval(
-            pl.element()
-            .struct.field("id")
-            .str.extract(pattern, 1)
-            .cast(pl.UInt32)
-            .drop_nulls(),
+def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+    # MARK: pl.LazyFrame.cache
+    df = df.cache()
+
+    df_updated = (
+        df.filter(_OLDEST_METADATA | _MISSING_METADATA).pipe(fetch_metadata_guids)
+        # MARK: pl.LazyFrame.cache
+        .cache()
+    )
+
+    df_similar = (
+        df_updated.select("similar_guids")
+        .explode("similar_guids")
+        .rename({"similar_guids": "guid"})
+        .select(
+            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
         )
-        .list.first()
+        .drop_nulls()
+        .unique(subset="key")
+        # MARK: pl.LazyFrame.cache
+        .cache()
+    )
+
+    return (
+        df.pipe(update_or_append, df_updated.drop("similar_guids"), on="key")
+        .pipe(update_or_append, df_similar, on="key")
+        .pipe(_sort)
     )
 
 

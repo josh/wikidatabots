@@ -70,32 +70,24 @@ HTTP_RESPONSE_DTYPE = pl.Struct(
 )
 
 
-def request(
-    requests: pl.Expr,
-    log_group: str,
-    timeout: float = 10.0,
-    min_time: float = 0.0,
-    ok_statuses: Iterable[int] = [200],
-    bad_statuses: Iterable[int] = [],
-    retry_count: int = 0,
-) -> pl.Expr:
-    # MARK: pl.Expr.map
-    return requests.map(
-        partial(
-            _request_series,
-            log_group=log_group,
-            timeout=timeout,
-            min_time=min_time,
-            ok_statuses=set(ok_statuses),
-            bad_statuses=set(bad_statuses),
-            retry_count=retry_count,
-        ),
-        return_dtype=HTTP_RESPONSE_DTYPE,
-    ).alias("response")
-
-
 class StatusCodeWarning(Warning):
     pass
+
+
+T = TypeVar("T")
+P = ParamSpec("P")
+
+
+def _decorate_backoff(fn: Callable[P, T], max_retries: int) -> Callable[P, T]:
+    assert max_retries <= 12, "Too many retries"
+    if max_retries:
+        return backoff.on_exception(
+            backoff.expo,
+            _requests.exceptions.RequestException,
+            max_tries=max_retries,
+        )(fn)
+    else:
+        return fn
 
 
 def _request_series(
@@ -181,20 +173,28 @@ def _request_series(
     return pl.Series(name="response", values=values, dtype=HTTP_RESPONSE_DTYPE)
 
 
-T = TypeVar("T")
-P = ParamSpec("P")
-
-
-def _decorate_backoff(fn: Callable[P, T], max_retries: int) -> Callable[P, T]:
-    assert max_retries <= 12, "Too many retries"
-    if max_retries:
-        return backoff.on_exception(
-            backoff.expo,
-            _requests.exceptions.RequestException,
-            max_tries=max_retries,
-        )(fn)
-    else:
-        return fn
+def request(
+    requests: pl.Expr,
+    log_group: str,
+    timeout: float = 10.0,
+    min_time: float = 0.0,
+    ok_statuses: Iterable[int] = [200],
+    bad_statuses: Iterable[int] = [],
+    retry_count: int = 0,
+) -> pl.Expr:
+    # MARK: pl.Expr.map
+    return requests.map(
+        partial(
+            _request_series,
+            log_group=log_group,
+            timeout=timeout,
+            min_time=min_time,
+            ok_statuses=set(ok_statuses),
+            bad_statuses=set(bad_statuses),
+            retry_count=retry_count,
+        ),
+        return_dtype=HTTP_RESPONSE_DTYPE,
+    ).alias("response")
 
 
 def resolve_redirects(

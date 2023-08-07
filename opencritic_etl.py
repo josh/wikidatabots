@@ -41,24 +41,6 @@ _OPENCRITIC_GAME_API_DTYPE = pl.Struct(
 )
 
 
-def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
-    return (
-        prepare_request(
-            url=pl.format("https://opencritic-api.p.rapidapi.com/game/{}", expr),
-            headers=_HEADERS,
-        ).pipe(
-            request,
-            log_group=_LOG_GROUP,
-            min_time=_API_RPS,
-            retry_count=_API_RETRY_COUNT,
-            ok_statuses={200, 400},
-            bad_statuses={429},
-        )
-        # MARK: pl.Expr.map
-        .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
-    )
-
-
 _OPENCRITIC_GAME_DTYPE = pl.Struct(
     {
         "name": pl.Utf8,
@@ -123,6 +105,24 @@ def _tidy_game(s: pl.Series) -> pl.Series:
         )
         .select([f.name for f in _OPENCRITIC_GAME_DTYPE.fields])
         .to_struct(s.name)
+    )
+
+
+def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
+    return (
+        prepare_request(
+            url=pl.format("https://opencritic-api.p.rapidapi.com/game/{}", expr),
+            headers=_HEADERS,
+        ).pipe(
+            request,
+            log_group=_LOG_GROUP,
+            min_time=_API_RPS,
+            retry_count=_API_RETRY_COUNT,
+            ok_statuses={200, 400},
+            bad_statuses={429},
+        )
+        # MARK: pl.Expr.map
+        .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
     )
 
 

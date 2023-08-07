@@ -69,6 +69,18 @@ _TMDB_EXTERNAL_SOURCES: set[_TMDB_EXTERNAL_SOURCE] = {
 }
 
 
+def extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
+    return (
+        expr.str.extract(_IMDB_ID_PATTERN[tmdb_type], 1)
+        .cast(pl.UInt32)
+        .alias("imdb_numeric_id")
+    )
+
+
+def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(r"Q(\d+)", 1).cast(pl.UInt32).alias("wikidata_numeric_id")
+
+
 def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema["id"] == pl.UInt32
     return (
@@ -118,38 +130,6 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
 
-def extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
-    return (
-        expr.str.extract(_IMDB_ID_PATTERN[tmdb_type], 1)
-        .cast(pl.UInt32)
-        .alias("imdb_numeric_id")
-    )
-
-
-def _extract_wikidata_numeric_id(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract(r"Q(\d+)", 1).cast(pl.UInt32).alias("wikidata_numeric_id")
-
-
-def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    df = df.cache()  # MARK: pl.LazyFrame.cache
-
-    dates_df = df.select(
-        # TODO: Use pl.date_range()
-        pl.date_ranges(
-            pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
-            datetime.date.today(),
-            interval="1d",
-            eager=False,
-        )
-        .explode()
-        .alias("date")
-    )
-
-    return df.pipe(
-        update_or_append, tmdb_changes(dates_df, tmdb_type=tmdb_type), on="id"
-    ).pipe(align_to_index, name="id")
-
-
 def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     assert df.schema == {"date": pl.Date}
     return (
@@ -180,6 +160,26 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         .drop_nulls(subset=["id"])
         .unique(subset=["id"], keep="last", maintain_order=True)
     )
+
+
+def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
+    df = df.cache()  # MARK: pl.LazyFrame.cache
+
+    dates_df = df.select(
+        # TODO: Use pl.date_range()
+        pl.date_ranges(
+            pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
+            datetime.date.today(),
+            interval="1d",
+            eager=False,
+        )
+        .explode()
+        .alias("date")
+    )
+
+    return df.pipe(
+        update_or_append, tmdb_changes(dates_df, tmdb_type=tmdb_type), on="id"
+    ).pipe(align_to_index, name="id")
 
 
 _EXISTS_TMDB_TYPE = Literal["movie", "tv", "person", "collection"]
