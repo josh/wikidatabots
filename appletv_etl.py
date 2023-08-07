@@ -130,19 +130,12 @@ def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFra
     return (
         sitemap(sitemap_type, limit=limit)
         .with_columns(
-            (
-                pl.col("loc")
-                .str.extract(_LOC_PATTERN, 1)
-                .cast(pl.Categorical)
-                .alias("country")
-            ),
-            (
-                pl.col("loc")
-                .str.extract(_LOC_PATTERN, 2)
-                .cast(pl.Categorical)
-                .alias("type")
-            ),
-            pl.col("loc").str.extract(_LOC_PATTERN, 4).alias("id"),
+            pl.col("loc").str.extract_groups(_LOC_PATTERN).alias("loc_components")
+        )
+        .unnest("loc_components")
+        .with_columns(
+            pl.col("country").cast(pl.Categorical),
+            pl.col("type").cast(pl.Categorical),
             pl.lit(True).alias("in_latest_sitemap"),
         )
         .select(
