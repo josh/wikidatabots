@@ -181,7 +181,6 @@ def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
         df.join(_fetch_recently_reviewed(), on="id", how="outer")
         .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
         .select("id")
-        .filter(pl.col("id").ne(15335))  # XXX
         .with_columns(
             pl.col("id").pipe(fetch_opencritic_game).alias("game"),
         )
