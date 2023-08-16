@@ -156,7 +156,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
                 log_group=_LOG_GROUP,
                 min_time=_API_RPS,
                 retry_count=_API_RETRY_COUNT,
-                bad_statuses={429},
+                bad_statuses={429, 502},
             )
             .alias("response")
             .pipe(response_text)
