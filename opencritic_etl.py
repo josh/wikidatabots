@@ -171,7 +171,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
     )
 
 
-_OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 250
+_OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 1 # 250
 _MISSING_DATA = pl.col("retrieved_at").is_null()
 _RECENTLY_REVIEWED = pl.col("recently_reviewed")
 
