@@ -8,8 +8,8 @@ import polars as pl
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import align_to_index, update_or_append, update_parquet
 
-_API_RETRY_COUNT = 10
-_API_RPS: float = 1 / 3
+_API_RETRY_COUNT = 5
+_API_RPS: float = 1  # 1 / 3
 
 _LOG_GROUP = "opencritic-api.p.rapidapi.com"
 
@@ -171,7 +171,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
     )
 
 
-_OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 250
+_OLDEST_DATA = pl.col("retrieved_at").rank("ordinal") < 25  # 250
 _MISSING_DATA = pl.col("retrieved_at").is_null()
 _RECENTLY_REVIEWED = pl.col("recently_reviewed")
 
