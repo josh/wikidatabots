@@ -307,7 +307,7 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
                 log_group=f"itunes.apple.com/lookup?country={country}",
                 timeout=35.0,
                 retry_count=10,
-                bad_statuses={500, 503},
+                bad_statuses={400, 500, 503},
             )
             .pipe(response_text)
             .str.json_extract(_RESULTS_DTYPE)
