@@ -415,6 +415,8 @@ _ITUNES_PROPERTY_IDS: set[_ITUNES_PROPERTY_ID] = {
     "P6998",
 }
 
+_BAD_IDS = [2411234965]
+
 _QUERY = """
 SELECT DISTINCT ?id WHERE {
   _:b0 ps:{} ?id.
@@ -522,6 +524,7 @@ def _main() -> None:
             df.select(_COLUMN_ORDER)
             .pipe(_discover_ids)
             .with_columns(pl.col("url").alias("old_url"))
+            .filter(pl.col("id").is_in(_BAD_IDS).is_not())
             .pipe(_backfill_metadata)
             .pipe(_backfill_redirect_url)
             .drop("old_url")
