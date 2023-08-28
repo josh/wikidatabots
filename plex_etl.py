@@ -68,7 +68,7 @@ def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
 def plex_library_guids() -> pl.LazyFrame:
     return (
         _plex_server(name=os.environ["PLEX_SERVER"])
-        .with_columns(pl.lit([[1, 2]]).alias("section"))
+        .with_columns(pl.lit(pl.Series([[1, 2]])).alias("section"))
         .explode("section")
         .select(
             pl.format("{}/library/sections/{}/all", pl.col("uri"), pl.col("section"))
