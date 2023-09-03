@@ -201,9 +201,11 @@ def _main() -> None:
         # MARK: pl.LazyFrame.cache
         df = df.cache()
         return (
-            df.pipe(update_or_append, _refresh_games(df), on="id")
-            .pipe(align_to_index, name="id")
-            .map(_log_retrieved_at)
+            df.pipe(update_or_append, _refresh_games(df), on="id").pipe(
+                align_to_index, name="id"
+            )
+            # MARK: pl.LazyFrame.map_batches
+            .map_batches(_log_retrieved_at)
         )
 
     update_parquet("opencritic.parquet", update, key="id")
