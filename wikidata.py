@@ -55,8 +55,10 @@ def _blocked_qids() -> pl.Series:
     )
 
 
-# MARK: pl.Expr.map
-_BLOCKED_EXPR = pl.lit(None).map(lambda s: _blocked_qids(), return_dtype=pl.Utf8)
+# MARK: pl.Expr.map_batches
+_BLOCKED_EXPR = pl.lit(None).map_batches(
+    lambda s: _blocked_qids(), return_dtype=pl.Utf8
+)
 
 
 def is_blocked_item(expr: pl.Expr) -> pl.Expr:

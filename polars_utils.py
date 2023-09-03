@@ -56,8 +56,8 @@ def apply_with_tqdm(
     def map_function(s: pl.Series) -> pl.Series:
         return pl.Series(values=apply_function(s), dtype=return_dtype)
 
-    # MARK: pl.Expr.map
-    return expr.map(map_function, return_dtype=return_dtype)
+    # MARK: pl.Expr.map_batches
+    return expr.map_batches(map_function, return_dtype=return_dtype)
 
 
 def pyformat(
@@ -227,8 +227,11 @@ def compute_stats(
 
     return joined_df.select(
         pl.col("column").alias("name"),
-        # MARK: pl.Expr.apply
-        pl.col("column").apply(df.schema.get).apply(_dtype_str_repr).alias("dtype"),
+        # MARK: pl.Expr.map_elements
+        pl.col("column")
+        .map_elements(df.schema.get)
+        .map_elements(_dtype_str_repr)
+        .alias("dtype"),
         _percent_col("null"),
         _percent_col("true"),
         _percent_col("false"),
@@ -335,8 +338,8 @@ def _check_ldf(
         function(df)
         return df
 
-    # MARK: pl.LazyFrame.map
-    return ldf.map(
+    # MARK: pl.LazyFrame.map_batches
+    return ldf.map_batches(
         _inner_check,
         validate_output_schema=False,
         streamable=False,
@@ -362,8 +365,8 @@ def _weighted_random(s: pl.Series) -> pl.Series:
 
 
 def weighted_random(weights: pl.Expr) -> pl.Expr:
-    # MARK: pl.Expr.map
-    return weights.map(_weighted_random, return_dtype=pl.UInt32)
+    # MARK: pl.Expr.map_batches
+    return weights.map_batches(_weighted_random, return_dtype=pl.UInt32)
 
 
 def weighted_sample(df: pl.LazyFrame, n: int) -> pl.LazyFrame:
@@ -389,8 +392,8 @@ def sample(
             seed=seed,
         )
 
-    # MARK: pl.LazyFrame.map
-    return df.map(_sample, streamable=False)
+    # MARK: pl.LazyFrame.map_batches
+    return df.map_batches(_sample, streamable=False)
 
 
 def head(df: pl.LazyFrame, n: int | None) -> pl.LazyFrame:
@@ -421,8 +424,8 @@ def limit(
         else:
             return df
 
-    # MARK: pl.LazyFrame.map
-    return df.map(_limit, streamable=False)
+    # MARK: pl.LazyFrame.map_batches
+    return df.map_batches(_limit, streamable=False)
 
 
 _limit = limit

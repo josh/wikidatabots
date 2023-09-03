@@ -336,8 +336,8 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
 def lookup_itunes_id(
     expr: pl.Expr, country: str, batch_size: int = _LOOKUP_BATCH_SIZE
 ) -> pl.Expr:
-    # MARK: pl.Expr.map
-    return expr.map(
+    # MARK: pl.Expr.map_batches
+    return expr.map_batches(
         partial(_lookup_itunes_id, country=country, batch_size=batch_size),
         return_dtype=_LOOKUP_DTYPE,
     )
@@ -528,7 +528,8 @@ def _main() -> None:
             .pipe(_backfill_metadata)
             .pipe(_backfill_redirect_url)
             .drop("old_url")
-            .map(_log_retrieved_at)
+            # MARK: pl.Expr.map_batches
+            .map_batches(_log_retrieved_at)
             .select(_COLUMN_ORDER)
         )
 

@@ -121,8 +121,8 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
             ok_statuses={200, 400},
             bad_statuses={429, 502},
         )
-        # MARK: pl.Expr.map
-        .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
+        # MARK: pl.Expr.map_batches
+        .map_batches(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
     )
 
 
@@ -201,9 +201,11 @@ def _main() -> None:
         # MARK: pl.LazyFrame.cache
         df = df.cache()
         return (
-            df.pipe(update_or_append, _refresh_games(df), on="id")
-            .pipe(align_to_index, name="id")
-            .map(_log_retrieved_at)
+            df.pipe(update_or_append, _refresh_games(df), on="id").pipe(
+                align_to_index, name="id"
+            )
+            # MARK: pl.LazyFrame.map_batches
+            .map_batches(_log_retrieved_at)
         )
 
     update_parquet("opencritic.parquet", update, key="id")

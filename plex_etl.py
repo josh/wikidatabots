@@ -385,7 +385,11 @@ def _main() -> None:
     pl.enable_string_cache(True)
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return df.pipe(_discover_guids).pipe(_backfill_metadata).map(_log_retrieved_at)
+        return (
+            df.pipe(_discover_guids).pipe(_backfill_metadata)
+            # MARK: pl.LazyFrame.map_batches
+            .map_batches(_log_retrieved_at)
+        )
 
     update_parquet("plex.parquet", update, key="key")
 
