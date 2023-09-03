@@ -182,8 +182,8 @@ def request(
     bad_statuses: Iterable[int] = [],
     retry_count: int = 0,
 ) -> pl.Expr:
-    # MARK: pl.Expr.map
-    return requests.map(
+    # MARK: pl.Expr.map_batches
+    return requests.map_batches(
         partial(
             _request_series,
             log_group=log_group,

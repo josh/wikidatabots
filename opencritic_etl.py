@@ -121,8 +121,8 @@ def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
             ok_statuses={200, 400},
             bad_statuses={429, 502},
         )
-        # MARK: pl.Expr.map
-        .map(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
+        # MARK: pl.Expr.map_batches
+        .map_batches(_tidy_game, return_dtype=_OPENCRITIC_GAME_DTYPE)
     )
 
 

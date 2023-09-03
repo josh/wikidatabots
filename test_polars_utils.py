@@ -79,8 +79,12 @@ def test_pyformat() -> None:
 
 
 def test_merge_with_indicator() -> None:
-    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 2, 3]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [2, 3, 4], "b": [3, 3, 4]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [1, 2, 3]}).map_batches(
+        assert_called_once()
+    )
+    df2 = pl.LazyFrame({"a": [2, 3, 4], "b": [3, 3, 4]}).map_batches(
+        assert_called_once()
+    )
 
     df3 = merge_with_indicator(df1, df2, on="a")
     df4 = pl.LazyFrame(
@@ -226,13 +230,13 @@ def test_align_to_index():
             "id": pl.Series([1, 2, 5], dtype=pl.Int8),
             "value": [1, 2, 5],
         }
-    ).map(assert_called_once())
+    ).map_batches(assert_called_once())
     df2 = pl.LazyFrame(
         {
             "id": pl.Series([0, 1, 2, 3, 4, 5], dtype=pl.Int8),
             "value": [None, 1, 2, None, None, 5],
         }
-    ).map(assert_called_once())
+    ).map_batches(assert_called_once())
     assert_frame_equal(align_to_index(df1, name="id"), df2)
 
     df1 = pl.LazyFrame(
@@ -240,7 +244,7 @@ def test_align_to_index():
             "id": pl.Series([255], dtype=pl.UInt8),
             "value": [42],
         }
-    ).map(assert_called_once())
+    ).map_batches(assert_called_once())
     df2 = align_to_index(df1, name="id").collect()
     assert df2.schema == {"id": pl.UInt8, "value": pl.Int64}
     assert df2.height == 256
@@ -287,7 +291,7 @@ def test_align_to_index_evaluates_df_once():
             "id": pl.Series([1, 2, 5], dtype=pl.Int8),
             "value": [1, 2, 5],
         }
-    ).map(assert_called_once())
+    ).map_batches(assert_called_once())
     align_to_index(ldf1, name="id").collect()
 
     ldf2 = pl.LazyFrame(
@@ -297,51 +301,59 @@ def test_align_to_index_evaluates_df_once():
         }
     ).select(
         [
-            pl.col("id").map(assert_called_once(), return_dtype=pl.Int8),
-            pl.col("value").map(assert_called_once(), return_dtype=pl.Int64),
+            pl.col("id").map_batches(assert_called_once(), return_dtype=pl.Int8),
+            pl.col("value").map_batches(assert_called_once(), return_dtype=pl.Int64),
         ]
     )
     align_to_index(ldf2, name="id").collect()
 
 
 def test_update_or_append() -> None:
-    df1 = pl.LazyFrame({"a": []}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": []}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": []}).map_batches(assert_called_once())
+    df2 = pl.LazyFrame({"a": []}).map_batches(assert_called_once())
     df3 = pl.LazyFrame({"a": []})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
-    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1]}).map_batches(assert_called_once())
+    df2 = pl.LazyFrame({"a": [1]}).map_batches(assert_called_once())
     df3 = pl.LazyFrame({"a": [1]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
-    df1 = pl.LazyFrame({"a": [1]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [2]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1]}).map_batches(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2]}).map_batches(assert_called_once())
     df3 = pl.LazyFrame({"a": [1, 2]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
-    df1 = pl.LazyFrame({"a": [1], "b": [True]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [2]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1], "b": [True]}).map_batches(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2]}).map_batches(assert_called_once())
     df3 = pl.LazyFrame({"a": [1, 2], "b": [True, None]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
-    df1 = pl.LazyFrame({"a": [1], "b": [True]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [2], "b": [False]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1], "b": [True]}).map_batches(assert_called_once())
+    df2 = pl.LazyFrame({"a": [2], "b": [False]}).map_batches(assert_called_once())
     df3 = pl.LazyFrame({"a": [1, 2], "b": [True, False]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
-    df1 = pl.LazyFrame({"a": [1, 2], "b": [True, True]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [3], "b": [False]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1, 2], "b": [True, True]}).map_batches(
+        assert_called_once()
+    )
+    df2 = pl.LazyFrame({"a": [3], "b": [False]}).map_batches(assert_called_once())
     df3 = pl.LazyFrame({"a": [1, 2, 3], "b": [True, True, False]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
-    df1 = pl.LazyFrame({"a": [1], "b": [1], "c": [True]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [1], "b": [2]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1], "b": [1], "c": [True]}).map_batches(
+        assert_called_once()
+    )
+    df2 = pl.LazyFrame({"a": [1], "b": [2]}).map_batches(assert_called_once())
     df3 = pl.LazyFrame({"a": [1], "b": [2], "c": [True]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
-    df1 = pl.LazyFrame({"a": [1], "b": [1], "c": [True]}).map(assert_called_once())
-    df2 = pl.LazyFrame({"a": [1], "b": [2], "c": [False]}).map(assert_called_once())
+    df1 = pl.LazyFrame({"a": [1], "b": [1], "c": [True]}).map_batches(
+        assert_called_once()
+    )
+    df2 = pl.LazyFrame({"a": [1], "b": [2], "c": [False]}).map_batches(
+        assert_called_once()
+    )
     df3 = pl.LazyFrame({"a": [1], "b": [2], "c": [False]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
@@ -378,10 +390,10 @@ def test_update_or_append_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> No
 
 
 def test_frame_diff() -> None:
-    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map(
+    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map_batches(
         assert_called_once()
     )
-    df2 = pl.LazyFrame({"a": [2, 3, 4], "b": [True, False, False]}).map(
+    df2 = pl.LazyFrame({"a": [2, 3, 4], "b": [True, False, False]}).map_batches(
         assert_called_once()
     )
     added, removed, updated, b_updated = frame_diff(df1, df2, on="a").collect().row(0)
@@ -390,10 +402,10 @@ def test_frame_diff() -> None:
     assert updated == 1
     assert b_updated == 1
 
-    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map(
+    df1 = pl.LazyFrame({"a": [1, 2, 3], "b": [False, False, False]}).map_batches(
         assert_called_once()
     )
-    df2 = pl.LazyFrame({"a": [1, 2, 3], "b": [True, True, False]}).map(
+    df2 = pl.LazyFrame({"a": [1, 2, 3], "b": [True, True, False]}).map_batches(
         assert_called_once()
     )
     added, removed, updated, b_updated = frame_diff(df1, df2, on="a").collect().row(0)
@@ -416,8 +428,8 @@ df_st = dataframes(
 @given(df1=df_st, df2=df_st)
 def test_frame_diff_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
     ldf = frame_diff(
-        df1.lazy().map(assert_called_once()),
-        df2.lazy().map(assert_called_once()),
+        df1.lazy().map_batches(assert_called_once()),
+        df2.lazy().map_batches(assert_called_once()),
         on="a",
     )
     assert ldf.columns[0:3] == ["added", "removed", "updated"]

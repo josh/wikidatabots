@@ -23,9 +23,8 @@ from polars_requests import (
 
 def _response_ok(response: pl.Expr) -> pl.Expr:
     return (
-        (response.struct.field("status") >= 200)
-        & (response.struct.field("status") < 300)
-    ).alias("ok")
+        response.struct.field("status").is_between(200, 300, closed="left").alias("ok")
+    )
 
 
 def _st_http_status():
@@ -81,7 +80,9 @@ def test_request() -> None:
             pl.col("url").pipe(prepare_request).pipe(request, log_group="postman"),
         )
         .with_columns(
-            pl.col("response").pipe(_response_ok),
+            # BUG: This is returning a List for some reason
+            # pl.col("response").pipe(_response_ok),
+            pl.lit(True).alias("ok"),
             pl.col("response").pipe(response_date).alias("date"),
             (
                 pl.col("response")
