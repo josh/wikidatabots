@@ -9,8 +9,7 @@ import sys
 import xml.etree.ElementTree as ET
 import zlib
 from functools import partial
-from itertools import islice
-from typing import Any, Callable, Iterable, Iterator, Literal, TextIO, TypedDict
+from typing import Any, Callable, Iterator, TextIO, TypedDict
 
 import numpy as np
 import polars as pl
