@@ -18,6 +18,7 @@ from polars_utils import (
     expr_indicies_sorted,
     frame_diff,
     groups_of,
+    map_streaming,
     merge_with_indicator,
     now,
     position_weights,
@@ -484,6 +485,37 @@ def test_apply_with_tqdm_properties(s: pl.Series) -> None:
     )
     assert df.schema == {"a": pl.Int64}
     assert len(df) == len(s)
+
+
+@given(
+    df=dataframes(cols=[column("a", dtype=pl.Int64)], max_size=20, lazy=True),
+    chunk_size=st.integers(min_value=1, max_value=25),
+)
+def test_map_streaming(df: pl.LazyFrame, chunk_size: int) -> None:
+    expected_df = df.select(pl.col("a") + 2)
+    actual_df = df.pipe(
+        map_streaming,
+        pl.col("a") + 2,
+        return_schema={"a": pl.Int64},
+        chunk_size=chunk_size,
+    )
+    assert_frame_equal(expected_df, actual_df)
+
+
+@given(
+    df=dataframes(cols=[column("a", dtype=pl.Int64)], max_size=20, lazy=True),
+    chunk_size=st.integers(min_value=1, max_value=25),
+)
+def test_map_streaming_parallel(df: pl.LazyFrame, chunk_size: int) -> None:
+    expected_df = df.select(pl.col("a") + 3)
+    actual_df = df.pipe(
+        map_streaming,
+        pl.col("a") + 3,
+        return_schema={"a": pl.Int64},
+        chunk_size=chunk_size,
+        parallel=True,
+    )
+    assert_frame_equal(expected_df, actual_df)
 
 
 def test_groups_of() -> None:

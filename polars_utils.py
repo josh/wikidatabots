@@ -9,7 +9,8 @@ import sys
 import xml.etree.ElementTree as ET
 import zlib
 from functools import partial
-from typing import Any, Callable, Iterator, TextIO, TypedDict
+from itertools import islice
+from typing import Any, Callable, Iterable, Iterator, Literal, TextIO, TypedDict
 
 import numpy as np
 import polars as pl
@@ -58,6 +59,29 @@ def apply_with_tqdm(
 
     # MARK: pl.Expr.map_batches
     return expr.map_batches(map_function, return_dtype=return_dtype)
+
+
+def map_streaming(
+    ldf: pl.LazyFrame,
+    expr: pl.Expr,
+    return_schema: dict[str, pl.PolarsDataType],
+    chunk_size: int,
+    parallel: bool = False,
+) -> pl.LazyFrame:
+    assert chunk_size > 0
+
+    def map_func(df: pl.DataFrame) -> pl.DataFrame:
+        size = len(df)
+        if size == 0:
+            return df
+        ldf = df.lazy()
+        ldfs = [
+            ldf.slice(offset, chunk_size).select(expr)
+            for offset in range(0, size, chunk_size)
+        ]
+        return pl.concat(ldfs, how="vertical", parallel=parallel).collect()
+
+    return ldf.map_batches(map_func, schema=return_schema)
 
 
 def pyformat(
