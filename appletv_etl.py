@@ -14,6 +14,7 @@ from polars_utils import (
     head,
     html_unescape,
     html_unescape_list,
+    map_streaming,
     update_or_append,
     update_parquet,
     xml_extract,
@@ -73,7 +74,8 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     return (
         siteindex(sitemap_type)
         .pipe(head, n=limit)
-        .select(
+        .pipe(
+            map_streaming,
             pl.col("loc")
             .pipe(prepare_request)
             .pipe(
@@ -89,7 +91,9 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
                 dtype=_SITEMAP_DTYPE,
                 log_group="parse_sitemap_xml",
             )
-            .alias("sitemap")
+            .alias("sitemap"),
+            return_schema={"sitemap": _SITEMAP_DTYPE},
+            chunk_size=50,
         )
         .explode("sitemap")
         .unnest("sitemap")
