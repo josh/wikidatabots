@@ -136,7 +136,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         df.select(
             prepare_request(
-                url=pl.lit("https://metadata.provider.plex.tv/library/search"),
+                url=pl.lit("https://discover.provider.plex.tv/library/search"),
                 fields={
                     "query": pl.col("query"),
                     "limit": "100",
@@ -145,7 +145,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 },
                 headers={
                     "Accept": "application/json",
-                    "X-Plex-Token": os.environ["PLEX_TOKEN"],
+                    # "X-Plex-Token": os.environ["PLEX_TOKEN"],
                 },
             )
             .pipe(
