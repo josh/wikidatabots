@@ -79,16 +79,18 @@ def test_plex_search_guids() -> None:
         )
         .collect()
     )
-    assert df.schema == {"key": pl.Binary, "hexkey": pl.Utf8}
+    assert df.schema == {"key": pl.Binary, "hexkey": pl.Utf8, "type": pl.Categorical}
     assert len(df) > 0
 
-    df2 = df.filter(pl.col("hexkey") == "5d7768248a7581001f12bc72")
+    df2 = df.filter(
+        (pl.col("type") == "movie") & (pl.col("hexkey") == "5d7768248a7581001f12bc72")
+    )
     assert len(df2) == 1
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_wikidata_search_guids() -> None:
     ldf = wikidata_search_guids(limit=3)
-    assert ldf.schema == {"key": pl.Binary}
+    assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
     df = ldf.collect()
     assert len(df) > 0

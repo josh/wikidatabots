@@ -89,6 +89,7 @@ def plex_library_guids() -> pl.LazyFrame:
         .unnest("item")
         .select(
             pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
         )
         .drop_nulls()
         .unique(subset="key")
@@ -169,6 +170,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
         .unique("guid")
         .select(
             pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
         )
         .drop_nulls()
         .unique(subset="key")
@@ -365,14 +367,12 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
-    df_new = pl.concat(
-        [
-            plex_library_guids(),
-            wikidata_plex_guids(),
-            wikidata_search_guids(),
-        ]
-    ).unique(subset="key")
-    return plex_df.pipe(update_or_append, df_new, on="key").pipe(_sort)
+    return (
+        plex_df.pipe(update_or_append, plex_library_guids(), on="key")
+        .pipe(update_or_append, wikidata_plex_guids(), on="key")
+        .pipe(update_or_append, wikidata_search_guids(), on="key")
+        .pipe(_sort)
+    )
 
 
 def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
