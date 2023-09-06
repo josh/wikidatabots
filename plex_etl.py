@@ -140,7 +140,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 fields={
                     "query": pl.col("query"),
                     "limit": "100",
-                    "searchTypes": "movie,tv",
+                    "searchTypes": "movies,tv",
                     "includeMetadata": "1",
                 },
                 headers={

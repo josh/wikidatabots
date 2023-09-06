@@ -71,9 +71,19 @@ def test_fetch_metadata_guids() -> None:
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_plex_search_guids() -> None:
-    df = pl.LazyFrame({"query": ["Top Gun"]}).pipe(plex_search_guids).collect()
-    assert df.schema == {"key": pl.Binary}
+    df = (
+        pl.LazyFrame({"query": ["the godfather"]})
+        .pipe(plex_search_guids)
+        .with_columns(
+            pl.col("key").bin.encode("hex").alias("hexkey"),
+        )
+        .collect()
+    )
+    assert df.schema == {"key": pl.Binary, "hexkey": pl.Utf8}
     assert len(df) > 0
+
+    df2 = df.filter(pl.col("hexkey") == "5d7768248a7581001f12bc72")
+    assert len(df2) == 1
 
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
