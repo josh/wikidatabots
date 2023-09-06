@@ -209,7 +209,7 @@ def compute_stats(
     )
     true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
     false_count_df = _count_columns(
-        "false_count", pl.col(pl.Boolean).drop_nulls().is_not().sum()
+        "false_count", pl.col(pl.Boolean).drop_nulls().not_().sum()
     )
 
     def _percent_col(name: str) -> pl.Expr:

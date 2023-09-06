@@ -121,7 +121,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         .filter(
             pl.col("imdb_numeric_id").is_unique()
             & pl.col("tmdb_id").is_null()
-            & pl.col("item").pipe(is_blocked_item).is_not()
+            & pl.col("item").pipe(is_blocked_item).not_()
         )
         .drop("tmdb_id")
         .drop_nulls()
@@ -199,7 +199,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
         .filter(
             pl.col("tvdb_id").is_unique()
             & pl.col("tmdb_id").is_null()
-            & pl.col("item").pipe(is_blocked_item).is_not()
+            & pl.col("item").pipe(is_blocked_item).not_()
         )
         .drop("tmdb_id")
         .drop_nulls()
@@ -255,11 +255,11 @@ def find_tmdb_ids_not_found(
 
     return (
         df.join(tmdb_df, on="id", how="left")
-        .filter(pl.col("success").is_not())
+        .filter(pl.col("success").not_())
         # .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
         .with_columns(exists_expr)
-        .filter(pl.col("exists").is_not())
+        .filter(pl.col("exists").not_())
         .select(rdf_statement)
     )
 

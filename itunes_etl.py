@@ -524,7 +524,7 @@ def _main() -> None:
             df.select(_COLUMN_ORDER)
             .pipe(_discover_ids)
             .with_columns(pl.col("url").alias("old_url"))
-            .filter(pl.col("id").is_in(_BAD_IDS).is_not())
+            .filter(pl.col("id").is_in(_BAD_IDS).not_())
             .pipe(_backfill_metadata)
             .pipe(_backfill_redirect_url)
             .drop("old_url")

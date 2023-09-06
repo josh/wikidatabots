@@ -157,7 +157,7 @@ def _find_movie_via_itunes_redirect(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
         wd_df.join(itunes_df, on="itunes_id", how="left")
         .filter(
             pl.col("appletv_id").is_not_null()
-            & pl.col("item").pipe(is_blocked_item).is_not()
+            & pl.col("item").pipe(is_blocked_item).not_()
         )
         .select(_ADD_VIA_ITUNES_STATEMENT)
     )
@@ -209,7 +209,7 @@ def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
         wd_df.join(itunes_seasons_df, on="itunes_season_id", how="left")
         .filter(
             pl.col("appletv_show_id").is_not_null()
-            & pl.col("show_item").pipe(is_blocked_item).is_not()
+            & pl.col("show_item").pipe(is_blocked_item).not_()
         )
         .select("show_item", "appletv_show_id")
         .unique()
