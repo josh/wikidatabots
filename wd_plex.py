@@ -167,7 +167,7 @@ def _main() -> None:
             find_plex_guids_via_tmdb_id(),
             find_plex_keys_not_found(),
         ]
-    ).pipe(print_rdf_statements, limit=500)
+    ).pipe(print_rdf_statements)
 
 
 if __name__ == "__main__":
