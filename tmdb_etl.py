@@ -354,7 +354,8 @@ def _main() -> None:
 
     def _update(df: pl.LazyFrame) -> pl.LazyFrame:
         return (
-            df.pipe(insert_tmdb_latest_changes, tmdb_type)
+            df.inspect()  # FIXME: Huh?
+            .pipe(insert_tmdb_latest_changes, tmdb_type)
             .pipe(_insert_tmdb_export_flag, tmdb_type)
             .pipe(insert_tmdb_external_ids, tmdb_type)
         )
