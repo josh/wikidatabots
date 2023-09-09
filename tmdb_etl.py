@@ -239,7 +239,7 @@ def tmdb_find(
 
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
-_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 100
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_000
 
 
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
