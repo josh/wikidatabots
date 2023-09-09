@@ -239,13 +239,14 @@ def tmdb_find(
 
 _CHANGED = pl.col("date") >= pl.col("retrieved_at").dt.round("1d")
 _NEVER_FETCHED = pl.col("retrieved_at").is_null()
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 100
 
 
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     df = df.cache()  # MARK: pl.LazyFrame.cache
 
     new_external_ids_df = (
-        df.filter(_CHANGED | _NEVER_FETCHED)
+        df.filter(_CHANGED | _NEVER_FETCHED | _OLDEST_METADATA)
         .select("id")
         .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
     )
@@ -346,6 +347,12 @@ def _insert_tmdb_export_flag(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
     )
 
 
+def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
+    retrieved_at = df.select(pl.col("retrieved_at").min()).item()
+    print(f"Oldest retrieved_at: {retrieved_at}", file=sys.stderr)
+    return df
+
+
 def _main() -> None:
     pl.enable_string_cache(True)
 
@@ -358,6 +365,8 @@ def _main() -> None:
             .pipe(insert_tmdb_latest_changes, tmdb_type)
             .pipe(_insert_tmdb_export_flag, tmdb_type)
             .pipe(insert_tmdb_external_ids, tmdb_type)
+            # MARK: pl.Expr.map_batches
+            .map_batches(_log_retrieved_at)
         )
 
     update_parquet("tmdb.parquet", _update, key="id")
