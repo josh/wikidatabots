@@ -2,6 +2,7 @@
 
 import os
 import sys
+from warnings import warn
 
 import polars as pl
 
@@ -63,7 +64,20 @@ _OPENCRITIC_GAME_DTYPE = pl.Struct(
 )
 
 
+def _log_ratelimit(responses: pl.Series) -> None:
+    requests_remaining: int | None = None
+    for response in responses:
+        for header in response["headers"]:
+            if header["name"].startswith("X-RateLimit-Requests-Remaining"):
+                requests_remaining = int(header["value"])
+
+    if requests_remaining and requests_remaining < 25:
+        warn(f"X-RateLimit-Requests-Remaining: {requests_remaining}")
+
+
 def _tidy_game(s: pl.Series) -> pl.Series:
+    _log_ratelimit(s)
+
     return (
         s.to_frame(name="response")
         .select(
