@@ -218,7 +218,7 @@ SELECT ?item ?itunes_id WHERE {
 
 _ADD_VIA_ITUNES_STATEMENT = pl.format(
     '<{}> wdt:P9586 "{}"; wikidatabots:editSummary '
-    '"Add Apple TV movie ID via associated iTunes movie ID " .',
+    '"Add Apple TV movie ID via associated iTunes movie ID" .',
     pl.col("item"),
     pl.col("appletv_id"),
 ).alias("rdf_statement")
