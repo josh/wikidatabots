@@ -8,6 +8,6 @@ pytest==7.4.2
 pywikibot==8.3.2
 rdflib===7.0.0
 requests==2.31.0
-s3fs==2023.9.0
+s3fs==2023.9.1
 tqdm==4.66.1
 wikitextparser==0.54.0
