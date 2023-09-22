@@ -5,7 +5,7 @@ lxml==4.9.3
 numpy==1.26.0
 polars==0.19.3
 pytest==7.4.2
-pywikibot==8.3.2
+pywikibot==8.3.3
 rdflib===7.0.0
 requests==2.31.0
 s3fs==2023.9.1
