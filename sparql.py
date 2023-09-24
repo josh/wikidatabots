@@ -23,7 +23,8 @@ class SlowQueryWarning(Warning):
 @backoff.on_exception(
     backoff.expo,
     _requests.exceptions.RequestException,
-    max_tries=10,
+    max_tries=15,
+    max_value=60,
 )
 def _sparql(query: str, _log_query: bool) -> bytes:
     if _log_query:

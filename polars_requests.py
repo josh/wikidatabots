@@ -85,6 +85,7 @@ def _decorate_backoff(fn: Callable[P, T], max_retries: int) -> Callable[P, T]:
             backoff.expo,
             _requests.exceptions.RequestException,
             max_tries=max_retries,
+            max_time=300,
         )(fn)
     else:
         return fn
