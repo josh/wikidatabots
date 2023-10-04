@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from polars_utils import print_rdf_statements
+from polars_utils import enable_string_cache, print_rdf_statements
 from sparql import sparql
 
 _ADD_RDF_STATEMENT = pl.format(
@@ -43,7 +43,7 @@ def _itunes_from_appletv_ids(
 
 
 def _main() -> None:
-    pl.enable_string_cache(True)
+    enable_string_cache()
 
     itunes_df = pl.scan_parquet(
         "s3://wikidatabots/itunes.parquet",

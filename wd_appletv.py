@@ -3,7 +3,7 @@
 import polars as pl
 
 from appletv_etl import LOC_SHOW_PATTERN, url_extract_id, valid_appletv_id
-from polars_utils import print_rdf_statements, weighted_sample
+from polars_utils import enable_string_cache, print_rdf_statements, weighted_sample
 from sparql import sparql, sparql_batch
 from wikidata import is_blocked_item
 
@@ -301,7 +301,7 @@ def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _main() -> None:
-    pl.enable_string_cache(True)
+    enable_string_cache()
 
     sitemap_movie_df = pl.scan_parquet(
         "s3://wikidatabots/appletv/movie.parquet",

@@ -7,7 +7,12 @@ from warnings import warn
 import polars as pl
 
 from polars_requests import prepare_request, request, response_date, response_text
-from polars_utils import align_to_index, update_or_append, update_parquet
+from polars_utils import (
+    align_to_index,
+    enable_string_cache,
+    update_or_append,
+    update_parquet,
+)
 
 _API_RETRY_COUNT = 3
 _API_RPS: float = 1 / 3
@@ -209,7 +214,7 @@ def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def _main() -> None:
-    pl.enable_string_cache(True)
+    enable_string_cache()
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         # MARK: pl.LazyFrame.cache
