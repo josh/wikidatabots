@@ -189,6 +189,45 @@ def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:
         return dtype._string_repr(dtype)  # type: ignore
 
 
+def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
+    def _count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
+        df2 = df.select(expr)
+        if df2.is_empty():
+            schema = {"column": pl.Utf8, column_name: pl.UInt32}
+            return pl.DataFrame(schema=schema)
+        return df2.transpose(include_header=True, column_names=[column_name])
+
+    simple_cols = [col for col in df.columns if not df.schema[col].is_nested]
+
+    null_count_df = _count_columns("null_count", pl.all().null_count())
+    is_unique_df = _count_columns(
+        "is_unique", pl.col(*simple_cols).drop_nulls().is_unique().all()
+    )
+    true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
+    false_count_df = _count_columns(
+        "false_count", pl.col(pl.Boolean).drop_nulls().not_().sum()
+    )
+
+    joined_df = (
+        null_count_df.join(is_unique_df, on="column", how="left")
+        .join(true_count_df, on="column", how="left")
+        .join(false_count_df, on="column", how="left")
+    )
+
+    return joined_df.select(
+        pl.col("column").alias("name"),
+        # MARK: pl.Expr.map_elements
+        pl.col("column")
+        .map_elements(df.schema.get)
+        .map_elements(_dtype_str_repr)
+        .alias("dtype"),
+        pl.col("null_count"),
+        pl.col("true_count"),
+        pl.col("false_count"),
+        pl.col("is_unique"),
+    )
+
+
 def compute_stats(
     df: pl.DataFrame,
     changes_df: pl.DataFrame | None = None,
