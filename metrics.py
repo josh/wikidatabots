@@ -18,7 +18,10 @@ def xtool_metrics() -> None:
     users = ["Josh404", "Josh404Bot"]
 
     for user in users:
-        url = f"https://xtools.wmcloud.org/api/user/simple_editcount/www.wikidata.org/{user}"
+        url = (
+            "https://xtools.wmcloud.org/"
+            f"api/user/simple_editcount/www.wikidata.org/{user}"
+        )
         r = requests.get(url)
         r.raise_for_status()
         obj = r.json()
