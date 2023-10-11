@@ -52,7 +52,7 @@ def xtool_metrics() -> None:
 
 
 def parquet_metrics(filename: str) -> None:
-    df = scan_s3_parquet_anon(filename)
+    df = scan_s3_parquet_anon(filename).collect()
     labels = {"filename": filename}
     gauge("wikidatabots_dataframe_row_count", labels, len(df))
 
