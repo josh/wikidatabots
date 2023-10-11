@@ -192,7 +192,7 @@ def _find_show_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
         .sort(pl.col("published_at"), descending=True)
         .pipe(weighted_sample, n=_SEARCH_LIMIT)
         .pipe(find_wd_show_via_search)
-        .filter(pl.col("results").list.lengths() == 1)
+        .filter(pl.col("results").list.len() == 1)
         .with_columns(pl.col("results").list.first().alias("result"))
         .unnest("result")
         .filter(pl.col("item").is_not_null() & pl.col("has_appletv").is_null())
