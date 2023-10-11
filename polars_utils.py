@@ -711,31 +711,6 @@ def print_rdf_statements(
         print(line, file=file)
 
 
-def _has_disable_string_cache() -> bool:
-    try:
-        pl.disable_string_cache  # type: ignore
-        return True
-    except AttributeError:
-        return False
-
-
-_HAS_DISABLE_STRING_CACHE = _has_disable_string_cache()
-
-
-def enable_string_cache() -> None:
-    if _HAS_DISABLE_STRING_CACHE:
-        pl.enable_string_cache()  # type: ignore
-    else:
-        pl.enable_string_cache(True)  # type: ignore
-
-
-def disable_string_cache() -> None:
-    if _HAS_DISABLE_STRING_CACHE:
-        pl.disable_string_cache()  # type: ignore
-    else:
-        pl.enable_string_cache(False)  # type: ignore
-
-
 def scan_s3_parquet_anon(uri: str, columns: list[str] | None = None) -> pl.LazyFrame:
     assert uri.startswith("s3://")
     return pl.read_parquet(

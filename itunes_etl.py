@@ -8,7 +8,6 @@ import polars as pl
 
 from polars_requests import prepare_request, request, resolve_redirects, response_text
 from polars_utils import (
-    enable_string_cache,
     expr_indicies_sorted,
     groups_of,
     now,
@@ -518,7 +517,7 @@ _COLUMN_ORDER: list[str] = [
 
 
 def _main() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         return (

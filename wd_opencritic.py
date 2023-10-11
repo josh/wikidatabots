@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from polars_utils import enable_string_cache, print_rdf_statements, scan_s3_parquet_anon
+from polars_utils import print_rdf_statements, scan_s3_parquet_anon
 from sparql import sparql
 from wikidata import is_blocked_item
 
@@ -206,7 +206,7 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
 
 
 def _main() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
     pl.concat(
         [

@@ -15,8 +15,6 @@ from polars_utils import (
     apply_with_tqdm,
     compute_stats,
     csv_extract,
-    disable_string_cache,
-    enable_string_cache,
     expr_indicies_sorted,
     frame_diff,
     groups_of,
@@ -34,11 +32,11 @@ from polars_utils import (
 
 
 def setup_module() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
 
 def teardown_module() -> None:
-    disable_string_cache()
+    pl.disable_string_cache()
 
 
 T = TypeVar("T")

@@ -10,7 +10,6 @@ import polars as pl
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     align_to_index,
-    enable_string_cache,
     gzip_decompress,
     update_or_append,
     update_parquet,
@@ -355,7 +354,7 @@ def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
 
 
 def _main() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
     tmdb_type = sys.argv[1]
     assert tmdb_type in _TMDB_TYPES

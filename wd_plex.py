@@ -5,7 +5,7 @@ from datetime import datetime
 import polars as pl
 
 from plex_etl import GUID_TYPE, decode_plex_guid_key
-from polars_utils import enable_string_cache, print_rdf_statements, scan_s3_parquet_anon
+from polars_utils import print_rdf_statements, scan_s3_parquet_anon
 from sparql import sparql
 
 
@@ -159,7 +159,7 @@ def find_plex_keys_not_found() -> pl.LazyFrame:
 
 
 def _main() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
     pl.concat(
         [

@@ -6,15 +6,14 @@ from hypothesis import strategies as st
 from polars.testing import assert_frame_equal
 
 from itunes_etl import fetch_metadata, lookup_itunes_id, wikidata_itunes_all_ids
-from polars_utils import disable_string_cache, enable_string_cache
 
 
 def setup_module() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
 
 def teardown_module() -> None:
-    disable_string_cache()
+    pl.disable_string_cache()
 
 
 _RESULT_DTYPE = pl.Struct(

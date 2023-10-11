@@ -12,17 +12,16 @@ from plex_etl import (
     wikidata_plex_guids,
     wikidata_search_guids,
 )
-from polars_utils import disable_string_cache, enable_string_cache
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
 
 
 def setup_module() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
 
 def teardown_module() -> None:
-    disable_string_cache()
+    pl.disable_string_cache()
 
 
 def test_wikidata_plex_guids() -> None:

@@ -11,7 +11,6 @@ from bs4 import BeautifulSoup
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     apply_with_tqdm,
-    enable_string_cache,
     head,
     html_unescape,
     html_unescape_list,
@@ -372,7 +371,7 @@ def _gc(df: pl.LazyFrame) -> pl.LazyFrame:
 
 
 def _main() -> None:
-    enable_string_cache()
+    pl.enable_string_cache()
 
     sitemap_type = sys.argv[1]
     assert sitemap_type in _TYPES
