@@ -734,3 +734,12 @@ def disable_string_cache() -> None:
         pl.disable_string_cache()  # type: ignore
     else:
         pl.enable_string_cache(False)  # type: ignore
+
+
+def scan_s3_parquet_anon(uri: str, columns: list[str] | None = None) -> pl.LazyFrame:
+    assert uri.startswith("s3://")
+    return pl.read_parquet(
+        uri,
+        columns=columns,
+        storage_options={"anon": True},
+    ).lazy()

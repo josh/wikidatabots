@@ -1,7 +1,6 @@
-import polars as pl
 import requests
 
-from polars_utils import compute_raw_stats
+from polars_utils import compute_raw_stats, scan_s3_parquet_anon
 
 
 def gauge(name: str, labels: dict[str, str], value: int) -> None:
@@ -53,7 +52,7 @@ def xtool_metrics() -> None:
 
 
 def parquet_metrics(filename: str) -> None:
-    df = pl.read_parquet(filename, storage_options={"anon": True})
+    df = scan_s3_parquet_anon(filename)
     labels = {"filename": filename}
     gauge("wikidatabots_dataframe_row_count", labels, len(df))
 

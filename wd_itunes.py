@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from polars_utils import enable_string_cache, print_rdf_statements
+from polars_utils import enable_string_cache, print_rdf_statements, scan_s3_parquet_anon
 from sparql import sparql
 
 _ADD_RDF_STATEMENT = pl.format(
@@ -45,14 +45,14 @@ def _itunes_from_appletv_ids(
 def _main() -> None:
     enable_string_cache()
 
-    itunes_df = pl.scan_parquet(
+    itunes_df = scan_s3_parquet_anon(
         "s3://wikidatabots/itunes.parquet",
-        storage_options={"anon": True},
-    ).select("id", "us_country")
+        columns=["id", "us_country"],
+    )
 
-    appletv_df = pl.scan_parquet(
+    appletv_df = scan_s3_parquet_anon(
         "s3://wikidatabots/appletv/movie.parquet",
-        storage_options={"anon": True},
+        columns=["id", "itunes_id"],
     ).select(
         pl.col("id").alias("appletv_id"),
         pl.col("itunes_id"),

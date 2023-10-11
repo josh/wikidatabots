@@ -5,15 +5,15 @@ from datetime import datetime
 import polars as pl
 
 from plex_etl import GUID_TYPE, decode_plex_guid_key
-from polars_utils import enable_string_cache, print_rdf_statements
+from polars_utils import enable_string_cache, print_rdf_statements, scan_s3_parquet_anon
 from sparql import sparql
 
 
 def _plex_guids() -> pl.LazyFrame:
-    return pl.scan_parquet(
+    return scan_s3_parquet_anon(
         "s3://wikidatabots/plex.parquet",
-        storage_options={"anon": True},
-    ).select("type", "tmdb_id", "key", "success", "retrieved_at")
+        columns=["type", "tmdb_id", "key", "success", "retrieved_at"],
+    )
 
 
 _TMDB_MOVIE_QUERY = """

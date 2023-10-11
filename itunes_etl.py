@@ -12,6 +12,7 @@ from polars_utils import (
     expr_indicies_sorted,
     groups_of,
     now,
+    scan_s3_parquet_anon,
     update_or_append,
     update_parquet,
 )
@@ -440,9 +441,8 @@ def wikidata_itunes_all_ids() -> pl.LazyFrame:
 
 def _appletv_sitemap_ids(type: Literal["movie", "show"]) -> pl.LazyFrame:
     return (
-        pl.scan_parquet(
+        scan_s3_parquet_anon(
             f"s3://wikidatabots/appletv/{type}.parquet",
-            storage_options={"anon": True},
         )
         .select("itunes_id")
         .rename({"itunes_id": "id"})
