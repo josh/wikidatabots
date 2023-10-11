@@ -40,10 +40,12 @@ jobs:
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
+        if: github.ref == 'refs/heads/main'
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
 
       - name: Upload to S3
+        if: github.ref == 'refs/heads/main'
         run: |
           aws s3 cp --acl public-read "itunes.parquet" "s3://wikidatabots/itunes.parquet"
