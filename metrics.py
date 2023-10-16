@@ -1,4 +1,5 @@
 from typing import Literal
+
 import requests
 
 from polars_utils import compute_raw_stats, scan_s3_parquet_anon
