@@ -231,5 +231,5 @@ def _main() -> None:
     update_parquet("opencritic.parquet", update, key="id")
 
 
-# if __name__ == "__main__":
-#     _main()
+if __name__ == "__main__":
+    _main()
