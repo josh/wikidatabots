@@ -1,6 +1,7 @@
 # pyright: strict
 
 import os
+import random
 import sys
 from warnings import warn
 
@@ -14,11 +15,16 @@ _API_RPS: float = 1 / 3
 
 _LOG_GROUP = "opencritic-api.p.rapidapi.com"
 
+_RAPIDAPI_KEYS = os.environ["RAPIDAPI_KEY"].split("|")
+_RAPIDAPI_KEY = random.choice(_RAPIDAPI_KEYS)
+
+if len(_RAPIDAPI_KEYS) > 1:
+    print(f"Using RAPIDAPI_KEY #{_RAPIDAPI_KEYS.index(_RAPIDAPI_KEY)}", file=sys.stderr)
+
 _HEADERS: dict[str, str | pl.Expr] = {
     "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
-    "X-RapidAPI-Key": os.environ["RAPIDAPI_KEY"],
+    "X-RapidAPI-Key": _RAPIDAPI_KEY,
 }
-
 
 _OPENCRITIC_GAME_API_DTYPE = pl.Struct(
     {
@@ -225,5 +231,5 @@ def _main() -> None:
     update_parquet("opencritic.parquet", update, key="id")
 
 
-if __name__ == "__main__":
-    _main()
+# if __name__ == "__main__":
+#     _main()
