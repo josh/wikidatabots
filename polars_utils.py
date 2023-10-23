@@ -239,7 +239,7 @@ def compute_stats(
             return pl.DataFrame(schema=schema)
         return df2.transpose(include_header=True, column_names=[column_name])
 
-    simple_cols = [col for col in df.columns if not df.schema[col].is_nested]
+    simple_cols = [col for col in df.columns if df.schema[col] not in pl.NESTED_DTYPES]
 
     count = len(df)
     null_count_df = _count_columns("null_count", pl.all().null_count())
