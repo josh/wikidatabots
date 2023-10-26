@@ -11,7 +11,7 @@ from polars_requests import prepare_request, request, response_date, response_te
 from polars_utils import align_to_index, update_or_append, update_parquet
 
 _API_RETRY_COUNT = 3
-_API_RPS: float = 1 / 3
+_API_RPS: float = 2 / 3
 
 _LOG_GROUP = "opencritic-api.p.rapidapi.com"
 
