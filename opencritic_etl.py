@@ -13,17 +13,28 @@ from polars_utils import align_to_index, update_or_append, update_parquet
 _API_RETRY_COUNT = 3
 _API_RPS: float = 2 / 3
 
-_LOG_GROUP = "opencritic-api.p.rapidapi.com"
+_LOG_GROUP = "api.opencritic.com"
+
+_USE_RAPIDAPI = os.environ.get("RAPIDAPI", "0") == "1"
 
 _RAPIDAPI_KEYS = os.environ["RAPIDAPI_KEY"].split("|")
 _RAPIDAPI_KEY = random.choice(_RAPIDAPI_KEYS)
 
-if len(_RAPIDAPI_KEYS) > 1:
+if _USE_RAPIDAPI and len(_RAPIDAPI_KEYS) > 1:
     print(f"Using RAPIDAPI_KEY #{_RAPIDAPI_KEYS.index(_RAPIDAPI_KEY)}", file=sys.stderr)
 
-_HEADERS: dict[str, str | pl.Expr] = {
+_RAPIDAPI_HEADERS: dict[str, str | pl.Expr] = {
     "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
     "X-RapidAPI-Key": _RAPIDAPI_KEY,
+}
+
+_BROWSER_HEADERS: dict[str, str | pl.Expr] = {
+    "Accept": "application/json, text/plain, */*",
+    "Origin": "https://opencritic.com",
+    "Host": "api.opencritic.com",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+    "Referer": "https://opencritic.com/",
 }
 
 _OPENCRITIC_GAME_API_DTYPE = pl.Struct(
@@ -129,11 +140,19 @@ def _tidy_game(s: pl.Series) -> pl.Series:
 
 
 def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
-    return (
-        prepare_request(
+    if _USE_RAPIDAPI:
+        request_expr = prepare_request(
             url=pl.format("https://opencritic-api.p.rapidapi.com/game/{}", expr),
-            headers=_HEADERS,
-        ).pipe(
+            headers=_RAPIDAPI_HEADERS,
+        )
+    else:
+        request_expr = prepare_request(
+            url=pl.format("https://api.opencritic.com/api/game/{}", expr),
+            headers=_BROWSER_HEADERS,
+        )
+
+    return (
+        request_expr.pipe(
             request,
             log_group=_LOG_GROUP,
             min_time=_API_RPS,
@@ -150,6 +169,17 @@ _GAME_DTYPE = pl.List(pl.Struct({"id": pl.UInt32}))
 
 
 def _fetch_recently_reviewed() -> pl.LazyFrame:
+    if _USE_RAPIDAPI:
+        request_expr = prepare_request(
+            pl.format("https://opencritic-api.p.rapidapi.com/{}", pl.col("url")),
+            headers=_RAPIDAPI_HEADERS,
+        )
+    else:
+        request_expr = prepare_request(
+            pl.format("https://api.opencritic.com/api/{}", pl.col("url")),
+            headers=_BROWSER_HEADERS,
+        )
+
     return (
         pl.LazyFrame(
             {
@@ -167,11 +197,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
             }
         )
         .select(
-            prepare_request(
-                pl.format("https://opencritic-api.p.rapidapi.com/{}", pl.col("url")),
-                headers=_HEADERS,
-            )
-            .pipe(
+            request_expr.pipe(
                 request,
                 log_group=_LOG_GROUP,
                 min_time=_API_RPS,
