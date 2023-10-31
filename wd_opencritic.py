@@ -93,7 +93,7 @@ def _wd_review_scores(determination_method_qid: str) -> pl.LazyFrame:
             pl.col("number_of_reviews").cast(pl.UInt16),
             pl.col("point_in_time").str.strptime(pl.Date, "%+"),
         )
-        .select(pl.all().prefix("wd_"))
+        .select(pl.all().name.prefix("wd_"))
     )
 
 
@@ -135,7 +135,7 @@ def _find_opencritic_top_critic_score() -> pl.LazyFrame:
 
     api_df = (
         scan_s3_parquet_anon("s3://wikidatabots/opencritic.parquet")
-        .select(pl.all().prefix("api_"))
+        .select(pl.all().name.prefix("api_"))
         .lazy()
     )
 
@@ -173,7 +173,7 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
 
     api_df = (
         scan_s3_parquet_anon("s3://wikidatabots/opencritic.parquet")
-        .select(pl.all().prefix("api_"))
+        .select(pl.all().name.prefix("api_"))
         .lazy()
     )
 
