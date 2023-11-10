@@ -79,7 +79,7 @@ _OPENCRITIC_GAME_DTYPE = pl.Struct(
         "retrieved_at": pl.Datetime(time_unit="ms"),
     }
 )
-_OPENCRITIC_GAME_SCHEMA = dict(_OPENCRITIC_GAME_API_DTYPE)  # type: ignore
+_OPENCRITIC_GAME_SCHEMA = dict(_OPENCRITIC_GAME_DTYPE)  # type: ignore
 _OPENCRITIC_GAME_FIELDS = [n for n in _OPENCRITIC_GAME_SCHEMA]  # type: ignore
 
 
