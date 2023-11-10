@@ -101,7 +101,9 @@ def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
             pl.col("loc"),
             (
                 pl.col("lastmod")
-                .str.strptime(dtype=pl.Datetime(time_unit="ns"), format="%+")
+                .str.strptime(
+                    dtype=pl.Datetime(time_unit="ns"), format="%+"  # type: ignore
+                )
                 .cast(pl.Datetime(time_unit="ns"))
             ),
             pl.col("priority").cast(pl.Float32),

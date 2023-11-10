@@ -559,14 +559,15 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
 
 
 def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
-    return pl.read_csv(data, dtypes=dtype.to_schema()).to_struct("")
+    return pl.read_csv(data, dtypes=dict(dtype)).to_struct("")
 
 
 def csv_extract(
     expr: pl.Expr,
-    dtype: pl.List,
+    dtype: pl.PolarsDataType,
     log_group: str = "apply(csv_extract)",
 ) -> pl.Expr:
+    assert isinstance(dtype, pl.List)
     inner_dtype = dtype.inner
     assert isinstance(inner_dtype, pl.Struct)
     return apply_with_tqdm(
@@ -610,10 +611,11 @@ def _parse_xml_to_series(
 
 def xml_extract(
     expr: pl.Expr,
-    dtype: pl.List,
+    dtype: pl.PolarsDataType,
     xpath: str = "./*",
     log_group: str = "apply(xml_extract)",
 ) -> pl.Expr:
+    assert isinstance(dtype, pl.List)
     inner_dtype = dtype.inner
     assert isinstance(inner_dtype, pl.Struct)
     return apply_with_tqdm(
