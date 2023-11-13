@@ -2,7 +2,7 @@ backoff==2.2.1
 beautifulsoup4==4.12.2
 hypothesis==6.88.4
 lxml==4.9.3
-numpy==1.26.1
+numpy==1.26.2
 polars==0.19.13
 pytest==7.4.3
 pywikibot==8.5.1
