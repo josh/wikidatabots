@@ -318,13 +318,7 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
             pl.col("item").struct.field("video").alias("video"),
         )
         .sort(by="id")
-        .map_batches(_debug_tmdb_export)
     )
-
-
-def _debug_tmdb_export(df: pl.DataFrame) -> pl.DataFrame:
-    print(f"tmdb_export: {len(df)} rows", file=sys.stderr)
-    return df
 
 
 def tmdb_export(
