@@ -257,7 +257,7 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
 
 
 def _export_date() -> datetime.date:
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     if now.hour >= 8:
         return now.date()
     else:
