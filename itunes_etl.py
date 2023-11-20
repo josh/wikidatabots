@@ -311,7 +311,7 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
                 bad_statuses={400, 500, 503},
             )
             .pipe(response_text)
-            .str.json_extract(_RESULTS_DTYPE)
+            .str.json_decode(_RESULTS_DTYPE)
             .struct.field("results")
             .alias("result")
         )

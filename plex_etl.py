@@ -155,7 +155,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 retry_count=_PLEX_API_RETRY_COUNT,
             )
             .pipe(response_text)
-            .str.json_extract(_SEARCH_METACONTAINER_JSON_DTYPE)
+            .str.json_decode(_SEARCH_METACONTAINER_JSON_DTYPE)
             .struct.field("MediaContainer")
             .struct.field("SearchResults")
             .list.eval(
@@ -309,7 +309,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             (
                 pl.col("response")
                 .pipe(response_text)
-                .str.json_extract(_METACONTAINER_JSON_DTYPE)
+                .str.json_decode(_METACONTAINER_JSON_DTYPE)
                 .struct.field("MediaContainer")
                 .struct.field("Metadata")
                 .list.first()

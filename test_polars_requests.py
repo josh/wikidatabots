@@ -93,7 +93,7 @@ def test_request() -> None:
         )
         .with_columns(
             pl.col("response_text")
-            .str.json_extract(response_dtype)
+            .str.json_decode(response_dtype)
             .struct.field("args")
             .struct.field("foo")
             .alias("foo"),
@@ -146,7 +146,7 @@ def test_request_raw() -> None:
         pl.col("request")
         .pipe(request, log_group="postman")
         .pipe(response_text)
-        .str.json_extract(response_dtype)
+        .str.json_decode(response_dtype)
         .alias("data"),
     )
 
@@ -220,7 +220,7 @@ def test_request_prepare() -> None:
         .pipe(prepare_request, fields={"foo": "bar"}, headers={"x-foo": "baz"})
         .pipe(request, log_group="postman")
         .pipe(response_text)
-        .str.json_extract(response_dtype)
+        .str.json_decode(response_dtype)
         .alias("data"),
     )
 
@@ -242,7 +242,7 @@ def test_request_prepare_just_fields() -> None:
         .pipe(prepare_request, fields={"foo": "bar"})
         .pipe(request, log_group="postman")
         .pipe(response_text)
-        .str.json_extract(response_dtype)
+        .str.json_decode(response_dtype)
         .alias("data"),
     )
 

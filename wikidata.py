@@ -41,7 +41,7 @@ def _blocked_qids() -> pl.Series:
             )
             .pipe(request, log_group="wikidata")
             .pipe(response_text)
-            .str.json_extract(_QUERY_DTYPE)
+            .str.json_decode(_QUERY_DTYPE)
             .struct.field("query")
             .struct.field("pages")
             .struct.field("103442925")

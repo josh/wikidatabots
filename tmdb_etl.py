@@ -102,7 +102,7 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         .with_columns(
             pl.col("response")
             .pipe(response_text)
-            .str.json_extract(dtype=_EXTERNAL_IDS_RESPONSE_DTYPE)
+            .str.json_decode(dtype=_EXTERNAL_IDS_RESPONSE_DTYPE)
             .alias("data")
         )
         .with_columns(
@@ -149,7 +149,7 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
                 retry_count=_API_RETRY_COUNT,
             )
             .pipe(response_text)
-            .str.json_extract(dtype=_CHANGES_RESPONSE_DTYPE)
+            .str.json_decode(dtype=_CHANGES_RESPONSE_DTYPE)
             .struct.field("results")
             .list.reverse()
             .alias("results")
@@ -196,7 +196,7 @@ def tmdb_exists(expr: pl.Expr, tmdb_type: _EXISTS_TMDB_TYPE) -> pl.Expr:
             retry_count=_API_RETRY_COUNT,
         )
         .pipe(response_text)
-        .str.json_extract(dtype=pl.Struct([pl.Field("id", pl.UInt32)]))
+        .str.json_decode(dtype=pl.Struct([pl.Field("id", pl.UInt32)]))
         .struct.field("id")
         .is_not_null()
         .alias("exists")
@@ -229,7 +229,7 @@ def tmdb_find(
             retry_count=_API_RETRY_COUNT,
         )
         .pipe(response_text)
-        .str.json_extract(dtype=_FIND_RESPONSE_DTYPE)
+        .str.json_decode(dtype=_FIND_RESPONSE_DTYPE)
         .struct.field(f"{tmdb_type}_results")
         .list.first()
         .struct.field("id")
@@ -296,7 +296,7 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
         .select(
             pl.col("type"),
             pl.col("lines")
-            .str.json_extract(
+            .str.json_decode(
                 dtype=pl.Struct(
                     {
                         "adult": pl.Boolean,

@@ -276,7 +276,7 @@ def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
                     script_type="application/ld+json",
                     log_group="extract_jsonld",
                 )
-                .str.json_extract(dtype=_JSONLD_DTYPE)
+                .str.json_decode(dtype=_JSONLD_DTYPE)
                 .alias("jsonld")
             ),
             (

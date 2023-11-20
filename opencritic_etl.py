@@ -103,7 +103,7 @@ def _tidy_game(s: pl.Series) -> pl.Series:
             pl.col("response").pipe(response_date).alias("retrieved_at"),
             pl.col("response")
             .pipe(response_text)
-            .str.json_extract(dtype=_OPENCRITIC_GAME_API_DTYPE)
+            .str.json_decode(dtype=_OPENCRITIC_GAME_API_DTYPE)
             .alias("data"),
         )
         .unnest("data")
@@ -210,7 +210,7 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
             )
             .alias("response")
             .pipe(response_text)
-            .str.json_extract(_GAME_DTYPE)
+            .str.json_decode(_GAME_DTYPE)
             .alias("game"),
         )
         .explode("game")
