@@ -506,7 +506,11 @@ def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
 
 
 def expr_indicies_sorted(a: pl.Expr, b: pl.Expr) -> pl.Expr:
-    return pl.when(a.is_in(b)).then(b.search_sorted(a, side="left")).otherwise(None)
+    return (
+        pl.when(a.is_in(b).fill_null(False))
+        .then(b.search_sorted(a, side="left"))
+        .otherwise(None)
+    )
 
 
 def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
