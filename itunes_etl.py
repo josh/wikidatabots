@@ -321,7 +321,7 @@ def _lookup_itunes_id(s: pl.Series, country: str, batch_size: int) -> pl.Series:
         )
         .sort("result")
         .select(
-            pl.col("result").take(
+            pl.col("result").gather(
                 expr_indicies_sorted(
                     pl.lit(s),
                     pl.col("result").struct.field("id"),
