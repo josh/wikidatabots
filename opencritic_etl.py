@@ -108,10 +108,10 @@ def _tidy_game(s: pl.Series) -> pl.Series:
         )
         .unnest("data")
         .with_columns(
-            pl.col(pl.Utf8).map_dict({"": None}, default=pl.first()),
-            pl.col(pl.Int8).map_dict({-1: None}, default=pl.first()).cast(pl.UInt8),
-            pl.col(pl.Int16).map_dict({-1: None}, default=pl.first()).cast(pl.UInt16),
-            pl.col(pl.Float32).map_dict({-1: None}, default=pl.first()),
+            pl.col(pl.Utf8).replace({"": None}),
+            pl.col(pl.Int8).replace({-1: None}).cast(pl.UInt8),
+            pl.col(pl.Int16).replace({-1: None}).cast(pl.UInt16),
+            pl.col(pl.Float32).replace({-1: None}),
         )
         .with_columns(
             pl.col("^*At$").str.strptime(
