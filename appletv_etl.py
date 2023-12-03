@@ -187,7 +187,7 @@ def _extract_script_text(
     script_type: str | None = None,
     script_id: str | None = None,
 ) -> pl.Expr:
-    attrs = {}
+    attrs: dict[str, str] = {}
     if script_type:
         attrs["type"] = script_type
     if script_id:
