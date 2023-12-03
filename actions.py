@@ -4,7 +4,7 @@ import sys
 import warnings
 from contextlib import contextmanager
 from threading import Lock, local
-from typing import Generator, Type
+from typing import Generator
 from warnings import warn
 
 from tqdm import tqdm
@@ -34,8 +34,8 @@ def print_warning(title: str, message: str) -> None:
 
 
 def _formatwarning(
-    message: str,
-    category: Type[Warning],
+    message: Warning | str,
+    category: type[Warning],
     filename: str,
     lineno: int,
     line: str | None = None,
