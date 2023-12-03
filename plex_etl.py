@@ -229,10 +229,6 @@ def wikidata_search_guids(limit: int = _SEARCH_LIMIT) -> pl.LazyFrame:
     )
 
 
-def decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
-    return _decode_plex_guid_key(expr)
-
-
 def _decode_plex_guid_type(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 1).cast(pl.Categorical)
 
