@@ -6,7 +6,7 @@ mypy==1.7.1
 numpy==1.26.2
 polars==0.19.16
 pytest==7.4.3
-pywikibot==8.5.1
+pywikibot==8.6.0
 rdflib===7.0.0
 requests==2.31.0
 s3fs==2023.12.1
