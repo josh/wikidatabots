@@ -23,7 +23,6 @@ jobs:
       matrix:
         script:
           - "wd_appletv"
-          - "wd_itunes"
           - "wd_opencritic"
           - "wd_plex"
           - "wd_tmdb"
