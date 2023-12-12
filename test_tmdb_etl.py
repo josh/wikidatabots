@@ -15,7 +15,7 @@ from tmdb_etl import (
     tmdb_find,
 )
 
-_SCHEMA = {
+_SCHEMA: dict[str, pl.PolarsDataType] = {
     "id": pl.UInt32,
     "date": pl.Date,
     "adult": pl.Boolean,
