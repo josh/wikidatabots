@@ -7,8 +7,8 @@ from collections import OrderedDict, defaultdict
 from functools import cache
 from typing import Any, Iterator, TextIO
 
-import pywikibot
-import pywikibot.config
+import pywikibot  # type: ignore
+import pywikibot.config  # type: ignore
 from rdflib import XSD, Graph
 from rdflib.namespace import Namespace, NamespaceManager
 from rdflib.term import BNode, Literal, URIRef
