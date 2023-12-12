@@ -36,6 +36,18 @@ _BROWSER_HEADERS: dict[str, str | pl.Expr] = {
 _TYPE = Literal["movie", "episode", "show"]
 _TYPES: set[_TYPE] = {"movie", "episode", "show"}
 
+
+def _cast_sitemap_type(sitemap_type: str) -> _TYPE:
+    if sitemap_type == "movie":
+        return "movie"
+    elif sitemap_type == "episode":
+        return "episode"
+    elif sitemap_type == "show":
+        return "show"
+    else:
+        raise ValueError(f"Invalid sitemap_type: {sitemap_type}")
+
+
 _SITEINDEX_SCHEMA: dict[str, pl.PolarsDataType] = {
     "loc": pl.Utf8,
 }
@@ -376,8 +388,7 @@ def _gc(df: pl.LazyFrame) -> pl.LazyFrame:
 def _main() -> None:
     pl.enable_string_cache()
 
-    sitemap_type = sys.argv[1]
-    assert sitemap_type in _TYPES
+    sitemap_type = _cast_sitemap_type(sys.argv[1])
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         df_sitemap = _fetch_latest_sitemap(df, sitemap_type)
