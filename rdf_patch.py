@@ -19,7 +19,7 @@ from wikidata import blocklist
 SITE = pywikibot.Site("wikidata", "wikidata")
 
 
-class HashableClaim(object):
+class HashableClaim:
     def __init__(self, claim: pywikibot.Claim):
         self.claim = claim
 
