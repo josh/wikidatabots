@@ -6,3 +6,6 @@ name = "wikidatabots"
 [tool.vulture]
 exclude = ["*test_*.py"]
 ignore_names = ["formatwarning", "status", "put_throttle", "maxlag"]
+
+[tool.ruff.lint]
+select = ["I", "UP"]
