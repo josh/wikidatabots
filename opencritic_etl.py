@@ -115,7 +115,8 @@ def _tidy_game(s: pl.Series) -> pl.Series:
         )
         .with_columns(
             pl.col("^*At$").str.strptime(
-                pl.Datetime(time_unit="ms"), "%+"  # type: ignore
+                pl.Datetime(time_unit="ms"),  # type: ignore
+                "%+",
             ),
             pl.col("^*Date$").str.strptime(pl.Date, "%+"),
         )
@@ -251,9 +252,8 @@ def _main() -> None:
         # MARK: pl.LazyFrame.cache
         df = df.cache()
         return (
-            df.pipe(update_or_append, _refresh_games(df), on="id").pipe(
-                align_to_index, name="id"
-            )
+            df.pipe(update_or_append, _refresh_games(df), on="id")
+            .pipe(align_to_index, name="id")
             # MARK: pl.LazyFrame.map_batches
             .map_batches(_log_retrieved_at)
         )

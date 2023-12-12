@@ -336,7 +336,8 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
     df = df.cache()
 
     df_updated = (
-        df.filter(_OLDEST_METADATA | _MISSING_METADATA).pipe(fetch_metadata_guids)
+        df.filter(_OLDEST_METADATA | _MISSING_METADATA)
+        .pipe(fetch_metadata_guids)
         # MARK: pl.LazyFrame.cache
         .cache()
     )
@@ -382,7 +383,8 @@ def _main() -> None:
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
         return (
-            df.pipe(_discover_guids).pipe(_backfill_metadata)
+            df.pipe(_discover_guids)
+            .pipe(_backfill_metadata)
             # MARK: pl.LazyFrame.map_batches
             .map_batches(_log_retrieved_at)
         )
