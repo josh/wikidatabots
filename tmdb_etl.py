@@ -62,11 +62,34 @@ _FIND_RESPONSE_DTYPE = pl.Struct(
 
 _TMDB_TYPES: set[TMDB_TYPE] = {"movie", "tv", "person"}
 
+
+def _cast_tmdb_type(tmdb_type: str) -> TMDB_TYPE:
+    if tmdb_type == "movie":
+        return "movie"
+    elif tmdb_type == "tv":
+        return "tv"
+    elif tmdb_type == "person":
+        return "person"
+    else:
+        raise ValueError(f"Invalid TMDB type: {tmdb_type}")
+
+
 _TMDB_EXTERNAL_SOURCES: set[_TMDB_EXTERNAL_SOURCE] = {
     "imdb_id",
     "tvdb_id",
     "wikidata_id",
 }
+
+
+def _cast_tmdb_external_source(external_source: str) -> _TMDB_EXTERNAL_SOURCE:
+    if external_source == "imdb_id":
+        return "imdb_id"
+    elif external_source == "tvdb_id":
+        return "tvdb_id"
+    elif external_source == "wikidata_id":
+        return "wikidata_id"
+    else:
+        raise ValueError(f"Invalid TMDB external source: {external_source}")
 
 
 def extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
@@ -210,8 +233,7 @@ def tmdb_find(
 ) -> pl.Expr:
     if not external_id_type:
         output_name = expr.meta.output_name()
-        assert output_name in _TMDB_EXTERNAL_SOURCES
-        external_id_type = output_name
+        external_id_type = _cast_tmdb_external_source(output_name)
 
     return (
         pl.format("https://api.themoviedb.org/3/find/{}", expr)
@@ -362,8 +384,7 @@ def _log_retrieved_at(df: pl.DataFrame) -> pl.DataFrame:
 def _main() -> None:
     pl.enable_string_cache()
 
-    tmdb_type = sys.argv[1]
-    assert tmdb_type in _TMDB_TYPES
+    tmdb_type = _cast_tmdb_type(sys.argv[1])
 
     def _update(df: pl.LazyFrame) -> pl.LazyFrame:
         return (
