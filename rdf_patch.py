@@ -368,11 +368,11 @@ def _item_append_claim_target(
         if claim.target_equals(target):
             return (False, claim)
 
-    claim: pywikibot.Claim = property.newClaim()
-    claim.setTarget(target)
-    item.claims[pid].append(claim)
+    new_claim: pywikibot.Claim = property.newClaim()
+    new_claim.setTarget(target)
+    item.claims[pid].append(new_claim)
 
-    return (True, claim)
+    return (True, new_claim)
 
 
 def _claim_append_qualifer(
@@ -477,14 +477,14 @@ def process_graph(
         elif predicate_prefix == "p" and isinstance(object, BNode):
             property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
 
-            claim: pywikibot.Claim = property.newClaim()
+            property_claim: pywikibot.Claim = property.newClaim()
             if predicate_local_name not in item.claims:
                 item.claims[predicate_local_name] = []
-            item.claims[predicate_local_name].append(claim)
-            mark_changed(item, claim)
+            item.claims[predicate_local_name].append(property_claim)
+            mark_changed(item, property_claim)
 
             for predicate, p_object in _predicate_objects(graph, object):
-                visit_wds_subject(item, claim, predicate, p_object)
+                visit_wds_subject(item, property_claim, predicate, p_object)
 
         elif predicate == WIKIDATABOTS.editSummary:
             edit_summaries[item] = object.toPython()
@@ -589,11 +589,14 @@ def process_graph(
 
         claims_json: list[dict[str, Any]] = []
         for hclaim in claims:
-            claim: pywikibot.Claim = hclaim.claim
-            claim_json: dict[str, Any] = claim.toJSON()
+            changed_claim: pywikibot.Claim = hclaim.claim
+            claim_json: dict[str, Any] = changed_claim.toJSON()
             assert claim_json, "Claim had serialization error"
             claims_json.append(claim_json)
-            print(f" ⮑ {claim.id} / {claim.snak or '(new claim)'}", file=sys.stderr)
+            print(
+                f" ⮑ {changed_claim.id} / {changed_claim.snak or '(new claim)'}",
+                file=sys.stderr,
+            )
 
         assert len(claims_json) > 0, "No claims to save"
         yield (item, claims_json, summary)
