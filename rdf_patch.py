@@ -248,14 +248,14 @@ def _resolve_object_bnode_time_value(graph: Graph, object: BNode) -> pywikibot.W
         "calendarmodel": "https://www.wikidata.org/wiki/Q1985727",
     }
     if value:
-        value_dt = value.toPython()
+        value_dt = value.toPython()  # type: ignore
         if not isinstance(value_dt, datetime.datetime):
             value_dt = datetime.datetime.fromisoformat(value_dt)
         data["time"] = value_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
     if precision:
-        data["precision"] = precision.toPython()
+        data["precision"] = precision.toPython()  # type: ignore
     if timezone:
-        data["timezone"] = timezone.toPython()
+        data["timezone"] = timezone.toPython()  # type: ignore
     if calendar_model:
         data["calendarmodel"] = str(calendar_model)
     return pywikibot.WbTime.fromWikibase(data, site=SITE)
