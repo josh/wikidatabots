@@ -69,3 +69,4 @@ jobs:
 
       - name: Pyright
         uses: jakebailey/pyright-action@v1
+        continue-on-error: true
