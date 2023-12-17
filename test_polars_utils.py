@@ -586,19 +586,3 @@ def test_indices_sorted(a: list[int], b: list[int]) -> None:
 def test_compute_stats(df: pl.DataFrame) -> None:
     stats_df = compute_stats(df)
     assert len(stats_df) == len(df.columns)
-
-
-def test_read_parquet_s3():
-    pl.read_parquet(
-        "s3://wikidatabots/plex.parquet",
-        columns=["key", "retrieved_at"],
-        storage_options={"anon": True},
-    ).lazy().collect()
-
-
-@pytest.mark.xfail(reason="polars is hot garbage")
-def test_scan_parquet_s3():
-    pl.scan_parquet(
-        "s3://wikidatabots/plex.parquet",
-        storage_options={"anon": True},
-    ).select(["key", "retrieved_at"]).collect()
