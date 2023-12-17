@@ -52,7 +52,6 @@ jobs:
 
       - name: mypy
         run: mypy .
-        continue-on-error: true
 
   pyright:
     runs-on: ubuntu-latest
