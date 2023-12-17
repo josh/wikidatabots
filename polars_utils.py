@@ -739,6 +739,6 @@ def scan_s3_parquet_anon(uri: str) -> pl.LazyFrame:
     _TMPFILES.append(tmppath)
 
     s3 = s3fs.S3FileSystem(anon=True)
-    s3.get_file(uri, tmppath)  # ignore: type
+    s3.get_file(uri, tmppath)  # type: ignore
 
     return pl.scan_parquet(tmppath)
