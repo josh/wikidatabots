@@ -1,18 +1,22 @@
 # pyright: strict
 
+import atexit
 import datetime
 import gzip
 import html
 import os
 import random
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 import zlib
 from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Iterator, TextIO, TypedDict
 
 import numpy as np
 import polars as pl
+import s3fs  # type: ignore
 from tqdm import tqdm
 
 from actions import log_group as _log_group
@@ -717,10 +721,27 @@ def print_rdf_statements(
         print(line, file=file)
 
 
+_TMPFILES: list[Path] = []
+
+
+def _cleanup_tmpfiles() -> None:
+    for tmpfile in _TMPFILES:
+        tmpfile.unlink(missing_ok=True)
+
+
+atexit.register(_cleanup_tmpfiles)
+
+
 def scan_s3_parquet_anon(uri: str, columns: list[str] | None = None) -> pl.LazyFrame:
     assert uri.startswith("s3://")
-    return pl.read_parquet(
-        uri,
-        columns=columns,
-        storage_options={"anon": True},
-    ).lazy()
+
+    tmppath = Path(tempfile.mkstemp()[1])
+    _TMPFILES.append(tmppath)
+
+    s3 = s3fs.S3FileSystem(anon=True)
+    s3.get_file(uri, tmppath)  # ignore: type
+
+    df = pl.scan_parquet(tmppath)
+    if columns:
+        df = df.select(columns)
+    return df
