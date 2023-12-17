@@ -47,8 +47,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install mypy type stubs
+        run: mypy --install-types --non-interactive
+
       - name: mypy
-        run: mypy --install-types --non-interactive .
+        run: mypy .
         continue-on-error: true
 
   pyright:
