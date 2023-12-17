@@ -732,7 +732,7 @@ def _cleanup_tmpfiles() -> None:
 atexit.register(_cleanup_tmpfiles)
 
 
-def scan_s3_parquet_anon(uri: str, columns: list[str] | None = None) -> pl.LazyFrame:
+def scan_s3_parquet_anon(uri: str) -> pl.LazyFrame:
     assert uri.startswith("s3://")
 
     tmppath = Path(tempfile.mkstemp()[1])
@@ -741,7 +741,4 @@ def scan_s3_parquet_anon(uri: str, columns: list[str] | None = None) -> pl.LazyF
     s3 = s3fs.S3FileSystem(anon=True)
     s3.get_file(uri, tmppath)  # ignore: type
 
-    df = pl.scan_parquet(tmppath)
-    if columns:
-        df = df.select(columns)
-    return df
+    return pl.scan_parquet(tmppath)

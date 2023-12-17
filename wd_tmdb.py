@@ -105,10 +105,8 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     ).alias("rdf_statement")
 
     tmdb_df = (
-        scan_s3_parquet_anon(
-            f"s3://wikidatabots/tmdb/{tmdb_type}.parquet",
-            columns=["id", "imdb_numeric_id"],
-        )
+        scan_s3_parquet_anon(f"s3://wikidatabots/tmdb/{tmdb_type}.parquet")
+        .select("id", "imdb_numeric_id")
         .rename({"id": "tmdb_id"})
         .drop_nulls()
         .unique(subset=["imdb_numeric_id"], maintain_order=True)
@@ -183,10 +181,8 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     ).alias("rdf_statement")
 
     tmdb_df = (
-        scan_s3_parquet_anon(
-            f"s3://wikidatabots/tmdb/{tmdb_type}.parquet",
-            columns=["id", "tvdb_id"],
-        )
+        scan_s3_parquet_anon(f"s3://wikidatabots/tmdb/{tmdb_type}.parquet")
+        .select("id", "tvdb_id")
         .rename({"id": "tmdb_id"})
         .drop_nulls()
         .unique(subset=["tvdb_id"], maintain_order=True)
@@ -235,9 +231,8 @@ def find_tmdb_ids_not_found(
     ).alias("rdf_statement")
 
     tmdb_df = scan_s3_parquet_anon(
-        f"s3://wikidatabots/tmdb/{tmdb_type}.parquet",
-        columns=["id", "date", "success"],
-    )
+        f"s3://wikidatabots/tmdb/{tmdb_type}.parquet"
+    ).select("id", "date", "success")
 
     query = _NOT_DEPRECATED_QUERY.replace("P0000", _TMDB_TYPE_TO_WD_PID[tmdb_type])
     df = sparql(query, schema={"statement": pl.Utf8, "id": pl.UInt32})

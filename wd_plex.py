@@ -10,9 +10,8 @@ from sparql import sparql
 
 
 def _plex_guids() -> pl.LazyFrame:
-    return scan_s3_parquet_anon(
-        "s3://wikidatabots/plex.parquet",
-        columns=["type", "tmdb_id", "key", "success", "retrieved_at"],
+    return scan_s3_parquet_anon("s3://wikidatabots/plex.parquet").select(
+        "type", "tmdb_id", "key", "success", "retrieved_at"
     )
 
 
