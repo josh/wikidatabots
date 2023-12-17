@@ -297,7 +297,7 @@ def _resolve_object_bnode(
     graph: Graph, object: BNode, rdf_type: URIRef | None = None
 ) -> pywikibot.WbQuantity | pywikibot.WbTime | WbSource:
     if not rdf_type:
-        rdf_type = graph.value(object, RDF.type)
+        rdf_type = graph.value(object, RDF.type)  # type: ignore
     assert rdf_type is None or isinstance(rdf_type, URIRef)
 
     if rdf_type == WIKIBASE.TimeValue:
@@ -575,7 +575,7 @@ def process_graph(
 
         elif subject == WIKIDATABOTS.testSubject:
             assert isinstance(subject, URIRef)
-            for object in graph.objects(subject, WIKIDATABOTS.assertValue):
+            for object in graph.objects(subject, WIKIDATABOTS.assertValue):  # type: ignore
                 assert _resolve_object(graph, object)
 
         else:
