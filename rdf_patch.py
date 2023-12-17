@@ -392,9 +392,9 @@ def _claim_append_qualifer(
         if qualifier.target_equals(target):
             return False
 
-    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
-    qualifier.setTarget(target)
-    claim.qualifiers[pid].append(qualifier)
+    new_qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
+    new_qualifier.setTarget(target)
+    claim.qualifiers[pid].append(new_qualifier)
 
     return True
 
@@ -413,9 +413,9 @@ def _claim_set_qualifer(
         if qualifier.target_equals(target):
             return False
 
-    qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
-    qualifier.setTarget(target)
-    claim.qualifiers[pid] = [qualifier]
+    new_qualifier: pywikibot.Claim = property.newClaim(is_qualifier=True)
+    new_qualifier.setTarget(target)
+    claim.qualifiers[pid] = [new_qualifier]
 
     return True
 
@@ -464,9 +464,11 @@ def process_graph(
         predicate_prefix, predicate_local_name = _compute_qname(predicate)
 
         if predicate_prefix == "wdt":
-            property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
+            wdt_property: pywikibot.PropertyPage = get_property_page(
+                predicate_local_name
+            )
             target = _resolve_object(graph, object)
-            did_change, claim = _item_append_claim_target(item, property, target)
+            did_change, claim = _item_append_claim_target(item, wdt_property, target)
             if claim.rank == "deprecated":
                 print_warning(
                     "DeprecatedClaim",
@@ -475,9 +477,9 @@ def process_graph(
             mark_changed(item, claim, did_change)
 
         elif predicate_prefix == "p" and isinstance(object, BNode):
-            property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
+            p_property: pywikibot.PropertyPage = get_property_page(predicate_local_name)
 
-            property_claim: pywikibot.Claim = property.newClaim()
+            property_claim: pywikibot.Claim = p_property.newClaim()
             if predicate_local_name not in item.claims:
                 item.claims[predicate_local_name] = []
             item.claims[predicate_local_name].append(property_claim)
