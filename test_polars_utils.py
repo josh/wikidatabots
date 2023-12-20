@@ -310,9 +310,13 @@ def test_align_to_index_evaluates_df_once():
 
 
 def test_update_or_append() -> None:
-    df1 = pl.LazyFrame({"a": []}).map_batches(assert_called_once())
-    df2 = pl.LazyFrame({"a": []}).map_batches(assert_called_once())
-    df3 = pl.LazyFrame({"a": []})
+    df1 = pl.LazyFrame({"a": []}, schema={"a": pl.Int64}).map_batches(
+        assert_called_once()
+    )
+    df2 = pl.LazyFrame({"a": []}, schema={"a": pl.Int64}).map_batches(
+        assert_called_once()
+    )
+    df3 = pl.LazyFrame({"a": []}, schema={"a": pl.Int64})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
     df1 = pl.LazyFrame({"a": [1]}).map_batches(assert_called_once())
