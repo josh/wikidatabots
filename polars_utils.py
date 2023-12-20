@@ -662,9 +662,9 @@ def _xml_element_field_iter(
             if isinstance(dtype, pl.Struct):
                 yield _xml_element_struct_field(child, dtype)
             elif child.text and child.text.strip():
-                if dtype is pl.Int64:
+                if dtype == pl.Int64:
                     yield int(child.text)
-                elif dtype is pl.Float64:
+                elif dtype == pl.Float64:
                     yield float(child.text)
                 else:
                     yield child.text
