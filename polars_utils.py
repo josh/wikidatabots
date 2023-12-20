@@ -540,14 +540,16 @@ def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     # MARK: pl.LazyFrame.cache
     df = _check_ldf(df, assert_expr).cache()
 
-    dtype: Any = df.schema[name]  # type: ignore
+    dtype = df.schema[name]
 
     return df.select(
         pl.int_range(
-            0,
-            pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
-            dtype=dtype,
-        ).alias(name)
+            start=0,
+            end=pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
+            dtype=pl.Int64,
+        )
+        .cast(dtype)
+        .alias(name)
     ).join(df, on=name, how="left")
 
 
