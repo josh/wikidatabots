@@ -139,7 +139,7 @@ _INDICATOR_EXPR = (
     .alias("_merge")
 )
 
-_JOIN_OUTER_COALESCE_HOW: Any = (
+JOIN_OUTER_COALESCE_HOW: Any = (
     "outer_coalesce" if _POLARS_VERSION >= _POLARS_V0_20 else "outer"
 )
 
@@ -153,7 +153,7 @@ def merge_with_indicator(
     left_df = left_df.with_columns(pl.lit(True).alias("_merge_left"))
     right_df = right_df.with_columns(pl.lit(True).alias("_merge_right"))
     return (
-        left_df.join(right_df, on=on, how=_JOIN_OUTER_COALESCE_HOW, suffix=suffix)
+        left_df.join(right_df, on=on, how=JOIN_OUTER_COALESCE_HOW, suffix=suffix)
         .with_columns(_INDICATOR_EXPR)
         .drop("_merge_left", "_merge_right")
     )

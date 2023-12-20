@@ -8,7 +8,12 @@ from warnings import warn
 import polars as pl
 
 from polars_requests import prepare_request, request, response_date, response_text
-from polars_utils import align_to_index, update_or_append, update_parquet
+from polars_utils import (
+    JOIN_OUTER_COALESCE_HOW,
+    align_to_index,
+    update_or_append,
+    update_parquet,
+)
 
 _API_RETRY_COUNT = 3
 _API_RPS: float = 2 / 3
@@ -229,7 +234,7 @@ _RECENTLY_REVIEWED = pl.col("recently_reviewed")
 
 def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.join(_fetch_recently_reviewed(), on="id", how="outer")
+        df.join(_fetch_recently_reviewed(), on="id", how=JOIN_OUTER_COALESCE_HOW)
         .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
         .select("id")
         .with_columns(
