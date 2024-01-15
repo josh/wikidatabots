@@ -12,4 +12,4 @@ requests==2.31.0
 ruff==0.1.13
 s3fs==2023.12.2
 tqdm==4.66.1
-wikitextparser==0.55.7
+wikitextparser==0.55.8
