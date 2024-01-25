@@ -425,7 +425,7 @@ def now() -> pl.Expr:
 
 
 def position_weights() -> pl.Expr:
-    size = pl.count()
+    size = pl.len()
     row_nr = pl.int_range(1, size + 1)
     cumsum = (size * (size + 1)) / 2
     weights = row_nr / cumsum
@@ -507,7 +507,7 @@ _limit = limit
 
 def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
     assert n > 0
-    groups_count = (pl.count() / n).ceil()
+    groups_count = (pl.len() / n).ceil()
 
     return (
         expr.extend_constant(None, n)
