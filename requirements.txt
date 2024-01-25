@@ -1,6 +1,6 @@
 backoff==2.2.1
 beautifulsoup4==4.12.2
-hypothesis==6.94.0
+hypothesis==6.96.2
 lxml==5.1.0
 mypy==1.8.0
 numpy==1.26.3
