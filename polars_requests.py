@@ -284,7 +284,7 @@ def response_header_value(response: pl.Expr, name: str) -> pl.Expr:
         response.struct.field("headers")
         .list.eval(
             pl.element()
-            .where(pl.element().struct.field("name") == name)
+            .filter(pl.element().struct.field("name") == name)
             .struct.field("value")
         )
         .list.first()
