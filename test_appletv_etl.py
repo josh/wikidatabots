@@ -51,7 +51,7 @@ def test_fetch_jsonld_columns() -> None:
             }
         )
         .pipe(fetch_jsonld_columns)
-        .drop(columns=["retrieved_at"])
+        .drop("retrieved_at")
     )
 
     df2 = pl.LazyFrame(
