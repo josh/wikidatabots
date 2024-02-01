@@ -68,5 +68,5 @@ jobs:
           pip install -r requirements.txt
 
       - name: Pyright
-        uses: jakebailey/pyright-action@v1
+        uses: jakebailey/pyright-action@v2
         continue-on-error: true
