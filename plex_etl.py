@@ -15,7 +15,7 @@ GUID_TYPE = Literal["episode", "movie", "season", "show"]
 _GUID_RE = r"plex://(?P<type>episode|movie|season|show)/(?P<key>[a-f0-9]{24})"
 _ANY_KEY_RE = r"(plex://(episode|movie|season|show)/)?([a-f0-9]{24})"
 
-_PLEX_API_RETRY_COUNT = 3
+_PLEX_API_RETRY_COUNT = 5
 
 _PLEX_DEVICE_DTYPE = pl.Struct(
     {
@@ -292,6 +292,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 log_group="metadata.provider.plex.tv/library/metadata",
                 ok_statuses={200, 404},
                 retry_count=_PLEX_API_RETRY_COUNT,
+                timeout=60.0,
             ),
         )
         .with_columns(
