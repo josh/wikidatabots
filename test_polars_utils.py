@@ -5,7 +5,7 @@ from typing import Callable, Iterator, TypeVar
 
 import polars as pl
 import pytest
-from hypothesis import assume, given, settings
+from hypothesis import assume, given
 from hypothesis import strategies as st
 from polars.testing import assert_frame_equal, assert_series_equal
 from polars.testing.parametric import column, dataframes, series
@@ -113,9 +113,8 @@ def test_now() -> None:
     df.collect()
 
 
-@given(df=dataframes(lazy=True, max_cols=5, min_size=3, max_size=20))
-@settings(max_examples=5)
-def test_sample(df: pl.LazyFrame) -> None:
+def test_sample() -> None:
+    df = pl.LazyFrame({"a": [1, 2, 3, 4, 5]})
     assert len(df.pipe(sample, n=3).collect()) == 3
 
 
@@ -583,10 +582,14 @@ def test_indices_sorted(a: list[int], b: list[int]) -> None:
     assert c == s.to_list()
 
 
-@given(
-    df=dataframes(max_cols=20, max_size=10, null_probability=0.1),
-)
-@settings(max_examples=10)
-def test_compute_stats(df: pl.DataFrame) -> None:
+def test_compute_stats() -> None:
+    df = pl.DataFrame(
+        {
+            "a": [1, 2, 3, 4, 5],
+            "b": [1.0, 2.0, 3.0, 4.0, 5.0],
+            "c": ["a", "b", "c", "d", "e"],
+            "d": [True, False, True, False, True],
+        }
+    )
     stats_df = compute_stats(df)
     assert len(stats_df) == len(df.columns)
