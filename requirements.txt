@@ -5,7 +5,7 @@ lxml==5.1.0
 mypy==1.8.0
 numpy==1.26.4
 polars==0.20.9
-pytest==8.0.0
+pytest==8.0.1
 pywikibot==8.6.0
 rdflib===7.0.0
 requests==2.31.0
