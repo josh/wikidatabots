@@ -4,7 +4,7 @@ hypothesis==6.98.13
 lxml==5.1.0
 mypy==1.8.0
 numpy==1.26.4
-polars==0.20.10
+polars==0.20.11
 pytest==8.0.2
 pywikibot==8.6.0
 rdflib===7.0.0
