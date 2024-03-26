@@ -65,12 +65,12 @@ SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
   # TMDb person ID subject type constraints
-  VALUES ?class {
-    wd:Q5 # human
-    wd:Q16334295 # group of humans
-  }
-  ?item (wdt:P31/(wdt:P279*)) ?class.
-  # ?item wdt:P31 wd:Q5.
+  # VALUES ?class {
+  #   wd:Q5 # human
+  #   wd:Q16334295 # group of humans
+  # }
+  # ?item (wdt:P31/(wdt:P279*)) ?class.
+  ?item wdt:P31 wd:Q5.
 
   OPTIONAL {
     ?item wdt:P4985 ?tmdb_id.
