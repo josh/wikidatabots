@@ -230,8 +230,8 @@ def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("column").alias("name"),
         # MARK: pl.Expr.map_elements
         pl.col("column")
-        .map_elements(df.schema.get)
-        .map_elements(_dtype_str_repr)
+        .map_elements(df.schema.get, return_dtype=pl.Object)
+        .map_elements(_dtype_str_repr, return_dtype=pl.String)
         .alias("dtype"),
         pl.col("null_count"),
         pl.col("true_count"),
@@ -303,8 +303,8 @@ def compute_stats(
         pl.col("column").alias("name"),
         # MARK: pl.Expr.map_elements
         pl.col("column")
-        .map_elements(df.schema.get)
-        .map_elements(_dtype_str_repr)
+        .map_elements(df.schema.get, return_dtype=pl.Object)
+        .map_elements(_dtype_str_repr, return_dtype=pl.String)
         .alias("dtype"),
         _percent_col("null"),
         _percent_col("true"),
