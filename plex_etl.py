@@ -34,7 +34,7 @@ _PLEX_DEVICE_DTYPE = pl.Struct(
 )
 
 
-def _plex_server(name: str) -> pl.LazyFrame:
+def plex_server(name: str) -> pl.LazyFrame:
     return (
         pl.LazyFrame({"url": ["https://plex.tv/api/resources"]})
         .select(
@@ -67,7 +67,7 @@ def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
 
 def plex_library_guids() -> pl.LazyFrame:
     return (
-        _plex_server(name=os.environ["PLEX_SERVER"])
+        plex_server(name=os.environ["PLEX_SERVER"])
         .with_columns(pl.lit(pl.Series([[1, 2]])).alias("section"))
         .explode("section")
         .select(

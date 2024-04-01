@@ -9,11 +9,13 @@ from polars.testing import assert_frame_equal
 from plex_etl import (
     fetch_metadata_guids,
     plex_search_guids,
+    plex_server,
     wikidata_plex_guids,
     wikidata_search_guids,
 )
 
 PLEX_TOKEN = os.environ.get("PLEX_TOKEN")
+PLEX_SERVER = os.environ.get("PLEX_SERVER")
 
 
 def setup_module() -> None:
@@ -94,3 +96,13 @@ def test_wikidata_search_guids() -> None:
     assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
     df = ldf.collect()
     assert len(df) > 0
+
+
+@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
+@pytest.mark.skipif(PLEX_SERVER is None, reason="Missing PLEX_SERVER")
+def test_plex_server() -> None:
+    assert PLEX_SERVER, "Missing PLEX_SERVER"
+    ldf = plex_server(name=PLEX_SERVER)
+    df = ldf.collect()
+    assert len(df) == 1
+    assert df.columns == ["name", "publicAddress", "accessToken", "uri"]
