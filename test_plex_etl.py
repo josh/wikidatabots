@@ -92,7 +92,7 @@ def test_plex_search_guids() -> None:
 
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_wikidata_search_guids() -> None:
-    ldf = wikidata_search_guids(limit=3)
+    ldf = wikidata_search_guids(limit=10)
     assert ldf.schema == {"key": pl.Binary, "type": pl.Categorical}
     df = ldf.collect()
     assert len(df) > 0
