@@ -26,5 +26,7 @@ jobs:
         run: |
           pytest --verbose
         env:
+          PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
+          PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
