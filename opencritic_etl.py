@@ -1,7 +1,5 @@
 # pyright: strict
 
-import os
-import random
 import sys
 from warnings import warn
 
@@ -19,19 +17,6 @@ _API_RETRY_COUNT = 3
 _API_RPS: float = 2 / 3
 
 _LOG_GROUP = "api.opencritic.com"
-
-_USE_RAPIDAPI = os.environ.get("RAPIDAPI", "0") == "1"
-
-_RAPIDAPI_KEYS = os.environ["RAPIDAPI_KEY"].split("|")
-_RAPIDAPI_KEY = random.choice(_RAPIDAPI_KEYS)
-
-if _USE_RAPIDAPI and len(_RAPIDAPI_KEYS) > 1:
-    print(f"Using RAPIDAPI_KEY #{_RAPIDAPI_KEYS.index(_RAPIDAPI_KEY)}", file=sys.stderr)
-
-_RAPIDAPI_HEADERS: dict[str, str | pl.Expr] = {
-    "X-RapidAPI-Host": "opencritic-api.p.rapidapi.com",
-    "X-RapidAPI-Key": _RAPIDAPI_KEY,
-}
 
 _BROWSER_HEADERS: dict[str, str | pl.Expr] = {
     "Accept": "application/json, text/plain, */*",
@@ -150,19 +135,12 @@ def _tidy_game(s: pl.Series) -> pl.Series:
 
 
 def fetch_opencritic_game(expr: pl.Expr) -> pl.Expr:
-    if _USE_RAPIDAPI:
-        request_expr = prepare_request(
-            url=pl.format("https://opencritic-api.p.rapidapi.com/game/{}", expr),
-            headers=_RAPIDAPI_HEADERS,
-        )
-    else:
-        request_expr = prepare_request(
+    return (
+        prepare_request(
             url=pl.format("https://api.opencritic.com/api/game/{}", expr),
             headers=_BROWSER_HEADERS,
         )
-
-    return (
-        request_expr.pipe(
+        .pipe(
             request,
             log_group=_LOG_GROUP,
             min_time=_API_RPS,
@@ -179,17 +157,6 @@ _GAME_DTYPE = pl.List(pl.Struct({"id": pl.UInt32}))
 
 
 def _fetch_recently_reviewed() -> pl.LazyFrame:
-    if _USE_RAPIDAPI:
-        request_expr = prepare_request(
-            pl.format("https://opencritic-api.p.rapidapi.com/{}", pl.col("url")),
-            headers=_RAPIDAPI_HEADERS,
-        )
-    else:
-        request_expr = prepare_request(
-            pl.format("https://api.opencritic.com/api/{}", pl.col("url")),
-            headers=_BROWSER_HEADERS,
-        )
-
     return (
         pl.LazyFrame(
             {
@@ -207,7 +174,11 @@ def _fetch_recently_reviewed() -> pl.LazyFrame:
             }
         )
         .select(
-            request_expr.pipe(
+            prepare_request(
+                pl.format("https://api.opencritic.com/api/{}", pl.col("url")),
+                headers=_BROWSER_HEADERS,
+            )
+            .pipe(
                 request,
                 log_group=_LOG_GROUP,
                 min_time=_API_RPS,

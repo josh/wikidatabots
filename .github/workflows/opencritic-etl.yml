@@ -34,8 +34,6 @@ jobs:
       - name: Run script
         run: |
           python opencritic_etl.py
-        env:
-          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

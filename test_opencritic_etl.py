@@ -1,15 +1,12 @@
 # pyright: strict
 
-import os
 
 import polars as pl
-import pytest
 from polars.testing import assert_frame_equal
 
 from opencritic_etl import fetch_opencritic_game
 
 
-@pytest.mark.skipif("RAPIDAPI_KEY" not in os.environ, reason="Missing RAPIDAPI_KEY")
 def test_fetch_game() -> None:
     df1 = (
         pl.LazyFrame({"id": [1, 1548, 14343]}, schema={"id": pl.UInt32})
