@@ -362,6 +362,14 @@ def test_update_or_append() -> None:
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
 
 
+def test_update_or_append_filter() -> None:
+    df1 = pl.LazyFrame({"a": [1, 2, 3]})
+    df2 = df1.cache().filter(pl.col("a") == 1).select(pl.col("a") * 10)
+    df3 = pl.LazyFrame({"a": [1, 2, 3, 10]})
+
+    assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
+
+
 @given(
     df1=dataframes(
         cols=[
