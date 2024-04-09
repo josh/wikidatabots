@@ -9,7 +9,7 @@ from polars_requests import prepare_request, request, response_date, response_te
 from polars_utils import (
     JOIN_OUTER_COALESCE_HOW,
     align_to_index,
-    update_or_append,
+    map_update_or_append,
     update_parquet,
 )
 
@@ -225,10 +225,8 @@ def _main() -> None:
     pl.enable_string_cache()
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        # MARK: pl.LazyFrame.cache
-        df = df.cache()
         return (
-            df.pipe(update_or_append, _refresh_games(df), on="id")
+            df.pipe(map_update_or_append, on="id", map_function=_refresh_games)
             .pipe(align_to_index, name="id")
             # MARK: pl.LazyFrame.map_batches
             .map_batches(_log_retrieved_at)

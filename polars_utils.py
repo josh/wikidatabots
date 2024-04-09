@@ -576,6 +576,40 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
     )
 
 
+def map_update_or_append(
+    df: pl.LazyFrame,
+    on: str,
+    map_function: Callable[[pl.LazyFrame], pl.LazyFrame]
+) -> pl.LazyFrame:
+    def check_df(df: pl.DataFrame, df_label: str) -> None:
+        row = df.select(
+            pl.col(on).is_not_null().all().alias("not_null"),
+            pl.col(on).is_unique().all().alias("unique"),
+        ).row(0, named=True)
+
+        assert row["not_null"], f"{df_label} '{on}' column has null values"
+        assert row["unique"], f"{df_label} '{on}' column has non-unique values"
+
+    def inner(df: pl.DataFrame) -> pl.DataFrame:
+        check_df(df, df_label="df")
+
+        # MARK: pl.DataFrame.lazy
+        # MARK: pl.LazyFrame.collect
+        other = map_function(df.lazy()).collect()
+        check_df(other, df_label="other df")
+
+        other_cols = list(other.columns)
+        other_cols.remove(on)
+
+        other = other.join(df.drop(other_cols), on=on, how="left").select(df.columns)
+        return pl.concat([df, other]).unique(
+            subset=on, keep="last", maintain_order=True
+        )
+
+    # MARK: pl.LazyFrame.map_batches
+    return df.map_batches(inner)
+
+
 def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
     return pl.read_csv(data, dtypes=dict(dtype)).to_struct("")
 
