@@ -577,9 +577,7 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
 
 
 def map_update_or_append(
-    df: pl.LazyFrame,
-    on: str,
-    map_function: Callable[[pl.LazyFrame], pl.LazyFrame]
+    df: pl.LazyFrame, on: str, map_function: Callable[[pl.LazyFrame], pl.LazyFrame]
 ) -> pl.LazyFrame:
     def check_df(df: pl.DataFrame, df_label: str) -> None:
         row = df.select(
