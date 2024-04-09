@@ -2,10 +2,9 @@
 
 import polars as pl
 
-from appletv_etl import LOC_SHOW_PATTERN, url_extract_id, valid_appletv_id
+from appletv_etl import valid_appletv_id
 from polars_utils import print_rdf_statements, scan_s3_parquet_anon, weighted_sample
 from sparql import sparql, sparql_batch
-from wikidata import is_blocked_item
 
 _SEARCH_LIMIT = 1_000
 
@@ -200,119 +199,16 @@ def _find_show_via_search(sitemap_df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-_ITUNES_QUERY = """
-SELECT ?item ?itunes_id WHERE {
-  ?item wdt:P6398 ?itunes_id.
-  FILTER(xsd:integer(?itunes_id))
-
-  # Apple TV movie ID subject type constraints
-  VALUES ?class {
-    wd:Q11424 # film
-  }
-  ?item (wdt:P31/(wdt:P279*)) ?class.
-
-  OPTIONAL { ?item wdt:P9586 ?appletv_id. }
-  FILTER(!(BOUND(?appletv_id)))
-}
-"""
-
-_ADD_VIA_ITUNES_STATEMENT = pl.format(
-    '<{}> wdt:P9586 "{}"; wikidatabots:editSummary '
-    '"Add Apple TV movie ID via associated iTunes movie ID" .',
-    pl.col("item"),
-    pl.col("appletv_id"),
-).alias("rdf_statement")
-
-
-def _find_movie_via_itunes_redirect(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
-    wd_df = sparql(_ITUNES_QUERY, schema={"item": pl.Utf8, "itunes_id": pl.UInt64})
-
-    itunes_df = (
-        itunes_df.filter((pl.col("kind") == "feature-movie") & pl.col("us_country"))
-        .with_columns(
-            pl.col("redirect_url").pipe(url_extract_id).alias("appletv_id"),
-        )
-        .filter(pl.col("appletv_id").is_not_null())
-        .select(pl.col("id").alias("itunes_id"), pl.col("appletv_id"))
-    )
-
-    return (
-        wd_df.join(itunes_df, on="itunes_id", how="left")
-        .filter(
-            pl.col("appletv_id").is_not_null()
-            & pl.col("item").pipe(is_blocked_item).not_()
-        )
-        .select(_ADD_VIA_ITUNES_STATEMENT)
-    )
-
-
-_ITUNES_SEASON_QUERY = """
-SELECT ?show_item ?season_item ?itunes_season_id WHERE {
-  ?season_item wdt:P6381 ?itunes_season_id;
-    wdt:P179 ?show_item.
-  OPTIONAL { ?show_item wdt:P9751 ?appletv_id. }
-  FILTER(!(BOUND(?appletv_id)))
-}
-"""
-
-_ITUNES_SEASON_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
-    "show_item": pl.Utf8,
-    "season_item": pl.Utf8,
-    "itunes_season_id": pl.UInt64,
-}
-
-_ADD_VIA_ITUNES_SEASON_STATEMENT = pl.format(
-    '<{}> wdt:P9751 "{}"; wikidatabots:editSummary '
-    '"Add Apple TV show ID via associated iTunes TV season ID " .',
-    pl.col("show_item"),
-    pl.col("appletv_show_id"),
-).alias("rdf_statement")
-
-
-def _find_show_via_itunes_season(itunes_df: pl.LazyFrame) -> pl.LazyFrame:
-    wd_df = sparql(
-        _ITUNES_SEASON_QUERY,
-        schema=_ITUNES_SEASON_QUERY_SCHEMA,
-    )
-
-    itunes_seasons_df = (
-        itunes_df.filter(pl.col("type") == "TV Season")
-        .filter(pl.col("us_country"))
-        .select(
-            pl.col("id").alias("itunes_season_id"),
-            pl.col("redirect_url")
-            .str.extract(LOC_SHOW_PATTERN, 1)
-            .alias("appletv_show_id"),
-        )
-        .filter(pl.col("appletv_show_id").is_not_null())
-        .select("itunes_season_id", "appletv_show_id")
-    )
-
-    return (
-        wd_df.join(itunes_seasons_df, on="itunes_season_id", how="left")
-        .filter(
-            pl.col("appletv_show_id").is_not_null()
-            & pl.col("show_item").pipe(is_blocked_item).not_()
-        )
-        .select("show_item", "appletv_show_id")
-        .unique()
-        .select(_ADD_VIA_ITUNES_SEASON_STATEMENT)
-    )
-
-
 def _main() -> None:
     pl.enable_string_cache()
 
     sitemap_movie_df = scan_s3_parquet_anon("s3://wikidatabots/appletv/movie.parquet")
     sitemap_show_df = scan_s3_parquet_anon("s3://wikidatabots/appletv/show.parquet")
-    itunes_df = scan_s3_parquet_anon("s3://wikidatabots/itunes.parquet")
 
     pl.concat(
         [
             _find_movie_via_search(sitemap_movie_df),
             _find_show_via_search(sitemap_show_df),
-            _find_show_via_itunes_season(itunes_df),
-            _find_movie_via_itunes_redirect(itunes_df),
         ]
     ).pipe(print_rdf_statements, sample=False)
 
