@@ -4,7 +4,6 @@ on:
   workflow_run:
     workflows:
       - "Apple TV ETL"
-      - "iTunes ETL"
       - "OpenCritic ETL"
       - "Plex ETL"
       - "TMDB ETL"
