@@ -134,15 +134,9 @@ _LOC_PATTERN = (
     r"(?P<id>umc.cmc.[0-9a-z]{21,25})$"
 )
 
-LOC_SHOW_PATTERN = r"showId=(umc.cmc.[0-9a-z]{21,25})$"
-
 
 def valid_appletv_id(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_ID_PATTERN)
-
-
-def url_extract_id(url: pl.Expr) -> pl.Expr:
-    return url.str.extract(_LOC_PATTERN, 4)
 
 
 def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
