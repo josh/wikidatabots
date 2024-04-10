@@ -7,7 +7,6 @@ import polars as pl
 
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
-    JOIN_OUTER_COALESCE_HOW,
     align_to_index,
     map_update_or_append,
     update_parquet,
@@ -205,7 +204,7 @@ _RECENTLY_REVIEWED = pl.col("recently_reviewed")
 
 def _refresh_games(df: pl.LazyFrame) -> pl.LazyFrame:
     return (
-        df.join(_fetch_recently_reviewed(), on="id", how=JOIN_OUTER_COALESCE_HOW)
+        df.join(_fetch_recently_reviewed(), on="id", how="outer_coalesce")
         .filter(_OLDEST_DATA | _MISSING_DATA | _RECENTLY_REVIEWED)
         .select("id")
         .with_columns(

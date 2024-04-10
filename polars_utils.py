@@ -17,14 +17,10 @@ from typing import Any, Callable, Iterator, TextIO, TypedDict
 import numpy as np
 import polars as pl
 import s3fs  # type: ignore
-from packaging import version
 from tqdm import tqdm
 
 from actions import log_group as _log_group
 from actions import warn
-
-_POLARS_VERSION = version.parse(pl.build_info()["version"])
-_POLARS_V0_20 = version.parse("0.20.0")
 
 
 def github_step_summary() -> TextIO:
@@ -159,10 +155,6 @@ _INDICATOR_EXPR = (
     .alias("_merge")
 )
 
-JOIN_OUTER_COALESCE_HOW: Any = (
-    "outer_coalesce" if _POLARS_VERSION >= _POLARS_V0_20 else "outer"
-)
-
 
 def merge_with_indicator(
     left_df: pl.LazyFrame,
@@ -173,7 +165,7 @@ def merge_with_indicator(
     left_df = left_df.with_columns(pl.lit(True).alias("_merge_left"))
     right_df = right_df.with_columns(pl.lit(True).alias("_merge_right"))
     return (
-        left_df.join(right_df, on=on, how=JOIN_OUTER_COALESCE_HOW, suffix=suffix)
+        left_df.join(right_df, on=on, how="outer_coalesce", suffix=suffix)
         .with_columns(_INDICATOR_EXPR)
         .drop("_merge_left", "_merge_right")
     )
