@@ -292,7 +292,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 request,
                 log_group="metadata.provider.plex.tv/library/metadata",
                 ok_statuses={200, 404},
-                bad_statuses={502, 504},
+                bad_statuses={502, 504, 520},
                 retry_count=_PLEX_API_RETRY_COUNT,
                 timeout=60.0,
             ),
