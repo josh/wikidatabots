@@ -68,6 +68,26 @@ def apply_with_tqdm(
     return expr.map_batches(map_function, return_dtype=return_dtype)
 
 
+def lazy_map_reduce_batches(
+    df: pl.LazyFrame,
+    map_function: Callable[[pl.LazyFrame], pl.LazyFrame],
+    reduce_function: Callable[[pl.LazyFrame, pl.LazyFrame], pl.LazyFrame],
+) -> pl.LazyFrame:
+    def inner(df: pl.DataFrame) -> pl.DataFrame:
+        # MARK: pl.DataFrame.lazy
+        lf1 = df.lazy()
+        # MARK: pl.LazyFrame.collect
+        df2 = map_function(lf1).collect()
+        # MARK: pl.DataFrame.lazy
+        lf2 = df2.lazy()
+        # MARK: pl.LazyFrame.collect
+        df3 = reduce_function(lf1, lf2).collect()
+        return df3
+
+    # MARK: pl.LazyFrame.map_batches
+    return df.map_batches(inner)
+
+
 def map_streaming(
     ldf: pl.LazyFrame,
     expr: pl.Expr,
