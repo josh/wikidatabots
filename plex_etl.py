@@ -7,7 +7,12 @@ from typing import Literal
 import polars as pl
 
 from polars_requests import prepare_request, request, response_date, response_text
-from polars_utils import update_or_append, update_parquet, xml_extract
+from polars_utils import (
+    lazy_map_reduce_batches,
+    update_or_append,
+    update_parquet,
+    xml_extract,
+)
 from sparql import sparql
 
 GUID_TYPE = Literal["episode", "movie", "season", "show"]
@@ -237,10 +242,6 @@ def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
     return df.sort(by=pl.col("key").bin.encode("hex"))
 
 
-_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_000
-_MISSING_METADATA = pl.col("retrieved_at").is_null()
-
-
 _METADATA_DTYPE = pl.Struct(
     {
         "guid": pl.Utf8,
@@ -333,35 +334,43 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_000
+_MISSING_METADATA = pl.col("retrieved_at").is_null()
+
+
 def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
-    # MARK: pl.LazyFrame.cache
-    df = df.cache()
-
-    df_updated = (
-        df.filter(_OLDEST_METADATA | _MISSING_METADATA)
-        .pipe(fetch_metadata_guids)
-        # MARK: pl.LazyFrame.cache
-        .cache()
-    )
-
-    df_similar = (
-        df_updated.select("similar_guids")
-        .explode("similar_guids")
-        .rename({"similar_guids": "guid"})
-        .select(
-            pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
-            pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
+    def map_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
+        return df.filter(_OLDEST_METADATA | _MISSING_METADATA).pipe(
+            fetch_metadata_guids
         )
-        .drop_nulls()
-        .unique(subset="key")
-        # MARK: pl.LazyFrame.cache
-        .cache()
-    )
 
-    return (
-        df.pipe(update_or_append, df_updated.drop("similar_guids"), on="key")
-        .pipe(update_or_append, df_similar, on="key")
-        .pipe(_sort)
+    def reduce_metadata(df: pl.LazyFrame, df_metadata: pl.LazyFrame) -> pl.LazyFrame:
+        df_updated, df_similar_guids = (
+            df_metadata.drop("similar_guids"),
+            df_metadata.select("similar_guids"),
+        )
+
+        df_similar = (
+            df_similar_guids.explode("similar_guids")
+            .rename({"similar_guids": "guid"})
+            .select(
+                pl.col("guid").pipe(_decode_plex_guid_key).alias("key"),
+                pl.col("guid").pipe(_decode_plex_guid_type).alias("type"),
+            )
+            .drop_nulls()
+            .unique(subset="key")
+        )
+
+        return (
+            df.pipe(update_or_append, df_updated, on="key")
+            .pipe(update_or_append, df_similar, on="key")
+            .pipe(_sort)
+        )
+
+    return df.pipe(
+        lazy_map_reduce_batches,
+        map_function=map_metadata,
+        reduce_function=reduce_metadata,
     )
 
 
