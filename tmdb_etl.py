@@ -11,6 +11,7 @@ from polars_requests import prepare_request, request, response_date, response_te
 from polars_utils import (
     align_to_index,
     gzip_decompress,
+    lazy_map_reduce_batches,
     update_or_append,
     update_parquet,
 )
@@ -265,16 +266,22 @@ _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_000
 
 
 def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    df = df.cache()  # MARK: pl.LazyFrame.cache
+    def map_function(df: pl.LazyFrame) -> pl.LazyFrame:
+        return (
+            df.filter(_CHANGED | _NEVER_FETCHED | _OLDEST_METADATA)
+            .select("id")
+            .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
+        )
 
-    new_external_ids_df = (
-        df.filter(_CHANGED | _NEVER_FETCHED | _OLDEST_METADATA)
-        .select("id")
-        .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
-    )
+    def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+        return df.pipe(update_or_append, df_new, on="id").pipe(
+            align_to_index, name="id"
+        )
 
-    return df.pipe(update_or_append, new_external_ids_df, on="id").pipe(
-        align_to_index, name="id"
+    return df.pipe(
+        lazy_map_reduce_batches,
+        map_function=map_function,
+        reduce_function=reduce_function,
     )
 
 
