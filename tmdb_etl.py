@@ -346,6 +346,8 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
 
 def _debug_tmdb_export(df: pl.DataFrame) -> pl.DataFrame:
     print(f"tmdb_export: {len(df)} rows", file=sys.stderr)
+    is_unique = df.select(pl.col("id").is_unique().all().alias("unique")).row(0)[0]
+    print("tmdb_export: id unique:", is_unique, file=sys.stderr)
     return df
 
 
