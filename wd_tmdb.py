@@ -23,17 +23,12 @@ _WD_PID_LABEL: dict[_TMDB_ID_PID, str] = {
     "P4985": "TMDb person ID",
 }
 
-_MOVIE_IMDB_QUERY = """
+_MOVIE_IMDB_QUERY_1 = """
 SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
-  # TMDb movie ID subject type constraints
-  VALUES ?class {
-    wd:Q11424 # film
-    wd:Q24856 # film series
-    wd:Q1261214 # television special
-  }
-  ?item (wdt:P31/(wdt:P279*)) ?class.
+  # film
+  ?item (wdt:P31/(wdt:P279*)) wd:Q11424.
 
   OPTIONAL {
     ?item wdt:P4947 ?tmdb_id.
@@ -42,16 +37,40 @@ SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
 }
 """
 
-_TV_IMDB_QUERY = """
+_MOVIE_IMDB_QUERY_2 = """
 SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
-  # TMDb TV series ID subject type constraints
-  VALUES ?class {
-    wd:Q15416 # television program
-    wd:Q5398426 # television series
+  # film series
+  ?item (wdt:P31/(wdt:P279*)) wd:Q24856.
+
+  OPTIONAL {
+    ?item wdt:P4947 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
   }
-  ?item (wdt:P31/(wdt:P279*)) ?class.
+}
+"""
+
+_MOVIE_IMDB_QUERY_3 = """
+SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
+  ?item wdt:P345 ?imdb_id.
+
+  # television special
+  ?item (wdt:P31/(wdt:P279*)) wd:Q1261214.
+
+  OPTIONAL {
+    ?item wdt:P4947 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
+  }
+}
+"""
+
+_TV_IMDB_QUERY_1 = """
+SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
+  ?item wdt:P345 ?imdb_id.
+
+  # television program
+  ?item (wdt:P31/(wdt:P279*)) wd:Q15416.
 
   OPTIONAL {
     ?item wdt:P4983 ?tmdb_id.
@@ -60,16 +79,25 @@ SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
 }
 """
 
-_PERSON_IMDB_QUERY = """
+_TV_IMDB_QUERY_2 = """
 SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
   ?item wdt:P345 ?imdb_id.
 
-  # TMDb person ID subject type constraints
-  # VALUES ?class {
-  #   wd:Q5 # human
-  #   wd:Q16334295 # group of humans
-  # }
-  # ?item (wdt:P31/(wdt:P279*)) ?class.
+  # television series
+  ?item (wdt:P31/(wdt:P279*)) wd:Q539842.
+
+  OPTIONAL {
+    ?item wdt:P4983 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
+  }
+}
+"""
+
+_PERSON_IMDB_QUERY_1 = """
+SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
+  ?item wdt:P345 ?imdb_id.
+
+  # human
   ?item wdt:P31 wd:Q5.
 
   OPTIONAL {
@@ -79,10 +107,24 @@ SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
 }
 """
 
-_IMDB_QUERY: dict[_TMDB_ID_PID, str] = {
-    "P4947": _MOVIE_IMDB_QUERY,
-    "P4983": _TV_IMDB_QUERY,
-    "P4985": _PERSON_IMDB_QUERY,
+_PERSON_IMDB_QUERY_2 = """
+SELECT DISTINCT ?item ?imdb_id ?tmdb_id WHERE {
+  ?item wdt:P345 ?imdb_id.
+
+  # group of humans
+  ?item wdt:P31 wd:Q16334295.
+
+  OPTIONAL {
+    ?item wdt:P4985 ?tmdb_id.
+    FILTER(xsd:integer(?tmdb_id))
+  }
+}
+"""
+
+_IMDB_QUERY: dict[_TMDB_ID_PID, list[str]] = {
+    "P4947": [_MOVIE_IMDB_QUERY_1, _MOVIE_IMDB_QUERY_2, _MOVIE_IMDB_QUERY_3],
+    "P4983": [_TV_IMDB_QUERY_1, _TV_IMDB_QUERY_2],
+    "P4985": [_PERSON_IMDB_QUERY_1, _PERSON_IMDB_QUERY_2],
 }
 
 _IMDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
@@ -94,7 +136,7 @@ _IMDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
 
 def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     wd_pid = _TMDB_TYPE_TO_WD_PID[tmdb_type]
-    sparql_query = _IMDB_QUERY[wd_pid]
+    sparql_queries = _IMDB_QUERY[wd_pid]
 
     rdf_statement = pl.format(
         '<{}> wdt:{} "{}" ; wikidatabots:editSummary "{}" .',
@@ -113,7 +155,9 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
     wd_df = (
-        sparql(sparql_query, schema=_IMDB_QUERY_SCHEMA)
+        pl.concat(
+            [sparql(query, schema=_IMDB_QUERY_SCHEMA) for query in sparql_queries]
+        )
         .with_columns(pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type))
         .filter(
             pl.col("imdb_numeric_id").is_unique()
