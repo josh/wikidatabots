@@ -517,32 +517,31 @@ def limit(
 _limit = limit
 
 
-def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
-    def assert_expr(df: pl.DataFrame) -> None:
-        row = df.select(
-            pl.col(name).is_not_null().all().alias("not_null"),
-            pl.col(name).is_unique().all().alias("unique"),
-            pl.col(name).ge(0).all().alias("positive_int"),
-        ).row(0, named=True)
-
-        assert row["not_null"], f"column '{name}' has null values"
-        assert row["unique"], f"column '{name}' has non-unique values"
-        assert row["positive_int"], f"column '{name}' has negative values"
-
-    # MARK: pl.LazyFrame.cache
-    df = _check_ldf(df, assert_expr).cache()
+def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
+    if df.is_empty():
+        return df
 
     dtype = df.schema[name]
 
-    return df.select(
-        pl.int_range(
-            start=0,
-            end=pl.coalesce([pl.col(name).max().cast(pl.Int64) + 1, 0]),
-            dtype=pl.Int64,
-        )
-        .cast(dtype)
-        .alias(name)
-    ).join(df, on=name, how="left")
+    row = df.select(
+        pl.col(name).max().cast(pl.Int64).alias("max"),
+        pl.col(name).is_not_null().all().alias("not_null"),
+        pl.col(name).is_unique().all().alias("unique"),
+        pl.col(name).ge(0).all().alias("positive_int"),
+    ).row(0, named=True)
+
+    assert row["not_null"], f"column '{name}' has null values"
+    assert row["unique"], f"column '{name}' has non-unique values"
+    assert row["positive_int"], f"column '{name}' has negative values"
+    assert row["max"] is not None, f"column '{name}' no max"
+
+    id_df = pl.int_range(end=row["max"] + 1, dtype=pl.UInt64, eager=True).cast(dtype).to_frame(name)
+    return id_df.join(df, on=name, how="left").select(df.columns)
+
+
+def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
+    # MARK: pl.Expr.map_batches
+    return df.map_batches(partial(_align_to_index, name=name))
 
 
 def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
