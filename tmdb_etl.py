@@ -187,23 +187,26 @@ def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
 
 
 def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    df = df.cache()  # MARK: pl.LazyFrame.cache
-
-    dates_df = df.select(
-        # TODO: Use pl.date_range()
-        pl.date_ranges(
-            pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
-            datetime.date.today(),
-            interval="1d",
-            eager=False,
+    def map_function(df: pl.LazyFrame) -> pl.LazyFrame:
+        dates_df = df.select(
+            pl.date_range(
+                pl.col("date").max().dt.offset_by("-1d").alias("start_date"),
+                datetime.date.today(),
+                interval="1d",
+                eager=False,
+            )
+            .alias("date")
         )
-        .explode()
-        .alias("date")
-    )
+        return tmdb_changes(dates_df, tmdb_type=tmdb_type)
+
+    def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+        return df.pipe(update_or_append, df_new, on="id").pipe(align_to_index, name="id")
 
     return df.pipe(
-        update_or_append, tmdb_changes(dates_df, tmdb_type=tmdb_type), on="id"
-    ).pipe(align_to_index, name="id")
+        lazy_map_reduce_batches,
+        map_function=map_function,
+        reduce_function=reduce_function,
+    )
 
 
 _EXISTS_TMDB_TYPE = Literal["movie", "tv", "person", "collection"]
@@ -347,15 +350,10 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
             pl.col("item").struct.field("video").alias("video"),
         )
         .sort(by="id")
-        .map_batches(_debug_tmdb_export)
     )
 
 
-def _debug_tmdb_export(df: pl.DataFrame) -> pl.DataFrame:
-    print(f"tmdb_export: {len(df)} rows", file=sys.stderr)
-    is_unique = df.select(pl.col("id").is_unique().all().alias("unique")).row(0)[0]
-    print("tmdb_export: id unique:", is_unique, file=sys.stderr)
-    return df
+
 
 
 def tmdb_export(
