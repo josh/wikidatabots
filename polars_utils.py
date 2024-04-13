@@ -535,7 +535,11 @@ def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
     assert row["positive_int"], f"column '{name}' has negative values"
     assert row["max"] is not None, f"column '{name}' no max"
 
-    id_df = pl.int_range(end=row["max"] + 1, dtype=pl.UInt64, eager=True).cast(dtype).to_frame(name)
+    id_df = (
+        pl.int_range(end=row["max"] + 1, dtype=pl.UInt64, eager=True)
+        .cast(dtype)
+        .to_frame(name)
+    )
     return id_df.join(df, on=name, how="left").select(df.columns)
 
 
