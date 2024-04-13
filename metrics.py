@@ -128,7 +128,6 @@ def parquet_metrics(filename: str) -> None:
 if __name__ == "__main__":
     xtool_metrics()
 
-    parquet_metrics("s3://wikidatabots/itunes.parquet")
     parquet_metrics("s3://wikidatabots/opencritic.parquet")
     parquet_metrics("s3://wikidatabots/plex.parquet")
     parquet_metrics("s3://wikidatabots/tmdb/movie.parquet")

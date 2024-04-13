@@ -517,26 +517,6 @@ def limit(
 _limit = limit
 
 
-def groups_of(expr: pl.Expr, n: int) -> pl.Expr:
-    assert n > 0
-    groups_count = (pl.len() / n).ceil()
-
-    return (
-        expr.extend_constant(None, n)
-        .head(groups_count * n)
-        .reshape((-1, n))
-        .list.eval(pl.element().drop_nulls())
-    )
-
-
-def expr_indicies_sorted(a: pl.Expr, b: pl.Expr) -> pl.Expr:
-    return (
-        pl.when(a.is_in(b).fill_null(False))
-        .then(b.search_sorted(a, side="left"))
-        .otherwise(None)
-    )
-
-
 def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
     def assert_expr(df: pl.DataFrame) -> None:
         row = df.select(

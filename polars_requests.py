@@ -11,7 +11,6 @@ from tqdm import tqdm
 
 from actions import log_group as _log_group
 from actions import warn
-from polars_utils import apply_with_tqdm
 
 
 class _HTTPDict(TypedDict):
@@ -194,39 +193,6 @@ def request(
         ),
         return_dtype=HTTP_RESPONSE_DTYPE,
     ).alias("response")
-
-
-def resolve_redirects(
-    url: pl.Expr,
-    log_group: str,
-    timeout: float = 10.0,
-    ok_statuses: Iterable[int] = [],
-    retry_count: int = 0,
-) -> pl.Expr:
-    session = _requests.Session()
-    ok_status_codes = set(ok_statuses)
-
-    def resolve_redirect(url: str) -> str:
-        r = session.request(
-            method="HEAD",
-            url=url,
-            timeout=timeout,
-            allow_redirects=True,
-        )
-
-        if r.status_code not in ok_status_codes:
-            r.raise_for_status()
-
-        return r.url
-
-    resolve_redirect = _decorate_backoff(resolve_redirect, retry_count)
-
-    return url.pipe(
-        apply_with_tqdm,
-        resolve_redirect,
-        return_dtype=pl.Utf8,
-        log_group=log_group,
-    )
 
 
 def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:

@@ -1,7 +1,6 @@
 # pyright: strict
 
-from math import ceil
-from typing import Callable, Iterator, TypeVar
+from typing import Callable, TypeVar
 
 import polars as pl
 import pytest
@@ -15,9 +14,7 @@ from polars_utils import (
     apply_with_tqdm,
     compute_stats,
     csv_extract,
-    expr_indicies_sorted,
     frame_diff,
-    groups_of,
     map_streaming,
     map_update_or_append,
     merge_with_indicator,
@@ -550,67 +547,6 @@ def test_map_streaming_parallel(df: pl.LazyFrame, chunk_size: int) -> None:
         parallel=True,
     )
     assert_frame_equal(expected_df, actual_df)
-
-
-def test_groups_of() -> None:
-    df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
-    df2 = df1.select(pl.col("a").pipe(groups_of, n=2))
-    df3 = pl.DataFrame({"a": [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]})
-    assert_frame_equal(df2, df3)
-
-    df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
-    df2 = df1.select(pl.col("a").pipe(groups_of, n=3))
-    df3 = pl.DataFrame({"a": [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]]})
-    assert_frame_equal(df2, df3)
-
-    df1 = pl.DataFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
-    df2 = df1.select(pl.col("a").pipe(groups_of, n=100))
-    df3 = pl.DataFrame({"a": [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]})
-    assert_frame_equal(df2, df3)
-
-
-@given(
-    df=dataframes(cols=[column("a", dtype=pl.Int64)], max_size=10),
-    n=st.integers(min_value=1, max_value=15),
-)
-def test_groups_of_properties(df: pl.DataFrame, n: int) -> None:
-    df2 = df.select(pl.col("a").pipe(groups_of, n=n))
-
-    assert len(df2) == ceil(len(df) / n)
-
-    for row in df2.to_dicts():
-        assert row["a"]
-        assert len(row["a"]) > 0
-        assert len(row["a"]) <= n
-
-
-def _lst_indicies(a: list[int], b: list[int]) -> Iterator[int | None]:
-    for e in a:
-        try:
-            yield b.index(e)
-        except ValueError:
-            yield None
-
-
-_1_TO_10 = st.integers(min_value=0, max_value=10)
-_1_TO_10_OR_NONE = st.one_of(st.none(), _1_TO_10)
-
-
-@given(
-    a=st.lists(_1_TO_10_OR_NONE, min_size=0, max_size=10),
-    b=st.lists(_1_TO_10, min_size=1, max_size=10),
-)
-def test_indices_sorted(a: list[int], b: list[int]) -> None:
-    b = sorted(b)
-    c = list(_lst_indicies(a, b))
-
-    a_s = pl.Series(a, dtype=pl.UInt32)
-    b_s = pl.Series(b, dtype=pl.UInt32)
-
-    s = pl.select(expr_indicies_sorted(pl.lit(a_s), pl.lit(b_s))).to_series()
-    assert s.dtype == pl.UInt32
-    assert len(s) == len(a)
-    assert c == s.to_list()
 
 
 def test_compute_stats() -> None:
