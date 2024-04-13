@@ -14,6 +14,7 @@ from polars_utils import (
     head,
     html_unescape,
     html_unescape_list,
+    lazy_map_reduce_batches,
     map_streaming,
     update_or_append,
     update_parquet,
@@ -344,19 +345,22 @@ _OUTDATED_JSONLD = pl.col("country").eq("us") & pl.col("retrieved_at").is_null()
 
 
 def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
-    # MARK: pl.LazyFrame.cache
-    df = df.cache()
-    df_new = (
-        df.filter(_OUTDATED_JSONLD)
-        .sort(
-            pl.col("in_latest_sitemap"),
-            pl.col("priority"),
-            descending=True,
+    def map_function(df: pl.LazyFrame) -> pl.LazyFrame:
+        return (
+            df.filter(_OUTDATED_JSONLD)
+            .sort(pl.col("in_latest_sitemap"), pl.col("priority"), descending=True)
+            .select("loc")
+            .pipe(fetch_jsonld_columns)
         )
-        .select("loc")
-        .pipe(fetch_jsonld_columns)
+
+    def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+        return df.pipe(update_or_append, df_new, on="loc").sort(by="loc")
+
+    return df.pipe(
+        lazy_map_reduce_batches,
+        map_function=map_function,
+        reduce_function=reduce_function,
     )
-    return df.pipe(update_or_append, df_new, on="loc").sort(by="loc")
 
 
 def _fetch_latest_sitemap(df: pl.LazyFrame, sitemap_type: _TYPE) -> pl.LazyFrame:
