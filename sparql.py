@@ -88,7 +88,6 @@ def sparql(
             .map_batches(_sparql_batch_raw, return_dtype=pl.Binary)
             .alias("results"),
         )
-        # MARK: pl.LazyFrame.map_batches
         .map_batches(read_item_as_csv, schema=schema)
     )
 

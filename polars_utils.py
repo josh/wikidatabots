@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import zlib
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Iterator, TextIO, TypedDict
+from typing import Any, Callable, Iterator, TextIO, TypedDict, TypeVar, Union
 
 import numpy as np
 import polars as pl
@@ -21,6 +21,17 @@ from tqdm import tqdm
 
 from actions import log_group as _log_group
 from actions import warn
+
+SomeFrame = TypeVar("SomeFrame", pl.DataFrame, pl.LazyFrame)
+
+
+def map_batches(
+    df: SomeFrame, function: Callable[[pl.DataFrame], pl.DataFrame]
+) -> SomeFrame:
+    if isinstance(df, pl.LazyFrame):
+        return df.map_batches(function)
+    else:
+        return function(df)
 
 
 def github_step_summary() -> TextIO:
@@ -67,20 +78,14 @@ def apply_with_tqdm(
 def lazy_map_reduce_batches(
     df: pl.LazyFrame,
     map_function: Callable[[pl.LazyFrame], pl.LazyFrame],
-    reduce_function: Callable[[pl.LazyFrame, pl.LazyFrame], pl.LazyFrame],
+    reduce_function: Callable[[pl.DataFrame, pl.DataFrame], pl.DataFrame],
 ) -> pl.LazyFrame:
     def inner(df: pl.DataFrame) -> pl.DataFrame:
         # MARK: pl.DataFrame.lazy
-        lf1 = df.lazy()
         # MARK: pl.LazyFrame.collect
-        df2 = map_function(lf1).collect()
-        # MARK: pl.DataFrame.lazy
-        lf2 = df2.lazy()
-        # MARK: pl.LazyFrame.collect
-        df3 = reduce_function(lf1, lf2).collect()
-        return df3
+        df2 = map_function(df.lazy()).collect()
+        return reduce_function(df, df2)
 
-    # MARK: pl.LazyFrame.map_batches
     return df.map_batches(inner)
 
 
@@ -416,22 +421,6 @@ def update_parquet(
     os.rename(tmpfile, filename)
 
 
-def _check_ldf(
-    ldf: pl.LazyFrame,
-    function: Callable[[pl.DataFrame], None],
-) -> pl.LazyFrame:
-    def _inner_check(df: pl.DataFrame) -> pl.DataFrame:
-        function(df)
-        return df
-
-    # MARK: pl.LazyFrame.map_batches
-    return ldf.map_batches(
-        _inner_check,
-        validate_output_schema=False,
-        streamable=False,
-    )
-
-
 def now() -> pl.Expr:
     return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
 
@@ -455,20 +444,19 @@ def weighted_random(weights: pl.Expr) -> pl.Expr:
     return weights.map_batches(_weighted_random, return_dtype=pl.UInt32)
 
 
-def weighted_sample(df: pl.LazyFrame, n: int) -> pl.LazyFrame:
+def weighted_sample(df: SomeFrame, n: int) -> SomeFrame:
     weighted_args = position_weights().pipe(weighted_random)
     return df.sort(by=weighted_args).head(n=n)
 
 
-# TODO: Try to upstream this to polars
 def sample(
-    df: pl.LazyFrame,
+    df: SomeFrame,
     n: int | None = None,
     fraction: float | None = None,
     with_replacement: bool = False,
     shuffle: bool = False,
     seed: int | None = None,
-) -> pl.LazyFrame:
+) -> SomeFrame:
     def _sample(df: pl.DataFrame) -> pl.DataFrame:
         return df.sample(
             n=n,
@@ -478,11 +466,10 @@ def sample(
             seed=seed,
         )
 
-    # MARK: pl.LazyFrame.map_batches
-    return df.map_batches(_sample, streamable=False)
+    return map_batches(df, _sample)
 
 
-def head(df: pl.LazyFrame, n: int | None) -> pl.LazyFrame:
+def head(df: SomeFrame, n: int | None) -> SomeFrame:
     if n:
         return df.head(n)
     else:
@@ -494,12 +481,12 @@ class LimitWarning(Warning):
 
 
 def limit(
-    df: pl.LazyFrame,
+    df: SomeFrame,
     n: int,
     sample: bool = True,
     desc: str = "frame",
-) -> pl.LazyFrame:
-    def _limit(df: pl.DataFrame) -> pl.DataFrame:
+) -> SomeFrame:
+    def _inner(df: pl.DataFrame) -> pl.DataFrame:
         total = len(df)
         if total > n:
             warn(f"{desc} exceeded limit: {total:,}/{n:,}", LimitWarning)
@@ -510,8 +497,7 @@ def limit(
         else:
             return df
 
-    # MARK: pl.LazyFrame.map_batches
-    return df.map_batches(_limit, streamable=False)
+    return map_batches(df, _inner)
 
 
 _limit = limit
@@ -543,13 +529,12 @@ def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
     return id_df.join(df, on=name, how="left").select(df.columns)
 
 
-def align_to_index(df: pl.LazyFrame, name: str) -> pl.LazyFrame:
-    # MARK: pl.Expr.map_batches
-    return df.map_batches(partial(_align_to_index, name=name))
+def align_to_index(df: SomeFrame, name: str) -> SomeFrame:
+    return map_batches(df, partial(_align_to_index, name=name))
 
 
-def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyFrame:
-    def assert_expr(df: pl.DataFrame, df_label: str) -> None:
+def _update_or_append(df: pl.DataFrame, other: pl.DataFrame, on: str) -> pl.DataFrame:
+    def _check_df(df: pl.DataFrame, df_label: str) -> None:
         row = df.select(
             pl.col(on).is_not_null().all().alias("not_null"),
             pl.col(on).is_unique().all().alias("unique"),
@@ -558,17 +543,29 @@ def update_or_append(df: pl.LazyFrame, other: pl.LazyFrame, on: str) -> pl.LazyF
         assert row["not_null"], f"{df_label} '{on}' column has null values"
         assert row["unique"], f"{df_label} '{on}' column has non-unique values"
 
-    # MARK: pl.LazyFrame.cache
-    df = _check_ldf(df, partial(assert_expr, df_label="df")).cache()
-    other = _check_ldf(other, partial(assert_expr, df_label="other df")).cache()
-
     other_cols = list(other.columns)
     other_cols.remove(on)
 
+    _check_df(df=df, df_label="df")
+    _check_df(df=other, df_label="other df")
+
     other = other.join(df.drop(other_cols), on=on, how="left").select(df.columns)
-    return pl.concat([df, other], parallel=False).unique(
-        subset=on, keep="last", maintain_order=True
-    )
+    return pl.concat([df, other]).unique(subset=on, keep="last", maintain_order=True)
+
+
+def update_or_append(
+    df: SomeFrame,
+    other: Union[pl.DataFrame, pl.LazyFrame],
+    on: str,
+) -> SomeFrame:
+    if isinstance(other, pl.LazyFrame):
+
+        def _update_or_append_collecting(df: pl.DataFrame) -> pl.DataFrame:
+            return _update_or_append(df, other.collect(), on)
+
+        return map_batches(df, _update_or_append_collecting)
+    else:
+        return map_batches(df, partial(_update_or_append, other=other, on=on))
 
 
 def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
@@ -713,7 +710,7 @@ _RDF_STATEMENT_LIMIT = 250
 
 
 def print_rdf_statements(
-    df: pl.LazyFrame,
+    df: Union[pl.DataFrame, pl.LazyFrame],
     limit: int = _RDF_STATEMENT_LIMIT,
     sample: bool = True,
     file: TextIO = sys.stdout,
@@ -721,8 +718,11 @@ def print_rdf_statements(
     assert df.schema == {"rdf_statement": pl.Utf8}
     df = df.pipe(_limit, limit, sample=sample, desc="rdf statements")
 
-    # MARK: pl.LazyFrame.collect
-    for (line,) in df.collect().iter_rows():
+    if isinstance(df, pl.LazyFrame):
+        # MARK: pl.LazyFrame.collect
+        df = df.collect()
+
+    for (line,) in df.iter_rows():
         print(line, file=file)
 
 

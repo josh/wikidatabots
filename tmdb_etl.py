@@ -198,7 +198,7 @@ def insert_tmdb_latest_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.Laz
         )
         return tmdb_changes(dates_df, tmdb_type=tmdb_type)
 
-    def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+    def reduce_function(df: pl.DataFrame, df_new: pl.DataFrame) -> pl.DataFrame:
         return df.pipe(update_or_append, df_new, on="id").pipe(
             align_to_index, name="id"
         )
@@ -277,7 +277,7 @@ def insert_tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyF
             .pipe(tmdb_external_ids, tmdb_type=tmdb_type)
         )
 
-    def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+    def reduce_function(df: pl.DataFrame, df_new: pl.DataFrame) -> pl.DataFrame:
         return df.pipe(update_or_append, df_new, on="id").pipe(
             align_to_index, name="id"
         )

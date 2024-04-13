@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
+    SomeFrame,
     apply_with_tqdm,
     head,
     html_unescape,
@@ -261,7 +262,7 @@ def _extract_itunes_id_expr(expr: pl.Expr) -> pl.Expr:
     )
 
 
-def fetch_jsonld_columns(df: pl.LazyFrame) -> pl.LazyFrame:
+def fetch_jsonld_columns(df: SomeFrame) -> SomeFrame:
     return (
         df.with_columns(
             pl.col("loc")
@@ -353,7 +354,7 @@ def _backfill_jsonld(df: pl.LazyFrame) -> pl.LazyFrame:
             .pipe(fetch_jsonld_columns)
         )
 
-    def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+    def reduce_function(df: pl.DataFrame, df_new: pl.DataFrame) -> pl.DataFrame:
         return df.pipe(update_or_append, df_new, on="loc").sort(by="loc")
 
     return df.pipe(

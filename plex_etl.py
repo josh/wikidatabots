@@ -8,6 +8,7 @@ import polars as pl
 
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
+    SomeFrame,
     lazy_map_reduce_batches,
     update_or_append,
     update_parquet,
@@ -238,7 +239,7 @@ def _decode_plex_guid_type(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 1).cast(pl.Categorical)
 
 
-def _sort(df: pl.LazyFrame) -> pl.LazyFrame:
+def _sort(df: SomeFrame) -> SomeFrame:
     return df.sort(by=pl.col("key").bin.encode("hex"))
 
 
@@ -344,7 +345,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
             fetch_metadata_guids
         )
 
-    def reduce_metadata(df: pl.LazyFrame, df_metadata: pl.LazyFrame) -> pl.LazyFrame:
+    def reduce_metadata(df: pl.DataFrame, df_metadata: pl.DataFrame) -> pl.DataFrame:
         df_updated, df_similar_guids = (
             df_metadata.drop("similar_guids"),
             df_metadata.select("similar_guids"),
@@ -396,7 +397,6 @@ def _main() -> None:
         return (
             df.pipe(_discover_guids)
             .pipe(_backfill_metadata)
-            # MARK: pl.LazyFrame.map_batches
             .map_batches(_log_retrieved_at)
         )
 

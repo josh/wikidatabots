@@ -225,12 +225,11 @@ def _main() -> None:
     pl.enable_string_cache()
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+        def reduce_function(df: pl.DataFrame, df_new: pl.DataFrame) -> pl.DataFrame:
             return (
                 df.pipe(update_or_append, df_new, on="id")
                 .pipe(align_to_index, name="id")
-                # MARK: pl.LazyFrame.map_batches
-                .map_batches(_log_retrieved_at)
+                .pipe(_log_retrieved_at)
             )
 
         return df.pipe(
