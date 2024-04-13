@@ -8,7 +8,8 @@ import polars as pl
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
     align_to_index,
-    map_update_or_append,
+    lazy_map_reduce_batches,
+    update_or_append,
     update_parquet,
 )
 
@@ -224,11 +225,18 @@ def _main() -> None:
     pl.enable_string_cache()
 
     def update(df: pl.LazyFrame) -> pl.LazyFrame:
-        return (
-            df.pipe(map_update_or_append, on="id", map_function=_refresh_games)
-            .pipe(align_to_index, name="id")
-            # MARK: pl.LazyFrame.map_batches
-            .map_batches(_log_retrieved_at)
+        def reduce_function(df: pl.LazyFrame, df_new: pl.LazyFrame) -> pl.LazyFrame:
+            return (
+                df.pipe(update_or_append, df_new, on="id")
+                .pipe(align_to_index, name="id")
+                # MARK: pl.LazyFrame.map_batches
+                .map_batches(_log_retrieved_at)
+            )
+
+        return df.pipe(
+            lazy_map_reduce_batches,
+            map_function=_refresh_games,
+            reduce_function=reduce_function,
         )
 
     update_parquet("opencritic.parquet", update, key="id")

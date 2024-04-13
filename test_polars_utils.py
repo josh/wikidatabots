@@ -16,7 +16,6 @@ from polars_utils import (
     csv_extract,
     frame_diff,
     map_streaming,
-    map_update_or_append,
     merge_with_indicator,
     now,
     position_weights,
@@ -358,29 +357,6 @@ def test_update_or_append() -> None:
     )
     df3 = pl.LazyFrame({"a": [1], "b": [2], "c": [False]})
     assert_frame_equal(update_or_append(df1, df2, on="a"), df3)
-
-
-def test_map_update_or_append() -> None:
-    def wrap(df: pl.LazyFrame) -> Callable[[pl.LazyFrame], pl.LazyFrame]:
-        def inner(_: pl.LazyFrame) -> pl.LazyFrame:
-            return df
-
-        return inner
-
-    df1 = pl.LazyFrame({"a": [1]})
-    df2 = pl.LazyFrame({"a": [2]})
-    df3 = pl.LazyFrame({"a": [1, 2]})
-    assert_frame_equal(map_update_or_append(df1, on="a", map_function=wrap(df2)), df3)
-
-    df1 = pl.LazyFrame({"a": [1], "b": [True]})
-    df2 = pl.LazyFrame({"a": [2], "b": [False]})
-    df3 = pl.LazyFrame({"a": [1, 2], "b": [True, False]})
-    assert_frame_equal(map_update_or_append(df1, on="a", map_function=wrap(df2)), df3)
-
-    df1 = pl.LazyFrame({"a": [1, 2], "b": [True, True]})
-    df2 = pl.LazyFrame({"a": [3], "b": [False]})
-    df3 = pl.LazyFrame({"a": [1, 2, 3], "b": [True, True, False]})
-    assert_frame_equal(map_update_or_append(df1, on="a", map_function=wrap(df2)), df3)
 
 
 @given(
