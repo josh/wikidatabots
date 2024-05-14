@@ -268,8 +268,8 @@ def test_align_to_index():
 @given(
     df=dataframes(
         cols=[
-            column("a", dtype=pl.UInt8, unique=True),
-            column("b", dtype=pl.UInt16, unique=True),
+            column("a", dtype=pl.UInt8, unique=True, allow_null=False),
+            column("b", dtype=pl.UInt16, unique=True, allow_null=False),
             column("c", dtype=pl.Boolean),
         ],
         lazy=True,
@@ -362,14 +362,14 @@ def test_update_or_append() -> None:
 @given(
     df1=dataframes(
         cols=[
-            column("a", dtype=pl.UInt8, null_probability=0.0, unique=True),
+            column("a", dtype=pl.UInt8, allow_null=False, unique=True),
             column("b", dtype=pl.UInt8),
             column("c", dtype=pl.Boolean),
         ],
     ),
     df2=dataframes(
         cols=[
-            column("a", dtype=pl.UInt8, null_probability=0.0, unique=True),
+            column("a", dtype=pl.UInt8, allow_null=False, unique=True),
             column("b", dtype=pl.UInt8),
             column("c", dtype=pl.Boolean),
         ],
