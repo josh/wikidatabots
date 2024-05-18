@@ -217,38 +217,21 @@ def _extract_script_text(
 
 
 def _extract_itunes_id(text: str) -> int | None:
-    for data in json.loads(text).values():
-        if "content" in data and "playables" in data["content"]:
-            for playable in data["content"]["playables"]:
-                if playable.get("isItunes", False) is True:
-                    return int(playable["externalId"])
+    root = json.loads(text)
+    root_key = next(iter(root.keys()), None)
+    if root_key is None:
+        return None
+    data = root[root_key]
 
-        if "playables" in data:
-            for playable in data["playables"].values():
-                if playable["channelId"] == "tvs.sbd.9001":
-                    return int(playable["externalId"])
+    for playable in data.get("playables", {}).values():
+        if playable["isItunes"] is True and playable["channelId"] == "tvs.sbd.9001":
+            return int(playable["externalId"])
 
-        if "howToWatch" in data:
-            for way in data["howToWatch"]:
-                if way["channelId"] != "tvs.sbd.9001":
-                    continue
-
-                if way.get("punchoutUrls"):
-                    m = re.match(
-                        r"itmss://itunes.apple.com/[a-z]{2}/[^/]+/[^/]+/id(\d+)",
-                        way["punchoutUrls"]["open"],
-                    )
-                    if m:
-                        return int(m.group(1))
-
-                if way.get("versions"):
-                    for version in way["versions"]:
-                        m = re.match(
-                            r"tvs.sbd.9001:(\d+)",
-                            version["playableId"],
-                        )
-                        if m:
-                            return int(m.group(1))
+    for how_to_watch in data.get("howToWatch", []):
+        if how_to_watch.get("channelId") == "tvs.sbd.9001":
+            for version in how_to_watch["versions"]:
+                if m := re.match(r"tvs.sbd.9001:(\d+)", version["playableId"]):
+                    return int(m.group(1))
 
     return None
 
@@ -294,7 +277,7 @@ def fetch_jsonld_columns(df: SomeFrame) -> SomeFrame:
                 .pipe(
                     _extract_script_text,
                     script_type="fastboot/shoebox",
-                    script_id="shoebox-uts-api",
+                    script_id="shoebox-uts-api-cache",
                     log_group="extract_shoebox",
                 )
                 .pipe(_extract_itunes_id_expr)
