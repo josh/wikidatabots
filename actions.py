@@ -2,9 +2,9 @@
 
 import sys
 import warnings
+from collections.abc import Generator
 from contextlib import contextmanager
 from threading import Lock, local
-from typing import Generator
 from warnings import warn
 
 from tqdm import tqdm

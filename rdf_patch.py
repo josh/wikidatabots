@@ -4,8 +4,9 @@ import datetime
 import os
 import sys
 from collections import OrderedDict, defaultdict
+from collections.abc import Iterator
 from functools import cache
-from typing import Any, Iterator, TextIO
+from typing import Any, TextIO
 
 import pywikibot  # type: ignore
 import pywikibot.config  # type: ignore

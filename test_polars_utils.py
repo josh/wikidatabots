@@ -1,6 +1,7 @@
 # pyright: strict
 
-from typing import Callable, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 import polars as pl
 import pytest

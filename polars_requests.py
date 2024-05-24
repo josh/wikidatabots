@@ -1,8 +1,9 @@
 # pyright: strict
 
 import time
+from collections.abc import Callable, Iterable
 from functools import partial
-from typing import Callable, Iterable, ParamSpec, TypedDict, TypeVar
+from typing import ParamSpec, TypedDict, TypeVar
 
 import backoff
 import polars as pl

@@ -10,9 +10,10 @@ import sys
 import tempfile
 import xml.etree.ElementTree as ET
 import zlib
+from collections.abc import Callable, Iterator
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Iterator, TextIO, TypedDict, TypeVar, Union
+from typing import Any, TextIO, TypedDict, TypeVar
 
 import numpy as np
 import polars as pl
@@ -555,7 +556,7 @@ def _update_or_append(df: pl.DataFrame, other: pl.DataFrame, on: str) -> pl.Data
 
 def update_or_append(
     df: SomeFrame,
-    other: Union[pl.DataFrame, pl.LazyFrame],
+    other: pl.DataFrame | pl.LazyFrame,
     on: str,
 ) -> SomeFrame:
     if isinstance(other, pl.LazyFrame):
@@ -710,7 +711,7 @@ _RDF_STATEMENT_LIMIT = 250
 
 
 def print_rdf_statements(
-    df: Union[pl.DataFrame, pl.LazyFrame],
+    df: pl.DataFrame | pl.LazyFrame,
     limit: int = _RDF_STATEMENT_LIMIT,
     sample: bool = True,
     file: TextIO = sys.stdout,
