@@ -212,7 +212,7 @@ def frame_diff(
 
 def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:
     if isinstance(dtype, pl.DataType):
-        return dtype._string_repr()  # type: ignore
+        return dtype._string_repr()
     else:
         return dtype._string_repr(dtype)  # type: ignore
 
@@ -743,6 +743,6 @@ def scan_s3_parquet_anon(uri: str) -> pl.LazyFrame:
     _TMPFILES.append(tmppath)
 
     s3 = s3fs.S3FileSystem(anon=True)
-    s3.get_file(uri, tmppath)  # type: ignore
+    s3.get_file(uri, tmppath)
 
     return pl.scan_parquet(tmppath)

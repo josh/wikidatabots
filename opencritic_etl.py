@@ -67,8 +67,8 @@ _OPENCRITIC_GAME_DTYPE = pl.Struct(
         "retrieved_at": pl.Datetime(time_unit="ms"),
     }
 )
-_OPENCRITIC_GAME_SCHEMA = dict(_OPENCRITIC_GAME_DTYPE)  # type: ignore
-_OPENCRITIC_GAME_FIELDS = [n for n in _OPENCRITIC_GAME_SCHEMA]  # type: ignore
+_OPENCRITIC_GAME_SCHEMA = dict(_OPENCRITIC_GAME_DTYPE)
+_OPENCRITIC_GAME_FIELDS = [n for n in _OPENCRITIC_GAME_SCHEMA]
 
 
 def _log_ratelimit(responses: pl.Series) -> None:
@@ -103,7 +103,7 @@ def _tidy_game(s: pl.Series) -> pl.Series:
         )
         .with_columns(
             pl.col("^*At$").str.strptime(
-                pl.Datetime(time_unit="ms"),  # type: ignore
+                pl.Datetime(time_unit="ms"),
                 "%+",
             ),
             pl.col("^*Date$").str.strptime(pl.Date, "%+"),

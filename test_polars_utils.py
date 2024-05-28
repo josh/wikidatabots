@@ -251,7 +251,7 @@ def test_align_to_index():
             "value": [-1, 2, 5],
         }
     )
-    with pytest.raises(pl.ComputeError):  # type: ignore
+    with pytest.raises(pl.ComputeError):
         align_to_index(df, name="id").collect()
 
     df = pl.LazyFrame(
@@ -260,7 +260,7 @@ def test_align_to_index():
             "value": [1, 2, 5],
         }
     )
-    with pytest.raises(pl.ComputeError):  # type: ignore
+    with pytest.raises(pl.ComputeError):
         align_to_index(df, name="id").collect()
 
 

@@ -47,7 +47,7 @@ def _make_http_response(response: _requests.Response) -> _HTTPResponse:
 
 
 _HTTP_DICT_DTYPE = pl.Struct([pl.Field("name", pl.Utf8), pl.Field("value", pl.Utf8)])
-_HTTP_DICT_SCHEMA = dict(_HTTP_DICT_DTYPE)  # type: ignore
+_HTTP_DICT_SCHEMA = dict(_HTTP_DICT_DTYPE)
 
 HTTP_REQUEST_DTYPE = pl.Struct(
     [
@@ -55,7 +55,7 @@ HTTP_REQUEST_DTYPE = pl.Struct(
         pl.Field("headers", pl.List(_HTTP_DICT_DTYPE)),
     ]
 )
-_HTTP_REQUEST_SCHEMA = dict(HTTP_REQUEST_DTYPE)  # type: ignore
+_HTTP_REQUEST_SCHEMA = dict(HTTP_REQUEST_DTYPE)
 
 HTTP_RESPONSE_DTYPE = pl.Struct(
     [
@@ -203,7 +203,7 @@ def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:
             pl.lit(name).alias("name"),
             value.alias("value"),
         ],
-        schema=_HTTP_DICT_SCHEMA,  # type: ignore
+        schema=_HTTP_DICT_SCHEMA,
     )
     assert isinstance(expr, pl.Expr)
     return expr
@@ -238,7 +238,7 @@ def prepare_request(
             url.alias("url"),
             _http_dict(headers).alias("headers"),
         ],
-        schema=_HTTP_REQUEST_SCHEMA,  # type: ignore
+        schema=_HTTP_REQUEST_SCHEMA,
     ).alias("request")
     assert isinstance(expr, pl.Expr)
     return expr
@@ -261,7 +261,7 @@ def response_date(response: pl.Expr) -> pl.Expr:
     return (
         response.pipe(response_header_value, name="Date")
         .str.strptime(
-            pl.Datetime(time_unit="ms"),  # type: ignore
+            pl.Datetime(time_unit="ms"),
             "%a, %d %b %Y %H:%M:%S %Z",
             strict=True,
         )

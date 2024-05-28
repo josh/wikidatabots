@@ -17,3 +17,6 @@ ignore_names = ["formatwarning", "status", "put_throttle", "maxlag"]
 
 [tool.ruff.lint]
 extend-select = ["I", "UP"]
+
+[tool.mypy]
+strict = false

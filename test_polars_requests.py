@@ -305,7 +305,7 @@ def test_request_timeout() -> None:
         "response": HTTP_RESPONSE_DTYPE,
     }
 
-    with pytest.raises(pl.ComputeError):  # type: ignore
+    with pytest.raises(pl.ComputeError):
         ldf.collect()
 
 
