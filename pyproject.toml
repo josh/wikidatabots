@@ -19,4 +19,4 @@ ignore_names = ["formatwarning", "status", "put_throttle", "maxlag"]
 extend-select = ["I", "UP"]
 
 [tool.mypy]
-strict = false
+strict = true
