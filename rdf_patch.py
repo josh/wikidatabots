@@ -151,7 +151,7 @@ def _predicate_ns_objects(
 class WbSource:
     _source: OrderedDict[str, list[pywikibot.Claim]]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._source = OrderedDict()
 
     def add_reference(self, pid: str, reference: pywikibot.Claim) -> None:

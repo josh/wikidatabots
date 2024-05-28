@@ -217,7 +217,7 @@ def test_xml_extract() -> None:
     assert_frame_equal(df, df2)
 
 
-def test_align_to_index():
+def test_align_to_index() -> None:
     df1 = pl.LazyFrame([], schema={"id": pl.Int64})
     assert_frame_equal(align_to_index(df1, name="id"), df1)
 
@@ -281,7 +281,7 @@ def test_align_to_index_properties(df: pl.LazyFrame):
     assert df2.height >= df.collect().height
 
 
-def test_align_to_index_evaluates_df_once():
+def test_align_to_index_evaluates_df_once() -> None:
     ldf1 = pl.LazyFrame(
         {
             "id": pl.Series([1, 2, 5], dtype=pl.Int8),
