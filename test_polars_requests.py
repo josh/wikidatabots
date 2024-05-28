@@ -1,3 +1,5 @@
+from typing import Any
+
 import polars as pl
 import pytest
 from hypothesis import given
@@ -24,21 +26,21 @@ def _response_ok(response: pl.Expr) -> pl.Expr:
     )
 
 
-def _st_http_status():
+def _st_http_status() -> st.SearchStrategy[int]:
     return st.integers(min_value=100, max_value=599)
 
 
-def _st_http_header():
+def _st_http_header() -> st.SearchStrategy[dict[str, str]]:
     return st.fixed_dictionaries(
         {"name": st.text(max_size=5), "value": st.text(max_size=5)}
     )
 
 
-def _st_http_headers():
+def _st_http_headers() -> st.SearchStrategy[list[dict[str, str]]]:
     return st.lists(_st_http_header())
 
 
-def _st_http_data():
+def _st_http_data() -> st.SearchStrategy[bytes]:
     return st.binary(max_size=10)
 
 
@@ -47,11 +49,13 @@ def _st_binary_utf8(draw: DrawFn) -> bytes:
     return draw(st.text(max_size=5)).encode("utf-8")
 
 
-def _st_http_data_utf8():
+def _st_http_data_utf8() -> st.SearchStrategy[bytes]:
     return _st_binary_utf8()
 
 
-def _st_http_response_dict(utf8_data: bool = False):
+def _st_http_response_dict(
+    utf8_data: bool = False,
+) -> st.SearchStrategy[dict[str, Any]]:
     return st.fixed_dictionaries(
         {
             "status": _st_http_status(),

@@ -241,9 +241,9 @@ def test_align_to_index() -> None:
             "value": [42],
         }
     ).map_batches(assert_called_once())
-    df2 = align_to_index(df1, name="id").collect()
-    assert df2.schema == {"id": pl.UInt8, "value": pl.Int64}
-    assert df2.height == 256
+    df3 = align_to_index(df1, name="id").collect()
+    assert df3.schema == {"id": pl.UInt8, "value": pl.Int64}
+    assert df3.height == 256
 
     df = pl.LazyFrame(
         {
@@ -274,7 +274,7 @@ def test_align_to_index() -> None:
         lazy=True,
     )
 )
-def test_align_to_index_properties(df: pl.LazyFrame):
+def test_align_to_index_properties(df: pl.LazyFrame) -> None:
     df2 = align_to_index(df, name="a").collect()
 
     df2 = align_to_index(df, name="b").collect()

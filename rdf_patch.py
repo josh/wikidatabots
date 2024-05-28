@@ -6,7 +6,7 @@ import sys
 from collections import OrderedDict, defaultdict
 from collections.abc import Iterator
 from functools import cache
-from typing import Any, TextIO
+from typing import Any, TextIO, cast
 
 import pywikibot  # type: ignore
 import pywikibot.config  # type: ignore
@@ -21,15 +21,15 @@ SITE = pywikibot.Site("wikidata", "wikidata")
 
 
 class HashableClaim:
-    def __init__(self, claim: pywikibot.Claim):
+    def __init__(self, claim: pywikibot.Claim) -> None:
         self.claim = claim
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, HashableClaim):
             return False
-        return self.claim == other.claim
+        return cast(bool, self.claim == other.claim)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return 0
 
 

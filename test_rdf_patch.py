@@ -1,6 +1,7 @@
 # pyright: reportUnknownArgumentType=false
 
 from io import StringIO
+from typing import Any
 
 import rdf_patch
 from rdf_patch import process_graph
@@ -8,7 +9,7 @@ from rdf_patch import process_graph
 username = "Test"
 
 
-def setup_function(function) -> None:
+def setup_function(function: Any) -> None:
     rdf_patch.get_item_page.cache_clear()
     rdf_patch.get_property_page.cache_clear()
     rdf_patch.resolve_claim_guid.cache_clear()
