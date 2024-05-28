@@ -1,5 +1,3 @@
-# pyright: strict
-
 import polars as pl
 
 from wd_tmdb import (

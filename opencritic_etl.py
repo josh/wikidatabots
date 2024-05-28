@@ -1,5 +1,3 @@
-# pyright: strict
-
 import sys
 from warnings import warn
 

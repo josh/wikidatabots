@@ -1,5 +1,3 @@
-# pyright: strict
-
 import polars as pl
 
 from appletv_etl import valid_appletv_id

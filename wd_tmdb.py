@@ -1,5 +1,3 @@
-# pyright: strict
-
 from typing import Literal
 
 import polars as pl

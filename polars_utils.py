@@ -1,5 +1,3 @@
-# pyright: strict
-
 import atexit
 import datetime
 import gzip

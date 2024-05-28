@@ -1,5 +1,3 @@
-# pyright: strict
-
 from collections.abc import Callable
 from typing import TypeVar
 

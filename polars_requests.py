@@ -1,5 +1,3 @@
-# pyright: strict
-
 import time
 from collections.abc import Callable, Iterable
 from functools import partial

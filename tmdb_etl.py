@@ -1,5 +1,3 @@
-# pyright: strict
-
 import datetime
 import os
 import sys

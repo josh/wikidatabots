@@ -1,5 +1,3 @@
-# pyright: strict
-
 import polars as pl
 import pytest
 from hypothesis import given

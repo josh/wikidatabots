@@ -1,5 +1,3 @@
-# pyright: strict
-
 import polars as pl
 
 from sparql import sparql, sparql_batch

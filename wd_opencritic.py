@@ -1,5 +1,3 @@
-# pyright: strict
-
 import polars as pl
 
 from polars_utils import print_rdf_statements, scan_s3_parquet_anon

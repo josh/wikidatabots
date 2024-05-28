@@ -1,5 +1,3 @@
-# pyright: strict
-
 import sys
 import warnings
 from collections.abc import Generator

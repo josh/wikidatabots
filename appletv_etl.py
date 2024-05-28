@@ -1,5 +1,3 @@
-# pyright: strict
-
 import json
 import re
 import sys

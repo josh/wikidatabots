@@ -1,5 +1,3 @@
-# pyright: strict
-
 import platform
 import sys
 import time

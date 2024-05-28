@@ -1,5 +1,3 @@
-# pyright: strict
-
 import polars as pl
 
 from wd_plex import find_plex_guids_via_tmdb_id

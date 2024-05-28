@@ -1,6 +1,3 @@
-# pyright: strict
-
-
 from functools import cache
 
 import polars as pl
