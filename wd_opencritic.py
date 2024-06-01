@@ -136,7 +136,13 @@ def _find_opencritic_top_critic_score() -> pl.LazyFrame:
     )
 
     return (
-        wd_df.join(api_df, left_on="wd_opencritic_id", right_on="api_id", how="left")
+        wd_df.join(
+            api_df,
+            left_on="wd_opencritic_id",
+            right_on="api_id",
+            how="left",
+            coalesce=True,
+        )
         .filter(
             pl.col("wd_qid").pipe(is_blocked_item).not_()
             & pl.col("api_top_critic_score").is_not_null()
@@ -172,7 +178,13 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
     )
 
     return (
-        wd_df.join(api_df, left_on="wd_opencritic_id", right_on="api_id", how="left")
+        wd_df.join(
+            api_df,
+            left_on="wd_opencritic_id",
+            right_on="api_id",
+            how="left",
+            coalesce=True,
+        )
         .filter(
             pl.col("wd_qid").pipe(is_blocked_item).not_()
             & pl.col("api_percent_recommended").is_not_null()
