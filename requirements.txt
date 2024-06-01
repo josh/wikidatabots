@@ -106,6 +106,7 @@ tomli==2.0.1
     # via
     #   mypy
     #   pytest
+    #   vulture
 tqdm==4.66.4
     # via wikidatabots (pyproject.toml)
 types-beautifulsoup4==4.12.0.20240511
@@ -135,6 +136,8 @@ urllib3==2.2.1
     #   botocore
     #   requests
     #   types-requests
+vulture==2.11
+    # via wikidatabots (pyproject.toml)
 wcwidth==0.2.13
     # via wikitextparser
 wikitextparser==0.55.13
