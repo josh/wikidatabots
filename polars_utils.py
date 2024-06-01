@@ -302,16 +302,16 @@ def compute_stats(
         )
 
     joined_df = (
-        null_count_df.join(is_unique_df, on="column", how="left")
-        .join(true_count_df, on="column", how="left")
-        .join(false_count_df, on="column", how="left")
+        null_count_df.join(is_unique_df, on="column", how="left", coalesce=True)
+        .join(true_count_df, on="column", how="left", coalesce=True)
+        .join(false_count_df, on="column", how="left", coalesce=True)
     )
 
     if changes_df is not None:
         updated_count_df = changes_df.select(
             pl.col("^.+_updated$").map_alias(lambda n: n.replace("_updated", ""))
         ).transpose(include_header=True, column_names=["updated_count"])
-        joined_df = joined_df.join(updated_count_df, on="column", how="left")
+        joined_df = joined_df.join(updated_count_df, on="column", how="left", coalesce=True)
     else:
         joined_df = joined_df.with_columns(pl.lit(0).alias("updated_count"))
 
