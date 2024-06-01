@@ -237,9 +237,9 @@ def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
     )
 
     joined_df = (
-        null_count_df.join(is_unique_df, on="column", how="left")
-        .join(true_count_df, on="column", how="left")
-        .join(false_count_df, on="column", how="left")
+        null_count_df.join(is_unique_df, on="column", how="left", coalesce=True)
+        .join(true_count_df, on="column", how="left", coalesce=True)
+        .join(false_count_df, on="column", how="left", coalesce=True)
     )
 
     return joined_df.select(
@@ -525,7 +525,7 @@ def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
         .cast(dtype)
         .to_frame(name)
     )
-    return id_df.join(df, on=name, how="left").select(df.columns)
+    return id_df.join(df, on=name, how="left", coalesce=True).select(df.columns)
 
 
 def align_to_index(df: SomeFrame, name: str) -> SomeFrame:
@@ -548,7 +548,7 @@ def _update_or_append(df: pl.DataFrame, other: pl.DataFrame, on: str) -> pl.Data
     _check_df(df=df, df_label="df")
     _check_df(df=other, df_label="other df")
 
-    other = other.join(df.drop(other_cols), on=on, how="left").select(df.columns)
+    other = other.join(df.drop(other_cols), on=on, how="left", coalesce=True).select(df.columns)
     return pl.concat([df, other]).unique(subset=on, keep="last", maintain_order=True)
 
 
