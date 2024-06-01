@@ -61,11 +61,15 @@ mypy==1.10.0
 mypy-extensions==1.0.0
     # via mypy
 numpy==1.26.4
-    # via wikidatabots (pyproject.toml)
+    # via
+    #   wikidatabots (pyproject.toml)
+    #   pandas-stubs
 packaging==24.0
     # via
     #   pytest
     #   pywikibot
+pandas-stubs==2.2.2.240514
+    # via wikidatabots (pyproject.toml)
 pluggy==1.5.0
     # via pytest
 polars==0.20.31
@@ -108,6 +112,8 @@ types-beautifulsoup4==4.12.0.20240511
     # via wikidatabots (pyproject.toml)
 types-html5lib==1.1.11.20240228
     # via types-beautifulsoup4
+types-pytz==2024.1.0.20240417
+    # via pandas-stubs
 types-requests==2.32.0.20240523
     # via wikidatabots (pyproject.toml)
 types-tqdm==4.66.0.20240417
