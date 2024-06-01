@@ -548,7 +548,9 @@ def _update_or_append(df: pl.DataFrame, other: pl.DataFrame, on: str) -> pl.Data
     _check_df(df=df, df_label="df")
     _check_df(df=other, df_label="other df")
 
-    other = other.join(df.drop(other_cols), on=on, how="left", coalesce=True).select(df.columns)
+    other = other.join(df.drop(other_cols), on=on, how="left", coalesce=True).select(
+        df.columns
+    )
     return pl.concat([df, other]).unique(subset=on, keep="last", maintain_order=True)
 
 
