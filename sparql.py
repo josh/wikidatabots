@@ -76,7 +76,7 @@ def sparql(
     assert schema, "missing schema"
 
     def read_item_as_csv(df: pl.DataFrame) -> pl.DataFrame:
-        return pl.read_csv(df.item(), dtypes=schema)
+        return pl.read_csv(df.item(), schema_overrides=schema)
 
     return (
         pl.LazyFrame({"query": [query]})
