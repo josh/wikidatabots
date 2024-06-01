@@ -568,7 +568,7 @@ def update_or_append(
 
 
 def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
-    return pl.read_csv(data, dtypes=dict(dtype)).to_struct("")
+    return pl.read_csv(data, schema_overrides=dict(dtype)).to_struct("")
 
 
 def csv_extract(
