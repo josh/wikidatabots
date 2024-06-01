@@ -22,9 +22,7 @@ from polars_requests import (
 
 def _response_ok(response: pl.Expr) -> pl.Expr:
     return (
-        response.struct.field("status")
-        .is_between(200, 300, closed="left", coalesce=True)
-        .alias("ok")
+        response.struct.field("status").is_between(200, 300, closed="left").alias("ok")
     )
 
 
