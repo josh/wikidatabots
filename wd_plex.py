@@ -124,7 +124,7 @@ def find_plex_keys_not_found() -> pl.LazyFrame:
 
     return (
         sparql(_NOT_DEPRECATED_QUERY, columns=["statement", "hexkey"])
-        .join(plex_df, on="hexkey", how="left")
+        .join(plex_df, on="hexkey", how="left", coalesce=True)
         .filter(_FRESH_METADATA & pl.col("success").not_())
         .select(_DEPRECATE_RDF_STATEMENT)
     )

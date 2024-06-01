@@ -167,7 +167,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     )
 
     return (
-        wd_df.join(tmdb_df, on="imdb_numeric_id", how="left")
+        wd_df.join(tmdb_df, on="imdb_numeric_id", how="left", coalesce=True)
         .drop_nulls()
         .select(["item", "imdb_id"])
         .with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
@@ -242,7 +242,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     )
 
     return (
-        wd_df.join(tmdb_df, on="tvdb_id", how="left")
+        wd_df.join(tmdb_df, on="tvdb_id", how="left", coalesce=True)
         .drop_nulls()
         .select(["item", "tvdb_id"])
         .with_columns(pl.col("tvdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
@@ -289,7 +289,7 @@ def find_tmdb_ids_not_found(
         exists_expr = tmdb_exists(pl.col("tmdb_id"), tmdb_type).alias("exists")
 
     return (
-        df.join(tmdb_df, on="id", how="left")
+        df.join(tmdb_df, on="id", how="left", coalesce=True)
         .filter(pl.col("success").not_())
         # .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
