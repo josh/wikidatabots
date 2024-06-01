@@ -110,12 +110,18 @@ tqdm==4.66.4
     # via wikidatabots (pyproject.toml)
 types-beautifulsoup4==4.12.0.20240511
     # via wikidatabots (pyproject.toml)
+types-docutils==0.21.0.20240423
+    # via types-pygments
 types-html5lib==1.1.11.20240228
     # via types-beautifulsoup4
+types-pygments==2.18.0.20240506
+    # via wikidatabots (pyproject.toml)
 types-pytz==2024.1.0.20240417
     # via pandas-stubs
 types-requests==2.32.0.20240523
     # via wikidatabots (pyproject.toml)
+types-setuptools==70.0.0.20240524
+    # via types-pygments
 types-tqdm==4.66.0.20240417
     # via wikidatabots (pyproject.toml)
 typing-extensions==4.12.0

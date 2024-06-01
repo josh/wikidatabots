@@ -23,6 +23,7 @@ test = [
     "pytest>=8.0.0,<9.0",
     "ruff>=0.4.0",
     "types-beautifulsoup4>=4.11.0,<5.0",
+    "types-Pygments>=2.0.0,<3.0",
     "types-requests>=2.0.0,<3.0",
     "types-tqdm>=4.0.0,<5.0",
 ]
