@@ -4,12 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      groups:
-        fsspec:
-          patterns:
-            - "aiobotocore"
-            - "fsspec"
-            - "s3fs"
+    groups:
+      fsspec:
+        patterns:
+          - "aiobotocore"
+          - "fsspec"
+          - "s3fs"
 
   - package-ecosystem: "github-actions"
     directory: "/"
