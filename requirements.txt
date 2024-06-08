@@ -92,7 +92,7 @@ requests==2.32.3
     #   pywikibot
 ruff==0.4.7
     # via wikidatabots (pyproject.toml)
-s3fs==2024.5.0
+s3fs==2024.6.0
     # via wikidatabots (pyproject.toml)
 six==1.16.0
     # via
