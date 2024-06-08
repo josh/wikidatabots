@@ -68,7 +68,7 @@ packaging==24.0
     # via
     #   pytest
     #   pywikibot
-pandas-stubs==2.2.2.240514
+pandas-stubs==2.2.2.240603
     # via wikidatabots (pyproject.toml)
 pluggy==1.5.0
     # via pytest
