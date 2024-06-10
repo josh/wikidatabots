@@ -64,7 +64,7 @@ numpy==1.26.4
     # via
     #   wikidatabots (pyproject.toml)
     #   pandas-stubs
-packaging==24.0
+packaging==24.1
     # via
     #   pytest
     #   pywikibot
