@@ -309,7 +309,7 @@ def compute_stats(
 
     if changes_df is not None:
         updated_count_df = changes_df.select(
-            pl.col("^.+_updated$").map_alias(lambda n: n.replace("_updated", ""))
+            pl.col("^.+_updated$").name.map(lambda n: n.replace("_updated", ""))
         ).transpose(include_header=True, column_names=["updated_count"])
         joined_df = joined_df.join(
             updated_count_df, on="column", how="left", coalesce=True
