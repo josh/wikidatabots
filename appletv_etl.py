@@ -253,6 +253,7 @@ def fetch_jsonld_columns(df: SomeFrame) -> SomeFrame:
                 log_group="tv.apple.com",
                 timeout=10.0,
                 retry_count=11,
+                ok_statuses={200, 404},
                 bad_statuses={502},
             )
             .alias("response")
