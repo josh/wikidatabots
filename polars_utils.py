@@ -718,7 +718,7 @@ def print_rdf_statements(
     sample: bool = True,
     file: TextIO = sys.stdout,
 ) -> None:
-    assert df.schema == {"rdf_statement": pl.Utf8}
+    assert df.collect_schema() == {"rdf_statement": pl.Utf8}
     df = df.pipe(_limit, limit, sample=sample, desc="rdf statements")
 
     if isinstance(df, pl.LazyFrame):
