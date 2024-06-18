@@ -105,7 +105,7 @@ def test_now() -> None:
     df = pl.LazyFrame({"a": [1, 2, 3]}).with_columns(
         now().alias("timestamp"),
     )
-    assert df.schema == {"a": pl.Int64, "timestamp": pl.Datetime}
+    assert df.collect_schema() == {"a": pl.Int64, "timestamp": pl.Datetime}
     df.collect()
 
 
@@ -149,7 +149,7 @@ def test_weighted_random() -> None:
         )
         .sort("sort_arg")
     )
-    assert df.schema == {"a": pl.Int64, "sort_arg": pl.UInt32}
+    assert df.collect_schema() == {"a": pl.Int64, "sort_arg": pl.UInt32}
     assert len(df) == 3
 
 
@@ -242,7 +242,7 @@ def test_align_to_index() -> None:
         }
     ).map_batches(assert_called_once())
     df3 = align_to_index(df1, name="id").collect()
-    assert df3.schema == {"id": pl.UInt8, "value": pl.Int64}
+    assert df3.collect_schema() == {"id": pl.UInt8, "value": pl.Int64}
     assert df3.height == 256
 
     df = pl.LazyFrame(
@@ -381,7 +381,7 @@ def test_update_or_append_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> No
     assume(df2.height == 0 or df2["a"].is_unique().all())
 
     df3 = update_or_append(df1.lazy(), df2.lazy(), on="a").collect()
-    assert df3.schema == df1.schema
+    assert df3.collect_schema() == df1.collect_schema()
     assert df3.columns == df1.columns
     assert df3.height >= df1.height
     assert df3.height >= df2.height
@@ -470,7 +470,7 @@ def test_apply_with_tqdm() -> None:
             log_group="test",
         )
     )
-    assert df3.schema == {"s": pl.Int64}
+    assert df3.collect_schema() == {"s": pl.Int64}
     assert_frame_equal(df2, df3)
 
 
@@ -482,7 +482,7 @@ def test_apply_with_tqdm_properties(s: pl.Series) -> None:
     df = pl.DataFrame({"a": s}).select(
         pl.col("a").pipe(apply_with_tqdm, fn, return_dtype=pl.Int64, log_group="test")
     )
-    assert df.schema == {"a": pl.Int64}
+    assert df.collect_schema() == {"a": pl.Int64}
     assert len(df) == len(s)
 
 

@@ -108,7 +108,7 @@ def test_tmdb_external_ids() -> None:
             "imdb_numeric_id": pl.Series([None, 94675, 92149, None], dtype=pl.UInt32),
         }
     )
-    assert df.schema == {
+    assert df.collect_schema() == {
         "id": pl.UInt32,
         "success": pl.Boolean,
         "retrieved_at": pl.Datetime(time_unit="ns"),
