@@ -14,7 +14,7 @@ env:
   WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
 jobs:
-  rdf_patch:
+  rdf-patch:
     runs-on: ubuntu-latest
     concurrency: rdf_patch_${{ matrix.script }}
 
@@ -50,6 +50,6 @@ jobs:
 
       - name: Process RDF statements
         run: |
-          python rdf_patch.py <output.ttl
+          wikidata-rdf-patch <output.ttl
         env:
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
