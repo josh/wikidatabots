@@ -115,9 +115,7 @@ tomli==2.0.1
     #   pytest
     #   vulture
 tqdm==4.66.4
-    # via
-    #   wikidatabots (pyproject.toml)
-    #   wikidata-rdf-patch
+    # via wikidatabots (pyproject.toml)
 types-beautifulsoup4==4.12.0.20240511
     # via wikidatabots (pyproject.toml)
 types-colorama==0.4.15.20240311
@@ -149,7 +147,7 @@ vulture==2.11
     # via wikidatabots (pyproject.toml)
 wcwidth==0.2.13
     # via wikitextparser
-wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@897434931c6c6f59d25f97d60620099e612152fd
+wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@d486e1c83e1e35fd62bbaa9c167e450d4865db81
     # via wikidatabots (pyproject.toml)
 wikitextparser==0.55.13
     # via wikidatabots (pyproject.toml)
