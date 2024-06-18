@@ -8,13 +8,13 @@ from appletv_etl import cleaned_sitemap, fetch_jsonld_columns, siteindex, sitema
 
 def test_siteindex() -> None:
     ldf = siteindex(sitemap_type="show")
-    assert ldf.schema == {"loc": pl.Utf8}
+    assert ldf.collect_schema() == {"loc": pl.Utf8}
     ldf.collect()
 
 
 def test_sitemap() -> None:
     ldf = sitemap(sitemap_type="show", limit=5)
-    assert ldf.schema == {
+    assert ldf.collect_schema() == {
         "loc": pl.Utf8,
         "lastmod": pl.Datetime,
         "priority": pl.Float32,
@@ -24,7 +24,7 @@ def test_sitemap() -> None:
 
 def test_cleaned_sitemap() -> None:
     ldf = cleaned_sitemap(sitemap_type="show", limit=5)
-    assert ldf.schema == {
+    assert ldf.collect_schema() == {
         "id": pl.Utf8,
         "type": pl.Categorical,
         "country": pl.Categorical,

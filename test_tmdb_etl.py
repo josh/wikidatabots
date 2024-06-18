@@ -42,7 +42,7 @@ def test_insert_tmdb_external_ids() -> None:
         schema=_SCHEMA,
     )
     ldf = insert_tmdb_external_ids(df1, tmdb_type="movie")
-    assert ldf.schema == _SCHEMA
+    assert ldf.collect_schema() == _SCHEMA
     df2 = ldf.collect()
     assert len(df2) > 0
 
@@ -63,7 +63,7 @@ def test_insert_tmdb_latest_changes() -> None:
         schema=_SCHEMA,
     )
     ldf = insert_tmdb_latest_changes(df1, tmdb_type="movie")
-    assert ldf.schema == _SCHEMA
+    assert ldf.collect_schema() == _SCHEMA
     df2 = ldf.collect()
     assert len(df2) > 0
 
@@ -73,7 +73,7 @@ def test_tmdb_changes() -> None:
         {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
     )
     ldf = tmdb_changes(dates_df, tmdb_type="movie")
-    assert ldf.schema == {
+    assert ldf.collect_schema() == {
         "id": pl.UInt32,
         "date": pl.Date,
         "adult": pl.Boolean,

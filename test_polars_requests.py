@@ -101,7 +101,7 @@ def test_request() -> None:
         )
     )
 
-    assert ldf.schema == {
+    assert ldf.collect_schema() == {
         "url": pl.Utf8,
         "response": HTTP_RESPONSE_DTYPE,
         "ok": pl.Boolean,
@@ -304,7 +304,7 @@ def test_request_timeout() -> None:
         .pipe(request, log_group="postman", timeout=2.0),
     )
 
-    assert ldf.schema == {
+    assert ldf.collect_schema() == {
         "url": pl.Utf8,
         "response": HTTP_RESPONSE_DTYPE,
     }

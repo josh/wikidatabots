@@ -39,6 +39,6 @@ def test_sparql_batch() -> None:
         )
         .drop("results")
     )
-    assert ldf.schema == {"pid": pl.Utf8, "n": pl.Utf8}
+    assert ldf.collect_schema() == {"pid": pl.Utf8, "n": pl.Utf8}
     df = ldf.collect()
     assert len(df) == 3

@@ -433,7 +433,7 @@ def test_frame_diff_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
         on="a",
     )
     assert ldf.columns[0:3] == ["added", "removed", "updated"]
-    assert ldf.schema == {
+    assert ldf.collect_schema() == {
         "added": pl.UInt32,
         "removed": pl.UInt32,
         "updated": pl.UInt32,
