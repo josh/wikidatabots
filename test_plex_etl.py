@@ -79,7 +79,11 @@ def test_plex_search_guids() -> None:
         )
         .collect()
     )
-    assert df.collect_schema() == {"key": pl.Binary, "hexkey": pl.Utf8, "type": pl.Categorical}
+    assert df.collect_schema() == {
+        "key": pl.Binary,
+        "hexkey": pl.Utf8,
+        "type": pl.Categorical,
+    }
     assert len(df) > 0
 
     df2 = df.filter(
