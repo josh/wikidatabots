@@ -401,7 +401,7 @@ def update_parquet(
     df = pl.read_parquet(filename)
 
     lf2 = transform(df.lazy())
-    assert lf2.schema == df.schema, "schema changed"
+    assert lf2.collect_schema() == df.schema, "schema changed"
     # MARK: pl.LazyFrame.collect
     df2 = lf2.collect()
 
