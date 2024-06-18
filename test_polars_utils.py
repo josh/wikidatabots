@@ -432,7 +432,7 @@ def test_frame_diff_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
         df2.lazy().map_batches(assert_called_once()),
         on="a",
     )
-    assert ldf.columns[0:3] == ["added", "removed", "updated"]
+    assert ldf.collect_schema().names()[0:3] == ["added", "removed", "updated"]
     assert ldf.collect_schema() == {
         "added": pl.UInt32,
         "removed": pl.UInt32,

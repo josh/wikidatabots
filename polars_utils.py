@@ -181,7 +181,7 @@ def frame_diff(
     on: str,
     suffix: str = "_updated",
 ) -> pl.LazyFrame:
-    cols = [col for col in df1.columns if col != on]
+    cols = [col for col in df1.collect_schema().names() if col != on]
     assert len(cols) >= 1
 
     compute_col_updated_exprs = [
