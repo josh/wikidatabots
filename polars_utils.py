@@ -230,7 +230,7 @@ def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
     null_count_df = _count_columns("null_count", pl.all().null_count())
     is_unique_df = _count_columns(
         "is_unique",
-        cs.exclude(pl.Array, pl.List, pl.Struct).drop_nulls().is_unique().all(),
+        _COL_SUPPORTS_UNIQUE.drop_nulls().is_unique().all(),
     )
     true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
     false_count_df = _count_columns(
@@ -257,6 +257,9 @@ def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+_COL_SUPPORTS_UNIQUE = cs.binary() | cs.boolean() | cs.numeric() | cs.string() | cs.temporal()
+
+
 def compute_stats(
     df: pl.DataFrame,
     changes_df: pl.DataFrame | None = None,
@@ -272,7 +275,7 @@ def compute_stats(
     null_count_df = _count_columns("null_count", pl.all().null_count())
     is_unique_df = _count_columns(
         "is_unique",
-        cs.exclude(pl.Array, pl.List, pl.Struct).drop_nulls().is_unique().all(),
+        _COL_SUPPORTS_UNIQUE.drop_nulls().is_unique().all(),
     )
     true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
     false_count_df = _count_columns(
