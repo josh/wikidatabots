@@ -15,6 +15,7 @@ from typing import Any, TextIO, TypedDict, TypeVar
 
 import numpy as np
 import polars as pl
+import polars.selectors as cs
 import s3fs  # type: ignore
 from polars.type_aliases import PolarsDataType
 from tqdm import tqdm
@@ -226,11 +227,10 @@ def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
             return pl.DataFrame(schema=schema)
         return df2.transpose(include_header=True, column_names=[column_name])
 
-    simple_cols = [col for col in df.columns if df.schema[col] not in pl.NESTED_DTYPES]
-
     null_count_df = _count_columns("null_count", pl.all().null_count())
     is_unique_df = _count_columns(
-        "is_unique", pl.col(*simple_cols).drop_nulls().is_unique().all()
+        "is_unique",
+        cs.exclude(pl.Array, pl.List, pl.Struct).drop_nulls().is_unique().all(),
     )
     true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
     false_count_df = _count_columns(
@@ -268,12 +268,11 @@ def compute_stats(
             return pl.DataFrame(schema=schema)
         return df2.transpose(include_header=True, column_names=[column_name])
 
-    simple_cols = [col for col in df.columns if df.schema[col] not in pl.NESTED_DTYPES]
-
     count = len(df)
     null_count_df = _count_columns("null_count", pl.all().null_count())
     is_unique_df = _count_columns(
-        "is_unique", pl.col(*simple_cols).drop_nulls().is_unique().all()
+        "is_unique",
+        cs.exclude(pl.Array, pl.List, pl.Struct).drop_nulls().is_unique().all(),
     )
     true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
     false_count_df = _count_columns(
