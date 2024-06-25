@@ -5,6 +5,7 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
+from polars.exceptions import ComputeError
 from polars.testing import assert_frame_equal, assert_series_equal
 from polars.testing.parametric import column, dataframes, series
 
@@ -251,7 +252,7 @@ def test_align_to_index() -> None:
             "value": [-1, 2, 5],
         }
     )
-    with pytest.raises(pl.ComputeError):
+    with pytest.raises(ComputeError):
         align_to_index(df, name="id").collect()
 
     df = pl.LazyFrame(
@@ -260,7 +261,7 @@ def test_align_to_index() -> None:
             "value": [1, 2, 5],
         }
     )
-    with pytest.raises(pl.ComputeError):
+    with pytest.raises(ComputeError):
         align_to_index(df, name="id").collect()
 
 
