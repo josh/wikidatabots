@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import polars as pl
+from polars.type_aliases import PolarsDataType
 
 from plex_etl import GUID_TYPE
 from polars_utils import print_rdf_statements, scan_s3_parquet_anon
@@ -50,7 +51,7 @@ _TMDB_QUERY: dict[GUID_TYPE, str] = {
     "show": _TMDB_TV_QUERY,
 }
 
-_TMDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
+_TMDB_QUERY_SCHEMA: dict[str, PolarsDataType] = {
     "item": pl.Utf8,
     "tmdb_id": pl.UInt32,
     "plex_guid": pl.Utf8,

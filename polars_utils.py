@@ -16,6 +16,7 @@ from typing import Any, TextIO, TypedDict, TypeVar
 import numpy as np
 import polars as pl
 import s3fs  # type: ignore
+from polars.type_aliases import PolarsDataType
 from tqdm import tqdm
 
 from actions import log_group as _log_group
@@ -48,7 +49,7 @@ class _PyformatRow(TypedDict):
 def apply_with_tqdm(
     expr: pl.Expr,
     function: Callable[[Any], Any],
-    return_dtype: pl.PolarsDataType | None = None,
+    return_dtype: PolarsDataType | None = None,
     log_group: str = "apply(unknown)",
 ) -> pl.Expr:
     def apply_function(s: pl.Series) -> list[Any]:
@@ -91,7 +92,7 @@ def lazy_map_reduce_batches(
 def map_streaming(
     ldf: pl.LazyFrame,
     expr: pl.Expr,
-    return_schema: dict[str, pl.PolarsDataType],
+    return_schema: dict[str, PolarsDataType],
     chunk_size: int,
     parallel: bool = False,
 ) -> pl.LazyFrame:
@@ -210,7 +211,7 @@ def frame_diff(
     )
 
 
-def _dtype_str_repr(dtype: pl.PolarsDataType) -> str:
+def _dtype_str_repr(dtype: PolarsDataType) -> str:
     if isinstance(dtype, pl.DataType):
         return dtype._string_repr()
     else:
@@ -577,7 +578,7 @@ def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
 
 def csv_extract(
     expr: pl.Expr,
-    dtype: pl.PolarsDataType,
+    dtype: PolarsDataType,
     log_group: str = "apply(csv_extract)",
 ) -> pl.Expr:
     assert isinstance(dtype, pl.List)
@@ -624,7 +625,7 @@ def _parse_xml_to_series(
 
 def xml_extract(
     expr: pl.Expr,
-    dtype: pl.PolarsDataType,
+    dtype: PolarsDataType,
     xpath: str = "./*",
     log_group: str = "apply(xml_extract)",
 ) -> pl.Expr:
@@ -642,7 +643,7 @@ def xml_extract(
 def _xml_element_field_iter(
     element: ET.Element,
     name: str,
-    dtype: pl.PolarsDataType,
+    dtype: PolarsDataType,
 ) -> Iterator[dict[str, XMLValue] | str | int | float]:
     assert not isinstance(dtype, pl.List)
 

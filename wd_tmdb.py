@@ -1,6 +1,7 @@
 from typing import Literal
 
 import polars as pl
+from polars.type_aliases import PolarsDataType
 
 from polars_utils import print_rdf_statements, scan_s3_parquet_anon
 from sparql import sparql
@@ -125,7 +126,7 @@ _IMDB_QUERY: dict[_TMDB_ID_PID, list[str]] = {
     "P4985": [_PERSON_IMDB_QUERY_1, _PERSON_IMDB_QUERY_2],
 }
 
-_IMDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
+_IMDB_QUERY_SCHEMA: dict[str, PolarsDataType] = {
     "item": pl.Utf8,
     "imdb_id": pl.Utf8,
     "tmdb_id": pl.UInt32,
@@ -201,7 +202,7 @@ _TVDB_QUERY: dict[_TMDB_ID_PID, str] = {
     "P4983": _TV_TVDB_QUERY,
 }
 
-_TVDB_QUERY_SCHEMA: dict[str, pl.PolarsDataType] = {
+_TVDB_QUERY_SCHEMA: dict[str, PolarsDataType] = {
     "item": pl.Utf8,
     "tvdb_id": pl.UInt32,
     "tmdb_id": pl.UInt32,

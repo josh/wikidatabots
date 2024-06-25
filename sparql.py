@@ -6,6 +6,7 @@ from functools import partial
 import backoff
 import polars as pl
 import requests as _requests
+from polars.type_aliases import PolarsDataType
 from tqdm import tqdm
 
 from actions import warn
@@ -69,7 +70,7 @@ def _sparql_batch_raw(queries: pl.Series) -> pl.Series:
 def sparql(
     query: str,
     columns: list[str] | None = None,
-    schema: dict[str, pl.PolarsDataType] | None = None,
+    schema: dict[str, PolarsDataType] | None = None,
 ) -> pl.LazyFrame:
     if columns and not schema:
         schema = {column: pl.Utf8 for column in columns}
@@ -93,7 +94,7 @@ def sparql(
 def sparql_batch(
     queries: pl.Expr,
     columns: list[str] | None = None,
-    schema: dict[str, pl.PolarsDataType] | None = None,
+    schema: dict[str, PolarsDataType] | None = None,
 ) -> pl.Expr:
     if columns and not schema:
         schema = {column: pl.Utf8 for column in columns}

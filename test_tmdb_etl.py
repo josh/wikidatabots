@@ -2,6 +2,7 @@ import datetime
 
 import polars as pl
 from polars.testing import assert_frame_equal
+from polars.type_aliases import PolarsDataType
 
 from tmdb_etl import (
     insert_tmdb_external_ids,
@@ -13,7 +14,7 @@ from tmdb_etl import (
     tmdb_find,
 )
 
-_SCHEMA: dict[str, pl.PolarsDataType] = {
+_SCHEMA: dict[str, PolarsDataType] = {
     "id": pl.UInt32,
     "date": pl.Date,
     "adult": pl.Boolean,
