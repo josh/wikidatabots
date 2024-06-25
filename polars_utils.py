@@ -257,7 +257,9 @@ def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-_COL_SUPPORTS_UNIQUE = cs.binary() | cs.boolean() | cs.numeric() | cs.string() | cs.temporal()
+_COL_SUPPORTS_UNIQUE = (
+    cs.binary() | cs.boolean() | cs.numeric() | cs.string() | cs.temporal()
+)
 
 
 def compute_stats(
