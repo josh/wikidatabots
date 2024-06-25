@@ -74,7 +74,7 @@ pandas-stubs==2.2.2.240603
     # via wikidatabots (pyproject.toml)
 pluggy==1.5.0
     # via pytest
-polars==1.0.0b1
+polars==1.0.0rc2
     # via wikidatabots (pyproject.toml)
 pyparsing==3.1.2
     # via rdflib
