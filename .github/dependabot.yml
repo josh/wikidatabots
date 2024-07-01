@@ -10,6 +10,9 @@ updates:
           - "aiobotocore"
           - "fsspec"
           - "s3fs"
+    ignore:
+      - dependency-name: "hypothesis"
+        update-types: ["version-update:semver-patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
