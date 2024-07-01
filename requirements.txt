@@ -124,7 +124,7 @@ types-docutils==0.21.0.20240423
     # via types-pygments
 types-html5lib==1.1.11.20240228
     # via types-beautifulsoup4
-types-openpyxl==3.1.4.20240626
+types-openpyxl==3.1.5.20240630
     # via wikidatabots (pyproject.toml)
 types-pygments==2.18.0.20240506
     # via wikidatabots (pyproject.toml)
