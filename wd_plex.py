@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import polars as pl
-from polars.type_aliases import PolarsDataType
+from polars._typing import PolarsDataType
 
 from plex_etl import GUID_TYPE
 from polars_utils import print_rdf_statements, scan_s3_parquet_anon

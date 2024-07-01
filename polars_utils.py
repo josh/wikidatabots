@@ -17,7 +17,7 @@ import numpy as np
 import polars as pl
 import polars.selectors as cs
 import s3fs  # type: ignore
-from polars.type_aliases import PolarsDataType
+from polars._typing import PolarsDataType
 from tqdm import tqdm
 
 from actions import log_group as _log_group

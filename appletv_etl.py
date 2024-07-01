@@ -5,7 +5,7 @@ from typing import Literal
 
 import polars as pl
 from bs4 import BeautifulSoup
-from polars.type_aliases import PolarsDataType
+from polars._typing import PolarsDataType
 
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (

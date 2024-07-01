@@ -1,8 +1,8 @@
 import datetime
 
 import polars as pl
+from polars._typing import PolarsDataType
 from polars.testing import assert_frame_equal
-from polars.type_aliases import PolarsDataType
 
 from tmdb_etl import (
     insert_tmdb_external_ids,

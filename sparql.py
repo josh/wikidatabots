@@ -6,7 +6,7 @@ from functools import partial
 import backoff
 import polars as pl
 import requests as _requests
-from polars.type_aliases import PolarsDataType
+from polars._typing import PolarsDataType
 from tqdm import tqdm
 
 from actions import warn
