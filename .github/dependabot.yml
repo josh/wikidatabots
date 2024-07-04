@@ -11,6 +11,8 @@ updates:
           - "fsspec"
           - "s3fs"
     ignore:
+      - dependency-name: "types-*"
+        update-types: ["version-update:semver-patch"]
       - dependency-name: "hypothesis"
         update-types: ["version-update:semver-patch"]
 
