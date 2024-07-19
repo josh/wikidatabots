@@ -147,7 +147,7 @@ vulture==2.11
     # via wikidatabots (pyproject.toml)
 wcwidth==0.2.13
     # via wikitextparser
-wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@54d0c803f70328a7c9f5b3e81797e0502c3fcd00
+wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@0052786eeaa375acd07228b63589850387a77bcd
     # via wikidatabots (pyproject.toml)
 wikitextparser==0.56.0
     # via wikidatabots (pyproject.toml)
