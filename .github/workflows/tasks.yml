@@ -54,3 +54,4 @@ jobs:
           wikidata-rdf-patch <output.ttl
         env:
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
+          WIKIDATA_BLOCKLIST_URL: "https://www.wikidata.org/wiki/User:Josh404Bot/Blocklist"
