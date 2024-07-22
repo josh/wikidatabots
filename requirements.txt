@@ -78,7 +78,7 @@ polars==1.2.1
     # via wikidatabots (pyproject.toml)
 pyparsing==3.1.2
     # via rdflib
-pytest==8.2.2
+pytest==8.3.1
     # via wikidatabots (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via botocore
