@@ -32,6 +32,8 @@ exceptiongroup==1.2.2
     # via
     #   hypothesis
     #   pytest
+feedparser==6.0.11
+    # via wikidatabots (pyproject.toml)
 frozenlist==1.4.1
     # via
     #   aiohttp
@@ -101,6 +103,8 @@ ruff==0.5.4
     # via wikidatabots (pyproject.toml)
 s3fs==2024.6.1
     # via wikidatabots (pyproject.toml)
+sgmllib3k==1.0.0
+    # via feedparser
 six==1.16.0
     # via
     #   isodate
