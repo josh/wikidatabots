@@ -58,7 +58,7 @@ multidict==6.0.5
     #   yarl
 mwparserfromhell==0.6.6
     # via pywikibot
-mypy==1.10.1
+mypy==1.11.0
     # via wikidatabots (pyproject.toml)
 mypy-extensions==1.0.0
     # via mypy
