@@ -149,7 +149,7 @@ wcwidth==0.2.13
     # via wikitextparser
 wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@b67401a2257b951f1a40214490f41f439e558186
     # via wikidatabots (pyproject.toml)
-wikitextparser==0.56.0
+wikitextparser==0.56.1
     # via wikidatabots (pyproject.toml)
 wrapt==1.16.0
     # via aiobotocore
