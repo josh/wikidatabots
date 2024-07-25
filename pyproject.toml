@@ -23,7 +23,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-test = [
+dev = [
     "hypothesis>=6.0.0,<7.0",
     "mypy>=1.0.0,<2.0",
     "pandas-stubs>=2.0.0,<3.0",
