@@ -43,7 +43,7 @@ jobs:
 
       - name: Run script
         run: |
-          python metrics.py >public/metrics.txt
+          python metrics.py >public/metrics
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -55,7 +55,7 @@ jobs:
       - name: Upload to S3
         if: github.ref == 'refs/heads/main'
         run: |
-          aws s3 cp --acl public-read "public/metrics.txt" "s3://wikidatabots/metrics"
+          aws s3 cp --acl public-read "public/metrics" "s3://wikidatabots/metrics"
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
