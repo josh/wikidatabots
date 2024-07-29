@@ -9,10 +9,6 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-  WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
-
 jobs:
   rdf-patch:
     runs-on: ubuntu-latest
@@ -48,10 +44,13 @@ jobs:
           python "$SCRIPT.py" | tee output.ttl
         env:
           SCRIPT: ${{ matrix.script }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
 
       - name: Process RDF statements
         run: |
           wikidata-rdf-patch <output.ttl
         env:
+          WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
           WIKIDATA_BLOCKLIST_URL: "https://www.wikidata.org/wiki/User:Josh404Bot/Blocklist"
