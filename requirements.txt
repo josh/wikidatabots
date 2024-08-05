@@ -99,7 +99,7 @@ requests==2.32.3
     #   wikidatabots (pyproject.toml)
     #   pywikibot
     #   wikidata-rdf-patch
-ruff==0.5.5
+ruff==0.5.6
     # via wikidatabots (pyproject.toml)
 s3fs==2024.6.1
     # via wikidatabots (pyproject.toml)
