@@ -118,7 +118,7 @@ tomli==2.0.1
     #   mypy
     #   pytest
     #   vulture
-tqdm==4.66.4
+tqdm==4.66.5
     # via wikidatabots (pyproject.toml)
 types-beautifulsoup4==4.12.0.20240511
     # via wikidatabots (pyproject.toml)
