@@ -2,7 +2,7 @@
 #    uv pip compile pyproject.toml --all-extras --output-file requirements.txt
 aiobotocore==2.13.1
     # via s3fs
-aiohttp==3.10.1
+aiohttp==3.10.2
     # via
     #   aiobotocore
     #   s3fs
