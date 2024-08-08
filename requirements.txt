@@ -84,7 +84,7 @@ pytest==8.3.2
     # via wikidatabots (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via botocore
-pywikibot==9.3.0
+pywikibot==9.3.1
     # via
     #   wikidatabots (pyproject.toml)
     #   wikidata-rdf-patch
