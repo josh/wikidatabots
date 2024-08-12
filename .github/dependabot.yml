@@ -9,6 +9,7 @@ updates:
       fsspec:
         patterns:
           - "aiobotocore"
+          - "aiohttp"
           - "fsspec"
           - "s3fs"
     ignore:
