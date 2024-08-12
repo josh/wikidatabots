@@ -40,7 +40,7 @@ frozenlist==1.4.1
     #   aiosignal
 fsspec==2024.6.1
     # via s3fs
-hypothesis==6.110.1
+hypothesis==6.111.0
     # via wikidatabots (pyproject.toml)
 idna==3.7
     # via
