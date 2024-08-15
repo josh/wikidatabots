@@ -111,7 +111,7 @@ six==1.16.0
     #   python-dateutil
 sortedcontainers==2.4.0
     # via hypothesis
-soupsieve==2.5
+soupsieve==2.6
     # via beautifulsoup4
 tomli==2.0.1
     # via
