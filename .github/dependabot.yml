@@ -10,6 +10,7 @@ updates:
         patterns:
           - "aiobotocore"
           - "aiohttp"
+          - "botocore"
           - "fsspec"
           - "s3fs"
     ignore:
