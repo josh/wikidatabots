@@ -136,7 +136,7 @@ types-pytz==2024.1.0.20240417
     # via pandas-stubs
 types-requests==2.32.0.20240622
     # via wikidatabots (pyproject.toml)
-types-setuptools==73.0.0.20240822
+types-setuptools==74.0.0.20240831
     # via types-pygments
 types-tqdm==4.66.0.20240417
     # via wikidatabots (pyproject.toml)
