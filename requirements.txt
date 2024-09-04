@@ -64,7 +64,7 @@ mypy==1.11.2
     # via wikidatabots (pyproject.toml)
 mypy-extensions==1.0.0
     # via mypy
-numpy==2.1.0
+numpy==2.1.1
     # via
     #   wikidatabots (pyproject.toml)
     #   pandas-stubs
