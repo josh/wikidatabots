@@ -6,6 +6,9 @@ jobs:
   ruff:
     runs-on: ubuntu-latest
 
+    env:
+      RUFF_OUTPUT_FORMAT: github
+
     steps:
       - uses: actions/checkout@v4
 
@@ -14,22 +17,17 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
-      - name: Install uv
-        run: pipx install uv
+      - uses: astral-sh/setup-uv@v1
 
-      - name: Install dependencies
+      - name: Install ruff
         run: |
-          uv pip install --system --requirement requirements.txt
+          uv pip install --system --constraint requirements.txt ruff
 
       - name: Ruff Formatter
         run: ruff format --diff .
-        env:
-          RUFF_OUTPUT_FORMAT: github
 
       - name: Ruff Linter
         run: ruff check .
-        env:
-          RUFF_OUTPUT_FORMAT: github
 
   mypy:
     runs-on: ubuntu-latest
@@ -42,8 +40,7 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
-      - name: Install uv
-        run: pipx install uv
+      - uses: astral-sh/setup-uv@v1
 
       - name: Install dependencies
         run: |
