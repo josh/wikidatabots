@@ -348,6 +348,7 @@ def _tmdb_export(types: list[_EXPORT_TYPE], date: datetime.date) -> pl.LazyFrame
             pl.col("item").struct.field("popularity").alias("popularity"),
             pl.col("item").struct.field("video").alias("video"),
         )
+        .unique(subset=["id"], keep="last", maintain_order=False)
         .sort(by="id")
     )
 
