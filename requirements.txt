@@ -54,7 +54,7 @@ jmespath==1.0.1
     # via botocore
 lxml==5.3.0
     # via wikidatabots (pyproject.toml)
-multidict==6.0.5
+multidict==6.1.0
     # via
     #   aiohttp
     #   yarl
