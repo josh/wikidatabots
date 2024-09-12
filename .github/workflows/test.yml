@@ -3,7 +3,7 @@ name: Test
 on: push
 
 jobs:
-  pytest:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
