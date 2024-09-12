@@ -113,11 +113,6 @@ sortedcontainers==2.4.0
     # via hypothesis
 soupsieve==2.6
     # via beautifulsoup4
-tomli==2.0.1
-    # via
-    #   mypy
-    #   pytest
-    #   vulture
 tqdm==4.66.5
     # via wikidatabots (pyproject.toml)
 types-beautifulsoup4==4.12.0.20240511
