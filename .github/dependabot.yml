@@ -8,11 +8,13 @@ updates:
     groups:
       fsspec:
         patterns:
+          - "fsspec"
+          - "s3fs"
+      aiohttp:
+        patterns:
           - "aiobotocore"
           - "aiohttp"
           - "botocore"
-          - "fsspec"
-          - "s3fs"
     ignore:
       - dependency-name: "types-*"
         update-types: ["version-update:semver-patch"]
