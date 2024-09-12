@@ -38,7 +38,7 @@ frozenlist==1.4.1
     # via
     #   aiohttp
     #   aiosignal
-fsspec==2024.6.1
+fsspec==2024.9.0
     # via s3fs
 hypothesis==6.112.0
     # via wikidatabots (pyproject.toml)
@@ -101,7 +101,7 @@ requests==2.32.3
     #   wikidata-rdf-patch
 ruff==0.6.4
     # via wikidatabots (pyproject.toml)
-s3fs==2024.6.1
+s3fs==2024.9.0
     # via wikidatabots (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
