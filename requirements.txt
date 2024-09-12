@@ -28,10 +28,6 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via wikidata-rdf-patch
-exceptiongroup==1.2.2
-    # via
-    #   hypothesis
-    #   pytest
 feedparser==6.0.11
     # via wikidatabots (pyproject.toml)
 frozenlist==1.4.1
