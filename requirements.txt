@@ -133,7 +133,7 @@ types-tqdm==4.66.0.20240417
     # via wikidatabots (pyproject.toml)
 typing-extensions==4.12.2
     # via mypy
-urllib3==2.2.2
+urllib3==2.2.3
     # via
     #   botocore
     #   requests
