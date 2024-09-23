@@ -209,7 +209,7 @@ SELECT ?title WHERE {
 }
 """
 
-_SEARCH_LIMIT = 35
+_SEARCH_LIMIT = 40
 
 
 def _wd_random_titles(limit: int, tmdb_type: Literal["movie", "tv"]) -> pl.LazyFrame:
@@ -335,7 +335,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
-_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_000
+_OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_500
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
 
