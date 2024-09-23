@@ -38,7 +38,7 @@ fsspec==2024.9.0
     # via s3fs
 hypothesis==6.112.0
     # via wikidatabots (pyproject.toml)
-idna==3.8
+idna==3.10
     # via
     #   requests
     #   yarl
