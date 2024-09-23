@@ -138,7 +138,7 @@ urllib3==2.2.2
     #   botocore
     #   requests
     #   types-requests
-vulture==2.11
+vulture==2.12
     # via wikidatabots (pyproject.toml)
 wcwidth==0.2.13
     # via wikitextparser
