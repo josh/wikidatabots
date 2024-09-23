@@ -529,3 +529,14 @@ def test_compute_stats() -> None:
     )
     stats_df = compute_stats(df)
     assert len(stats_df) == len(df.columns)
+
+
+def test_cast_categorical_regression() -> None:
+    df1 = pl.DataFrame(
+        {"a": [1, 2, 3], "b": ["foo", "foo", "foo"]},
+        schema={"a": pl.Int64, "b": pl.Categorical},
+    )
+    df2 = pl.DataFrame(
+        {"a": [1, 2, 3]},
+    ).with_columns(b=pl.lit("foo").cast(pl.Categorical))
+    assert_frame_equal(df1, df2)
