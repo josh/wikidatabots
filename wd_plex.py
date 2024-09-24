@@ -63,7 +63,7 @@ def _wikidata_tmdb_ids(guid_type: GUID_TYPE) -> pl.LazyFrame:
         sparql(_TMDB_QUERY[guid_type], schema=_TMDB_QUERY_SCHEMA)
         .filter(pl.col("tmdb_id").is_unique() & pl.col("plex_guid").is_null())
         .drop("plex_guid")
-        .with_columns(pl.lit(guid_type).cast(pl.Categorical).alias("type"))
+        .with_columns(pl.lit(guid_type, dtype=pl.Categorical).alias("type"))
     )
 
 
