@@ -148,5 +148,5 @@ wikitextparser==0.56.2
     # via wikidatabots (pyproject.toml)
 wrapt==1.16.0
     # via aiobotocore
-yarl==1.12.1
+yarl==1.13.1
     # via aiohttp
