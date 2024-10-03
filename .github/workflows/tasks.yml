@@ -48,7 +48,7 @@ jobs:
 
       - name: Process RDF statements
         run: |
-          wikidata-rdf-patch <output.ttl
+          wikidata-rdf-patch --verbose <output.ttl
         env:
           WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
