@@ -94,7 +94,6 @@ requests==2.32.3
     # via
     #   wikidatabots (pyproject.toml)
     #   pywikibot
-    #   wikidata-rdf-patch
 ruff==0.6.8
     # via wikidatabots (pyproject.toml)
 s3fs==2024.9.0
@@ -142,7 +141,7 @@ vulture==2.13
     # via wikidatabots (pyproject.toml)
 wcwidth==0.2.13
     # via wikitextparser
-wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@1c7b962d15c0e3bdda300b07773372718dbd779e
+wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@49627ada39dbf59a3eb3335bc5ab1b4a481233ad
     # via wikidatabots (pyproject.toml)
 wikitextparser==0.56.2
     # via wikidatabots (pyproject.toml)
