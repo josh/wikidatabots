@@ -53,3 +53,4 @@ jobs:
           WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
           WIKIDATA_BLOCKLIST_URL: "https://www.wikidata.org/wiki/User:Josh404Bot/Blocklist"
+          WIKIDATA_MIN_TIME_BETWEEN_EDITS: 9
