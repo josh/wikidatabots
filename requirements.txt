@@ -52,8 +52,6 @@ rdflib==7.0.0
     # via
     #   wikidatabots (pyproject.toml)
     #   wikidata-rdf-patch
-regex==2024.9.11
-    # via wikitextparser
 requests==2.32.3
     # via
     #   wikidatabots (pyproject.toml)
@@ -86,9 +84,5 @@ urllib3==2.2.3
     #   types-requests
 vulture==2.13
     # via wikidatabots (pyproject.toml)
-wcwidth==0.2.13
-    # via wikitextparser
 wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@50a3c0fba648651de0ffbddad1837bcd2995bf22
-    # via wikidatabots (pyproject.toml)
-wikitextparser==0.56.2
     # via wikidatabots (pyproject.toml)
