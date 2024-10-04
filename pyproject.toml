@@ -2,7 +2,7 @@
 name = "wikidatabots"
 readme = "README.md"
 authors = [{name = "Joshua Peek"}]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "backoff>=2.0.0,<3.0",
     "beautifulsoup4>=4.11.0,<5.0",
