@@ -31,15 +31,11 @@ mypy==1.11.2
 mypy-extensions==1.0.0
     # via mypy
 numpy==2.1.1
-    # via
-    #   wikidatabots (pyproject.toml)
-    #   pandas-stubs
+    # via wikidatabots (pyproject.toml)
 packaging==24.1
     # via
     #   pytest
     #   pywikibot
-pandas-stubs==2.2.2.240909
-    # via wikidatabots (pyproject.toml)
 pluggy==1.5.0
     # via pytest
 polars==1.9.0
@@ -86,8 +82,6 @@ types-openpyxl==3.1.5.20240822
     # via wikidatabots (pyproject.toml)
 types-pygments==2.18.0.20240506
     # via wikidatabots (pyproject.toml)
-types-pytz==2024.2.0.20240913
-    # via pandas-stubs
 types-requests==2.32.0.20240907
     # via wikidatabots (pyproject.toml)
 types-setuptools==75.1.0.20240917
