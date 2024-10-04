@@ -5,7 +5,6 @@ import html
 import os
 import random
 import sys
-import tempfile
 import xml.etree.ElementTree as ET
 import zlib
 from collections.abc import Callable, Iterator
@@ -16,7 +15,6 @@ from typing import Any, TextIO, TypedDict, TypeVar
 import numpy as np
 import polars as pl
 import polars.selectors as cs
-import s3fs  # type: ignore
 from polars._typing import PolarsDataType
 from tqdm import tqdm
 
@@ -747,11 +745,6 @@ atexit.register(_cleanup_tmpfiles)
 
 def scan_s3_parquet_anon(uri: str) -> pl.LazyFrame:
     assert uri.startswith("s3://")
-
-    tmppath = Path(tempfile.mkstemp()[1])
-    _TMPFILES.append(tmppath)
-
-    s3 = s3fs.S3FileSystem(anon=True)
-    s3.get_file(uri, tmppath)
-
-    return pl.scan_parquet(tmppath)
+    bucket, path = uri[5:].split("/", 1)
+    url = f"https://{bucket}.s3.amazonaws.com/{path}"
+    return pl.scan_parquet(url)
