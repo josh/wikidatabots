@@ -58,7 +58,7 @@ requests==2.32.3
     # via
     #   wikidatabots (pyproject.toml)
     #   pywikibot
-ruff==0.6.8
+ruff==0.6.9
     # via wikidatabots (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
