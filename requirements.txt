@@ -44,7 +44,7 @@ pyparsing==3.1.4
     # via rdflib
 pytest==8.3.3
     # via wikidatabots (pyproject.toml)
-pywikibot==9.3.1
+pywikibot==9.4.0
     # via
     #   wikidatabots (pyproject.toml)
     #   wikidata-rdf-patch
