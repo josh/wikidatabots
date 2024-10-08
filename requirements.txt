@@ -84,5 +84,5 @@ urllib3==2.2.3
     #   types-requests
 vulture==2.13
     # via wikidatabots (pyproject.toml)
-wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@8b3ba3d4c162cba342b11688dd4b6a5e8fa59dbf
+wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@ac102e01828f65b322fde4df77d1b1e8508b759d
     # via wikidatabots (pyproject.toml)
