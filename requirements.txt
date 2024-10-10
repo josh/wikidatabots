@@ -24,8 +24,6 @@ isodate==0.6.1
     # via rdflib
 lxml==5.3.0
     # via wikidatabots (pyproject.toml)
-mwparserfromhell==0.6.6
-    # via pywikibot
 mypy==1.11.2
     # via wikidatabots (pyproject.toml)
 mypy-extensions==1.0.0
@@ -33,9 +31,7 @@ mypy-extensions==1.0.0
 numpy==2.1.2
     # via wikidatabots (pyproject.toml)
 packaging==24.1
-    # via
-    #   pytest
-    #   pywikibot
+    # via pytest
 pluggy==1.5.0
     # via pytest
 polars==1.9.0
@@ -44,16 +40,12 @@ pyparsing==3.1.4
     # via rdflib
 pytest==8.3.3
     # via wikidatabots (pyproject.toml)
-pywikibot==9.4.0
-    # via wikidatabots (pyproject.toml)
 rdflib==7.0.0
     # via
     #   wikidatabots (pyproject.toml)
     #   wikidata-rdf-patch
 requests==2.32.3
-    # via
-    #   wikidatabots (pyproject.toml)
-    #   pywikibot
+    # via wikidatabots (pyproject.toml)
 ruff==0.6.9
     # via wikidatabots (pyproject.toml)
 sgmllib3k==1.0.0
