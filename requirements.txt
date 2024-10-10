@@ -20,7 +20,7 @@ idna==3.10
     # via requests
 iniconfig==2.0.0
     # via pytest
-isodate==0.6.1
+isodate==0.7.2
     # via rdflib
 lxml==5.3.0
     # via wikidatabots (pyproject.toml)
