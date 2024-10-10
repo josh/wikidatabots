@@ -2,8 +2,3 @@ __pycache__/
 *.parquet
 /.hypothesis/
 /.venv/
-/apicache-py3/
-/apicache/
-pywikibot.lwp
-throttle.ctrl
-user-password.py
