@@ -45,9 +45,7 @@ pyparsing==3.1.4
 pytest==8.3.3
     # via wikidatabots (pyproject.toml)
 pywikibot==9.4.0
-    # via
-    #   wikidatabots (pyproject.toml)
-    #   wikidata-rdf-patch
+    # via wikidatabots (pyproject.toml)
 rdflib==7.0.0
     # via
     #   wikidatabots (pyproject.toml)
@@ -86,5 +84,5 @@ urllib3==2.2.3
     #   types-requests
 vulture==2.13
     # via wikidatabots (pyproject.toml)
-wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@9a1669d546f656417ddfa215cdaa9dc58c105961
+wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@36378e19fd9baccd940aee71931a822e02325ad7
     # via wikidatabots (pyproject.toml)
