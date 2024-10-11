@@ -48,9 +48,10 @@ jobs:
 
       - name: Process RDF statements
         run: |
-          wikidata-rdf-patch --verbose <output.ttl
+          wikidata-rdf-patch <output.ttl
         env:
           WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
+          WIKIDATA_USER_AGENT: "Josh404Bot/1.0 (User:Josh404Bot)"
           WIKIDATA_BLOCKLIST_URL: "https://www.wikidata.org/wiki/User:Josh404Bot/Blocklist"
           WIKIDATA_MIN_TIME_BETWEEN_EDITS: 5
