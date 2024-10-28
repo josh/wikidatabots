@@ -93,10 +93,10 @@ def test_merge_with_indicator() -> None:
             "_merge": ["both", "both", "right_only", "left_only"],
         },
         schema={
-            "a": pl.Int64,
-            "b": pl.Int64,
-            "b_right": pl.Int64,
-            "_merge": pl.Categorical,
+            "a": pl.Int64(),
+            "b": pl.Int64(),
+            "b_right": pl.Int64(),
+            "_merge": pl.Categorical(ordering="physical"),
         },
     )
     assert_frame_equal(df3, df4)
@@ -106,7 +106,12 @@ def test_now() -> None:
     df = pl.LazyFrame({"a": [1, 2, 3]}).with_columns(
         now().alias("timestamp"),
     )
-    assert df.collect_schema() == pl.Schema({"a": pl.Int64, "timestamp": pl.Datetime})
+    assert df.collect_schema() == pl.Schema(
+        {
+            "a": pl.Int64(),
+            "timestamp": pl.Datetime(time_unit="ms"),
+        }
+    )
     df.collect()
 
 

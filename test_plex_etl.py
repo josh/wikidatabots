@@ -81,9 +81,9 @@ def test_plex_search_guids() -> None:
     )
     assert df.collect_schema() == pl.Schema(
         {
-            "key": pl.Binary,
-            "type": pl.Categorical,
-            "hexkey": pl.Utf8,
+            "key": pl.Binary(),
+            "type": pl.Categorical(ordering="physical"),
+            "hexkey": pl.Utf8(),
         }
     )
     assert len(df) > 0
@@ -97,7 +97,12 @@ def test_plex_search_guids() -> None:
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_wikidata_search_guids() -> None:
     ldf = wikidata_search_guids(limit=10)
-    assert ldf.collect_schema() == pl.Schema({"key": pl.Binary, "type": pl.Categorical})
+    assert ldf.collect_schema() == pl.Schema(
+        {
+            "key": pl.Binary(),
+            "type": pl.Categorical(ordering="physical"),
+        }
+    )
     df = ldf.collect()
     assert len(df) > 0
 

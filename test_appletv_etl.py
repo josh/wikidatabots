@@ -16,9 +16,9 @@ def test_sitemap() -> None:
     ldf = sitemap(sitemap_type="show", limit=5)
     assert ldf.collect_schema() == pl.Schema(
         {
-            "loc": pl.Utf8,
-            "lastmod": pl.Datetime,
-            "priority": pl.Float32,
+            "loc": pl.Utf8(),
+            "lastmod": pl.Datetime(time_unit="ns"),
+            "priority": pl.Float32(),
         }
     )
     ldf.collect()
