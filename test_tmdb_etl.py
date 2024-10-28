@@ -1,7 +1,6 @@
 import datetime
 
 import polars as pl
-from polars._typing import PolarsDataType
 from polars.testing import assert_frame_equal
 
 from tmdb_etl import (
@@ -14,17 +13,19 @@ from tmdb_etl import (
     tmdb_find,
 )
 
-_SCHEMA: dict[str, PolarsDataType] = {
-    "id": pl.UInt32,
-    "date": pl.Date,
-    "adult": pl.Boolean,
-    "in_export": pl.Boolean,
-    "success": pl.Boolean,
-    "retrieved_at": pl.Datetime(time_unit="ns"),
-    "imdb_numeric_id": pl.UInt32,
-    "tvdb_id": pl.UInt32,
-    "wikidata_numeric_id": pl.UInt32,
-}
+_SCHEMA = pl.Schema(
+    {
+        "id": pl.UInt32(),
+        "date": pl.Date(),
+        "adult": pl.Boolean(),
+        "in_export": pl.Boolean(),
+        "success": pl.Boolean(),
+        "retrieved_at": pl.Datetime(time_unit="ns"),
+        "imdb_numeric_id": pl.UInt32(),
+        "tvdb_id": pl.UInt32(),
+        "wikidata_numeric_id": pl.UInt32(),
+    }
+)
 
 
 def test_insert_tmdb_external_ids() -> None:
@@ -74,11 +75,13 @@ def test_tmdb_changes() -> None:
         {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
     )
     ldf = tmdb_changes(dates_df, tmdb_type="movie")
-    assert ldf.collect_schema() == {
-        "id": pl.UInt32,
-        "date": pl.Date,
-        "adult": pl.Boolean,
-    }
+    assert ldf.collect_schema() == pl.Schema(
+        {
+            "id": pl.UInt32,
+            "date": pl.Date,
+            "adult": pl.Boolean,
+        }
+    )
     ldf.collect()
 
 
@@ -109,14 +112,16 @@ def test_tmdb_external_ids() -> None:
             "imdb_numeric_id": pl.Series([None, 94675, 92149, None], dtype=pl.UInt32),
         }
     )
-    assert df.collect_schema() == {
-        "id": pl.UInt32,
-        "success": pl.Boolean,
-        "retrieved_at": pl.Datetime(time_unit="ns"),
-        "imdb_numeric_id": pl.UInt32,
-        "tvdb_id": pl.UInt32,
-        "wikidata_numeric_id": pl.UInt32,
-    }
+    assert df.collect_schema() == pl.Schema(
+        {
+            "id": pl.UInt32(),
+            "success": pl.Boolean(),
+            "retrieved_at": pl.Datetime(time_unit="ns"),
+            "imdb_numeric_id": pl.UInt32(),
+            "tvdb_id": pl.UInt32(),
+            "wikidata_numeric_id": pl.UInt32(),
+        }
+    )
     assert_frame_equal(df.select(["id", "success", "imdb_numeric_id"]), df2)
 
 

@@ -26,7 +26,7 @@ def teardown_module() -> None:
 
 def test_wikidata_plex_guids() -> None:
     ldf = wikidata_plex_guids()
-    assert ldf.collect_schema() == {"key": pl.Binary}
+    assert ldf.collect_schema() == pl.Schema({"key": pl.Binary})
     assert len(ldf.collect()) > 0
 
 
@@ -79,11 +79,13 @@ def test_plex_search_guids() -> None:
         )
         .collect()
     )
-    assert df.collect_schema() == {
-        "key": pl.Binary,
-        "hexkey": pl.Utf8,
-        "type": pl.Categorical,
-    }
+    assert df.collect_schema() == pl.Schema(
+        {
+            "key": pl.Binary,
+            "type": pl.Categorical,
+            "hexkey": pl.Utf8,
+        }
+    )
     assert len(df) > 0
 
     df2 = df.filter(
@@ -95,7 +97,7 @@ def test_plex_search_guids() -> None:
 @pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_wikidata_search_guids() -> None:
     ldf = wikidata_search_guids(limit=10)
-    assert ldf.collect_schema() == {"key": pl.Binary, "type": pl.Categorical}
+    assert ldf.collect_schema() == pl.Schema({"key": pl.Binary, "type": pl.Categorical})
     df = ldf.collect()
     assert len(df) > 0
 

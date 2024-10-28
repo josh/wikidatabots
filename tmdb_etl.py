@@ -153,7 +153,7 @@ def tmdb_external_ids(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
 
 
 def tmdb_changes(df: pl.LazyFrame, tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
-    assert df.collect_schema() == {"date": pl.Date}
+    assert df.collect_schema() == pl.Schema({"date": pl.Date})
     return (
         df.with_columns(
             pl.format("https://api.themoviedb.org/3/{}/changes", pl.lit(tmdb_type))

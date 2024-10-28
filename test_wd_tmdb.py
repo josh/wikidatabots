@@ -9,14 +9,14 @@ from wd_tmdb import (
 
 def test_find_tmdb_ids_via_imdb_id() -> None:
     df = find_tmdb_ids_via_imdb_id(tmdb_type="movie")
-    assert df.collect_schema() == {"rdf_statement": pl.Utf8}
+    assert df.collect_schema() == pl.Schema({"rdf_statement": pl.Utf8})
 
 
 def test_find_tmdb_ids_via_tvdb_id() -> None:
     df = find_tmdb_ids_via_tvdb_id(tmdb_type="tv")
-    assert df.collect_schema() == {"rdf_statement": pl.Utf8}
+    assert df.collect_schema() == pl.Schema({"rdf_statement": pl.Utf8})
 
 
 def test_find_tmdb_ids_not_found() -> None:
     df = find_tmdb_ids_not_found(tmdb_type="movie")
-    assert df.collect_schema() == {"rdf_statement": pl.Utf8}
+    assert df.collect_schema() == pl.Schema({"rdf_statement": pl.Utf8})

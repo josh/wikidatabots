@@ -8,31 +8,35 @@ from appletv_etl import cleaned_sitemap, fetch_jsonld_columns, siteindex, sitema
 
 def test_siteindex() -> None:
     ldf = siteindex(sitemap_type="show")
-    assert ldf.collect_schema() == {"loc": pl.Utf8}
+    assert ldf.collect_schema() == pl.Schema({"loc": pl.Utf8})
     ldf.collect()
 
 
 def test_sitemap() -> None:
     ldf = sitemap(sitemap_type="show", limit=5)
-    assert ldf.collect_schema() == {
-        "loc": pl.Utf8,
-        "lastmod": pl.Datetime,
-        "priority": pl.Float32,
-    }
+    assert ldf.collect_schema() == pl.Schema(
+        {
+            "loc": pl.Utf8,
+            "lastmod": pl.Datetime,
+            "priority": pl.Float32,
+        }
+    )
     ldf.collect()
 
 
 def test_cleaned_sitemap() -> None:
     ldf = cleaned_sitemap(sitemap_type="show", limit=5)
-    assert ldf.collect_schema() == {
-        "id": pl.Utf8,
-        "type": pl.Categorical,
-        "country": pl.Categorical,
-        "loc": pl.Utf8,
-        "lastmod": pl.Datetime(time_unit="ns"),
-        "priority": pl.Float32,
-        "in_latest_sitemap": pl.Boolean,
-    }
+    assert ldf.collect_schema() == pl.Schema(
+        {
+            "loc": pl.Utf8(),
+            "country": pl.Categorical(),
+            "type": pl.Categorical(),
+            "id": pl.Utf8(),
+            "priority": pl.Float32(),
+            "in_latest_sitemap": pl.Boolean(),
+            "lastmod": pl.Datetime(time_unit="ns"),
+        }
+    )
     ldf.collect()
 
 

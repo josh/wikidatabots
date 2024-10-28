@@ -102,15 +102,17 @@ def test_request() -> None:
         )
     )
 
-    assert ldf.collect_schema() == {
-        "url": pl.Utf8,
-        "response": HTTP_RESPONSE_DTYPE,
-        "ok": pl.Boolean,
-        "date": pl.Datetime(time_unit="ms"),
-        "content_type": pl.Utf8,
-        "response_text": pl.Utf8,
-        "foo": pl.Utf8,
-    }
+    assert ldf.collect_schema() == pl.Schema(
+        {
+            "url": pl.Utf8(),
+            "response": HTTP_RESPONSE_DTYPE,
+            "ok": pl.Boolean(),
+            "date": pl.Datetime(time_unit="ms"),
+            "content_type": pl.Utf8(),
+            "response_text": pl.Utf8(),
+            "foo": pl.Utf8(),
+        }
+    )
 
     df = ldf.collect()
     assert len(df) == 3
@@ -305,10 +307,12 @@ def test_request_timeout() -> None:
         .pipe(request, log_group="postman", timeout=2.0),
     )
 
-    assert ldf.collect_schema() == {
-        "url": pl.Utf8,
-        "response": HTTP_RESPONSE_DTYPE,
-    }
+    assert ldf.collect_schema() == pl.Schema(
+        {
+            "url": pl.Utf8(),
+            "response": HTTP_RESPONSE_DTYPE,
+        }
+    )
 
     with pytest.raises(ComputeError):
         ldf.collect()
@@ -326,7 +330,7 @@ def test_prepare_request(
 ) -> None:
     expr = prepare_request(url, fields=fields, headers=headers)
     df = pl.select(expr)
-    assert df.collect_schema() == {"request": HTTP_REQUEST_DTYPE}
+    assert df.collect_schema() == pl.Schema({"request": HTTP_REQUEST_DTYPE})
 
 
 @given(
@@ -340,7 +344,7 @@ def test_response_ok(responses: pl.Series) -> None:
     df = pl.DataFrame({"response": responses}).select(
         pl.col("response").pipe(_response_ok)
     )
-    assert df.collect_schema() == {"ok": pl.Boolean}
+    assert df.collect_schema() == pl.Schema({"ok": pl.Boolean})
     assert len(df) == len(responses)
 
 
@@ -355,7 +359,7 @@ def test_response_header_value(responses: pl.Series) -> None:
     df = pl.DataFrame({"response": responses}).select(
         pl.col("response").pipe(response_header_value, name="Date")
     )
-    assert df.collect_schema() == {"Date": pl.Utf8}
+    assert df.collect_schema() == pl.Schema({"Date": pl.Utf8})
     assert len(df) == len(responses)
 
 
@@ -370,5 +374,5 @@ def test_response_text(responses: pl.Series) -> None:
     df = pl.DataFrame({"response": responses}).select(
         pl.col("response").pipe(response_text)
     )
-    assert df.collect_schema() == {"response_text": pl.Utf8}
+    assert df.collect_schema() == pl.Schema({"response_text": pl.Utf8})
     assert len(df) == len(responses)

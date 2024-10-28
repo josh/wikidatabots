@@ -20,11 +20,13 @@ def test_sparql() -> None:
         """,
         columns=["item", "itemLabel"],
     ).with_columns(_extract_qid("item").alias("qid"))
-    assert lf.collect_schema() == {
-        "item": pl.Utf8,
-        "itemLabel": pl.Utf8,
-        "qid": pl.Utf8,
-    }
+    assert lf.collect_schema() == pl.Schema(
+        {
+            "item": pl.Utf8,
+            "itemLabel": pl.Utf8,
+            "qid": pl.Utf8,
+        }
+    )
     df = lf.collect()
     assert len(df) == 10
 
@@ -43,6 +45,6 @@ def test_sparql_batch() -> None:
         )
         .drop("results")
     )
-    assert ldf.collect_schema() == {"pid": pl.Utf8, "n": pl.Utf8}
+    assert ldf.collect_schema() == pl.Schema({"pid": pl.Utf8, "n": pl.Utf8})
     df = ldf.collect()
     assert len(df) == 3

@@ -106,7 +106,7 @@ def test_now() -> None:
     df = pl.LazyFrame({"a": [1, 2, 3]}).with_columns(
         now().alias("timestamp"),
     )
-    assert df.collect_schema() == {"a": pl.Int64, "timestamp": pl.Datetime}
+    assert df.collect_schema() == pl.Schema({"a": pl.Int64, "timestamp": pl.Datetime})
     df.collect()
 
 
@@ -150,7 +150,7 @@ def test_weighted_random() -> None:
         )
         .sort("sort_arg")
     )
-    assert df.collect_schema() == {"a": pl.Int64, "sort_arg": pl.UInt32}
+    assert df.collect_schema() == pl.Schema({"a": pl.Int64, "sort_arg": pl.UInt32})
     assert len(df) == 3
 
 
@@ -243,7 +243,7 @@ def test_align_to_index() -> None:
         }
     ).map_batches(assert_called_once())
     df3 = align_to_index(df1, name="id").collect()
-    assert df3.collect_schema() == {"id": pl.UInt8, "value": pl.Int64}
+    assert df3.collect_schema() == pl.Schema({"id": pl.UInt8, "value": pl.Int64})
     assert df3.height == 256
 
     df = pl.LazyFrame(
@@ -434,13 +434,15 @@ def test_frame_diff_properties(df1: pl.DataFrame, df2: pl.DataFrame) -> None:
         on="a",
     )
     assert ldf.collect_schema().names()[0:3] == ["added", "removed", "updated"]
-    assert ldf.collect_schema() == {
-        "added": pl.UInt32,
-        "removed": pl.UInt32,
-        "updated": pl.UInt32,
-        "b_updated": pl.UInt32,
-        "c_updated": pl.UInt32,
-    }
+    assert ldf.collect_schema() == pl.Schema(
+        {
+            "added": pl.UInt32,
+            "removed": pl.UInt32,
+            "updated": pl.UInt32,
+            "b_updated": pl.UInt32,
+            "c_updated": pl.UInt32,
+        }
+    )
     df = ldf.collect()
     assert len(df) == 1
     row = df.row(0)
@@ -471,7 +473,7 @@ def test_apply_with_tqdm() -> None:
             log_group="test",
         )
     )
-    assert df3.collect_schema() == {"s": pl.Int64}
+    assert df3.collect_schema() == pl.Schema({"s": pl.Int64})
     assert_frame_equal(df2, df3)
 
 
@@ -483,7 +485,7 @@ def test_apply_with_tqdm_properties(s: pl.Series) -> None:
     df = pl.DataFrame({"a": s}).select(
         pl.col("a").pipe(apply_with_tqdm, fn, return_dtype=pl.Int64, log_group="test")
     )
-    assert df.collect_schema() == {"a": pl.Int64}
+    assert df.collect_schema() == pl.Schema({"a": pl.Int64})
     assert len(df) == len(s)
 
 
