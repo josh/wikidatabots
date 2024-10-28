@@ -1,6 +1,5 @@
 import feedparser  # type: ignore
 import polars as pl
-from polars._typing import PolarsDataType
 
 from polars_utils import print_rdf_statements
 from sparql import sparql
@@ -17,15 +16,17 @@ SELECT ?item ?episode_number ?title ?pubdate ?duration ?appleEpisodeId ?overcast
 }
 """
 
-_EPISODES_QUERY_SCHEMA: dict[str, PolarsDataType] = {
-    "item": pl.Utf8,
-    "episode_number": pl.UInt32,
-    "title": pl.Utf8,
-    "pubdate": pl.Datetime,
-    "duration": pl.Utf8,
-    "appleEpisodeId": pl.Utf8,
-    "overcastEpisodeId": pl.Utf8,
-}
+_EPISODES_QUERY_SCHEMA = pl.Schema(
+    {
+        "item": pl.Utf8,
+        "episode_number": pl.UInt32,
+        "title": pl.Utf8,
+        "pubdate": pl.Datetime,
+        "duration": pl.Utf8,
+        "appleEpisodeId": pl.Utf8,
+        "overcastEpisodeId": pl.Utf8,
+    }
+)
 
 
 def _wd_episodes(podcast_item: str) -> pl.LazyFrame:
@@ -35,32 +36,34 @@ def _wd_episodes(podcast_item: str) -> pl.LazyFrame:
     )
 
 
-_FEED_PARSER_SCHEMA: dict[str, PolarsDataType] = {
-    "title": pl.Utf8,
-    "link": pl.Utf8,
-    "id": pl.Utf8,
-    "author": pl.Utf8,
-    "links": pl.List(
-        pl.Struct(
-            {"rel": pl.Utf8, "type": pl.Utf8, "href": pl.Utf8, "length": pl.UInt32}
-        )
-    ),
-    "media_content": pl.List(
-        pl.Struct(
-            {
-                "url": pl.Utf8,
-                "type": pl.Utf8,
-                "medium": pl.Utf8,
-                "duration": pl.UInt32,
-                "lang": pl.Utf8,
-            }
-        )
-    ),
-    "published": pl.Utf8,
-    "itunes_duration": pl.Utf8,
-    "podcast_episode": pl.UInt32,
-    "summary": pl.Utf8,
-}
+_FEED_PARSER_SCHEMA = pl.Schema(
+    {
+        "title": pl.Utf8(),
+        "link": pl.Utf8(),
+        "id": pl.Utf8(),
+        "author": pl.Utf8(),
+        "links": pl.List(
+            pl.Struct(
+                {"rel": pl.Utf8, "type": pl.Utf8, "href": pl.Utf8, "length": pl.UInt32}
+            )
+        ),
+        "media_content": pl.List(
+            pl.Struct(
+                {
+                    "url": pl.Utf8,
+                    "type": pl.Utf8,
+                    "medium": pl.Utf8,
+                    "duration": pl.UInt32,
+                    "lang": pl.Utf8,
+                }
+            )
+        ),
+        "published": pl.Utf8(),
+        "itunes_duration": pl.Utf8(),
+        "podcast_episode": pl.UInt32(),
+        "summary": pl.Utf8(),
+    }
+)
 
 
 def _fetch_feed(url: str) -> pl.LazyFrame:

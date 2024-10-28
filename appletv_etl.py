@@ -49,9 +49,11 @@ def _cast_sitemap_type(sitemap_type: str) -> _TYPE:
         raise ValueError(f"Invalid sitemap_type: {sitemap_type}")
 
 
-_SITEINDEX_SCHEMA: dict[str, PolarsDataType] = {
-    "loc": pl.Utf8,
-}
+_SITEINDEX_SCHEMA = pl.Schema(
+    {
+        "loc": pl.Utf8,
+    }
+)
 _SITEINDEX_DTYPE: PolarsDataType = pl.List(pl.Struct(_SITEINDEX_SCHEMA))
 
 
@@ -75,11 +77,13 @@ def siteindex(sitemap_type: _TYPE) -> pl.LazyFrame:
     )
 
 
-_SITEMAP_SCHEMA: dict[str, PolarsDataType] = {
-    "loc": pl.Utf8,
-    "lastmod": pl.Utf8,
-    "priority": pl.Utf8,
-}
+_SITEMAP_SCHEMA = pl.Schema(
+    {
+        "loc": pl.Utf8,
+        "lastmod": pl.Utf8,
+        "priority": pl.Utf8,
+    }
+)
 _SITEMAP_DTYPE: PolarsDataType = pl.List(pl.Struct(_SITEMAP_SCHEMA))
 
 

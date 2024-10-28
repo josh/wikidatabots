@@ -1,7 +1,6 @@
 from typing import Literal
 
 import polars as pl
-from polars._typing import PolarsDataType
 
 from polars_utils import print_rdf_statements, scan_s3_parquet_anon
 from sparql import sparql
@@ -126,11 +125,13 @@ _IMDB_QUERY: dict[_TMDB_ID_PID, list[str]] = {
     "P4985": [_PERSON_IMDB_QUERY_1, _PERSON_IMDB_QUERY_2],
 }
 
-_IMDB_QUERY_SCHEMA: dict[str, PolarsDataType] = {
-    "item": pl.Utf8,
-    "imdb_id": pl.Utf8,
-    "tmdb_id": pl.UInt32,
-}
+_IMDB_QUERY_SCHEMA = pl.Schema(
+    {
+        "item": pl.Utf8,
+        "imdb_id": pl.Utf8,
+        "tmdb_id": pl.UInt32,
+    }
+)
 
 
 def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
@@ -202,11 +203,13 @@ _TVDB_QUERY: dict[_TMDB_ID_PID, str] = {
     "P4983": _TV_TVDB_QUERY,
 }
 
-_TVDB_QUERY_SCHEMA: dict[str, PolarsDataType] = {
-    "item": pl.Utf8,
-    "tvdb_id": pl.UInt32,
-    "tmdb_id": pl.UInt32,
-}
+_TVDB_QUERY_SCHEMA = pl.Schema(
+    {
+        "item": pl.Utf8,
+        "tvdb_id": pl.UInt32,
+        "tmdb_id": pl.UInt32,
+    }
+)
 
 
 def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
@@ -278,7 +281,7 @@ def find_tmdb_ids_not_found(
     ).select("id", "date", "success")
 
     query = _NOT_DEPRECATED_QUERY.replace("P0000", _TMDB_TYPE_TO_WD_PID[tmdb_type])
-    df = sparql(query, schema={"statement": pl.Utf8, "id": pl.UInt32})
+    df = sparql(query, schema=pl.Schema({"statement": pl.Utf8, "id": pl.UInt32}))
 
     if tmdb_type == "movie":
         exists_expr = (

@@ -1,5 +1,4 @@
 import polars as pl
-from polars._typing import PolarsDataType
 
 from polars_utils import print_rdf_statements, scan_s3_parquet_anon
 from sparql import sparql
@@ -29,14 +28,16 @@ SELECT ?item ?opencritic_id ?statement
 }
 """
 
-_QUERY_SCHEMA: dict[str, PolarsDataType] = {
-    "item": pl.Utf8,
-    "opencritic_id": pl.UInt32,
-    "statement": pl.Utf8,
-    "review_score": pl.Utf8,
-    "point_in_time": pl.Utf8,
-    "number_of_reviews": pl.Float64,
-}
+_QUERY_SCHEMA = pl.Schema(
+    {
+        "item": pl.Utf8,
+        "opencritic_id": pl.UInt32,
+        "statement": pl.Utf8,
+        "review_score": pl.Utf8,
+        "point_in_time": pl.Utf8,
+        "number_of_reviews": pl.Float64,
+    }
+)
 
 _ADD_STATEMENT_TEMPLATE = """
 <{}> p:P444 [
