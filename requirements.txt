@@ -56,7 +56,7 @@ sortedcontainers==2.4.0
     # via hypothesis
 soupsieve==2.6
     # via beautifulsoup4
-tqdm==4.66.5
+tqdm==4.66.6
     # via
     #   wikidatabots (pyproject.toml)
     #   wikidata-rdf-patch
