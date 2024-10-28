@@ -3,7 +3,6 @@ import sys
 from typing import Literal
 
 import polars as pl
-from polars._typing import PolarsDataType
 
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
@@ -119,7 +118,7 @@ def wikidata_plex_guids() -> pl.LazyFrame:
     )
 
 
-_SEARCH_METACONTAINER_JSON_DTYPE: PolarsDataType = pl.Struct(
+_SEARCH_METACONTAINER_JSON_DTYPE = pl.Struct(
     {
         "MediaContainer": pl.Struct(
             {
@@ -255,7 +254,7 @@ _METADATA_DTYPE = pl.Struct(
     }
 )
 
-_METACONTAINER_JSON_DTYPE: PolarsDataType = pl.Struct(
+_METACONTAINER_JSON_DTYPE = pl.Struct(
     {"MediaContainer": pl.Struct({"Metadata": pl.List(_METADATA_DTYPE)})}
 )
 

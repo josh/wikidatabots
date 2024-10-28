@@ -5,7 +5,6 @@ from typing import Literal
 
 import polars as pl
 from bs4 import BeautifulSoup
-from polars._typing import PolarsDataType
 
 from polars_requests import prepare_request, request, response_date, response_text
 from polars_utils import (
@@ -54,7 +53,7 @@ _SITEINDEX_SCHEMA = pl.Schema(
         "loc": pl.Utf8,
     }
 )
-_SITEINDEX_DTYPE: PolarsDataType = pl.List(pl.Struct(_SITEINDEX_SCHEMA))
+_SITEINDEX_DTYPE = pl.List(pl.Struct(_SITEINDEX_SCHEMA))
 
 
 def siteindex(sitemap_type: _TYPE) -> pl.LazyFrame:
@@ -84,7 +83,7 @@ _SITEMAP_SCHEMA = pl.Schema(
         "priority": pl.Utf8,
     }
 )
-_SITEMAP_DTYPE: PolarsDataType = pl.List(pl.Struct(_SITEMAP_SCHEMA))
+_SITEMAP_DTYPE = pl.List(pl.Struct(_SITEMAP_SCHEMA))
 
 
 def sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
