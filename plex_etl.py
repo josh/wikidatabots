@@ -208,7 +208,7 @@ SELECT ?title WHERE {
 }
 """
 
-_SEARCH_LIMIT = 40
+_SEARCH_LIMIT = 50
 
 
 def _wd_random_titles(limit: int, tmdb_type: Literal["movie", "tv"]) -> pl.LazyFrame:
