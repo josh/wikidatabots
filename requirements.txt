@@ -62,7 +62,7 @@ types-html5lib==1.1.11.20240806
     # via types-beautifulsoup4
 types-requests==2.32.0.20240907
     # via wikidatabots (pyproject.toml)
-types-tqdm==4.66.0.20240417
+types-tqdm==4.67.0.20241119
     # via wikidatabots (pyproject.toml)
 typing-extensions==4.12.2
     # via mypy
