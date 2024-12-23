@@ -66,7 +66,7 @@ types-tqdm==4.67.0.20241119
     # via wikidatabots (pyproject.toml)
 typing-extensions==4.12.2
     # via mypy
-urllib3==2.2.3
+urllib3==2.3.0
     # via
     #   requests
     #   types-requests
