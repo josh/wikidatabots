@@ -35,7 +35,7 @@ def test_sparql_batch() -> None:
     ldf = (
         pl.LazyFrame({"pid": ["P4947", "P4983", "P4985"]})
         .with_columns(
-            pl.format("SELECT ?n WHERE { wd:{} wdt:P4876 ?n. }", pl.col("pid"))
+            pl.format("SELECT ?n WHERE { wd:{} wdt:P1813 ?n. }", pl.col("pid"))
             .pipe(sparql_batch, columns=["n"])
             .alias("results"),
         )
