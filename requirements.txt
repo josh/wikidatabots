@@ -34,7 +34,7 @@ pluggy==1.5.0
     # via pytest
 polars==1.19.0
     # via wikidatabots (pyproject.toml)
-pyparsing==3.2.0
+pyparsing==3.2.1
     # via rdflib
 pytest==8.3.4
     # via wikidatabots (pyproject.toml)
