@@ -44,7 +44,7 @@ rdflib==7.1.2
     #   wikidata-rdf-patch
 requests==2.32.3
     # via wikidatabots (pyproject.toml)
-ruff==0.8.0
+ruff==0.9.1
     # via wikidatabots (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
