@@ -151,7 +151,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                 },
                 headers={
                     "Accept": "application/json",
-                    "X-Plex-Provider-Version": "6.3.0",
+                    "X-Plex-Provider-Version": "7.2.0",
                     # "X-Plex-Token": os.environ["PLEX_TOKEN"],
                 },
             )
