@@ -147,6 +147,7 @@ def plex_search_guids(df: pl.LazyFrame) -> pl.LazyFrame:
                     "limit": "100",
                     "searchTypes": "movies,tv",
                     "includeMetadata": "1",
+                    "searchProviders": "discover",
                 },
                 headers={
                     "Accept": "application/json",
