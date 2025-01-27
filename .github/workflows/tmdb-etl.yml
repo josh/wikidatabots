@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     concurrency: tmdb_${{ matrix.type }}
 
     strategy:
