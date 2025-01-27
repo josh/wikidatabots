@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   rdf-patch:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     concurrency: rdf_patch_${{ matrix.script }}
 
     strategy:
