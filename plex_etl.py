@@ -140,7 +140,20 @@ _SEARCH_METACONTAINER_JSON_DTYPE = pl.Struct(
                     pl.Struct(
                         {
                             "SearchResult": pl.List(
-                                pl.Struct({"Metadata": pl.Struct({"guid": pl.Utf8})})
+                                pl.Struct(
+                                    {
+                                        "Metadata": pl.Struct(
+                                            {
+                                                "guid": pl.Utf8,
+                                                "ratingKey": pl.Utf8,
+                                                "slug": pl.Utf8,
+                                                "title": pl.Utf8,
+                                                "type": pl.Utf8,
+                                                "year": pl.UInt32,
+                                            }
+                                        )
+                                    }
+                                )
                             ),
                         }
                     )
@@ -257,11 +270,12 @@ def _sort(df: SomeFrame) -> SomeFrame:
     return df.sort(by=pl.col("key").bin.encode("hex"))
 
 
-_METADATA_DTYPE = pl.Struct(
+_MEDIA_METADATA_DTYPE = pl.Struct(
     {
         "guid": pl.Utf8,
         "ratingKey": pl.Utf8,
         "type": pl.Utf8,
+        "slug": pl.Utf8,
         "title": pl.Utf8,
         "year": pl.UInt16,
         "Similar": pl.List(pl.Struct({"guid": pl.Utf8})),
@@ -269,8 +283,12 @@ _METADATA_DTYPE = pl.Struct(
     }
 )
 
-_METACONTAINER_JSON_DTYPE = pl.Struct(
-    {"MediaContainer": pl.Struct({"Metadata": pl.List(_METADATA_DTYPE)})}
+_MEDIA_METACONTAINER_JSON_DTYPE = pl.Struct(
+    {
+        "MediaContainer": pl.Struct(
+            {"size": pl.UInt32, "Metadata": pl.List(_MEDIA_METADATA_DTYPE)}
+        )
+    }
 )
 
 
@@ -323,7 +341,15 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
             (
                 pl.col("response")
                 .pipe(response_text)
-                .str.json_decode(_METACONTAINER_JSON_DTYPE)
+                .str.json_decode(_MEDIA_METACONTAINER_JSON_DTYPE)
+                .struct.field("MediaContainer")
+                .struct.field("size")
+                .alias("size")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_text)
+                .str.json_decode(_MEDIA_METACONTAINER_JSON_DTYPE)
                 .struct.field("MediaContainer")
                 .struct.field("Metadata")
                 .list.first()
@@ -333,7 +359,7 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
         .select(
             pl.col("key"),
             pl.col("metadata").struct.field("type").cast(pl.Categorical).alias("type"),
-            (pl.col("status_code") == 200).alias("success"),
+            ((pl.col("status_code") == 200) & (pl.col("size") > 0)).alias("success"),
             pl.col("retrieved_at"),
             pl.col("metadata").struct.field("year").alias("year"),
             _extract_guid(r"imdb://(?:tt|nm)(\d+)").alias("imdb_numeric_id"),
