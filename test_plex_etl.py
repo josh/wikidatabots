@@ -69,7 +69,6 @@ def test_fetch_metadata_guids() -> None:
     )
 
 
-@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_plex_search_guids() -> None:
     df = (
         pl.LazyFrame({"query": ["the godfather"]})
@@ -94,7 +93,6 @@ def test_plex_search_guids() -> None:
     assert len(df2) == 1
 
 
-@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
 def test_wikidata_search_guids() -> None:
     ldf = wikidata_search_guids(limit=10)
     assert ldf.collect_schema() == pl.Schema(
