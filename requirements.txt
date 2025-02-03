@@ -44,7 +44,7 @@ rdflib==7.1.3
     #   wikidata-rdf-patch
 requests==2.32.3
     # via wikidatabots (pyproject.toml)
-ruff==0.9.1
+ruff==0.9.4
     # via wikidatabots (pyproject.toml)
 sgmllib3k==1.0.0
     # via feedparser
@@ -56,16 +56,20 @@ tqdm==4.67.1
     # via
     #   wikidatabots (pyproject.toml)
     #   wikidata-rdf-patch
-types-beautifulsoup4==4.12.0.20240907
+types-beautifulsoup4==4.12.0.20241020
     # via wikidatabots (pyproject.toml)
-types-html5lib==1.1.11.20240806
+types-html5lib==1.1.11.20241018
     # via types-beautifulsoup4
-types-requests==2.32.0.20240907
-    # via wikidatabots (pyproject.toml)
-types-tqdm==4.67.0.20241119
+types-requests==2.32.0.20241016
+    # via
+    #   wikidatabots (pyproject.toml)
+    #   types-tqdm
+types-tqdm==4.67.0.20241221
     # via wikidatabots (pyproject.toml)
 typing-extensions==4.12.2
-    # via mypy
+    # via
+    #   beautifulsoup4
+    #   mypy
 urllib3==2.3.0
     # via
     #   requests
