@@ -1,6 +1,8 @@
 import datetime
+import os
 
 import polars as pl
+import pytest
 from polars.testing import assert_frame_equal
 
 from tmdb_etl import (
@@ -12,6 +14,8 @@ from tmdb_etl import (
     tmdb_external_ids,
     tmdb_find,
 )
+
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
 _SCHEMA = pl.Schema(
     {
@@ -28,6 +32,7 @@ _SCHEMA = pl.Schema(
 )
 
 
+@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_insert_tmdb_external_ids() -> None:
     df1 = pl.LazyFrame(
         {
@@ -49,6 +54,7 @@ def test_insert_tmdb_external_ids() -> None:
     assert len(df2) > 0
 
 
+@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_insert_tmdb_latest_changes() -> None:
     df1 = pl.LazyFrame(
         {
@@ -70,6 +76,7 @@ def test_insert_tmdb_latest_changes() -> None:
     assert len(df2) > 0
 
 
+@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_tmdb_changes() -> None:
     dates_df = pl.LazyFrame(
         {"date": [datetime.date(2023, 1, 1), datetime.date(2023, 1, 2)]}
@@ -85,6 +92,7 @@ def test_tmdb_changes() -> None:
     ldf.collect()
 
 
+@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_tmdb_exists() -> None:
     df = pl.LazyFrame({"tmdb_id": [0, 2, 3, 4, 3106]})
     df2 = df.with_columns(pl.col("tmdb_id").pipe(tmdb_exists, "movie"))
@@ -102,6 +110,7 @@ def test_tmdb_exists() -> None:
     assert_frame_equal(df2, df3)
 
 
+@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_tmdb_external_ids() -> None:
     ids = pl.Series("id", [1, 2, 3, 4], dtype=pl.UInt32)
     df = tmdb_external_ids(ids.to_frame().lazy(), tmdb_type="movie")
@@ -125,6 +134,7 @@ def test_tmdb_external_ids() -> None:
     assert_frame_equal(df.select(["id", "success", "imdb_numeric_id"]), df2)
 
 
+@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
 def test_find() -> None:
     df = pl.LazyFrame({"imdb_id": ["tt1630029", "tt14269590", "nm3718007"]})
 
