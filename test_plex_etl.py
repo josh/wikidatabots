@@ -8,7 +8,8 @@ from plex_etl import (
     fetch_metadata_guids,
     plex_search_guids,
     plex_server,
-    wikidata_plex_guids,
+    wikidata_plex_media_guids,
+    wikidata_plex_person_guids,
     wikidata_search_guids,
 )
 
@@ -24,8 +25,14 @@ def teardown_module() -> None:
     pl.disable_string_cache()
 
 
-def test_wikidata_plex_guids() -> None:
-    ldf = wikidata_plex_guids()
+def test_wikidata_plex_media_guids() -> None:
+    ldf = wikidata_plex_media_guids()
+    assert ldf.collect_schema() == pl.Schema({"key": pl.Binary})
+    assert len(ldf.collect()) > 0
+
+
+def test_wikidata_plex_person_guids() -> None:
+    ldf = wikidata_plex_person_guids()
     assert ldf.collect_schema() == pl.Schema({"key": pl.Binary})
     assert len(ldf.collect()) > 0
 

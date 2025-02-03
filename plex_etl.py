@@ -104,10 +104,24 @@ def _decode_plex_any_key(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_ANY_KEY_RE, 3).str.decode("hex")
 
 
-def wikidata_plex_guids() -> pl.LazyFrame:
+def wikidata_plex_media_guids() -> pl.LazyFrame:
     return (
         sparql(
             "SELECT DISTINCT ?guid WHERE { ?item ps:P11460 ?guid. }",
+            columns=["guid"],
+        )
+        .select(
+            pl.col("guid").pipe(_decode_plex_any_key).alias("key"),
+        )
+        .drop_nulls()
+        .unique(subset="key")
+    )
+
+
+def wikidata_plex_person_guids() -> pl.LazyFrame:
+    return (
+        sparql(
+            "SELECT DISTINCT ?guid WHERE { ?item ps:P12854 ?guid. }",
             columns=["guid"],
         )
         .select(
@@ -378,7 +392,7 @@ def _backfill_metadata(df: pl.LazyFrame) -> pl.LazyFrame:
 def _discover_guids(plex_df: pl.LazyFrame) -> pl.LazyFrame:
     return (
         plex_df.pipe(update_or_append, plex_library_guids(), on="key")
-        .pipe(update_or_append, wikidata_plex_guids(), on="key")
+        .pipe(update_or_append, wikidata_plex_media_guids(), on="key")
         .pipe(update_or_append, wikidata_search_guids(), on="key")
         .pipe(_sort)
     )
