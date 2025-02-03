@@ -6,6 +6,7 @@ from polars.testing import assert_frame_equal
 
 from plex_etl import (
     fetch_metadata_guids,
+    fetch_person_guids,
     plex_search_guids,
     plex_server,
     wikidata_plex_media_guids,
@@ -74,6 +75,41 @@ def test_fetch_metadata_guids() -> None:
     assert_frame_equal(
         fetch_metadata_guids(df).drop(["retrieved_at", "similar_guids"]), df2
     )
+
+
+@pytest.mark.skipif(PLEX_TOKEN is None, reason="Missing PLEX_TOKEN")
+def test_fetch_person_guids() -> None:
+    df = pl.LazyFrame(
+        {
+            "key": [
+                bytes.fromhex("5d77682654f42c001f8c2650"),
+                bytes.fromhex("5d776827999c64001ec2c986"),
+                bytes.fromhex("5d776825151a60001f24a403"),
+                bytes.fromhex("000000000000000000000000"),
+            ]
+        }
+    )
+    df2 = pl.LazyFrame(
+        {
+            "key": [
+                bytes.fromhex("5d77682654f42c001f8c2650"),
+                bytes.fromhex("5d776827999c64001ec2c986"),
+                bytes.fromhex("5d776825151a60001f24a403"),
+                bytes.fromhex("000000000000000000000000"),
+            ],
+            "type": pl.Series(
+                ["person", "person", "person", None], dtype=pl.Categorical
+            ),
+            "success": [True, True, True, False],
+            "slug": pl.Series(
+                ["tom-hanks", "daniel-craig", "scarlett-johansson", None], dtype=pl.Utf8
+            ),
+            "name": pl.Series(
+                ["Tom Hanks", "Daniel Craig", "Scarlett Johansson", None], dtype=pl.Utf8
+            ),
+        }
+    )
+    assert_frame_equal(fetch_person_guids(df).drop(["retrieved_at"]), df2)
 
 
 def test_plex_search_guids() -> None:

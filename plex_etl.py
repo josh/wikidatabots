@@ -349,6 +349,85 @@ def fetch_metadata_guids(df: pl.LazyFrame) -> pl.LazyFrame:
     )
 
 
+_PERSON_MEDIACONTAINER_JSON_DTYPE = pl.Struct(
+    {
+        "key": pl.Utf8,
+        "ratingKey": pl.Utf8,
+        "slug": pl.Utf8,
+        "title": pl.Utf8,
+        "type": pl.Utf8,
+    }
+)
+
+_PERSON_CONTAINER_JSON_DTYPE = pl.Struct(
+    {
+        "MediaContainer": pl.Struct(
+            {"size": pl.UInt32, "Metadata": pl.List(_PERSON_MEDIACONTAINER_JSON_DTYPE)}
+        )
+    }
+)
+
+
+def fetch_person_guids(df: pl.LazyFrame) -> pl.LazyFrame:
+    return (
+        df.with_columns(
+            pl.format(
+                "https://discover.provider.plex.tv/library/people/{}",
+                pl.col("key").bin.encode("hex"),
+            )
+            .pipe(
+                prepare_request,
+                headers={
+                    "Accept": "application/json",
+                    "X-Plex-Token": os.environ["PLEX_TOKEN"],
+                },
+            )
+            .pipe(
+                request,
+                log_group="discover.provider.plex.tv/library/people",
+                ok_statuses={200, 404},
+                bad_statuses={502, 504, 520},
+                retry_count=_PLEX_API_RETRY_COUNT,
+                timeout=60.0,
+            ),
+        )
+        .with_columns(
+            pl.col("response").struct.field("status").alias("status_code"),
+            (
+                pl.col("response")
+                .pipe(response_date)
+                .cast(pl.Datetime(time_unit="ns"))
+                .alias("retrieved_at")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_text)
+                .str.json_decode(_PERSON_CONTAINER_JSON_DTYPE)
+                .struct.field("MediaContainer")
+                .struct.field("size")
+                .alias("size")
+            ),
+            (
+                pl.col("response")
+                .pipe(response_text)
+                .str.json_decode(_PERSON_CONTAINER_JSON_DTYPE)
+                .struct.field("MediaContainer")
+                .struct.field("Metadata")
+                .list.first()
+                .alias("metadata")
+            ),
+        )
+        .select(
+            pl.col("key"),
+            pl.col("metadata").struct.field("type").cast(pl.Categorical).alias("type"),
+            ((pl.col("status_code") == 200) & (pl.col("size").gt(0))).alias("success"),
+            pl.col("retrieved_at"),
+            pl.col("metadata").struct.field("slug").alias("slug"),
+            pl.col("metadata").struct.field("title").alias("name"),
+        )
+    )
+
+
 _OLDEST_METADATA = pl.col("retrieved_at").rank("ordinal") <= 1_500
 _MISSING_METADATA = pl.col("retrieved_at").is_null()
 
