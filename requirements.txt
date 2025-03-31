@@ -18,7 +18,7 @@ hypothesis==6.130.5
     # via wikidatabots (pyproject.toml)
 idna==3.10
     # via requests
-iniconfig==2.0.0
+iniconfig==2.1.0
     # via pytest
 lxml==5.3.1
     # via wikidatabots (pyproject.toml)
