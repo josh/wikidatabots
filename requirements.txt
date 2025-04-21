@@ -50,7 +50,7 @@ sgmllib3k==1.0.0
     # via feedparser
 sortedcontainers==2.4.0
     # via hypothesis
-soupsieve==2.6
+soupsieve==2.7
     # via beautifulsoup4
 tqdm==4.67.1
     # via
