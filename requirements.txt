@@ -32,7 +32,7 @@ packaging==25.0
     # via pytest
 pluggy==1.5.0
     # via pytest
-polars==1.27.1
+polars==1.28.1
     # via wikidatabots (pyproject.toml)
 pyparsing==3.2.3
     # via rdflib
