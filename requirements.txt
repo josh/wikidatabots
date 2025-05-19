@@ -30,7 +30,7 @@ numpy==2.2.6
     # via wikidatabots (pyproject.toml)
 packaging==25.0
     # via pytest
-pluggy==1.5.0
+pluggy==1.6.0
     # via pytest
 polars==1.29.0
     # via wikidatabots (pyproject.toml)
