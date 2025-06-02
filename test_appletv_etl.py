@@ -45,10 +45,10 @@ def test_fetch_jsonld_columns() -> None:
         pl.LazyFrame(
             {
                 "loc": [
-                    "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
-                    "https://tv.apple.com/us/movie/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir",
-                    "https://tv.apple.com/us/movie/umc.cmc.3vmofz00i7y5m00861o6waay8",
-                    "https://tv.apple.com/us/movie/umc.cmc.1111111111111111111111111",
+                    "https://tv.apple.com/us/show/the-morning-show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
+                    "https://tv.apple.com/us/movie/coda/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir",
+                    "https://tv.apple.com/us/movie/o-brother-where-art-thou/umc.cmc.3vmofz00i7y5m00861o6waay8",
+                    "https://tv.apple.com/us/movie/unknown/umc.cmc.1111111111111111111111111",
                 ]
             }
         )
@@ -59,10 +59,10 @@ def test_fetch_jsonld_columns() -> None:
     df2 = pl.LazyFrame(
         {
             "loc": [
-                "https://tv.apple.com/us/show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
-                "https://tv.apple.com/us/movie/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir",
-                "https://tv.apple.com/us/movie/umc.cmc.3vmofz00i7y5m00861o6waay8",
-                "https://tv.apple.com/us/movie/umc.cmc.1111111111111111111111111",
+                "https://tv.apple.com/us/show/the-morning-show/umc.cmc.25tn3v8ku4b39tr6ccgb8nl6m",
+                "https://tv.apple.com/us/movie/coda/umc.cmc.3eh9r5iz32ggdm4ccvw5igiir",
+                "https://tv.apple.com/us/movie/o-brother-where-art-thou/umc.cmc.3vmofz00i7y5m00861o6waay8",
+                "https://tv.apple.com/us/movie/unknown/umc.cmc.1111111111111111111111111",
             ],
             "jsonld_success": [True, True, True, False],
             "title": ["The Morning Show", "CODA", "O Brother, Where Art Thou?", None],
