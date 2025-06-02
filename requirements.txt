@@ -14,7 +14,7 @@ click==8.2.1
     # via wikidata-rdf-patch
 feedparser==6.0.11
     # via wikidatabots (pyproject.toml)
-hypothesis==6.131.0
+hypothesis==6.133.0
     # via wikidatabots (pyproject.toml)
 idna==3.10
     # via requests
