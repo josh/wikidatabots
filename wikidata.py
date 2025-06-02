@@ -59,4 +59,4 @@ _BLOCKED_EXPR = pl.lit(None).map_batches(
 
 
 def is_blocked_item(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract(r"(Q[0-9]+)").is_in(_BLOCKED_EXPR)
+    return expr.str.extract(r"(Q[0-9]+)").is_in(_BLOCKED_EXPR.implode())
