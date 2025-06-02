@@ -22,7 +22,7 @@ iniconfig==2.1.0
     # via pytest
 lxml==5.4.0
     # via wikidatabots (pyproject.toml)
-mypy==1.15.0
+mypy==1.16.0
     # via wikidatabots (pyproject.toml)
 mypy-extensions==1.1.0
     # via mypy
