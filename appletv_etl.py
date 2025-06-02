@@ -192,48 +192,51 @@ def _parse_html(html: str) -> BeautifulSoup | None:
     return soup
 
 
-def _extract_script_text(
-    expr: pl.Expr,
-    log_group: str,
-    script_type: str | None = None,
-    script_id: str | None = None,
-) -> pl.Expr:
-    attrs: dict[str, str] = {}
-    if script_type:
-        attrs["type"] = script_type
-    if script_id:
-        attrs["id"] = script_id
-
-    def _soup_find_script_text(html: str) -> str | None:
-        if soup := _parse_html(html):
-            if script := soup.find("script", attrs):
-                return script.text
+def _find_content_jsonld(html: str) -> str | None:
+    soup = _parse_html(html)
+    if not soup:
         return None
 
+    scripts = soup.find_all("script", {"type": "application/ld+json"})
+    for script in scripts:
+        try:
+            script_text: str = script.get_text()
+            data = json.loads(script_text)
+            if isinstance(data, dict) and "name" in data and "datePublished" in data:
+                return script_text
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _extract_jsonld_text(expr: pl.Expr) -> pl.Expr:
     return apply_with_tqdm(
         expr,
-        _soup_find_script_text,
+        _find_content_jsonld,
         return_dtype=pl.Utf8,
-        log_group=log_group,
+        log_group="extract_jsonld",
     )
 
 
 def _extract_itunes_id(text: str) -> int | None:
-    root = json.loads(text)
-    root_key = next(iter(root.keys()), None)
-    if root_key is None:
+    soup = _parse_html(text)
+    if not soup:
         return None
-    data = root[root_key]
 
-    for playable in data.get("playables", {}).values():
-        if playable["isItunes"] is True and playable["channelId"] == "tvs.sbd.9001":
-            return int(playable["externalId"])
+    og_video = soup.find("meta", {"property": "og:video"})
+    if not og_video or not hasattr(og_video, "get"):
+        return None
 
-    for how_to_watch in data.get("howToWatch", []):
-        if how_to_watch.get("channelId") == "tvs.sbd.9001":
-            for version in how_to_watch["versions"]:
-                if m := re.match(r"tvs.sbd.9001:(\d+)", version["playableId"]):
-                    return int(m.group(1))
+    content = og_video.get("content")
+    if not content or not isinstance(content, str):
+        return None
+
+    if "play.itunes.apple.com/WebObjects/MZPlay.woa" not in content:
+        return None
+
+    match = re.search(r"[&?]a=(\d+)", content)
+    if match:
+        return int(match.group(1))
 
     return None
 
@@ -266,23 +269,13 @@ def fetch_jsonld_columns(df: SomeFrame) -> SomeFrame:
             (
                 pl.col("response")
                 .pipe(response_text)
-                .pipe(
-                    _extract_script_text,
-                    script_type="application/ld+json",
-                    log_group="extract_jsonld",
-                )
+                .pipe(_extract_jsonld_text)
                 .str.json_decode(dtype=_JSONLD_DTYPE)
                 .alias("jsonld")
             ),
             (
                 pl.col("response")
                 .pipe(response_text)
-                .pipe(
-                    _extract_script_text,
-                    script_type="fastboot/shoebox",
-                    script_id="shoebox-uts-api-cache",
-                    log_group="extract_shoebox",
-                )
                 .pipe(_extract_itunes_id_expr)
                 .cast(pl.UInt64)
                 .alias("itunes_id")
