@@ -42,7 +42,7 @@ rdflib==7.1.4
     # via
     #   wikidatabots (pyproject.toml)
     #   wikidata-rdf-patch
-requests==2.32.3
+requests==2.32.4
     # via wikidatabots (pyproject.toml)
 ruff==0.11.0
     # via wikidatabots (pyproject.toml)
