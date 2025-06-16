@@ -66,7 +66,7 @@ types-requests==2.32.0.20241016
     #   types-tqdm
 types-tqdm==4.67.0.20241221
     # via wikidatabots (pyproject.toml)
-typing-extensions==4.13.2
+typing-extensions==4.14.0
     # via
     #   beautifulsoup4
     #   mypy
