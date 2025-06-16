@@ -6,7 +6,7 @@ backoff==2.2.1
     # via wikidatabots (pyproject.toml)
 beautifulsoup4==4.13.4
     # via wikidatabots (pyproject.toml)
-certifi==2025.4.26
+certifi==2025.6.15
     # via requests
 charset-normalizer==3.4.2
     # via requests
