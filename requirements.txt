@@ -36,7 +36,7 @@ polars==1.29.0
     # via wikidatabots (pyproject.toml)
 pyparsing==3.2.3
     # via rdflib
-pytest==8.4.0
+pytest==8.4.1
     # via wikidatabots (pyproject.toml)
 rdflib==7.1.4
     # via
