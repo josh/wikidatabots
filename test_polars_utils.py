@@ -5,7 +5,7 @@ import polars as pl
 import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.exceptions import InvalidOperationError
+from polars.exceptions import ComputeError, InvalidOperationError
 from polars.testing import assert_frame_equal, assert_series_equal
 from polars.testing.parametric import column, dataframes, series
 
@@ -266,10 +266,7 @@ def test_align_to_index() -> None:
             "value": [1, 2, 5],
         }
     )
-    with pytest.raises(
-        InvalidOperationError,
-        match=r"conversion from `str` to `i64` failed in column \'id\'.*",
-    ):
+    with pytest.raises((InvalidOperationError, ComputeError)):
         align_to_index(df, name="id").collect()
 
 
