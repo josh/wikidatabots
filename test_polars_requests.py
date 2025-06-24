@@ -2,11 +2,11 @@ from typing import Any
 
 import polars as pl
 import pytest
-import requests
 from hypothesis import given
 from hypothesis import strategies as st
 from hypothesis.provisional import urls
 from hypothesis.strategies import DrawFn, composite
+from polars.exceptions import ComputeError
 from polars.testing import assert_frame_equal
 from polars.testing.parametric import series
 
@@ -314,7 +314,7 @@ def test_request_timeout() -> None:
         }
     )
 
-    with pytest.raises(requests.exceptions.Timeout):
+    with pytest.raises(ComputeError):
         ldf.collect()
 
 
