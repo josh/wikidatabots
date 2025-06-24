@@ -513,18 +513,12 @@ def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
 
     dtype = df.schema[name]
 
-    try:
-        row = (
-            df.select(
-                pl.col(name).max().cast(pl.Int64).alias("max"),
-                pl.col(name).is_not_null().all().alias("not_null"),
-                pl.col(name).is_unique().all().alias("unique"),
-                pl.col(name).ge(0).all().alias("positive_int"),
-            )
-            .row(0, named=True)
-        )
-    except pl.exceptions.ComputeError as e:
-        raise pl.exceptions.InvalidOperationError(str(e)) from e
+    row = df.select(
+        pl.col(name).max().cast(pl.Int64).alias("max"),
+        pl.col(name).is_not_null().all().alias("not_null"),
+        pl.col(name).is_unique().all().alias("unique"),
+        pl.col(name).ge(0).all().alias("positive_int"),
+    ).row(0, named=True)
 
     assert row["not_null"], f"column '{name}' has null values"
     assert row["unique"], f"column '{name}' has non-unique values"
