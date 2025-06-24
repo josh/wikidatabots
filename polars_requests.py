@@ -1,7 +1,7 @@
 import time
 from collections.abc import Callable, Iterable
 from functools import partial
-from typing import ParamSpec, TypedDict, TypeVar
+from typing import TypedDict, TypeVar
 
 import backoff
 import polars as pl
@@ -10,6 +10,8 @@ from tqdm import tqdm
 
 from actions import log_group as _log_group
 from actions import warn
+
+T = TypeVar("T")
 
 
 class _HTTPDict(TypedDict):
@@ -70,11 +72,10 @@ class StatusCodeWarning(Warning):
     pass
 
 
-T = TypeVar("T")
-P = ParamSpec("P")
 
 
-def _decorate_backoff(fn: Callable[P, T], max_retries: int) -> Callable[P, T]:
+
+def _decorate_backoff[T](fn: Callable[..., T], max_retries: int) -> Callable[..., T]:
     assert max_retries <= 12, "Too many retries"
     if max_retries:
         return backoff.on_exception(

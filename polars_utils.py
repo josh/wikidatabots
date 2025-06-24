@@ -24,9 +24,9 @@ from actions import warn
 SomeFrame = TypeVar("SomeFrame", pl.DataFrame, pl.LazyFrame)
 
 
-def map_batches(
-    df: SomeFrame, function: Callable[[pl.DataFrame], pl.DataFrame]
-) -> SomeFrame:
+def map_batches[F: (pl.DataFrame, pl.LazyFrame)](
+    df: F, function: Callable[[pl.DataFrame], pl.DataFrame]
+) -> F:
     if isinstance(df, pl.LazyFrame):
         return df.map_batches(function)
     else:
@@ -448,19 +448,19 @@ def weighted_random(weights: pl.Expr) -> pl.Expr:
     return weights.map_batches(_weighted_random, return_dtype=pl.UInt32)
 
 
-def weighted_sample(df: SomeFrame, n: int) -> SomeFrame:
+def weighted_sample[F: (pl.DataFrame, pl.LazyFrame)](df: F, n: int) -> F:
     weighted_args = position_weights().pipe(weighted_random)
     return df.sort(by=weighted_args).head(n=n)
 
 
-def sample(
-    df: SomeFrame,
+def sample[F: (pl.DataFrame, pl.LazyFrame)](
+    df: F,
     n: int | None = None,
     fraction: float | None = None,
     with_replacement: bool = False,
     shuffle: bool = False,
     seed: int | None = None,
-) -> SomeFrame:
+) -> F:
     def _sample(df: pl.DataFrame) -> pl.DataFrame:
         return df.sample(
             n=n,
@@ -473,7 +473,7 @@ def sample(
     return map_batches(df, _sample)
 
 
-def head(df: SomeFrame, n: int | None) -> SomeFrame:
+def head[F: (pl.DataFrame, pl.LazyFrame)](df: F, n: int | None) -> F:
     if n:
         return df.head(n)
     else:
@@ -484,12 +484,12 @@ class LimitWarning(Warning):
     pass
 
 
-def limit(
-    df: SomeFrame,
+def limit[F: (pl.DataFrame, pl.LazyFrame)](
+    df: F,
     n: int,
     sample: bool = True,
     desc: str = "frame",
-) -> SomeFrame:
+) -> F:
     def _inner(df: pl.DataFrame) -> pl.DataFrame:
         total = len(df)
         if total > n:
@@ -533,7 +533,7 @@ def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
     return id_df.join(df, on=name, how="left", coalesce=True).select(df.columns)
 
 
-def align_to_index(df: SomeFrame, name: str) -> SomeFrame:
+def align_to_index[F: (pl.DataFrame, pl.LazyFrame)](df: F, name: str) -> F:
     return map_batches(df, partial(_align_to_index, name=name))
 
 
@@ -559,11 +559,11 @@ def _update_or_append(df: pl.DataFrame, other: pl.DataFrame, on: str) -> pl.Data
     return pl.concat([df, other]).unique(subset=on, keep="last", maintain_order=True)
 
 
-def update_or_append(
-    df: SomeFrame,
+def update_or_append[F: (pl.DataFrame, pl.LazyFrame)](
+    df: F,
     other: pl.DataFrame | pl.LazyFrame,
     on: str,
-) -> SomeFrame:
+) -> F:
     if isinstance(other, pl.LazyFrame):
 
         def _update_or_append_collecting(df: pl.DataFrame) -> pl.DataFrame:
