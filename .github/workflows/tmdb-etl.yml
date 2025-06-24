@@ -25,16 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: "pyproject.toml"
-
       - uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: |
-          uv pip install --system --requirement requirements.txt
+        run: uv sync
+
       - name: Download from S3
         run: |
           aws s3 cp --region us-east-1 --no-sign-request "s3://wikidatabots/tmdb/${TYPE}.parquet" "tmdb.parquet"
@@ -43,7 +38,7 @@ jobs:
 
       - name: Run ETL script
         run: |
-          python tmdb_etl.py "$TYPE"
+          uv run tmdb_etl.py "$TYPE"
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
           TYPE: ${{ matrix.type }}
