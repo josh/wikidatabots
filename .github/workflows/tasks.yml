@@ -26,21 +26,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: "pyproject.toml"
-
       - uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: |
-          uv pip install --system --requirement requirements.txt
+        run: uv sync
 
       - name: Run script
         run: |
           set -o pipefail
-          python "$SCRIPT.py" | tee output.ttl
+          uv run "$SCRIPT.py" | tee output.ttl
         env:
           SCRIPT: ${{ matrix.script }}
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
@@ -48,7 +42,7 @@ jobs:
 
       - name: Process RDF statements
         run: |
-          wikidata-rdf-patch <output.ttl
+          uv run wikidata-rdf-patch <output.ttl
         env:
           WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}

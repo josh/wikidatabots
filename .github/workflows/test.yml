@@ -10,20 +10,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version-file: "pyproject.toml"
-
       - uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: |
-          uv pip install --system --requirement requirements.txt
+        run: uv sync
 
       - name: Test with pytest
         run: |
-          pytest --verbose
+          uv run pytest --verbose
         env:
           PLEX_SERVER: ${{ secrets.PLEX_SERVER }}
           PLEX_TOKEN: ${{ secrets.PLEX_TOKEN }}

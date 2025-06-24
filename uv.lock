@@ -521,7 +521,7 @@ dependencies = [
     { name = "wikidata-rdf-patch" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "hypothesis" },
     { name = "mypy" },
@@ -538,20 +538,23 @@ requires-dist = [
     { name = "backoff", specifier = ">=2.0.0,<3.0" },
     { name = "beautifulsoup4", specifier = ">=4.11.0,<5.0" },
     { name = "feedparser", specifier = ">=6.0.0,<7.0" },
-    { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0.0,<7.0" },
     { name = "lxml", specifier = ">=5.0.0,<6.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0,<2.0" },
     { name = "numpy", specifier = ">=1.0.0,<3.0" },
     { name = "polars", specifier = ">=1.0.0,<2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0,<9.0" },
     { name = "rdflib", specifier = ">=7.0.0,<8.0" },
     { name = "requests", specifier = ">=2.0.0,<3.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4.0" },
     { name = "tqdm", specifier = ">=4.0.0,<5.0" },
-    { name = "types-beautifulsoup4", marker = "extra == 'dev'", specifier = ">=4.11.0,<5.0" },
-    { name = "types-requests", marker = "extra == 'dev'", specifier = ">=2.0.0,<3.0" },
-    { name = "types-tqdm", marker = "extra == 'dev'", specifier = ">=4.0.0,<5.0" },
-    { name = "vulture", marker = "extra == 'dev'", specifier = ">=2.0,<3.0" },
     { name = "wikidata-rdf-patch", git = "https://github.com/josh/wikidata-rdf-patch.git?rev=v0.1.0" },
 ]
-provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.0.0,<7.0" },
+    { name = "mypy", specifier = ">=1.0.0,<2.0" },
+    { name = "pytest", specifier = ">=8.0.0,<9.0" },
+    { name = "ruff", specifier = ">=0.4.0" },
+    { name = "types-beautifulsoup4", specifier = ">=4.11.0,<5.0" },
+    { name = "types-requests", specifier = ">=2.0.0,<3.0" },
+    { name = "types-tqdm", specifier = ">=4.0.0,<5.0" },
+    { name = "vulture", specifier = ">=2.0,<3.0" },
+]
