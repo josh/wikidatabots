@@ -24,7 +24,7 @@ from actions import warn
 SomeFrame = TypeVar("SomeFrame", pl.DataFrame, pl.LazyFrame)
 
 
-def map_batches(
+def map_batches[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
     df: SomeFrame, function: Callable[[pl.DataFrame], pl.DataFrame]
 ) -> SomeFrame:
     if isinstance(df, pl.LazyFrame):
@@ -448,12 +448,14 @@ def weighted_random(weights: pl.Expr) -> pl.Expr:
     return weights.map_batches(_weighted_random, return_dtype=pl.UInt32)
 
 
-def weighted_sample(df: SomeFrame, n: int) -> SomeFrame:
+def weighted_sample[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
+    df: SomeFrame, n: int
+) -> SomeFrame:
     weighted_args = position_weights().pipe(weighted_random)
     return df.sort(by=weighted_args).head(n=n)
 
 
-def sample(
+def sample[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
     df: SomeFrame,
     n: int | None = None,
     fraction: float | None = None,
@@ -473,7 +475,9 @@ def sample(
     return map_batches(df, _sample)
 
 
-def head(df: SomeFrame, n: int | None) -> SomeFrame:
+def head[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
+    df: SomeFrame, n: int | None
+) -> SomeFrame:
     if n:
         return df.head(n)
     else:
@@ -484,7 +488,7 @@ class LimitWarning(Warning):
     pass
 
 
-def limit(
+def limit[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
     df: SomeFrame,
     n: int,
     sample: bool = True,
@@ -533,7 +537,9 @@ def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
     return id_df.join(df, on=name, how="left", coalesce=True).select(df.columns)
 
 
-def align_to_index(df: SomeFrame, name: str) -> SomeFrame:
+def align_to_index[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
+    df: SomeFrame, name: str
+) -> SomeFrame:
     return map_batches(df, partial(_align_to_index, name=name))
 
 
@@ -559,7 +565,7 @@ def _update_or_append(df: pl.DataFrame, other: pl.DataFrame, on: str) -> pl.Data
     return pl.concat([df, other]).unique(subset=on, keep="last", maintain_order=True)
 
 
-def update_or_append(
+def update_or_append[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
     df: SomeFrame,
     other: pl.DataFrame | pl.LazyFrame,
     on: str,
