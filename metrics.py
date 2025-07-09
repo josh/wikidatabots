@@ -130,8 +130,5 @@ if __name__ == "__main__":
 
     parquet_metrics("s3://wikidatabots/opencritic.parquet")
     parquet_metrics("s3://wikidatabots/plex.parquet")
-    parquet_metrics("s3://wikidatabots/tmdb/movie.parquet")
-    parquet_metrics("s3://wikidatabots/tmdb/tv.parquet")
-    parquet_metrics("s3://wikidatabots/tmdb/person.parquet")
     parquet_metrics("s3://wikidatabots/appletv/movie.parquet")
     parquet_metrics("s3://wikidatabots/appletv/show.parquet")

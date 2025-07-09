@@ -1,11 +1,88 @@
+import os
 from typing import Literal
 
 import polars as pl
 
+from polars_requests import prepare_request, request, response_text
 from polars_utils import print_rdf_statements
 from sparql import sparql
-from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 from wikidata import is_blocked_item
+
+TMDB_TYPE = Literal["movie", "tv", "person"]
+
+_IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
+    "movie": r"tt(\d+)",
+    "tv": r"tt(\d+)",
+    "person": r"nm(\d+)",
+}
+
+
+def _extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
+    return (
+        expr.str.extract(_IMDB_ID_PATTERN[tmdb_type], 1)
+        .cast(pl.UInt32)
+        .alias("imdb_numeric_id")
+    )
+
+
+_EXISTS_TMDB_TYPE = Literal["movie", "tv", "person", "collection"]
+
+
+def tmdb_exists(expr: pl.Expr, tmdb_type: _EXISTS_TMDB_TYPE) -> pl.Expr:
+    return (
+        pl.format("https://api.themoviedb.org/3/{}/{}", pl.lit(tmdb_type), expr)
+        .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
+        .pipe(
+            request,
+            log_group=f"api.themoviedb.org/3/{tmdb_type}",
+            ok_statuses={200, 404},
+            retry_count=3,
+        )
+        .pipe(response_text)
+        .str.json_decode(dtype=pl.Struct([pl.Field("id", pl.UInt32)]))
+        .struct.field("id")
+        .is_not_null()
+        .alias("exists")
+    )
+
+
+_FIND_RESPONSE_DTYPE = pl.Struct(
+    {
+        "movie_results": pl.List(pl.Struct({"id": pl.UInt32})),
+        "tv_results": pl.List(pl.Struct({"id": pl.UInt32})),
+        "person_results": pl.List(pl.Struct({"id": pl.UInt32})),
+    }
+)
+
+
+def tmdb_find(
+    expr: pl.Expr,
+    tmdb_type: TMDB_TYPE,
+    external_id_type: Literal["imdb_id", "tvdb_id", "wikidata_id"],
+) -> pl.Expr:
+    return (
+        pl.format("https://api.themoviedb.org/3/find/{}", expr)
+        .pipe(
+            prepare_request,
+            fields={
+                "external_source": external_id_type,
+                "api_key": os.environ["TMDB_API_KEY"],
+            },
+        )
+        .pipe(
+            request,
+            log_group="api.themoviedb.org/3/find",
+            ok_statuses={200, 404},
+            retry_count=3,
+        )
+        .pipe(response_text)
+        .str.json_decode(dtype=_FIND_RESPONSE_DTYPE)
+        .struct.field(f"{tmdb_type}_results")
+        .list.first()
+        .struct.field("id")
+        .alias("tmdb_id")
+    )
+
 
 _TMDB_ID_PID = Literal["P4947", "P4983", "P4985"]
 
@@ -158,7 +235,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         pl.concat(
             [sparql(query, schema=_IMDB_QUERY_SCHEMA) for query in sparql_queries]
         )
-        .with_columns(pl.col("imdb_id").pipe(extract_imdb_numeric_id, tmdb_type))
+        .with_columns(pl.col("imdb_id").pipe(_extract_imdb_numeric_id, tmdb_type))
         .filter(
             pl.col("imdb_numeric_id").is_unique()
             & pl.col("tmdb_id").is_null()
@@ -172,7 +249,13 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
         wd_df.join(tmdb_df, on="imdb_numeric_id", how="left", coalesce=True)
         .drop_nulls()
         .select(["item", "imdb_id"])
-        .with_columns(pl.col("imdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
+        .with_columns(
+            pl.col("imdb_id").pipe(
+                tmdb_find,
+                tmdb_type=tmdb_type,
+                external_id_type="imdb_id",
+            )
+        )
         .select(["item", "tmdb_id"])
         .drop_nulls()
         .select(rdf_statement)
@@ -249,7 +332,13 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
         wd_df.join(tmdb_df, on="tvdb_id", how="left", coalesce=True)
         .drop_nulls()
         .select(["item", "tvdb_id"])
-        .with_columns(pl.col("tvdb_id").pipe(tmdb_find, tmdb_type=tmdb_type))
+        .with_columns(
+            pl.col("tvdb_id").pipe(
+                tmdb_find,
+                tmdb_type=tmdb_type,
+                external_id_type="tvdb_id",
+            )
+        )
         .select(["item", "tmdb_id"])
         .drop_nulls()
         .select(rdf_statement)
