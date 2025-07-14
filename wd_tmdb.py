@@ -2,7 +2,7 @@ from typing import Literal
 
 import polars as pl
 
-from polars_utils import print_rdf_statements, scan_s3_parquet_anon
+from polars_utils import print_rdf_statements
 from sparql import sparql
 from tmdb_etl import TMDB_TYPE, extract_imdb_numeric_id, tmdb_exists, tmdb_find
 from wikidata import is_blocked_item
@@ -147,7 +147,7 @@ def find_tmdb_ids_via_imdb_id(tmdb_type: TMDB_TYPE) -> pl.LazyFrame:
     ).alias("rdf_statement")
 
     tmdb_df = (
-        scan_s3_parquet_anon(f"s3://wikidatabots/tmdb/{tmdb_type}.parquet")
+        pl.scan_parquet(f"https://josh.github.io/tmdb-index/tmdb-{tmdb_type}.parquet")
         .select("id", "imdb_numeric_id")
         .rename({"id": "tmdb_id"})
         .drop_nulls()
@@ -227,7 +227,7 @@ def find_tmdb_ids_via_tvdb_id(tmdb_type: Literal["tv"]) -> pl.LazyFrame:
     ).alias("rdf_statement")
 
     tmdb_df = (
-        scan_s3_parquet_anon(f"s3://wikidatabots/tmdb/{tmdb_type}.parquet")
+        pl.scan_parquet(f"https://josh.github.io/tmdb-index/tmdb-{tmdb_type}.parquet")
         .select("id", "tvdb_id")
         .rename({"id": "tmdb_id"})
         .drop_nulls()
@@ -276,8 +276,8 @@ def find_tmdb_ids_not_found(
         pl.lit(f"Deprecate removed TMDB {tmdb_type} ID"),
     ).alias("rdf_statement")
 
-    tmdb_df = scan_s3_parquet_anon(
-        f"s3://wikidatabots/tmdb/{tmdb_type}.parquet"
+    tmdb_df = pl.scan_parquet(
+        f"https://josh.github.io/tmdb-index/tmdb-{tmdb_type}.parquet"
     ).select("id", "date", "success")
 
     query = _NOT_DEPRECATED_QUERY.replace("P0000", _TMDB_TYPE_TO_WD_PID[tmdb_type])
