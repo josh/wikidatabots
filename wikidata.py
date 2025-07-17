@@ -41,7 +41,7 @@ def _blocked_qids() -> pl.Series:
                 log_group="wikidata",
                 retry_count=3,
                 bad_statuses={429},
-                min_time=10,
+                min_time=60,
             )
             .pipe(response_text)
             .str.json_decode(_QUERY_DTYPE)
