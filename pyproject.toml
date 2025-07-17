@@ -49,4 +49,4 @@ strict = true
 
 [tool.vulture]
 exclude = [ "*test_*.py" ]
-ignore_names = [ "formatwarning", "status", "put_throttle", "maxlag" ]
+ignore_names = [ "formatwarning", "status" ]
