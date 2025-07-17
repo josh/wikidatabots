@@ -216,6 +216,11 @@ def _dtype_str_repr(dtype: PolarsDataType) -> str:
         return dtype._string_repr(dtype)  # type: ignore
 
 
+_COL_SUPPORTS_UNIQUE = (
+    cs.binary() | cs.boolean() | cs.numeric() | cs.string() | cs.temporal()
+)
+
+
 def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
     def _count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
         df2 = df.select(expr)
@@ -252,11 +257,6 @@ def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("false_count"),
         pl.col("is_unique"),
     )
-
-
-_COL_SUPPORTS_UNIQUE = (
-    cs.binary() | cs.boolean() | cs.numeric() | cs.string() | cs.temporal()
-)
 
 
 def compute_stats(

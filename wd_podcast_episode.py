@@ -100,19 +100,19 @@ def _filmcast_feed() -> pl.LazyFrame:
     )
 
 
+_RDF_STATEMENT = pl.format(
+    '<{}> wdt:P577 "{}" . ',
+    pl.col("item"),
+    pl.col("pubdate_feed"),
+).alias("rdf_statement")
+
+
 def _filmcast_feed_statements() -> pl.LazyFrame:
     return (
         _filmcast_wd_items()
         .join(_filmcast_feed(), on="episode_number", suffix="_feed")
         .select(_RDF_STATEMENT)
     )
-
-
-_RDF_STATEMENT = pl.format(
-    '<{}> wdt:P577 "{}" . ',
-    pl.col("item"),
-    pl.col("pubdate_feed"),
-).alias("rdf_statement")
 
 
 def _main() -> None:

@@ -69,6 +69,10 @@ def _decode_plex_guid_key(expr: pl.Expr) -> pl.Expr:
     return expr.str.extract(_GUID_RE, 2).str.decode("hex")
 
 
+def _decode_plex_guid_type(expr: pl.Expr) -> pl.Expr:
+    return expr.str.extract(_GUID_RE, 1).cast(pl.Categorical)
+
+
 def plex_library_guids() -> pl.LazyFrame:
     return (
         plex_server(name=os.environ["PLEX_SERVER"])
@@ -260,10 +264,6 @@ def wikidata_search_guids(limit: int = _SEARCH_LIMIT) -> pl.LazyFrame:
         )
         .pipe(plex_search_guids)
     )
-
-
-def _decode_plex_guid_type(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract(_GUID_RE, 1).cast(pl.Categorical)
 
 
 def _sort(df: SomeFrame) -> SomeFrame:
