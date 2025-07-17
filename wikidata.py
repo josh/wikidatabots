@@ -36,7 +36,13 @@ def _blocked_qids() -> pl.Series:
                     "explaintext": "1",
                 },
             )
-            .pipe(request, log_group="wikidata")
+            .pipe(
+                request,
+                log_group="wikidata",
+                retry_count=3,
+                bad_statuses={429},
+                min_time=10,
+            )
             .pipe(response_text)
             .str.json_decode(_QUERY_DTYPE)
             .struct.field("query")
