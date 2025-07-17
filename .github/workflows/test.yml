@@ -7,6 +7,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
+    strategy:
+      matrix:
+        uv_resolution: ["highest", "lowest-direct"]
+
+    env:
+      UV_RESOLUTION: ${{ matrix.uv_resolution }}
+
     steps:
       - uses: actions/checkout@v4
 
