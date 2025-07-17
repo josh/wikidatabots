@@ -45,8 +45,6 @@ indent = 4
 [tool.mypy]
 strict = true
 
-[tool.pyright]
-
 [tool.vulture]
 exclude = [ "*test_*.py" ]
 ignore_names = [ "formatwarning", "status" ]
