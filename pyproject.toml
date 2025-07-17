@@ -2,44 +2,51 @@
 name = "wikidatabots"
 version = "0.1.0"
 readme = "README.md"
-authors = [{name = "Joshua Peek"}]
+authors = [ { name = "Joshua Peek" } ]
 requires-python = ">=3.12"
-dependencies = [
-    "backoff>=2.0.0,<3.0",
-    "beautifulsoup4>=4.11.0,<5.0",
-    "feedparser>=6.0.0,<7.0",
-    "lxml>=6.0.0,<7.0",
-    "numpy>=1.0.0,<3.0",
-    "polars>=1.0.0,<2.0",
-    "rdflib>=7.0.0,<8.0",
-    "requests>=2.0.0,<3.0",
-    "tqdm>=4.0.0,<5.0",
-    "wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@v0.1.0",
-]
 classifiers = [
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 
-[tool.pyright]
+dependencies = [
+    "backoff>=2,<3",
+    "beautifulsoup4>=4.11,<5",
+    "feedparser>=6,<7",
+    "lxml>=6,<7",
+    "numpy>=1,<3",
+    "polars>=1,<2",
+    "rdflib>=7,<8",
+    "requests>=2,<3",
+    "tqdm>=4,<5",
+    "wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@v0.1.0",
+]
 
-[tool.vulture]
-exclude = ["*test_*.py"]
-ignore_names = ["formatwarning", "status", "put_throttle", "maxlag"]
+[dependency-groups]
+dev = [
+    "hypothesis>=6,<7",
+    "mypy>=1,<2",
+    "pytest>=8,<9",
+    "ruff>=0.4",
+    "types-beautifulsoup4>=4.11,<5",
+    "types-requests>=2,<3",
+    "types-tqdm>=4,<5",
+    "vulture>=2,<3",
+]
 
-[tool.ruff.lint]
-extend-select = ["I", "UP"]
+[tool.ruff]
+lint.extend-select = [ "I", "UP" ]
+
+[tool.pyproject-fmt]
+indent = 4
 
 [tool.mypy]
 strict = true
 
-[dependency-groups]
-dev = [
-    "hypothesis>=6.0.0,<7.0",
-    "mypy>=1.0.0,<2.0",
-    "pytest>=8.0.0,<9.0",
-    "ruff>=0.4.0",
-    "types-beautifulsoup4>=4.11.0,<5.0",
-    "types-requests>=2.0.0,<3.0",
-    "types-tqdm>=4.0.0,<5.0",
-    "vulture>=2.0,<3.0",
-]
+[tool.pyright]
+
+[tool.vulture]
+exclude = [ "*test_*.py" ]
+ignore_names = [ "formatwarning", "status", "put_throttle", "maxlag" ]
