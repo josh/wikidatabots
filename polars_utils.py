@@ -1,6 +1,5 @@
 import atexit
 import datetime
-import gzip
 import html
 import os
 import random
@@ -693,15 +692,6 @@ def html_unescape_list(expr: pl.Expr) -> pl.Expr:
         _html_unescape_list,
         return_dtype=pl.List(pl.Utf8),
         log_group="html_unescape",
-    )
-
-
-def gzip_decompress(expr: pl.Expr) -> pl.Expr:
-    return apply_with_tqdm(
-        expr,
-        gzip.decompress,
-        return_dtype=pl.Binary,
-        log_group="gzip_decompress",
     )
 
 
