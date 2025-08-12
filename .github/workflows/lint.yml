@@ -10,7 +10,7 @@ jobs:
       RUFF_OUTPUT_FORMAT: github
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: astral-sh/setup-uv@v6
 
@@ -34,7 +34,7 @@ jobs:
       UV_RESOLUTION: ${{ matrix.uv_resolution }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: astral-sh/setup-uv@v6
 
