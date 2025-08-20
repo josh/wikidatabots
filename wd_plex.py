@@ -1,10 +1,12 @@
 from datetime import datetime
+from typing import Literal
 
 import polars as pl
 
-from plex_etl import GUID_TYPE
 from polars_utils import print_rdf_statements
 from sparql import sparql
+
+GUID_TYPE = Literal["episode", "movie", "season", "show"]
 
 
 def _plex_guids() -> pl.LazyFrame:
