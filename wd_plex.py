@@ -3,12 +3,12 @@ from datetime import datetime
 import polars as pl
 
 from plex_etl import GUID_TYPE
-from polars_utils import print_rdf_statements, scan_s3_parquet_anon
+from polars_utils import print_rdf_statements
 from sparql import sparql
 
 
 def _plex_guids() -> pl.LazyFrame:
-    return scan_s3_parquet_anon("s3://wikidatabots/plex.parquet").select(
+    return pl.scan_parquet("https://josh.github.io/plex-index/plex.parquet").select(
         "type", "tmdb_id", "key", "success", "retrieved_at"
     )
 
