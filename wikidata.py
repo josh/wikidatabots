@@ -1,3 +1,4 @@
+import platform
 from functools import cache
 
 import polars as pl
@@ -5,6 +6,7 @@ import polars as pl
 from polars_requests import prepare_request, request, response_text
 
 _BLOCKED_PAGE_ID = 103442925
+_USER_AGENT = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
 
 _QUERY_DTYPE = pl.Struct(
     {
@@ -35,6 +37,7 @@ def _blocked_qids() -> pl.Series:
                     "prop": "extracts",
                     "explaintext": "1",
                 },
+                headers={"User-Agent": _USER_AGENT},
             )
             .pipe(
                 request,
