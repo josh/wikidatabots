@@ -40,7 +40,7 @@ def _blocked_qids() -> pl.Series:
                 request,
                 log_group="wikidata",
                 retry_count=3,
-                bad_statuses={429},
+                bad_statuses={403, 429},
                 min_time=60,
             )
             .pipe(response_text)
