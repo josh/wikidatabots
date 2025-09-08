@@ -51,7 +51,7 @@ _OPENCRITIC_GAME_DTYPE = pl.Struct(
     {
         "name": pl.Utf8(),
         "url": pl.Utf8(),
-        "tier": pl.Categorical(ordering="physical"),
+        "tier": pl.Categorical(),
         "percent_recommended": pl.Float32(),
         "num_reviews": pl.UInt16(),
         "num_top_critic_reviews": pl.UInt16(),
