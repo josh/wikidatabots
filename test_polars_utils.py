@@ -96,7 +96,7 @@ def test_merge_with_indicator() -> None:
             "a": pl.Int64(),
             "b": pl.Int64(),
             "b_right": pl.Int64(),
-            "_merge": pl.Categorical(ordering="physical"),
+            "_merge": pl.Categorical(),
         },
     )
     assert_frame_equal(df3, df4)
