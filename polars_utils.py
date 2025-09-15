@@ -221,44 +221,6 @@ _COL_SUPPORTS_UNIQUE = (
 )
 
 
-def compute_raw_stats(df: pl.DataFrame) -> pl.DataFrame:
-    def _count_columns(column_name: str, expr: pl.Expr) -> pl.DataFrame:
-        df2 = df.select(expr)
-        if df2.is_empty():
-            schema = {"column": pl.Utf8, column_name: pl.UInt32}
-            return pl.DataFrame(schema=schema)
-        return df2.transpose(include_header=True, column_names=[column_name])
-
-    null_count_df = _count_columns("null_count", pl.all().null_count())
-    is_unique_df = _count_columns(
-        "is_unique",
-        _COL_SUPPORTS_UNIQUE.drop_nulls().is_unique().all(),
-    )
-    true_count_df = _count_columns("true_count", pl.col(pl.Boolean).drop_nulls().sum())
-    false_count_df = _count_columns(
-        "false_count", pl.col(pl.Boolean).drop_nulls().not_().sum()
-    )
-
-    joined_df = (
-        null_count_df.join(is_unique_df, on="column", how="left", coalesce=True)
-        .join(true_count_df, on="column", how="left", coalesce=True)
-        .join(false_count_df, on="column", how="left", coalesce=True)
-    )
-
-    return joined_df.select(
-        pl.col("column").alias("name"),
-        # MARK: pl.Expr.map_elements
-        pl.col("column")
-        .map_elements(df.schema.get, return_dtype=pl.Object)
-        .map_elements(_dtype_str_repr, return_dtype=pl.String)
-        .alias("dtype"),
-        pl.col("null_count"),
-        pl.col("true_count"),
-        pl.col("false_count"),
-        pl.col("is_unique"),
-    )
-
-
 def compute_stats(
     df: pl.DataFrame,
     changes_df: pl.DataFrame | None = None,
