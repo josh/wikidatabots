@@ -20,7 +20,7 @@ _IMDB_ID_PATTERN: dict[TMDB_TYPE, str] = {
 def _extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
     return (
         expr.str.extract(_IMDB_ID_PATTERN[tmdb_type], 1)
-        .cast(pl.UInt32)
+        .cast(pl.UInt32, strict=False)
         .alias("imdb_numeric_id")
     )
 
