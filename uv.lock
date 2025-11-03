@@ -3,15 +3,6 @@ revision = 3
 requires-python = ">=3.12"
 
 [[package]]
-name = "attrs"
-version = "25.3.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5a/b0/1367933a8532ee6ff8d63537de4f1177af4bff9f3e829baf7331f595bb24/attrs-25.3.0.tar.gz", hash = "sha256:75d7cefc7fb576747b2c81b4442d4d4a1ce0900973527c011d1030fd3bf4af1b", size = 812032, upload-time = "2025-03-13T11:10:22.779Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/06/bb80f5f86020c4551da315d78b3ab75e8228f89f0162f2c3a819e407941a/attrs-25.3.0-py3-none-any.whl", hash = "sha256:427318ce031701fea540783410126f03899a97ffc6f61596ad581ac2e40e3bc3", size = 63815, upload-time = "2025-03-13T11:10:21.14Z" },
-]
-
-[[package]]
 name = "backoff"
 version = "2.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -112,15 +103,14 @@ wheels = [
 
 [[package]]
 name = "hypothesis"
-version = "6.142.1"
+version = "6.145.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs" },
     { name = "sortedcontainers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/13/a4f29624db4d88811d6c4b7708769180004b26f5a2ee6e8a2e8c605da5da/hypothesis-6.142.1.tar.gz", hash = "sha256:3179cb08756562c526aaf4a9871ebbff83d2d75c03896ed0bc9c1d14097a930c", size = 465849, upload-time = "2025-10-16T21:05:51.694Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/c1/6d1e8a969ee9611980fb09f11710ea3760746aee889452423e92b06264ba/hypothesis-6.145.0.tar.gz", hash = "sha256:75946d124cbc3e928bcd0e3e29617a1187bcb37a1381d8cce352515f90e4971b", size = 467388, upload-time = "2025-11-03T09:09:36.677Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/16/2c8023ea706dd3ef155b1ffe531cd7672271cd9c70fbbbafba614b218679/hypothesis-6.142.1-py3-none-any.whl", hash = "sha256:95a7d38fcc58e697e3020665adcb951c630cdbc8065e4b4474949e486b06bd6d", size = 533271, upload-time = "2025-10-16T21:05:48.174Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/ab/0070ebfab7a1a55d6a5d44fbfe8b994fe76c306434cc32ff8ac2eb442779/hypothesis-6.145.0-py3-none-any.whl", hash = "sha256:c9675afc69980ba13da59bbc66cd0760a2440d4c16e8c162fdcf4cc8e5dde562", size = 534457, upload-time = "2025-11-03T09:09:33.351Z" },
 ]
 
 [[package]]
