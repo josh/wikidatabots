@@ -1,6 +1,6 @@
 import polars as pl
 
-from polars_utils import print_rdf_statements, scan_s3_parquet_anon
+from polars_utils import print_rdf_statements
 from sparql import sparql
 from wikidata import is_blocked_item
 
@@ -133,9 +133,9 @@ def _find_opencritic_top_critic_score() -> pl.LazyFrame:
 
     wd_df = _wd_review_scores(determination_method_qid)
 
-    api_df = scan_s3_parquet_anon("s3://wikidatabots/opencritic.parquet").select(
-        pl.all().name.prefix("api_")
-    )
+    api_df = pl.scan_parquet(
+        "https://josh.github.io/opencritic-index/opencritic.parquet"
+    ).select(pl.all().name.prefix("api_"))
 
     return (
         wd_df.join(
@@ -175,9 +175,9 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
 
     wd_df = _wd_review_scores(determination_method_qid)
 
-    api_df = scan_s3_parquet_anon("s3://wikidatabots/opencritic.parquet").select(
-        pl.all().name.prefix("api_")
-    )
+    api_df = pl.scan_parquet(
+        "https://josh.github.io/opencritic-index/opencritic.parquet"
+    ).select(pl.all().name.prefix("api_"))
 
     return (
         wd_df.join(
