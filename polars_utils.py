@@ -472,38 +472,6 @@ def limit[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
 _limit = limit
 
 
-def _align_to_index(df: pl.DataFrame, name: str) -> pl.DataFrame:
-    if df.is_empty():
-        return df
-
-    dtype = df.schema[name]
-
-    row = df.select(
-        pl.col(name).max().cast(pl.Int64).alias("max"),
-        pl.col(name).is_not_null().all().alias("not_null"),
-        pl.col(name).is_unique().all().alias("unique"),
-        pl.col(name).ge(0).all().alias("positive_int"),
-    ).row(0, named=True)
-
-    assert row["not_null"], f"column '{name}' has null values"
-    assert row["unique"], f"column '{name}' has non-unique values"
-    assert row["positive_int"], f"column '{name}' has negative values"
-    assert row["max"] is not None, f"column '{name}' no max"
-
-    id_df = (
-        pl.int_range(end=row["max"] + 1, dtype=pl.UInt64, eager=True)
-        .cast(dtype)
-        .to_frame(name)
-    )
-    return id_df.join(df, on=name, how="left", coalesce=True).select(df.columns)
-
-
-def align_to_index[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
-    df: SomeFrame, name: str
-) -> SomeFrame:
-    return map_batches(df, partial(_align_to_index, name=name))
-
-
 def _update_or_append(df: pl.DataFrame, other: pl.DataFrame, on: str) -> pl.DataFrame:
     def _check_df(df: pl.DataFrame, df_label: str) -> None:
         row = df.select(

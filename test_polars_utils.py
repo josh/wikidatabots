@@ -2,15 +2,12 @@ from collections.abc import Callable
 from typing import TypeVar
 
 import polars as pl
-import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.exceptions import ComputeError, InvalidOperationError
 from polars.testing import assert_frame_equal, assert_series_equal
 from polars.testing.parametric import column, dataframes, series
 
 from polars_utils import (
-    align_to_index,
     apply_with_tqdm,
     compute_stats,
     csv_extract,
@@ -221,93 +218,6 @@ def test_xml_extract() -> None:
     )
 
     assert_frame_equal(df, df2)
-
-
-def test_align_to_index() -> None:
-    df1 = pl.LazyFrame([], schema={"id": pl.Int64})
-    assert_frame_equal(align_to_index(df1, name="id"), df1)
-
-    df1 = pl.LazyFrame(
-        {
-            "id": pl.Series([1, 2, 5], dtype=pl.Int8),
-            "value": [1, 2, 5],
-        }
-    ).map_batches(assert_called_once())
-    df2 = pl.LazyFrame(
-        {
-            "id": pl.Series([0, 1, 2, 3, 4, 5], dtype=pl.Int8),
-            "value": [None, 1, 2, None, None, 5],
-        }
-    ).map_batches(assert_called_once())
-    assert_frame_equal(align_to_index(df1, name="id"), df2)
-
-    df1 = pl.LazyFrame(
-        {
-            "id": pl.Series([255], dtype=pl.UInt8),
-            "value": [42],
-        }
-    ).map_batches(assert_called_once())
-    df3 = align_to_index(df1, name="id").collect()
-    assert df3.collect_schema() == pl.Schema({"id": pl.UInt8, "value": pl.Int64})
-    assert df3.height == 256
-
-    df = pl.LazyFrame(
-        {
-            "id": [-1, 2, 5],
-            "value": [-1, 2, 5],
-        }
-    )
-    with pytest.raises(AssertionError, match="column 'id' has negative values"):
-        align_to_index(df, name="id").collect()
-
-    df = pl.LazyFrame(
-        {
-            "id": ["a", "b", "c"],
-            "value": [1, 2, 5],
-        }
-    )
-    with pytest.raises((InvalidOperationError, ComputeError)):
-        align_to_index(df, name="id").collect()
-
-
-@given(
-    df=dataframes(
-        cols=[
-            column("a", dtype=pl.UInt8, unique=True, allow_null=False),
-            column("b", dtype=pl.UInt16, unique=True, allow_null=False),
-            column("c", dtype=pl.Boolean),
-        ],
-        lazy=True,
-    )
-)
-def test_align_to_index_properties(df: pl.LazyFrame) -> None:
-    df2 = align_to_index(df, name="a").collect()
-
-    df2 = align_to_index(df, name="b").collect()
-    assert df2.height >= df.collect().height
-
-
-def test_align_to_index_evaluates_df_once() -> None:
-    ldf1 = pl.LazyFrame(
-        {
-            "id": pl.Series([1, 2, 5], dtype=pl.Int8),
-            "value": [1, 2, 5],
-        }
-    ).map_batches(assert_called_once())
-    align_to_index(ldf1, name="id").collect()
-
-    ldf2 = pl.LazyFrame(
-        {
-            "id": pl.Series([1, 2, 5], dtype=pl.Int8),
-            "value": [1, 2, 5],
-        }
-    ).select(
-        [
-            pl.col("id").map_batches(assert_called_once(), return_dtype=pl.Int8),
-            pl.col("value").map_batches(assert_called_once(), return_dtype=pl.Int64),
-        ]
-    )
-    align_to_index(ldf2, name="id").collect()
 
 
 def test_update_or_append() -> None:
