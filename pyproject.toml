@@ -22,7 +22,7 @@ dependencies = [
     "rdflib>=7.1,<8",
     "requests>=2.32,<3",
     "tqdm>=4.67,<5",
-    "wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@v1.0.1",
+    "wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@v1.0.2",
 ]
 
 [dependency-groups]
