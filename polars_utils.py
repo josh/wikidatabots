@@ -11,7 +11,6 @@ from functools import partial
 from pathlib import Path
 from typing import Any, TextIO, TypedDict, TypeVar
 
-import numpy as np
 import polars as pl
 import polars.selectors as cs
 from polars._typing import PolarsDataType
@@ -390,32 +389,6 @@ def now() -> pl.Expr:
     return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
 
 
-def position_weights() -> pl.Expr:
-    size = pl.len()
-    row_nr = pl.int_range(1, size + 1)
-    cumsum = (size * (size + 1)) / 2
-    weights = row_nr / cumsum
-    return weights.reverse()
-
-
-def _weighted_random(s: pl.Series) -> pl.Series:
-    size = len(s)
-    values = np.random.choice(size, size=size, replace=False, p=s)
-    return pl.Series(values=values, dtype=pl.UInt32)
-
-
-def weighted_random(weights: pl.Expr) -> pl.Expr:
-    # MARK: pl.Expr.map_batches
-    return weights.map_batches(_weighted_random, return_dtype=pl.UInt32)
-
-
-def weighted_sample[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
-    df: SomeFrame, n: int
-) -> SomeFrame:
-    weighted_args = position_weights().pipe(weighted_random)
-    return df.sort(by=weighted_args).head(n=n)
-
-
 def sample[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
     df: SomeFrame,
     n: int | None = None,
@@ -507,26 +480,6 @@ def update_or_append[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
         return map_batches(df, _update_or_append_collecting)
     else:
         return map_batches(df, partial(_update_or_append, other=other, on=on))
-
-
-def _parse_csv_to_series(data: bytes, dtype: pl.Struct) -> pl.Series:
-    return pl.read_csv(data, schema_overrides=dict(dtype)).to_struct("")
-
-
-def csv_extract(
-    expr: pl.Expr,
-    dtype: PolarsDataType,
-    log_group: str = "apply(csv_extract)",
-) -> pl.Expr:
-    assert isinstance(dtype, pl.List)
-    inner_dtype = dtype.inner
-    assert isinstance(inner_dtype, pl.Struct)
-    return apply_with_tqdm(
-        expr,
-        partial(_parse_csv_to_series, dtype=inner_dtype),
-        return_dtype=dtype,
-        log_group=log_group,
-    )
 
 
 XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None
@@ -667,10 +620,3 @@ def _cleanup_tmpfiles() -> None:
 
 
 atexit.register(_cleanup_tmpfiles)
-
-
-def scan_s3_parquet_anon(uri: str) -> pl.LazyFrame:
-    assert uri.startswith("s3://")
-    bucket, path = uri[5:].split("/", 1)
-    url = f"https://{bucket}.s3.amazonaws.com/{path}"
-    return pl.scan_parquet(url)

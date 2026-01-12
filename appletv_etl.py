@@ -139,10 +139,6 @@ _LOC_PATTERN = (
 )
 
 
-def valid_appletv_id(expr: pl.Expr) -> pl.Expr:
-    return expr.str.extract(_ID_PATTERN)
-
-
 def cleaned_sitemap(sitemap_type: _TYPE, limit: int | None = None) -> pl.LazyFrame:
     return (
         sitemap(sitemap_type, limit=limit)

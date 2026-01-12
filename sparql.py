@@ -9,7 +9,7 @@ import requests as _requests
 from tqdm import tqdm
 
 from actions import warn
-from polars_utils import apply_with_tqdm, csv_extract
+from polars_utils import apply_with_tqdm
 
 _USER_AGENT_STR = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
 
@@ -87,21 +87,4 @@ def sparql(
             .alias("results"),
         )
         .map_batches(read_item_as_csv, schema=schema)
-    )
-
-
-def sparql_batch(
-    queries: pl.Expr,
-    columns: list[str] | None = None,
-    schema: pl.Schema | None = None,
-) -> pl.Expr:
-    if columns and not schema:
-        schema = pl.Schema({column: pl.Utf8 for column in columns})
-    assert schema, "missing schema"
-
-    dtype = pl.List(pl.Struct(schema))
-
-    # MARK: pl.Expr.map_batches
-    return queries.map_batches(_sparql_batch_raw, return_dtype=pl.Binary).pipe(
-        csv_extract, dtype=dtype, log_group="parse_sparql_csv"
     )
