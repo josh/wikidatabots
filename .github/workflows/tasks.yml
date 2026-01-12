@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         script:
-          - "wd_appletv"
           - "wd_opencritic"
           - "wd_plex"
           - "wd_tmdb"
