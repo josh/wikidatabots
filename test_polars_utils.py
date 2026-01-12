@@ -4,23 +4,19 @@ from typing import TypeVar
 import polars as pl
 from hypothesis import assume, given
 from hypothesis import strategies as st
-from polars.testing import assert_frame_equal, assert_series_equal
+from polars.testing import assert_frame_equal
 from polars.testing.parametric import column, dataframes, series
 
 from polars_utils import (
     apply_with_tqdm,
     compute_stats,
-    csv_extract,
     frame_diff,
     map_streaming,
     merge_with_indicator,
     now,
-    position_weights,
     pyformat,
     sample,
     update_or_append,
-    weighted_random,
-    weighted_sample,
     xml_extract,
 )
 
@@ -115,64 +111,6 @@ def test_now() -> None:
 def test_sample() -> None:
     df = pl.LazyFrame({"a": [1, 2, 3, 4, 5]})
     assert len(df.pipe(sample, n=3).collect()) == 3
-
-
-def test_position_weights() -> None:
-    def _eval_weights(size: int) -> pl.Series:
-        return (
-            pl.Series(range(size), dtype=pl.UInt32)
-            .to_frame()
-            .select(position_weights().alias("weights"))
-            .to_series()
-        )
-
-    assert_series_equal(_eval_weights(0), pl.Series("weights", [], dtype=pl.Float64))
-    assert_series_equal(_eval_weights(1), pl.Series("weights", [1.0], dtype=pl.Float64))
-    assert_series_equal(
-        _eval_weights(2), pl.Series("weights", [2 / 3, 1 / 3], dtype=pl.Float64)
-    )
-    assert_series_equal(
-        _eval_weights(3), pl.Series("weights", [1 / 2, 1 / 3, 1 / 6], dtype=pl.Float64)
-    )
-    assert_series_equal(
-        _eval_weights(4),
-        pl.Series("weights", [2 / 5, 3 / 10, 1 / 5, 1 / 10], dtype=pl.Float64),
-    )
-    assert_series_equal(
-        _eval_weights(5),
-        pl.Series("weights", [1 / 3, 4 / 15, 1 / 5, 2 / 15, 1 / 15], dtype=pl.Float64),
-    )
-
-
-def test_weighted_random() -> None:
-    df = (
-        pl.DataFrame({"a": [1, 2, 3]})
-        .with_columns(
-            position_weights().pipe(weighted_random).alias("sort_arg"),
-        )
-        .sort("sort_arg")
-    )
-    assert df.collect_schema() == pl.Schema({"a": pl.Int64, "sort_arg": pl.UInt32})
-    assert len(df) == 3
-
-
-def test_weighted_sample() -> None:
-    df = pl.LazyFrame({"a": [1, 2, 3]}).pipe(weighted_sample, n=2).collect()
-    assert len(df) == 2
-
-
-def test_csv_extract() -> None:
-    dtype = pl.List(pl.Struct({"a": pl.UInt8}))
-    df1 = (
-        pl.LazyFrame({"text": ["a\n1\n2\n3\n", "a\n4\n5\n6\n", "a\n7\n8\n9\n"]})
-        .select(
-            pl.col("text").cast(pl.Binary).pipe(csv_extract, dtype=dtype).alias("data"),
-        )
-        .explode("data")
-        .select(pl.col("data").struct.field("a"))
-    )
-    df2 = pl.LazyFrame({"a": [1, 2, 3, 4, 5, 6, 7, 8, 9]}, schema={"a": pl.UInt8})
-    assert_frame_equal(df1, df2)
 
 
 XML_EXAMPLE = """
