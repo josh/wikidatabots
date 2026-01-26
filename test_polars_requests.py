@@ -15,8 +15,6 @@ from polars_requests import (
     HTTP_RESPONSE_DTYPE,
     prepare_request,
     request,
-    response_date,
-    response_header_value,
     response_text,
 )
 
@@ -64,58 +62,6 @@ def _st_http_response_dict(
             "data": _st_http_data_utf8() if utf8_data else _st_http_data(),
         }
     )
-
-
-def test_request() -> None:
-    response_dtype = pl.Struct({"args": pl.Struct({"foo": pl.Utf8})})
-    ldf = (
-        pl.LazyFrame(
-            {
-                "url": [
-                    "https://postman-echo.com/get?foo=1",
-                    "https://postman-echo.com/get?foo=2",
-                    "https://postman-echo.com/get?foo=3",
-                ]
-            }
-        )
-        .with_columns(
-            pl.col("url").pipe(prepare_request).pipe(request, log_group="postman"),
-        )
-        .with_columns(
-            # BUG: This is returning a List for some reason
-            # pl.col("response").pipe(_response_ok),
-            pl.lit(True).alias("ok"),
-            pl.col("response").pipe(response_date).alias("date"),
-            (
-                pl.col("response")
-                .pipe(response_header_value, name="Content-Type")
-                .alias("content_type")
-            ),
-            pl.col("response").pipe(response_text),
-        )
-        .with_columns(
-            pl.col("response_text")
-            .str.json_decode(response_dtype)
-            .struct.field("args")
-            .struct.field("foo")
-            .alias("foo"),
-        )
-    )
-
-    assert ldf.collect_schema() == pl.Schema(
-        {
-            "url": pl.Utf8(),
-            "response": HTTP_RESPONSE_DTYPE,
-            "ok": pl.Boolean(),
-            "date": pl.Datetime(time_unit="ms"),
-            "content_type": pl.Utf8(),
-            "response_text": pl.Utf8(),
-            "foo": pl.Utf8(),
-        }
-    )
-
-    df = ldf.collect()
-    assert len(df) == 3
 
 
 def test_request_empty() -> None:
@@ -345,21 +291,6 @@ def test_response_ok(responses: pl.Series) -> None:
         pl.col("response").pipe(_response_ok)
     )
     assert df.collect_schema() == pl.Schema({"ok": pl.Boolean})
-    assert len(df) == len(responses)
-
-
-@given(
-    responses=series(
-        dtype=HTTP_RESPONSE_DTYPE,
-        strategy=_st_http_response_dict(),
-        max_size=3,
-    )
-)
-def test_response_header_value(responses: pl.Series) -> None:
-    df = pl.DataFrame({"response": responses}).select(
-        pl.col("response").pipe(response_header_value, name="Date")
-    )
-    assert df.collect_schema() == pl.Schema({"Date": pl.Utf8})
     assert len(df) == len(responses)
 
 

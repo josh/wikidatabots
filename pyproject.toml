@@ -14,12 +14,8 @@ classifiers = [
 ]
 dependencies = [
     "backoff>=2.2.1,<3",
-    "beautifulsoup4>=4.13,<5",
     "feedparser>=6,<7",
-    "lxml>=6,<7",
-    "numpy>=2.3,<3",
     "polars>=1.31,<2",
-    "rdflib>=7.1,<8",
     "requests>=2.32,<3",
     "tqdm>=4.67,<5",
     "wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@v1.0.2",
@@ -31,7 +27,6 @@ dev = [
     "mypy>=1.16,<2",
     "pytest>=8.4,<10",
     "ruff>=0.12,<2",
-    "types-beautifulsoup4>=4.12,<5",
     "types-requests>=2.32,<3",
     "types-tqdm>=4.67,<5",
     "vulture>=2.14,<3",

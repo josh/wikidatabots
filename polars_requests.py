@@ -244,30 +244,5 @@ def prepare_request(
     return expr
 
 
-def response_header_value(response: pl.Expr, name: str) -> pl.Expr:
-    return (
-        response.struct.field("headers")
-        .list.eval(
-            pl.element()
-            .filter(pl.element().struct.field("name") == name)
-            .struct.field("value")
-        )
-        .list.first()
-        .alias(name)
-    )
-
-
-def response_date(response: pl.Expr) -> pl.Expr:
-    return (
-        response.pipe(response_header_value, name="Date")
-        .str.strptime(
-            pl.Datetime(time_unit="ms"),
-            "%a, %d %b %Y %H:%M:%S %Z",
-            strict=True,
-        )
-        .alias("response_date")
-    )
-
-
 def response_text(response: pl.Expr) -> pl.Expr:
     return response.struct.field("data").cast(pl.Utf8).alias("response_text")
