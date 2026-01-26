@@ -1,6 +1,6 @@
 import polars as pl
 
-from sparql import sparql, sparql_batch
+from sparql import sparql
 
 
 def _extract_qid(name: str = "item") -> pl.Expr:
@@ -29,22 +29,3 @@ def test_sparql() -> None:
     )
     df = lf.collect()
     assert len(df) == 10
-
-
-def test_sparql_batch() -> None:
-    ldf = (
-        pl.LazyFrame({"pid": ["P4947", "P4983", "P4985"]})
-        .with_columns(
-            pl.format("SELECT ?n WHERE { wd:{} wdt:P1813 ?n. }", pl.col("pid"))
-            .pipe(sparql_batch, columns=["n"])
-            .alias("results"),
-        )
-        .explode("results")
-        .with_columns(
-            pl.col("results").struct.field("n").alias("n"),
-        )
-        .drop("results")
-    )
-    assert ldf.collect_schema() == pl.Schema({"pid": pl.Utf8, "n": pl.Utf8})
-    df = ldf.collect()
-    assert len(df) == 3
