@@ -384,7 +384,6 @@ def find_tmdb_ids_not_found(
     return (
         df.join(tmdb_df, on="id", how="left", coalesce=True)
         .filter(pl.col("success").not_())
-        # .filter(pl.col("adult").is_null() & pl.col("date").is_not_null())
         .rename({"id": "tmdb_id"})
         .with_columns(exists_expr)
         .filter(pl.col("exists").not_())
