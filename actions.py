@@ -27,10 +27,6 @@ def log_group(name: str) -> Generator[None, None, None]:
             del _THREAD_LOCAL.actions_log_group
 
 
-def print_warning(title: str, message: str) -> None:
-    tqdm.write(f"::warning title={title}::{message}", file=sys.stderr)
-
-
 def _formatwarning(
     message: Warning | str,
     category: type[Warning],
@@ -48,4 +44,4 @@ def _formatwarning(
 warnings.formatwarning = _formatwarning
 
 
-__all__ = ["log_group", "print_warning", "warn"]
+__all__ = ["log_group", "warn"]

@@ -1,13 +1,9 @@
-import atexit
 import datetime
 import sys
-import xml.etree.ElementTree as ET
-from collections.abc import Callable, Iterator
-from pathlib import Path
+from collections.abc import Callable
 from typing import Any, TextIO, TypeVar
 
 import polars as pl
-import polars.selectors as cs
 from polars._typing import PolarsDataType
 from tqdm import tqdm
 
@@ -55,23 +51,6 @@ def apply_with_tqdm(
     return expr.map_batches(map_function, return_dtype=return_dtype)
 
 
-_INDICATOR_EXPR = (
-    pl.when(pl.col("_merge_left") & pl.col("_merge_right"))
-    .then(pl.lit("both", dtype=pl.Categorical))
-    .when(pl.col("_merge_left"))
-    .then(pl.lit("left_only", dtype=pl.Categorical))
-    .when(pl.col("_merge_right"))
-    .then(pl.lit("right_only", dtype=pl.Categorical))
-    .otherwise(None)
-    .alias("_merge")
-)
-
-
-_COL_SUPPORTS_UNIQUE = (
-    cs.binary() | cs.boolean() | cs.numeric() | cs.string() | cs.temporal()
-)
-
-
 def now() -> pl.Expr:
     return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
 
@@ -94,15 +73,6 @@ def sample[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
         )
 
     return map_batches(df, _sample)
-
-
-def head[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
-    df: SomeFrame, n: int | None
-) -> SomeFrame:
-    if n:
-        return df.head(n)
-    else:
-        return df
 
 
 class LimitWarning(Warning):
@@ -132,52 +102,6 @@ def limit[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
 _limit = limit
 
 
-XMLValue = dict[str, "XMLValue"] | list["XMLValue"] | str | int | float | None
-
-
-def _xml_element_struct_field(
-    element: ET.Element,
-    dtype: pl.Struct,
-) -> dict[str, XMLValue]:
-    obj: dict[str, XMLValue] = {}
-    for field in dtype.fields:
-        if isinstance(field.dtype, pl.List):
-            inner_dtype = field.dtype.inner
-            assert inner_dtype
-            values = _xml_element_field_iter(element, field.name, inner_dtype)
-            obj[field.name] = list(values)
-        else:
-            values = _xml_element_field_iter(element, field.name, field.dtype)
-            obj[field.name] = next(values, None)
-    return obj
-
-
-def _xml_element_field_iter(
-    element: ET.Element,
-    name: str,
-    dtype: PolarsDataType,
-) -> Iterator[dict[str, XMLValue] | str | int | float]:
-    assert not isinstance(dtype, pl.List)
-
-    if name in element.attrib:
-        yield element.attrib[name]
-
-    for child in element:
-        # strip xml namespace
-        tag = child.tag.split("}")[-1]
-
-        if tag == name:
-            if isinstance(dtype, pl.Struct):
-                yield _xml_element_struct_field(child, dtype)
-            elif child.text and child.text.strip():
-                if dtype == pl.Int64:
-                    yield int(child.text)
-                elif dtype == pl.Float64:
-                    yield float(child.text)
-                else:
-                    yield child.text
-
-
 _RDF_STATEMENT_LIMIT = 250
 
 
@@ -196,14 +120,3 @@ def print_rdf_statements(
 
     for (line,) in df.iter_rows():
         print(line, file=file)
-
-
-_TMPFILES: list[Path] = []
-
-
-def _cleanup_tmpfiles() -> None:
-    for tmpfile in _TMPFILES:
-        tmpfile.unlink(missing_ok=True)
-
-
-atexit.register(_cleanup_tmpfiles)
