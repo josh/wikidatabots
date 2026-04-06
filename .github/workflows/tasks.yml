@@ -19,7 +19,6 @@ jobs:
       matrix:
         script:
           - "wd_opencritic"
-          - "wd_plex"
           - "wd_tmdb"
 
     steps:
