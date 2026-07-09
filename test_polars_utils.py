@@ -12,15 +12,6 @@ from polars_utils import (
     sample,
 )
 
-
-def setup_module() -> None:
-    pl.enable_string_cache()
-
-
-def teardown_module() -> None:
-    pl.disable_string_cache()
-
-
 T = TypeVar("T")
 
 
