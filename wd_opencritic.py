@@ -214,8 +214,6 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
 
 
 def _main() -> None:
-    pl.enable_string_cache()
-
     pl.concat(
         [
             _find_opencritic_top_critic_score(),
