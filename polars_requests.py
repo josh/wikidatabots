@@ -151,8 +151,9 @@ def _request_series(
 
     values: list[_HTTPResponse | None] = []
     with _log_group(log_group):
-        request_id = 0
-        for request_ in tqdm(requests, unit="url", disable=disable_tqdm):
+        for request_id, request_ in enumerate(
+            tqdm(requests, unit="url", disable=disable_tqdm)
+        ):
             request: _HTTPRequest = request_
             response = None
             if request and request["url"]:
@@ -162,7 +163,6 @@ def _request_series(
                     _make_header_dict(request["headers"]),
                 )
                 response = _make_http_response(r)
-            request_id += 1
             values.append(response)
 
         session.close()
@@ -223,8 +223,8 @@ def _wrap_lit_expr(value: str | pl.Expr) -> pl.Expr:
 
 def prepare_request(
     url: pl.Expr | str,
-    fields: dict[str, pl.Expr | str] = {},
-    headers: dict[str, pl.Expr | str] = {},
+    fields: dict[str, pl.Expr | str] | None = None,
+    headers: dict[str, pl.Expr | str] | None = None,
 ) -> pl.Expr:
     url = _wrap_lit_expr(url)
 
@@ -236,7 +236,7 @@ def prepare_request(
     expr = pl.struct(
         [
             url.alias("url"),
-            _http_dict(headers).alias("headers"),
+            _http_dict(headers or {}).alias("headers"),
         ],
         schema=_HTTP_REQUEST_SCHEMA,
     ).alias("request")
