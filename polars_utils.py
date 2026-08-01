@@ -52,7 +52,8 @@ def apply_with_tqdm(
 
 
 def now() -> pl.Expr:
-    return pl.lit(datetime.datetime.now()).dt.round("1s").dt.cast_time_unit("ms")
+    dt = datetime.datetime.now(tz=datetime.UTC).replace(tzinfo=None)
+    return pl.lit(dt).dt.round("1s").dt.cast_time_unit("ms")
 
 
 def sample[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
