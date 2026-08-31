@@ -1,6 +1,5 @@
 import os
 import platform
-import sys
 
 import requests
 
@@ -47,24 +46,14 @@ def skip_reason(maxlag: int) -> str | None:
     return None
 
 
-def _write_line(name: str, line: str) -> None:
-    if path := os.environ.get(name):
-        with open(path, "a") as f:
-            f.write(f"{line}\n")
-
-
 def _main() -> None:
     reason = skip_reason(_MAXLAG)
-    _write_line("GITHUB_OUTPUT", f"ok={'false' if reason else 'true'}")
-
     if reason:
         warn(reason, MaxlagWarning)
-        message = f"Skipping: Wikidata is not accepting edits, {reason}"
-    else:
-        message = f"Wikidata login path healthy, replication lag under {_MAXLAG}s"
 
-    _write_line("GITHUB_STEP_SUMMARY", message)
-    print(message, file=sys.stderr)
+    if path := os.environ.get("GITHUB_OUTPUT"):
+        with open(path, "a") as f:
+            f.write(f"ok={'false' if reason else 'true'}\n")
 
 
 if __name__ == "__main__":
