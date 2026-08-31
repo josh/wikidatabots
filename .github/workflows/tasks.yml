@@ -10,8 +10,29 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+
+    outputs:
+      ok: ${{ steps.lag.outputs.ok }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Check Wikidata replication lag
+        id: lag
+        run: uv run wikidata_maxlag.py
+
   rdf-patch:
     runs-on: ubuntu-24.04
+    needs: preflight
+    if: ${{ needs.preflight.result == 'success' && needs.preflight.outputs.ok == 'true' }}
     concurrency: rdf_patch_${{ matrix.script }}
 
     strategy:
