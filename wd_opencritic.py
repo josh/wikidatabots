@@ -144,6 +144,7 @@ def _find_opencritic_top_critic_score() -> pl.LazyFrame:
             right_on="api_id",
             how="left",
             coalesce=True,
+            maintain_order="left",
         )
         .filter(
             pl.col("wd_qid").pipe(is_blocked_item).not_()
@@ -186,6 +187,7 @@ def _find_opencritic_percent_recommended() -> pl.LazyFrame:
             right_on="api_id",
             how="left",
             coalesce=True,
+            maintain_order="left",
         )
         .filter(
             pl.col("wd_qid").pipe(is_blocked_item).not_()
