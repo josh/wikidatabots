@@ -229,9 +229,13 @@ def prepare_request(
     url = _wrap_lit_expr(url)
 
     if fields:
-        f_string = "{}?" + "&".join(name + "={}" for name in fields)
-        field_values = [_wrap_lit_expr(v) for v in fields.values()]
-        url = pl.format(f_string, url, *field_values)
+        field_pairs = [
+            pl.format("{}={}", pl.lit(name), _wrap_lit_expr(value))
+            for name, value in fields.items()
+        ]
+        url = pl.concat_str(
+            [url, pl.lit("?"), pl.concat_str(field_pairs, separator="&")]
+        )
 
     expr = pl.struct(
         [
