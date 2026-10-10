@@ -19,7 +19,7 @@ dependencies = [
     "polars>=1.31,<3",
     "requests>=2.32,<3",
     "tqdm>=4.67,<5",
-    "wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@v1.0.4",
+    "wikidata-rdf-patch @ git+https://github.com/josh/wikidata-rdf-patch.git@v1.0.5",
 ]
 
 [dependency-groups]
