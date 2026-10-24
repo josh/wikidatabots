@@ -1,5 +1,5 @@
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from functools import partial
 from typing import ParamSpec, TypedDict, TypeVar
 
@@ -106,7 +106,7 @@ def _request_series(
 
     response_codes: list[int | None] = [None] * len(requests)
 
-    def request_with_retry(
+    def request_once(
         request_id: int,
         url: str,
         headers: dict[str, str],
@@ -147,14 +147,14 @@ def _request_series(
 
         return r
 
-    request_with_retry = _decorate_backoff(request_with_retry, retry_count)
+    request_with_retry = _decorate_backoff(request_once, retry_count)
 
     values: list[_HTTPResponse | None] = []
     with _log_group(log_group):
         for request_id, request_ in enumerate(
             tqdm(requests, unit="url", disable=disable_tqdm)
         ):
-            request: _HTTPRequest = request_
+            request: _HTTPRequest | None = request_
             response = None
             if request and request["url"]:
                 r = request_with_retry(
@@ -209,7 +209,7 @@ def _http_dict_struct(name: str, value: pl.Expr | str) -> pl.Expr:
     return expr
 
 
-def _http_dict(pairs: dict[str, pl.Expr | str]) -> pl.Expr | pl.Series:
+def _http_dict(pairs: Mapping[str, pl.Expr | str]) -> pl.Expr | pl.Series:
     if len(pairs) == 0:
         return pl.Series(values=[None], dtype=pl.List(_HTTP_DICT_DTYPE))
     return pl.concat_list([_http_dict_struct(n, v) for n, v in pairs.items()])
@@ -223,8 +223,8 @@ def _wrap_lit_expr(value: str | pl.Expr) -> pl.Expr:
 
 def prepare_request(
     url: pl.Expr | str,
-    fields: dict[str, pl.Expr | str] | None = None,
-    headers: dict[str, pl.Expr | str] | None = None,
+    fields: Mapping[str, pl.Expr | str] | None = None,
+    headers: Mapping[str, pl.Expr | str] | None = None,
 ) -> pl.Expr:
     url = _wrap_lit_expr(url)
 

@@ -75,6 +75,19 @@ def test_request_empty() -> None:
     assert_frame_equal(ldf, ldf2)
 
 
+def test_request_null_and_empty_url() -> None:
+    df = pl.DataFrame(
+        {"request": [None, {"url": "", "headers": None}]},
+        schema={"request": HTTP_REQUEST_DTYPE},
+    )
+    actual = df.select(pl.col("request").pipe(request, log_group="empty"))
+    expected = pl.DataFrame(
+        {"response": [None, None]}, schema={"response": HTTP_RESPONSE_DTYPE}
+    )
+
+    assert_frame_equal(actual, expected)
+
+
 def test_request_raw() -> None:
     response_dtype = pl.Struct(
         {

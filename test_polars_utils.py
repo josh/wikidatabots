@@ -8,6 +8,7 @@ from polars.testing.parametric import series
 
 from polars_utils import (
     apply_with_tqdm,
+    map_batches,
     now,
     sample,
 )
@@ -25,6 +26,21 @@ def assert_called_once() -> Callable[[T], T]:
         return value
 
     return mock
+
+
+def test_map_batches_preserves_frame_type() -> None:
+    def increment(df: pl.DataFrame) -> pl.DataFrame:
+        return df.with_columns(pl.col("a") + 1)
+
+    df = pl.DataFrame({"a": [1, 2, 3]})
+    expected = pl.DataFrame({"a": [2, 3, 4]})
+    eager = map_batches(df, increment)
+    lazy = map_batches(df.lazy(), increment)
+
+    assert isinstance(eager, pl.DataFrame)
+    assert isinstance(lazy, pl.LazyFrame)
+    assert_frame_equal(eager, expected)
+    assert_frame_equal(lazy.collect(), expected)
 
 
 def test_now() -> None:
