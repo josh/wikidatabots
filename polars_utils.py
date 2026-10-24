@@ -1,7 +1,7 @@
 import datetime
 import sys
 from collections.abc import Callable
-from typing import Any, TextIO, TypeVar
+from typing import Any, TextIO, cast
 
 import polars as pl
 from polars._typing import PolarsDataType
@@ -10,16 +10,14 @@ from tqdm import tqdm
 from actions import log_group as _log_group
 from actions import warn
 
-SomeFrame = TypeVar("SomeFrame", pl.DataFrame, pl.LazyFrame)
-
 
 def map_batches[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
     df: SomeFrame, function: Callable[[pl.DataFrame], pl.DataFrame]
 ) -> SomeFrame:
     if isinstance(df, pl.LazyFrame):
-        return df.map_batches(function)
+        return cast(SomeFrame, df.map_batches(function))
     else:
-        return function(df)
+        return cast(SomeFrame, function(df))
 
 
 def apply_with_tqdm(

@@ -25,9 +25,9 @@ dependencies = [
 [dependency-groups]
 dev = [
     "hypothesis>=6.135,<7",
-    "mypy>=1.16,<2",
     "pytest>=8.4,<10",
     "ruff>=0.12,<2",
+    "ty>=0.0.91,<0.1",
     "types-requests>=2.32,<3",
     "types-tqdm>=4.67,<5",
     "vulture>=2.14,<3",
@@ -42,6 +42,3 @@ ignore_names = [ "formatwarning", "status" ]
 
 [tool.pyproject-fmt]
 indent = 4
-
-[tool.mypy]
-strict = true

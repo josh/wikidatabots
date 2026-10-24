@@ -2,6 +2,7 @@ import sys
 import warnings
 from collections.abc import Generator
 from contextlib import contextmanager
+from functools import partial
 from threading import Lock, local
 from warnings import warn
 
@@ -41,7 +42,7 @@ def _formatwarning(
     )
 
 
-warnings.formatwarning = _formatwarning
+warnings.formatwarning = partial(_formatwarning)
 
 
 __all__ = ["log_group", "warn"]
