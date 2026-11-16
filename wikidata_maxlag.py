@@ -1,5 +1,6 @@
 import os
 import platform
+import time
 
 import requests
 
@@ -7,7 +8,9 @@ from actions import warn
 
 _API_URL = "https://www.wikidata.org/w/api.php"
 _USER_AGENT = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
-_MAXLAG = 5
+_MAXLAG = 2
+_SAMPLES = 3
+_SAMPLE_INTERVAL = 20
 
 
 class MaxlagWarning(Warning):
@@ -47,7 +50,10 @@ def skip_reason(maxlag: int) -> str | None:
 
 
 def _main() -> None:
-    reason = skip_reason(_MAXLAG)
+    for _ in range(_SAMPLES):
+        if reason := skip_reason(_MAXLAG):
+            break
+        time.sleep(_SAMPLE_INTERVAL)
     if reason:
         warn(reason, MaxlagWarning)
 
