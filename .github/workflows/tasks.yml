@@ -31,6 +31,7 @@ jobs:
 
   rdf-patch:
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     needs: preflight
     if: ${{ needs.preflight.result == 'success' && needs.preflight.outputs.ok == 'true' }}
     concurrency: rdf_patch_${{ matrix.script }}
@@ -61,7 +62,7 @@ jobs:
 
       - name: Process RDF statements
         run: |
-          uv run wikidata-rdf-patch <output.ttl
+          uv run wikidata-rdf-patch --deadline 1800 <output.ttl
         env:
           WIKIDATA_USERNAME: ${{ secrets.WIKIDATA_USERNAME }}
           WIKIDATA_PASSWORD: ${{ secrets.WIKIDATA_PASSWORD }}
