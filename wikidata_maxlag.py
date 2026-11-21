@@ -8,7 +8,7 @@ from actions import warn
 
 _API_URL = "https://www.wikidata.org/w/api.php"
 _USER_AGENT = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
-_MAXLAG = 2
+_MAXLAG = int(os.environ.get("WIKIDATA_MAXLAG", "5"))
 _SAMPLES = 3
 _SAMPLE_INTERVAL = 20
 
