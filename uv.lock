@@ -414,8 +414,8 @@ wheels = [
 
 [[package]]
 name = "wikidata-rdf-patch"
-version = "1.0.7"
-source = { git = "https://github.com/josh/wikidata-rdf-patch.git?rev=v1.0.7#ee0f10fa17634b0686666d7f176450ac15623938" }
+version = "1.0.8"
+source = { git = "https://github.com/josh/wikidata-rdf-patch.git?rev=v1.0.8#8814905040e033b3cf0316f05acfb6fdf2851524" }
 dependencies = [
     { name = "click" },
     { name = "rdflib" },
@@ -453,7 +453,7 @@ requires-dist = [
     { name = "polars", specifier = ">=1.31,<3" },
     { name = "requests", specifier = ">=2.32,<3" },
     { name = "tqdm", specifier = ">=4.67,<5" },
-    { name = "wikidata-rdf-patch", git = "https://github.com/josh/wikidata-rdf-patch.git?rev=v1.0.7" },
+    { name = "wikidata-rdf-patch", git = "https://github.com/josh/wikidata-rdf-patch.git?rev=v1.0.8" },
 ]
 
 [package.metadata.requires-dev]
