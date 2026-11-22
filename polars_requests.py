@@ -2,14 +2,14 @@ import time
 from collections.abc import Callable, Iterable, Mapping
 from functools import partial
 from typing import ParamSpec, TypedDict, TypeVar
+from warnings import warn
 
 import backoff
 import polars as pl
 import requests as _requests
 from tqdm import tqdm
 
-from actions import log_group as _log_group
-from actions import warn
+from polars_utils import serial_lock
 
 
 class _HTTPDict(TypedDict):
@@ -89,7 +89,7 @@ def _decorate_backoff[**P, T](fn: Callable[P, T], max_retries: int) -> Callable[
 
 def _request_series(
     requests: pl.Series,
-    log_group: str,
+    desc: str,
     timeout: float,
     min_time: float,
     ok_statuses: set[int],
@@ -150,9 +150,9 @@ def _request_series(
     request_with_retry = _decorate_backoff(request_once, retry_count)
 
     values: list[_HTTPResponse | None] = []
-    with _log_group(log_group):
+    with serial_lock:
         for request_id, request_ in enumerate(
-            tqdm(requests, unit="url", disable=disable_tqdm)
+            tqdm(requests, desc=desc, unit="url", disable=disable_tqdm)
         ):
             request: _HTTPRequest | None = request_
             response = None
@@ -172,7 +172,7 @@ def _request_series(
 
 def request(
     requests: pl.Expr,
-    log_group: str,
+    desc: str,
     timeout: float = 10.0,
     min_time: float = 0.0,
     ok_statuses: Iterable[int] = [200],
@@ -183,7 +183,7 @@ def request(
     return requests.map_batches(
         partial(
             _request_series,
-            log_group=log_group,
+            desc=desc,
             timeout=timeout,
             min_time=min_time,
             ok_statuses=set(ok_statuses),

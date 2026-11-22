@@ -34,7 +34,7 @@ def tmdb_exists(expr: pl.Expr, tmdb_type: _EXISTS_TMDB_TYPE) -> pl.Expr:
         .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
         .pipe(
             request,
-            log_group=f"api.themoviedb.org/3/{tmdb_type}",
+            desc=f"api.themoviedb.org/3/{tmdb_type}",
             ok_statuses={200, 404},
             retry_count=3,
         )
@@ -71,7 +71,7 @@ def tmdb_find(
         )
         .pipe(
             request,
-            log_group="api.themoviedb.org/3/find",
+            desc="api.themoviedb.org/3/find",
             ok_statuses={200, 404},
             retry_count=3,
         )

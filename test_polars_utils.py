@@ -69,7 +69,7 @@ def test_apply_with_tqdm() -> None:
             pl.col("s"),
             lambda x: x + 1,
             return_dtype=pl.Int64,
-            log_group="test",
+            desc="test",
         )
     )
     assert df3.collect_schema() == pl.Schema({"s": pl.Int64})
@@ -82,7 +82,7 @@ def test_apply_with_tqdm_properties(s: pl.Series) -> None:
         return max(min(a, 0), 100)
 
     df = pl.DataFrame({"a": s}).select(
-        pl.col("a").pipe(apply_with_tqdm, fn, return_dtype=pl.Int64, log_group="test")
+        pl.col("a").pipe(apply_with_tqdm, fn, return_dtype=pl.Int64, desc="test")
     )
     assert df.collect_schema() == pl.Schema({"a": pl.Int64})
     assert len(df) == len(s)

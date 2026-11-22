@@ -2,13 +2,13 @@ import platform
 import sys
 import time
 from functools import partial
+from warnings import warn
 
 import backoff
 import polars as pl
 import requests as _requests
 from tqdm import tqdm
 
-from actions import warn
 from polars_utils import apply_with_tqdm
 
 _USER_AGENT_STR = f"Josh404Bot/1.0 (User:Josh404Bot) Python/{platform.python_version()}"
@@ -59,7 +59,7 @@ def _sparql_batch_raw(queries: pl.Series) -> pl.Series:
                 apply_with_tqdm,
                 partial(_sparql, _log_query=len(queries) == 1),
                 return_dtype=pl.Binary,
-                log_group="sparql",
+                desc="sparql",
             )
         )
         .to_series()

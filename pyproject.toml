@@ -36,7 +36,7 @@ lint.extend-select = [ "I", "UP" ]
 
 [tool.vulture]
 exclude = [ "*test_*.py" ]
-ignore_names = [ "formatwarning", "status" ]
+ignore_names = [ "status" ]
 
 [tool.pyproject-fmt]
 indent = 4

@@ -1,14 +1,15 @@
 import datetime
 import sys
 from collections.abc import Callable
+from threading import RLock
 from typing import Any, TextIO, cast
+from warnings import warn
 
 import polars as pl
 from polars._typing import PolarsDataType
 from tqdm import tqdm
 
-from actions import log_group as _log_group
-from actions import warn
+serial_lock = RLock()
 
 
 def map_batches[SomeFrame: (pl.DataFrame, pl.LazyFrame)](
@@ -24,7 +25,7 @@ def apply_with_tqdm(
     expr: pl.Expr,
     function: Callable[[Any], Any],
     return_dtype: PolarsDataType | None = None,
-    log_group: str = "apply(unknown)",
+    desc: str | None = None,
 ) -> pl.Expr:
     def apply_function(s: pl.Series) -> list[Any]:
         values: list[Any] = []
@@ -33,8 +34,8 @@ def apply_with_tqdm(
         if size == 0:
             return values
 
-        with _log_group(log_group):
-            for item in tqdm(s, unit="row"):
+        with serial_lock:
+            for item in tqdm(s, desc=desc, unit="row"):
                 if item is None:
                     values.append(None)
                 else:
