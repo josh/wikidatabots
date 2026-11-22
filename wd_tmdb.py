@@ -25,13 +25,29 @@ def _extract_imdb_numeric_id(expr: pl.Expr, tmdb_type: TMDB_TYPE) -> pl.Expr:
     )
 
 
+def _prepare_tmdb_request(
+    path: pl.Expr, fields: dict[str, pl.Expr | str] | None = None
+) -> pl.Expr:
+    base_url = os.environ.get("TMDB_API_URL")
+    api_key = os.environ.get("TMDB_API_KEY")
+    if not base_url and not api_key:
+        raise KeyError("TMDB_API_URL or TMDB_API_KEY must be set")
+    fields = dict(fields or {})
+    if api_key:
+        fields["api_key"] = api_key
+    url = pl.concat_str(
+        [pl.lit((base_url or "https://api.themoviedb.org").rstrip("/")), path]
+    )
+    return prepare_request(url, fields=fields)
+
+
 _EXISTS_TMDB_TYPE = Literal["movie", "tv", "person", "collection"]
 
 
 def tmdb_exists(expr: pl.Expr, tmdb_type: _EXISTS_TMDB_TYPE) -> pl.Expr:
     return (
-        pl.format("https://api.themoviedb.org/3/{}/{}", pl.lit(tmdb_type), expr)
-        .pipe(prepare_request, fields={"api_key": os.environ["TMDB_API_KEY"]})
+        pl.format("/3/{}/{}", pl.lit(tmdb_type), expr)
+        .pipe(_prepare_tmdb_request)
         .pipe(
             request,
             desc=f"api.themoviedb.org/3/{tmdb_type}",
@@ -61,14 +77,8 @@ def tmdb_find(
     external_id_type: Literal["imdb_id", "tvdb_id", "wikidata_id"],
 ) -> pl.Expr:
     return (
-        pl.format("https://api.themoviedb.org/3/find/{}", expr)
-        .pipe(
-            prepare_request,
-            fields={
-                "external_source": external_id_type,
-                "api_key": os.environ["TMDB_API_KEY"],
-            },
-        )
+        pl.format("/3/find/{}", expr)
+        .pipe(_prepare_tmdb_request, fields={"external_source": external_id_type})
         .pipe(
             request,
             desc="api.themoviedb.org/3/find",

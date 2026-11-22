@@ -12,28 +12,28 @@ from wd_tmdb import (
     tmdb_find,
 )
 
-TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
+TMDB_CONFIGURED = bool(os.environ.get("TMDB_API_KEY") or os.environ.get("TMDB_API_URL"))
 
 
-@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
+@pytest.mark.skipif(not TMDB_CONFIGURED, reason="Missing TMDB_API_KEY or TMDB_API_URL")
 def test_find_tmdb_ids_via_imdb_id() -> None:
     df = find_tmdb_ids_via_imdb_id(tmdb_type="movie")
     assert df.collect_schema() == pl.Schema({"rdf_statement": pl.Utf8})
 
 
-@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
+@pytest.mark.skipif(not TMDB_CONFIGURED, reason="Missing TMDB_API_KEY or TMDB_API_URL")
 def test_find_tmdb_ids_via_tvdb_id() -> None:
     df = find_tmdb_ids_via_tvdb_id(tmdb_type="tv")
     assert df.collect_schema() == pl.Schema({"rdf_statement": pl.Utf8})
 
 
-@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
+@pytest.mark.skipif(not TMDB_CONFIGURED, reason="Missing TMDB_API_KEY or TMDB_API_URL")
 def test_find_tmdb_ids_not_found() -> None:
     df = find_tmdb_ids_not_found(tmdb_type="movie")
     assert df.collect_schema() == pl.Schema({"rdf_statement": pl.Utf8})
 
 
-@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
+@pytest.mark.skipif(not TMDB_CONFIGURED, reason="Missing TMDB_API_KEY or TMDB_API_URL")
 def test_tmdb_exists() -> None:
     df = pl.LazyFrame({"tmdb_id": [0, 2, 3, 4, 3106]})
     df2 = df.with_columns(pl.col("tmdb_id").pipe(tmdb_exists, "movie"))
@@ -51,7 +51,7 @@ def test_tmdb_exists() -> None:
     assert_frame_equal(df2, df3)
 
 
-@pytest.mark.skipif(TMDB_API_KEY is None, reason="Missing TMDB_API_KEY")
+@pytest.mark.skipif(not TMDB_CONFIGURED, reason="Missing TMDB_API_KEY or TMDB_API_URL")
 def test_find() -> None:
     df = pl.LazyFrame({"imdb_id": ["tt1630029", "tt14269590", "nm3718007"]})
 
