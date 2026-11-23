@@ -1,76 +1,26 @@
 # Agents Guide
 
-This project uses Python 3.12 and manages dependencies with `uv`.
-
-## Setup
-
-Install Python 3.12 or newer.
-
-Install `uv` with:
-
-```sh
-$ curl -LsSf https://astral.sh/uv/install.sh | sh
-# or
-$ pipx install uv
-```
-
-Then install dependencies with:
-
-```sh
-$ uv sync
-```
+The bots are written in Go 1.27 and build into a single `wikidatabots` binary.
 
 ## Testing
 
-Check code style with ruff:
-
 ```sh
-$ uv run ruff format --diff .
-$ uv run ruff check .
+$ go build
+$ gofmt -l .
+$ go vet ./...
+$ go test ./...
 ```
 
-Check type correctness with ty:
+Avoid mocks and local fake servers. Tests make real network connections to Wikidata, the index files on josh.github.io, postman-echo.com and TMDB; `go test -short` skips them. The TMDB tests run only when `TMDB_API_URL` or `TMDB_API_KEY` is set.
 
-```sh
-$ uv run ty check
-```
+## Dependencies
 
-Run the test suite with:
+The only third-party dependency is `github.com/parquet-go/parquet-go`. Prefer the standard library over adding another.
 
-```sh
-$ uv run pytest
-```
+## Output
 
-Avoid [pytest's monkeypatching and mocking features](https://docs.pytest.org/en/stable/how-to/monkeypatch.html). Tests may make real network connections to the API service.
+stdout is a contract with `wikidata-rdf-patch`: statement text must not change without a matching change there. stderr is free-form.
 
-## Formatting
+## Comments
 
-You can automatically fix most formatting issues with:
-
-```sh
-$ uv run ruff format .
-```
-
-Functions should be sorted in dependency order with:
-
-```sh
-$ uv tool run ssort .
-```
-
-After making changes to `pyproject.toml`, ensure its formatted with `pyproject-fmt`.
-
-```sh
-$ uv tool run pyproject-fmt pyproject.toml
-```
-
-## Code Quality
-
-Optionally scan for dead code with vulture:
-
-```sh
-$ uv tool run vulture --exclude .venv/ .
-```
-
-## Comments and Docstrings
-
-Avoid superfluous comments and Python docstrings. Only include them when they add value or clarify complex logic.
+Avoid superfluous comments. Only include them when they add value or clarify complex logic.

@@ -6,43 +6,19 @@ permissions:
   contents: read
 
 jobs:
-  ruff:
+  go:
     runs-on: ubuntu-slim-amd64
-
-    env:
-      RUFF_OUTPUT_FORMAT: github
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+          cache: false
 
-      - name: Install dependencies
-        run: uv sync
+      - name: gofmt
+        run: test -z "$(gofmt -l . | tee /dev/stderr)"
 
-      - name: Ruff Formatter
-        run: uv run ruff format --diff .
-
-      - name: Ruff Linter
-        run: uv run ruff check .
-
-  ty:
-    runs-on: ubuntu-slim-amd64
-
-    strategy:
-      matrix:
-        uv_resolution: ["highest", "lowest-direct"]
-
-    env:
-      UV_RESOLUTION: ${{ matrix.uv_resolution }}
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-
-      - name: Install dependencies
-        run: uv sync
-
-      - name: ty
-        run: uv run ty check
+      - name: go vet
+        run: go vet ./...
