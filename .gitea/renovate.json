@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "rangeStrategy": "update-lockfile",
+  "packageRules": [
+    {
+      "matchPackageNames": ["types-*", "hypothesis"],
+      "matchUpdateTypes": ["patch"],
+      "enabled": false
+    }
+  ]
+}

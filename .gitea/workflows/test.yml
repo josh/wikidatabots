@@ -2,9 +2,12 @@ name: Test
 
 on: [push, workflow_dispatch]
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-amd64
     timeout-minutes: 10
 
     strategy:
@@ -22,8 +25,13 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Check TMDB proxy
+        run: test -n "$TMDB_API_URL"
+        env:
+          TMDB_API_URL: ${{ vars.TMDB_API_URL }}
+
       - name: Test with pytest
         run: |
           uv run pytest --verbose
         env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TMDB_API_URL: ${{ vars.TMDB_API_URL }}
